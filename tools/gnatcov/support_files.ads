@@ -75,6 +75,11 @@ package Support_Files is
    --  GNATcoverage-specific directory in the installation prefix's "share"
    --  directory.
 
+   Gnatcov64 : constant String :=
+     Ada.Directories.Compose
+       (Libexec_Dir, "gnatcov64" & GNAT.OS_Lib.Get_Executable_Suffix.all);
+   --  Path to the gnatcov64 executable
+
    function In_Lib_Dir (File : String) return String
    is (Lib_Dir & "/" & File);
    --  Helper to build the name of a file inside the lib directory

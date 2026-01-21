@@ -17,53 +17,61 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Containers.Hashed_Maps;
-with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
-with Ada.Strings;
-with Ada.Strings.Fixed;
-with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.Exception_Actions;
 
-with GNAT.OS_Lib;
 with GNAT.Regexp;
-with GNATCOLL.JSON;               use GNATCOLL.JSON;
-with GNATCOLL.VFS;                use GNATCOLL.VFS;
+
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
+
+with GPR2;
+with GPR2.Build.Actions.Instrument_Source;
+with GPR2.Build.Actions.Instrument_Source.Ada;
+with GPR2.Build.Actions_Scheduler.In_Thread;
+with GPR2.Build.Actions_Scheduler.Processes;
+with GPR2.Build.Artifacts;
+with GPR2.Build.Artifacts.Files;
 with GPR2.Build.Compilation_Unit;
+with GPR2.Build.Actions_Scheduler;
 with GPR2.Build.Source;
+with GPR2.Build.Source.Sets;
+with GPR2.Build.Tree_Db;
 with GPR2.Containers;
 with GPR2.Path_Name;
 with GPR2.Project.Attribute;
 with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
+with GPR2.Project.Tree;
 with GPR2.Project.View;
+
 with Libadalang.Project_Provider; use Libadalang.Project_Provider;
 
 with Binary_Files;
-with Command_Line;        use Command_Line;
-with Files_Handling;      use Files_Handling;
-with Files_Table;
+with Command_Line;         use Command_Line;
+with Files_Handling;       use Files_Handling;
+with Files_Table;          use Files_Table;
 with Instrument.Ada_Preprocessing;
-with Instrument.Ada_Unit; use Instrument.Ada_Unit;
+with Instrument.Ada_Unit;  use Instrument.Ada_Unit;
 with Instrument.Ada_Unit_Provider;
-with Instrument.C;        use Instrument.C;
+with Instrument.C;         use Instrument.C;
 with Instrument.Clean_Objdirs;
-with Instrument.Common;   use Instrument.Common;
+with Instrument.Common;    use Instrument.Common;
+with Instrument.GPR_Utils; use Instrument.GPR_Utils;
 with Instrument.Debug_Dump;
-with Instrument.Main;
-with Instrument.Source;
-with JSON;                use JSON;
+with JSON;                 use JSON;
 with Outputs;
-with Paths;               use Paths;
-with Project;             use Project;
+with Paths;                use Paths;
+with Project;              use Project;
 with Support_Files;
-with Switches_GPR;        use Switches_GPR;
-with Text_Files;          use Text_Files;
+with Switches_GPR;         use Switches_GPR;
+with Text_Files;           use Text_Files;
 
 --  Generate instrumented sources for the source files of all units of
 --  interest. Also save mappings between coverage buffers and SCOs for each
@@ -93,141 +101,7 @@ procedure Instrument.Projects
    Excluded_Source_Files : access GNAT.Regexp.Regexp;
    Mains                 : String_Vectors.Vector)
 is
-   use type GPR2.Path_Name.Object;
-   use type GPR2.Unit_Kind;
-
-   type Project_Info is record
-      Project : GPR2.Project.View.Object;
-      --  Project that this record describes
-
-      Externally_Built : Boolean;
-      --  Whether this project is externally built. In that case, we assume its
-      --  units of interest have already been instrumented.
-
-      Output_Dir : Unbounded_String;
-      --  Subdirectory in the project file's object directory. All we generate
-      --  for this project must land in it.
-
-      Desc : Prj_Desc;
-
-   end record;
-
-   type Project_Info_Access is access all Project_Info;
-
-   package Project_Info_Maps is new
-     Ada.Containers.Hashed_Maps
-       (Key_Type        => Unbounded_String,
-        Element_Type    => Project_Info_Access,
-        Equivalent_Keys => "=",
-        Hash            => Strings.Hash);
-   --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
-   --  Project_Info records. Project_Info records are owned by this map, and
-   --  thus must be deallocated when maps are deallocated.
-
-   type Main_To_Instrument is record
-      Unit_Name : Unbounded_String;
-      --  For unit-based languages, name of the unit that implements this main.
-      --  Empty string for file-based languages.
-
-      File : GNATCOLL.VFS.Virtual_File;
-      --  Source file to instrument
-
-      Prj_Info : Project_Info_Access;
-      --  Reference to the Project_Info record corresponding to the project
-      --  that owns the main to instrument.
-   end record;
-
-   package Main_To_Instrument_Vectors is new
-     Ada.Containers.Vectors (Positive, Main_To_Instrument);
-
-   function Less (L, R : GPR2.Build.Source.Object) return Boolean
-   is (L.Path_Name < R.Path_Name);
-   function Equal (L, R : GPR2.Build.Source.Object) return Boolean
-   is (L.Path_Name = R.Path_Name);
-
-   package File_Info_Sets is new
-     Ada.Containers.Indefinite_Ordered_Sets
-       (Element_Type => GPR2.Build.Source.Object,
-        "<"          => Less,
-        "="          => Equal);
-
-   type Library_Unit_Info is record
-      Unit_Name : Unbounded_String;
-      --  Name of this unit: unit name for unit-based languages, simple name
-      --  for file-based languages.
-
-      Display_Name : Unbounded_String;
-      --  Name of this unit in messages.
-      --
-      --  To keep progress logs readable, use source basenames for file-based
-      --  languages. Fold actual unit names to lower case for readability.
-
-      Instr_Project : GPR2.Project.View.Object;
-      --  Project in which instrumentation artifacts for this unit are
-      --  generated.
-
-      Language_Kind : Any_Language_Kind;
-      --  Higher level representation of a language (unit-based or file-based)
-
-      Language : Any_Language;
-      --  Actual language representation
-
-      All_Externally_Built : Boolean;
-      --  Whether all of the parts of this unit belongs to an externally-built
-      --  project. If it is the case, the unit won't be instrumented;
-      --  otherwise, every unit part will.
-
-      Spec_Project, Body_Project : GPR2.Project.View.Object;
-      --  Track the owning project of this unit's spec source file (if present)
-      --  and body source file (likewise).
-
-      Sources : File_Info_Sets.Set;
-      --  Set of sources that belong to this unit
-   end record;
-
-   package Unit_Maps is new
-     Ada.Containers.Indefinite_Ordered_Maps (String, Library_Unit_Info);
-   --  Map to unit names to unit info of files implementing this unit. For
-   --  file-based languages, the unit name is the full name (to simplify
-   --  dealing with homonym in different projects).
-
-   type Inst_Context is limited record
-      Ada_Default_Charset : Unbounded_String;
-      --  Default charset to analyze Ada source code
-
-      Mapping_File : Unbounded_String;
-      --  File that describes the mapping of units to source files for all Ada
-      --  units.
-
-      Config_Pragmas_Mapping : Unbounded_String;
-      --  File that describes the mapping of Ada source files to configuration
-      --  pragma files. See the Save_Config_Pragmas_Mapping and
-      --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
-      --  more information.
-
-      Sources_Of_Interest_Response_File : Unbounded_String;
-      --  File containing the list of units of interest, identified by their
-      --  fullname. This is passed on to gnatcov instrument-source invokations
-      --  (for Ada), to know which part of a unit (spec / body / separate) must
-      --  be instrumented.
-
-      Ada_Preprocessor_Data_File : Unbounded_String;
-      --  JSON file that contains the preprocessor data necessary to analyze
-      --  Ada sources (see Instrument.Ada_Unit.Create_Preprocessor_Data_File).
-
-      Excluded_Source_Files_Present : Boolean;
-      Excluded_Source_Files         : GNAT.Regexp.Regexp;
-      --  If present, instrumentation will ignore files whose names match the
-      --  accessed pattern.
-
-      Project_Info_Map : Project_Info_Maps.Map;
-      --  For each project that contains units of interest, this tracks a
-      --  Project_Info record.
-
-      Tag : Unbounded_String;
-      --  Tag relative to the current instrumentation run
-
-   end record;
+   use type GPR2.Language_Id;
 
    function Create_Context
      (Excluded_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
@@ -242,234 +116,39 @@ is
    --  Return whether the instrumentation process must ignore the Filename
    --  source file.
 
-   function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context; Project : GPR2.Project.View.Object)
-      return Project_Info_Access;
-   --  Return the Project_Info record corresponding to Project. Create it if it
-   --  does not exist.
-
-   procedure Register_Main_To_Instrument
-     (Context : in out Inst_Context;
-      Mains   : in out Main_To_Instrument_Vectors.Vector;
-      Main    : GPR2.Build.Compilation_Unit.Unit_Location);
-   --  Register Main (a main source to be instrumented) into Mains so that it
-   --  dumps coverage buffers.
-
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
 
-   function SID_Filename
-     (LU_Info : Library_Unit_Info; In_Library_Dir : Boolean) return String;
-   --  Return the filename of the SID file to create for the given library
-   --  unit. If In_Library_Dir is True and LU_Info lives in a library project,
-   --  then return a filename located in the project library directory.
-   --  Otherwise, the filename is located in the object directory.
+   function Unique_Unit_Name (Source : GPR2.Build.Source.Object) return String;
+   --  Return the unique unit name for the given source. For Ada, this is the
+   --  unit name, and for C/C++, this is the source full name.
 
-   function Load_From_Project (Prj : GPR2.Project.View.Object) return Prj_Desc;
-   --  Load the project description from the given project
+   function Main_Part_Src
+     (Source : GPR2.Build.Source.Object) return GPR2.Build.Source.Object;
 
-   function Compilation_Unit_Options
-     (IC : Inst_Context; Prj : Prj_Desc; LU_Info : Library_Unit_Info)
-      return String_Vectors.Vector;
-   --  Return the list of options to pass to a gnatcov instrument-source /
-   --  instrument-main (depending on Purpose) for the given compilation unit
-   --  LU_Info, belonging to the project Prj.
+   function Skip_Source (Src : GPR2.Build.Source.Object) return Boolean;
+   --  Return whether the given source should be skipped (e.g. if it is a C/C++
+   --  header).
 
    procedure Add_Project_Source
-     (Project     : GPR2.Project.View.Object;
-      Source_File : GPR2.Build.Source.Object);
-   --  If an instrumenter supports Source_File's language and if Project is not
-   --  externally built, add Source_File to Project_Sources.
-
-   procedure Replace_Manual_Indications
-     (Language                : Src_Supported_Language;
-      Project_Sources         : in out File_Info_Sets.Set;
-      Instrumenter            : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted    : in out Boolean;
-      Manual_Indication_Files : File_Sets.Set);
-   --  For all sources in Project_Sources of language Language, call
-   --  Replace_Manual_Indications. If a dump procedure call was inserted
-   --  and id there is not one already, also emit a dump helper unit for the
-   --  project the source belongs to. Set Manual_Dump_Inserted to True if at
-   --  least one manual dump indication was found.
-   --
-   --  Only process the files that are in Manual_Indication_Files if it is not
-   --  empty.
+     (Source : GPR2.Build.Source.Object; Is_Main : Boolean);
+   --  Add the given source to the list of units to instrument, for units that
+   --  are not of interest.
 
    procedure Add_Instrumented_Unit
      (Project     : GPR2.Project.View.Object;
       Source_File : GPR2.Build.Source.Object);
-   --  Add this source file to the list of units to instrument
+   --  Add this source file to the list of units (of interest) to instrument.
+   --  TODO??? maybe this could use the Add_Project_Source subprogram.
+
+   function Units_Of_Interest
+     (Project : GPR2.Project.View.Object) return Unit_Sets.Set;
+   --  Return the list of units of interest in the project closure
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
    --  Clean the instrumentation directories and print any relevant information
    --  regarding the instrumentation context.
-
-   function Display_Name
-     (Kind : Supported_Language_Kind; Unit_Name : String) return String
-   is (case Kind is
-         when Unit_Based_Language => To_Lower (Unit_Name),
-         when File_Based_Language => Ada.Directories.Simple_Name (Unit_Name));
-   --  Compute the display name for a given unit.
-   --
-   --  `Unit_Name` must be the actual unit name for unit-based languages, and
-   --  must be the source filename for file-based languages.
-
-   procedure Show_Progress (Language : Some_Language; Display_Name : String);
-   --  If quiet mode is not enabled, show instrumentation progress by printing
-   --  the language/unit name that are being instrumented.
-
-   -----------------------
-   -- Load_From_Project --
-   -----------------------
-
-   function Load_From_Project (Prj : GPR2.Project.View.Object) return Prj_Desc
-   is
-      package R renames GPR2.Project.Registry.Attribute;
-
-      Languages : constant GPR2.Containers.Language_Set := Prj.Language_Ids;
-      Result    : Prj_Desc;
-   begin
-      Result.Prj_Name := To_Qualified_Name (String (Prj.Name));
-
-      --  Load the naming scheme from project attributes
-
-      declare
-         NS : Naming_Scheme_Desc renames Result.Naming_Scheme;
-      begin
-         for Lang in Some_Language loop
-            if Builtin_Support (Lang)
-              and then Languages.Contains (To_Language_Id (Lang))
-            then
-               declare
-                  Body_Suffix : constant String :=
-                    Project.Source_Suffix (Lang, GPR2.S_Body, Prj);
-                  Spec_Suffix : constant String :=
-                    Project.Source_Suffix (Lang, GPR2.S_Spec, Prj);
-               begin
-                  NS.Body_Suffix (Lang) := +Body_Suffix;
-                  NS.Spec_Suffix (Lang) := +Spec_Suffix;
-               end;
-            end if;
-         end loop;
-         NS.Dot_Replacement :=
-           +Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
-         NS.Casing :=
-           Casing_From_String
-             (Prj.Attribute (Name => R.Naming.Casing).Value.Text,
-              "project " & String (Prj.Name));
-      end;
-
-      --  Register the source directories of the project tree
-
-      declare
-         procedure Register_Source_Dirs (P : GPR2.Project.View.Object);
-         --  Add the source directories of P's project file to the search
-         --  paths to be passed as -I arguments later. The order in which
-         --  the paths are added to the search paths vector is the same
-         --  order in which GNATCOLL retrieves the files in the project
-         --  tree. gprbuild also depends on GNATCOLL which ensures we
-         --  have the same behavior here.
-
-         --------------------------
-         -- Register_Source_Dirs --
-         --------------------------
-
-         procedure Register_Source_Dirs (P : GPR2.Project.View.Object) is
-         begin
-            for Dir of P.Source_Directories loop
-               Result.Search_Paths.Append (+("-I" & String (Dir.Dir_Name)));
-            end loop;
-         end Register_Source_Dirs;
-      begin
-         --  Pass the source directories of the project file as -I options.
-         --  Note that this will duplicate with the project tree traversal
-         --  below, but we need this project source directories to be
-         --  picked first. We thus make sure to add them first to the
-         --  PP_Search_Path list.
-
-         Register_Source_Dirs (Prj);
-
-         --  Pass the source directories of included projects as -I options
-
-         Project.Iterate_Projects
-           (Prj,
-            Register_Source_Dirs'Access,
-            Recursive                => True,
-            Include_Extended         => True,
-            Include_Externally_Built => True);
-      end;
-
-      --  Load the set of compiler switches for languages requiring it
-
-      for Lang in C_Family_Language loop
-         if Languages.Contains (To_Language_Id (Lang)) then
-            declare
-               Lang_Index : constant GPR2.Project.Attribute_Index.Object :=
-                 GPR2.Project.Attribute_Index.Create (Image (Lang));
-
-               package R renames GPR2.Project.Registry.Attribute;
-
-               Options         : Analysis_Options;
-               Compiler_Opts   : String_Vectors.Vector;
-               Switches        : GPR2.Project.Attribute.Object;
-               Compiler_Driver : constant GPR2.Project.Attribute.Object :=
-                 Prj.Attribute
-                   (Name => R.Compiler.Driver, Index => Lang_Index);
-
-            begin
-               --  Get the compiler switches from the project file. When
-               --  registering a compilation unit for instrumentation, we also
-               --  fill the compilation unit specific switches that will
-               --  override the project defaults, if there are any (see
-               --  Add_Instrumented_Unit).
-               --
-               --  Language specific switches can be specified through the
-               --  Compiler.Switches or the Compiler.Default_Switches
-               --  attribute, the former being prioritized over the latter.
-
-               Switches :=
-                 Prj.Attribute
-                   (Name => R.Compiler.Switches, Index => Lang_Index);
-
-               if not Switches.Is_Defined then
-                  Switches :=
-                    Prj.Attribute
-                      (Name  => R.Compiler.Default_Switches,
-                       Index => Lang_Index);
-               end if;
-
-               --  If we manage to find appropriate switches, convert them to a
-               --  string vector import the switches.
-
-               if Switches.Is_Defined then
-                  declare
-                     Args : String_Vectors.Vector;
-                  begin
-                     for S of Switches.Values loop
-                        Args.Append (+S.Text);
-                     end loop;
-                     Import_From_Args (Options, Args);
-                  end;
-               end if;
-
-               Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
-
-               --  If we could not find a C compiler, stay silent at this
-               --  point: the C instrumenter will complain if needed.
-
-               Result.Compiler_Options (Lang) := Compiler_Opts;
-               Result.Compiler_Driver (Lang) :=
-                 +(if Compiler_Driver.Is_Defined
-                   then Compiler_Driver.Value.Text
-                   else "");
-            end;
-         end if;
-      end loop;
-
-      return Result;
-   end Load_From_Project;
 
    --------------------
    -- Create_Context --
@@ -550,53 +229,6 @@ is
              R => Context.Excluded_Source_Files);
    end Is_Excluded_Source_File;
 
-   --------------------------------
-   -- Get_Or_Create_Project_Info --
-   --------------------------------
-
-   function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context; Project : GPR2.Project.View.Object)
-      return Project_Info_Access
-   is
-      use Project_Info_Maps;
-
-      --  Look for an existing Project_Info record corresponding to Project
-
-      Project_Name : constant Unbounded_String := +String (Project.Name);
-      Position     : constant Cursor :=
-        Context.Project_Info_Map.Find (Project_Name);
-   begin
-      if Has_Element (Position) then
-         return Element (Position);
-
-      else
-         --  The requested Project_Info record does not exist yet. Create it,
-         --  register it and return it.
-
-         declare
-            Storage_Project : constant GPR2.Project.View.Object :=
-              Most_Extending (Project);
-            --  Actual project that will host instrumented sources: even when
-            --  we instrument an extended project, the resulting instrumented
-            --  sources must go to the ultimate extending project's object
-            --  directory. This is similar to the object directory that hosts
-            --  object files when GPRbuild processes a project that is
-            --  extended.
-
-            Result : constant Project_Info_Access :=
-              new Project_Info'
-                (Project          => Project,
-                 Externally_Built => Project.Is_Externally_Built,
-                 Output_Dir       => +Project_Output_Dir (Storage_Project),
-                 Desc             => Load_From_Project (Project));
-         begin
-            Result.Desc.Output_Dir := Result.Output_Dir;
-            Context.Project_Info_Map.Insert (Project_Name, Result);
-            return Result;
-         end;
-      end if;
-   end Get_Or_Create_Project_Info;
-
    -------------------------
    -- Prepare_Output_Dirs --
    -------------------------
@@ -607,7 +239,8 @@ is
       for Cur in IC.Project_Info_Map.Iterate loop
          declare
             Prj_Info   : Project_Info renames Element (Cur).all;
-            Output_Dir : constant String := +(Element (Cur).Output_Dir);
+            Output_Dir : constant String :=
+              +(Element (Cur).Desc.Output_Dir.Full_Name);
          begin
             --  Do not create output directories for externally built projects:
             --  we don't instrument them and we may not have filesystem
@@ -622,136 +255,6 @@ is
       end loop;
    end Prepare_Output_Dirs;
 
-   ---------------------------------
-   -- Register_Main_To_Instrument --
-   ---------------------------------
-
-   procedure Register_Main_To_Instrument
-     (Context : in out Inst_Context;
-      Mains   : in out Main_To_Instrument_Vectors.Vector;
-      Main    : GPR2.Build.Compilation_Unit.Unit_Location)
-   is
-      Source    : constant GPR2.Build.Source.Object :=
-        Main.View.Source (Main.Source.Simple_Name);
-      Unit_Name : constant String :=
-        (case Language_Kind (To_Language (Source.Language)) is
-           when Unit_Based_Language => To_Lower (String (Source.Unit.Name)),
-           when File_Based_Language => "");
-      Prj_Info  : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (Context, Main.View);
-   begin
-      Mains.Append
-        (Main_To_Instrument'
-           (Unit_Name => +Unit_Name,
-            File      => Create (+String (Main.Source.Value)),
-            Prj_Info  => Prj_Info));
-   end Register_Main_To_Instrument;
-
-   ------------------
-   -- SID_Filename --
-   ------------------
-
-   function SID_Filename
-     (LU_Info : Library_Unit_Info; In_Library_Dir : Boolean) return String
-   is
-      --  Determine in which project we will put this SID file, and the
-      --  basename for the SID file to create. Mimic how GNAT creates ALI
-      --  files: use the project of the main source of the library unit, start
-      --  from the basename of that source file, replace the last extension
-      --  with ".sid". Also make sure to use the most extending project in the
-      --  hierarchy, which is where GPRbuild puts ALI/object files.
-
-      SID_Basename : Unbounded_String;
-
-      Project : constant GPR2.Project.View.Object :=
-        Most_Extending (LU_Info.Instr_Project);
-
-      Output_Directory : constant GPR2.Path_Name.Object :=
-        (if In_Library_Dir and then Project.Is_Library
-         then Project.Library_Ali_Directory
-         else Project.Object_Directory);
-   begin
-      case Language_Kind (LU_Info.Language) is
-         when Unit_Based_Language =>
-            declare
-               Unit          : constant GPR2.Build.Compilation_Unit.Object :=
-                 Project.Namespace_Roots.First_Element.Unit
-                   (GPR2.Name_Type (+LU_Info.Unit_Name));
-               Src_Basename  : constant String :=
-                 String
-                   (if Unit.Has_Part (GPR2.S_Body)
-                    then Unit.Main_Body.Source.Simple_Name
-                    else Unit.Spec.Source.Simple_Name);
-               Src_Ext_Index : constant Positive :=
-                 Ada.Strings.Fixed.Index
-                   (Src_Basename, ".", Ada.Strings.Backward);
-            begin
-               SID_Basename :=
-                 +(Src_Basename (Src_Basename'First .. Src_Ext_Index) & "sid");
-            end;
-
-         when File_Based_Language =>
-
-            --  TODO (eng/toolchain/gnat#603)??? Ada.Directories.Simple_Name
-            --  fails in edge cases. Use GNATCOLL.VFS instead for more reliable
-            --  results.
-
-            declare
-               File     : constant Virtual_File :=
-                 Create (+(+LU_Info.Unit_Name));
-               Basename : constant String := +File.Base_Name;
-            begin
-               SID_Basename := +Basename & ".sid";
-            end;
-      end case;
-
-      return String (Output_Directory.Value) / (+SID_Basename);
-   end SID_Filename;
-
-   ------------------------------
-   -- Compilation_Unit_Options --
-   ------------------------------
-
-   function Compilation_Unit_Options
-     (IC : Inst_Context; Prj : Prj_Desc; LU_Info : Library_Unit_Info)
-      return String_Vectors.Vector
-   is
-      Result : String_Vectors.Vector;
-   begin
-      --  Depending on the language, pass the right set of options
-
-      case LU_Info.Language is
-         when Ada_Language =>
-            Result.Append ("--ada-default-charset=" & IC.Ada_Default_Charset);
-            Result.Append ("--gnatem=" & IC.Mapping_File);
-            Result.Append
-              ("--config-pragmas-mapping=" & IC.Config_Pragmas_Mapping);
-            Result.Append
-              ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
-
-         when others       =>
-            null;
-      end case;
-
-      --  Pass the list of sources of interest, to e.g. skip the
-      --  instrumentation of the spec / body / subunit for an Ada unit if
-      --  it was requested through a --excluded-source-files switch.
-
-      Result.Append ("--files=@" & IC.Sources_Of_Interest_Response_File);
-
-      --  Pass the right language
-
-      Result.Append (+"--lang=" & Image (LU_Info.Language));
-
-      --  Pass the project description options
-
-      Result.Append
-        (String_Vectors.Vector'
-           (Unparse (Prj, LU_Info.Unit_Name, LU_Info.Language)));
-
-      return Result;
-   end Compilation_Unit_Options;
-
    --  Create the instrumenter context
 
    IC : Inst_Context := Create_Context (Excluded_Source_Files);
@@ -763,39 +266,137 @@ is
    --  instrument for them.
 
    Instrumented_Sources : Unit_Maps.Map;
-   --  List of units that should be instrumented
+   --  List of units that should be instrumented, for source instrumentation
+   --  purpose.
 
-   Files_Of_Interest      : File_Sets.Set;
-   Files_Of_Interest_Info : File_Info_Sets.Set;
-   --  List of files of interest.
-   --
-   --  This is passed on to instrument-source invocations when instrumenting
-   --  an Ada file (to know which part of a compilation unit must be
-   --  instrumented, i.e. spec / body / separates).
+   Files_Of_Interest_Info : Source_Sets.Set;
+   --  Mapping from file to GPR2.Build.Source.Object, to be able to retrieve,
+   --  e.g. the separates of a compilation unit.
 
-   Project_Sources : File_Info_Sets.Set;
-   --  Sets of all Ada and C family source files of all projects. If the dump
-   --  trigger is "manual", traversing all these project sources will be
-   --  necessary to find the indication marking the location where the user
-   --  wishes the Dump_Buffers call to be inserted.
+   Mains_To_Instrument : Source_Sets.Set;
+   --  List of mains to instrument. Note that this is filled even when using
+   --  the manual dump trigger, to insert a with clause to the dump helper
+   --  unit, thus making sure the coverage buffers end up in the main closure.
 
-   Emitted_Manual_Helpers : String_Sets.Set;
-   --  In the case of a manual dump config, set of names of manual dump helper
-   --  units that have been emitted thus far.
+   ----------------------
+   -- Unique_Unit_Name --
+   ----------------------
+
+   function Unique_Unit_Name (Source : GPR2.Build.Source.Object) return String
+   is
+      Language  : constant Src_Supported_Language :=
+        To_Language (Source.Language);
+      Lang_Kind : constant Supported_Language_Kind := Language_Kind (Language);
+   begin
+      if Lang_Kind = Unit_Based_Language then
+         return Get_Unit_Name (Source);
+      else
+         return String (Source.Path_Name.Value);
+      end if;
+   end Unique_Unit_Name;
+
+   -------------------
+   -- Main_Part_Src --
+   -------------------
+
+   function Main_Part_Src
+     (Source : GPR2.Build.Source.Object) return GPR2.Build.Source.Object
+   is
+      Root_Prj  : constant GPR2.Project.View.Object :=
+        Project.Project.Root_Project;
+      Lang_Kind : constant Supported_Language_Kind :=
+        Language_Kind (To_Language (Source.Language));
+   begin
+      if Lang_Kind = Unit_Based_Language then
+         return
+           Root_Prj.Visible_Source
+             (Root_Prj.Unit (Source.Unit.Name).Main_Part.Source);
+      else
+         return Source;
+      end if;
+   end Main_Part_Src;
+
+   -----------------
+   -- Skip_Source --
+   -----------------
+
+   function Skip_Source (Src : GPR2.Build.Source.Object) return Boolean is
+      Language : constant Src_Supported_Language := To_Language (Src.Language);
+   begin
+      --  Headers are not instrumented by themselves, so exit early as soon
+      --  as they have been added to the sources of interest.
+
+      return
+        (Language in C_Family_Language and then Src.Kind = GPR2.S_Spec)
+
+        --  Ada bodies that just contain the No_Body pragmas cannot be
+        --  instrumented (not worthwhile anyway): just skip them.
+
+        or else
+          (Language = Ada_Language
+           and then First_Unit (Src).Kind = GPR2.S_No_Body);
+   end Skip_Source;
 
    ------------------------
    -- Add_Project_Source --
    ------------------------
 
    procedure Add_Project_Source
-     (Project     : GPR2.Project.View.Object;
-      Source_File : GPR2.Build.Source.Object) is
+     (Source : GPR2.Build.Source.Object; Is_Main : Boolean)
+   is
+      Project : constant GPR2.Project.View.Object := Source.Owning_View;
    begin
-      if Builtin_Support (To_Language (Source_File.Language))
-        and then not Project.Is_Externally_Built
-      then
-         Project_Sources.Insert (Source_File);
+      --  Start by checking if this is a supported language
+
+      if To_Language_Or_All (Source.Language) = All_Languages then
+         return;
       end if;
+
+      declare
+         Language  : constant Src_Supported_Language :=
+           To_Language (Source.Language);
+         Lang_Kind : constant Supported_Language_Kind :=
+           Language_Kind (Language);
+         Unit_Name : constant String := Unique_Unit_Name (Source);
+      begin
+         if not Builtin_Support (Language)
+           or else Project.Is_Externally_Built
+           or else Project.Is_Runtime
+           or else Skip_Source (Source)
+           or else Instrumented_Sources.Contains (Unit_Name)
+         then
+            return;
+         end if;
+
+         --  Check that this is not a multi unit source as gnatcov does not
+         --  support these.
+
+         if Source.Has_Units and then Source.Units.Length > 1 then
+            Outputs.Error
+              ("instrumentation failed for " & String (Source.Path_Name.Name));
+            Outputs.Error
+              ("source files containing multiple compilation units"
+               & " are not supported");
+            return;
+         end if;
+
+         declare
+            Main_Src : constant GPR2.Build.Source.Object :=
+              Main_Part_Src (Source);
+
+            LU_Info : constant Library_Unit_Info :=
+              (Instr_Project        => Project,
+               Language_Kind        => Lang_Kind,
+               Language             => Language,
+               All_Externally_Built => False,
+               Main_Part_Src        => Main_Src,
+               Is_Main              => Is_Main,
+               Is_UOI               => False,
+               others               => <>);
+         begin
+            Instrumented_Sources.Insert (Unit_Name, LU_Info);
+         end;
+      end;
    end Add_Project_Source;
 
    ---------------------------
@@ -811,13 +412,11 @@ is
       Lang_Kind : constant Supported_Language_Kind := Language_Kind (Language);
 
       use Unit_Maps;
-      Unit_Name : constant String :=
-        (case Lang_Kind is
-           when Unit_Based_Language => Get_Unit_Name (Source_File),
-           when File_Based_Language => String (Source_File.Path_Name.Value));
+      Unit_Name : constant String := Unique_Unit_Name (Source_File);
 
       Prj_Info : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (IC, Source_File.Owning_View);
+
    begin
       --  Check if this is an excluded source file
 
@@ -834,26 +433,28 @@ is
          return;
       end if;
 
+      --  Check that this is not a multi unit source as gnatcov does not
+      --  support these. Do not error out, but print an error message.
+
+      if Source_File.Has_Units and then Source_File.Units.Length > 1 then
+         Outputs.Error
+           ("instrumentation failed for "
+            & String (Source_File.Path_Name.Name));
+         Outputs.Error
+           ("source files containing multiple compilation units"
+            & " are not supported");
+         raise Outputs.Xcov_Exit_Exc;
+      end if;
+
       --  Otherwise, this is a source of interest
 
       Files_Of_Interest_Info.Insert (Source_File);
-      Files_Of_Interest.Insert
+      IC.Files_Of_Interest.Insert
         (Create (+String (Source_File.Path_Name.Value)));
 
-      if
-      --  Headers are not instrumented by themselves, so exit early as soon
-      --  as they have been added to the sources of interest.
+      --  Do not instrument header files / No_Body Ada files
 
-         (Language in C_Family_Language
-          and then Source_File.Kind = GPR2.S_Spec)
-
-        --  Ada bodies that just contain the No_Body pragmas cannot be
-        --  instrumented (not worthwhile anyway): just skip them.
-
-        or else
-          (Language = Ada_Language
-           and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
-      then
+      if Skip_Source (Source_File) then
          return;
       end if;
 
@@ -867,8 +468,17 @@ is
          if not Unit_Maps.Has_Element (Cur) then
             Instrumented_Sources.Insert
               (Unit_Name,
-               (Unit_Name            => +Unit_Name,
-                Display_Name         => +Display_Name (Lang_Kind, Unit_Name),
+               (Main_Part_Src        =>
+                  (case Lang_Kind is
+                     when Unit_Based_Language =>
+                       Project.Visible_Source
+                         (Project.Own_Unit (GPR2.Name_Type (Unit_Name))
+                            .Main_Part
+                            .Source),
+                     when File_Based_Language => Source_File),
+                Is_Main              =>
+                  Mains_To_Instrument.Contains (Source_File),
+                Is_UOI               => True,
                 Language_Kind        => Lang_Kind,
                 Language             => Language,
                 All_Externally_Built => Prj_Info.Externally_Built,
@@ -951,7 +561,9 @@ is
 
       --  If dump debug info was requested, add entries for buffer symbols
 
-      if Args.String_Args (Opt_Dump_Debug).Present then
+      if Args.String_Args (Opt_Dump_Debug).Present
+        and then not Skip_Source (Source_File)
+      then
          declare
             CU : constant Files_Table.Compilation_Unit :=
               (Lang_Kind, Unit_Name => +Unit_Name);
@@ -961,191 +573,53 @@ is
       end if;
    end Add_Instrumented_Unit;
 
-   --------------------------------
-   -- Replace_Manual_Indications --
-   --------------------------------
+   -----------------------
+   -- Units_Of_Interest --
+   -----------------------
 
-   procedure Replace_Manual_Indications
-     (Language                : Src_Supported_Language;
-      Project_Sources         : in out File_Info_Sets.Set;
-      Instrumenter            : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted    : in out Boolean;
-      Manual_Indication_Files : File_Sets.Set)
+   function Units_Of_Interest
+     (Project : GPR2.Project.View.Object) return Unit_Sets.Set
    is
-
-      package Non_Root_Src_Calls_Sets is new
-        Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
-
-      Non_Root_Src_Calls : Non_Root_Src_Calls_Sets.Set;
-      --  Set of names of source files containing a dump buffers indication
-      --  that belong to a non-root project.
-
-      Processed_Files : File_Info_Sets.Set;
-      --  List of files processed for the manual indications replacement. This
-      --  is a subset of Project_Sources, discarding header files and only
-      --  processing the files specified by the user requested (through
-      --  --dump-trigger=manual[,FILES]).
-
+      Result : Unit_Sets.Set;
    begin
-      --  Filter the set of processed files
+      for S of
+        Source_Closure
+          (View                  => Project,
+           With_Externally_Built =>
+             Externally_Built_Projects_Processing_Enabled,
+           With_Runtime          => False)
+      loop
+         --  First, check if S is even a source of a language we
+         --  recognize. If not, it can't have been instrumented
+         --  so skip it.
 
-      for Source of Project_Sources loop
-         if To_Language (Source.Language) = Language
-           and then Source.Kind = GPR2.S_Body
-           and then
-             (Manual_Indication_Files.Is_Empty
-              or else
-                Manual_Indication_Files.Contains
-                  (Create (+String (Source.Path_Name.Value))))
-         then
-            Processed_Files.Include (Source);
+         if To_Language_Or_All (S.Language) = All_Languages then
+            goto Skip_File;
          end if;
-      end loop;
 
-      --  Onto the manual indication replacement
-
-      for Source of Processed_Files loop
          declare
-            use String_Sets;
-
-            --  The sources we are processing should be viewed from the most
-            --  extending project we are processing, to ensure it dumps the
-            --  buffers of all the sources in the extending projects as well.
-
-            Prj_Info             : constant Project_Info_Access :=
-              Get_Or_Create_Project_Info
-                (IC, Most_Extending (Source.Owning_View));
-            Prj                  : Prj_Desc renames Prj_Info.Desc;
-            Is_Root_Prj          : constant Boolean :=
-              To_Ada (Prj.Prj_Name) = String (Root_Project_Info.Project.Name);
-            Source_Name          : constant String :=
-              String (Source.Path_Name.Value);
-            Helper_Unit_Name     : constant Unbounded_String :=
-              Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
-            Had_Dump_Indication  : Boolean := False;
-            Had_Reset_Indication : Boolean := False;
+            use Unit_Maps;
+            Unit_C : constant Unit_Maps.Cursor :=
+              Instrumented_Sources.Find (+To_Compilation_Unit (S).Unit_Name);
          begin
-            Instrumenter.Replace_Manual_Indications
-              (Prj_Info.Desc,
-               Source.Path_Name.Virtual_File,
-               Had_Dump_Indication,
-               Had_Reset_Indication);
-
-            if (Had_Dump_Indication or else Had_Reset_Indication)
-              and then not Is_Root_Prj
-            then
-               --  A call to the dump/reset buffers procedure is only able
-               --  to dump/reset the buffers of the project it is in and its
-               --  subprojects, meaning coverage data for all projects
-               --  higher in the project tree will be missing or not reset.
-               --  Record what file this call was in to warn the user later.
-
-               Non_Root_Src_Calls.Include (Source_Name);
-            end if;
-
-            --  Check if we haven't already generated a helper unit for this
-            --  project and instrumenter. At this point, if the project's
-            --  object directory and the instrumented sources directory do
-            --  not exist there is no need to emit the dump helper unit.
-            --  There are no units of interest or call to a manual dump
-            --  procedure for this project.
-
-            if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
-              and then Ada.Directories.Exists (+Prj.Output_Dir)
-            then
-               Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
-
+            if Unit_C /= Unit_Maps.No_Element then
                declare
-                  use Files_Table;
-                  Instr_Units : Unit_Sets.Set;
+                  Unit       : constant Library_Unit_Info := Element (Unit_C);
+                  Instr_Unit : constant Compilation_Unit :=
+                    Compilation_Unit'
+                      (Unit.Language_Kind,
+                       +Unique_Unit_Name (Unit.Main_Part_Src));
                begin
-                  for S of
-                    Source_Closure
-                      (View                  => Source.Owning_View,
-                       With_Externally_Built =>
-                         Externally_Built_Projects_Processing_Enabled,
-                       With_Runtime          => False)
-                  loop
-                     --  First, check if S is even a source of a language we
-                     --  recognize. If not, it can't have been instrumented
-                     --  so skip it.
-
-                     if To_Language_Or_All (S.Language) = All_Languages then
-                        goto Skip_File;
-                     end if;
-
-                     declare
-                        use Unit_Maps;
-                        Unit_C : constant Unit_Maps.Cursor :=
-                          Instrumented_Sources.Find
-                            (+To_Compilation_Unit (S).Unit_Name);
-                     begin
-                        if Unit_C /= Unit_Maps.No_Element then
-                           declare
-                              Unit       : constant Library_Unit_Info :=
-                                Element (Unit_C);
-                              Instr_Unit : constant Compilation_Unit :=
-                                Compilation_Unit'
-                                  (Unit.Language_Kind, Unit.Unit_Name);
-                           begin
-                              if not Instr_Units.Contains (Instr_Unit) then
-                                 Instr_Units.Insert (Instr_Unit);
-                              end if;
-                           end;
-                        end if;
-                     end;
-                     <<Skip_File>>
-                  end loop;
-
-                  --  The creation of the root project's buffers list unit
-                  --  is already taken care of by the regular
-                  --  instrumentation process, so skip it.
-
-                  if not Is_Root_Prj then
-                     Instrumenter.Emit_Buffers_List_Unit (Instr_Units, Prj);
+                  if Unit.Is_UOI then
+                     Result.Include (Instr_Unit);
                   end if;
                end;
-
-               Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
             end if;
-
-            Manual_Dump_Inserted :=
-              Manual_Dump_Inserted or else Had_Dump_Indication;
          end;
+         <<Skip_File>>
       end loop;
-
-      if not Non_Root_Src_Calls.Is_Empty then
-
-         --  For each manual dump/reset call inserted in a file belonging to a
-         --  non-root project, warn the user the coverage data it will produce
-         --  will not cover the whole project tree or may be inconsistent.
-
-         declare
-            All_File_Names : Unbounded_String;
-         begin
-            for File_Name of Non_Root_Src_Calls loop
-               Append (All_File_Names, File_Name);
-               Append (All_File_Names, ASCII.LF);
-            end loop;
-
-            Outputs.Warn
-              ("Manual buffer dump/reset indications were found in subprojects"
-               & " in the following files:"
-               & ASCII.LF
-               & (+All_File_Names)
-               & "The coverage report built from the source traces they will"
-               & " produce will show all code from projects higher in the"
-               & " project tree as not covered. To get a full coverage"
-               & " analysis, consider placing the manual dump buffers"
-               & " indication in the root project."
-               & ASCII.LF
-               & ASCII.LF
-               & "Additionally, resetting the buffers in a subproject may"
-               & " result in incoherent coverage reports from traces dumped"
-               & " from a source in a parent project.");
-         end;
-      end if;
-   end Replace_Manual_Indications;
+      return Result;
+   end Units_Of_Interest;
 
    ---------------------
    -- Clean_And_Print --
@@ -1153,58 +627,35 @@ is
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence) is
    begin
-      Clean_Objdirs;
-      Outputs.Print_Internal_Error (Exc);
-   end Clean_And_Print;
+      if not Save_Temps then
+         Clean_Objdirs
+           (IC,
+            Instrumented_Sources,
 
-   -------------------
-   -- Show_Progress --
-   -------------------
+            --  Do not preserve instrumentation artifacts on an exception
+            --  termination.
 
-   procedure Show_Progress (Language : Some_Language; Display_Name : String) is
-   begin
-      if Quiet then
-         return;
+            Preserve_Artifacts => False);
+         Outputs.Print_Internal_Error (Exc);
       end if;
-
-      declare
-         Language_Name        : constant String :=
-           "[" & Image (Language) & "]";
-         Filename_Indentation : constant String :=
-           (1 .. 16 - Language_Name'Length => ' ');
-      begin
-         Put ("   ");
-         Put (Language_Name);
-         Put (Filename_Indentation);
-         Put_Line (Display_Name);
-      end;
-   end Show_Progress;
-
-   Mains_To_Instrument :
-     array (Src_Supported_Language) of Main_To_Instrument_Vectors.Vector;
-   --  For each supported language, list of mains to instrument. Note that
-   --  this is filled even when dump-trigger is manual: in that case the
-   --  instrumentation of the main will do nothing.
-
-   Manual_Dump_Inserted : Boolean := False;
-   --  Whether or not a dump procedure was inserted in any source file
-
-   Exec_Filename : constant String :=
-     Ada.Directories.Compose
-       (Support_Files.Libexec_Dir,
-        "gnatcov64" & GNAT.OS_Lib.Get_Executable_Suffix.all);
-   --  Launch gnatcov64 for gnatcov subprocesses (when instrumenting sources
-   --  and mains), to bypass the wrapper and save some execution time.
+   end Clean_And_Print;
 
    Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type;
    C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type;
    CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type;
    Instrumenters    :
-     constant array (Src_Supported_Language)
-     of access Language_Instrumenter'Class :=
-       (Ada_Language => Ada_Instrumenter'Access,
-        C_Language   => C_Instrumenter'Access,
-        CPP_Language => CPP_Instrumenter'Access);
+     constant array (Src_Supported_Language) of Language_Instrumenter_Acc :=
+       (Ada_Language => Ada_Instrumenter'Unrestricted_Access,
+        C_Language   => C_Instrumenter'Unrestricted_Access,
+        CPP_Language => CPP_Instrumenter'Unrestricted_Access);
+
+   Tree_Db : GPR2.Build.Tree_Db.Object_Access renames
+     Project.Project.Artifacts_Database;
+
+   Processes_Scheduler : GPR2.Build.Actions_Scheduler.Processes.Object;
+   In_Thread_Scheduler : GPR2.Build.Actions_Scheduler.In_Thread.Object;
+   --  If running non-parallel, execute all instrument actions in thread.
+   --  Otherwise, spawn a process for every instrument action.
 
    --  Start of processing for Instrument_Units_Of_Interest
 
@@ -1213,94 +664,8 @@ begin
 
    IC.Tag := +Instrumentation_Tag;
 
-   --  Delete output directories from previous instrumentations
-
-   Clean_Objdirs;
-
-   --  First get the list of all units of interest
-
-   for Lang in Src_Supported_Language loop
-      if Src_Enabled_Languages (Lang) then
-         Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access, Lang, Mode => Only_UOI_Closures);
-
-         if Dump_Config.Manual_Trigger then
-
-            --  The expected manual dump indication can be located in any
-            --  source file, not only in sources of interest.
-
-            Project.Enumerate_Sources (Add_Project_Source'Access, Lang);
-         end if;
-      end if;
-   end loop;
-
-   --  Remove all of the separate whose parent unit was not instrumented, as
-   --  this is not supported. TODO??? We should probably issue a warning there.
-
-   for Source of Files_Of_Interest_Info.Copy loop
-      if Source.Has_Units and then First_Unit (Source).Kind = GPR2.S_Separate
-      then
-         declare
-            Parent_Unit   :
-              constant GPR2.Build.Compilation_Unit.Unit_Location :=
-                Source.Owning_View.Namespace_Roots.First_Element.Unit
-                  (Source.Unit.Name)
-                  .Main_Body;
-            Parent_File   : constant GPR2.Path_Name.Object :=
-              Parent_Unit.Source;
-            Parent_Source : constant GPR2.Build.Source.Object :=
-              Parent_Unit.View.Source (Parent_File.Simple_Name);
-         begin
-            if not Files_Of_Interest_Info.Contains (Parent_Source) then
-               Files_Of_Interest_Info.Delete (Source);
-            end if;
-         end;
-      end if;
-   end loop;
-
-   --  For all units to instrument, determine the project that owns the source
-   --  file that will be compiled. In the process, remove units for which we
-   --  have found no spec and no body. TODO???  We should probably issue a
-   --  warning there, too.
-
-   declare
-      To_Remove : String_Sets.Set;
-   begin
-      for LU_Info of Instrumented_Sources loop
-         if LU_Info.Body_Project.Is_Defined then
-            LU_Info.Instr_Project := LU_Info.Body_Project;
-         elsif LU_Info.Spec_Project.Is_Defined then
-            LU_Info.Instr_Project := LU_Info.Spec_Project;
-         else
-            To_Remove.Insert (LU_Info.Unit_Name);
-         end if;
-
-         declare
-            Unit_Prj_Info   : Project_Info renames
-              Get_Or_Create_Project_Info (IC, LU_Info.Instr_Project).all;
-            Source_Prj_Info : Project_Info_Access;
-         begin
-            for Source of LU_Info.Sources loop
-               if GPR2.Project.View."/="
-                    (Source.Owning_View, LU_Info.Instr_Project)
-               then
-                  Source_Prj_Info :=
-                    Get_Or_Create_Project_Info (IC, Source.Owning_View);
-                  Unit_Prj_Info.Desc.Special_Output_Dirs.Insert
-                    (+String (Source.Path_Name.Simple_Name),
-                     Source_Prj_Info.Output_Dir);
-               end if;
-            end loop;
-         end;
-      end loop;
-
-      for Unit_Name of To_Remove loop
-         Instrumented_Sources.Delete (+Unit_Name);
-      end loop;
-   end;
-
-   --  If we need to instrument all the mains, also go through them now, so
-   --  that we can prepare output directories for their projects later on.
+   --  First, go through the mains.
+   --
    --  Note that for user convenience, we want to do this for all the
    --  languages that gnatcov supports, even those that are not considered
    --  for coverage analysis.
@@ -1311,13 +676,13 @@ begin
    if Mains.Is_Empty then
       for Lang in Src_Supported_Language loop
          for Main of Project.Enumerate_Mains (Lang) loop
-            Register_Main_To_Instrument (IC, Mains_To_Instrument (Lang), Main);
+            Mains_To_Instrument.Insert
+              (Main.View.Visible_Source (Main.Source));
          end loop;
       end loop;
 
-   --  Otherwise, make sure we can find the source file of each main in
-   --  the project tree and that we can instrument them (supported
-   --  language).
+   --  Otherwise, make sure we can find the source file of each main in the
+   --  project tree and that we can instrument them (supported language).
 
    else
       for Filename of Mains loop
@@ -1341,14 +706,117 @@ begin
                   & F);
             end if;
 
-            Register_Main_To_Instrument
-              (Context => IC,
-               Mains   => Mains_To_Instrument (Lang),
-               Main    =>
-                 (Source.Owning_View, Source.Path_Name, others => <>));
+            Mains_To_Instrument.Insert (Source);
          end;
       end loop;
    end if;
+
+   --  Then, get the list of all units of interest
+
+   for Lang in Src_Supported_Language loop
+      if Src_Enabled_Languages (Lang) then
+         Project.Enumerate_Sources
+           (Add_Instrumented_Unit'Access, Lang, Mode => Only_UOI_Closures);
+      end if;
+   end loop;
+
+   --  Remove all of the separate whose parent unit was not instrumented, as
+   --  this is not supported. TODO??? We should probably issue a warning there.
+
+   for Source of Files_Of_Interest_Info.Copy loop
+      if Source.Has_Units and then First_Unit (Source).Kind = GPR2.S_Separate
+      then
+         declare
+            Parent_Unit   :
+              constant GPR2.Build.Compilation_Unit.Unit_Location :=
+                Source.Owning_View.Namespace_Roots.First_Element.Unit
+                  (Source.Unit.Name)
+                  .Main_Body;
+            Parent_File   : constant GPR2.Path_Name.Object :=
+              Parent_Unit.Source;
+            Parent_Source : constant GPR2.Build.Source.Object :=
+              Parent_Unit.View.Source (Parent_File.Simple_Name);
+         begin
+            if not Files_Of_Interest_Info.Contains (Parent_Source) then
+               Files_Of_Interest_Info.Delete (Source);
+               Files_Of_Interest.Delete (Source.Path_Name.Virtual_File);
+            end if;
+         end;
+      end if;
+   end loop;
+
+   --  Add the other project sources that needs to be instrumented, for main
+   --  instrumentation or manual dump annotations replacement.
+
+   for Main of Mains_To_Instrument loop
+      Add_Project_Source (Main, Is_Main => True);
+   end loop;
+
+   if Dump_Config.Manual_Trigger then
+
+      --  Iterate over all the project sources if the user did not specify
+      --  manual indication files.
+
+      if Dump_Config.Manual_Indication_Files.Is_Empty then
+         for Source of Root_Project_Info.Project.Visible_Sources loop
+            Add_Project_Source (Source, Is_Main => False);
+         end loop;
+      else
+         for Source of Dump_Config.Manual_Indication_Files loop
+            Add_Project_Source
+              (Root_Project_Info.Project.Visible_Source
+                 (GPR2.Path_Name.Create (Source)),
+               Is_Main => False);
+         end loop;
+      end if;
+   end if;
+
+   --  For all units to instrument, determine the project that owns the source
+   --  file that will be compiled. In the process, remove units for which we
+   --  have found no spec and no body. TODO???  We should probably issue a
+   --  warning there, too.
+
+   declare
+      To_Remove : String_Sets.Set;
+   begin
+      for Cur in Instrumented_Sources.Iterate loop
+         declare
+            Unit_Name : constant String := Unit_Maps.Key (Cur);
+            LU_Info   : Library_Unit_Info renames
+              Instrumented_Sources.Reference (Cur);
+         begin
+            if LU_Info.Body_Project.Is_Defined then
+               LU_Info.Instr_Project := LU_Info.Body_Project;
+            elsif LU_Info.Spec_Project.Is_Defined then
+               LU_Info.Instr_Project := LU_Info.Spec_Project;
+            else
+               To_Remove.Insert (+Unit_Name);
+            end if;
+
+            declare
+               Unit_Prj_Info   : Project_Info renames
+                 Get_Or_Create_Project_Info (IC, LU_Info.Instr_Project).all;
+               Source_Prj_Info : Project_Info_Access;
+            begin
+               for Source of LU_Info.Sources loop
+                  if GPR2.Project.View."/="
+                       (Source.Owning_View, LU_Info.Instr_Project)
+                  then
+                     Source_Prj_Info :=
+                       Get_Or_Create_Project_Info (IC, Source.Owning_View);
+                     Unit_Prj_Info.Desc.Special_Output_Dirs.Insert
+                       (+String (Source.Path_Name.Simple_Name),
+                        +Source_Prj_Info.Desc.Output_Dir.Display_Full_Name);
+                  end if;
+               end loop;
+            end;
+         end;
+      end loop;
+
+      for Unit_Name of To_Remove loop
+         Instrumented_Sources.Delete (+Unit_Name);
+      end loop;
+   end;
 
    --  Check early if there are no sources of interest
 
@@ -1377,13 +845,15 @@ begin
 
    IC.Ada_Default_Charset := +Default_Charset_From_Project (Project.Project);
    IC.Mapping_File :=
-     +(+Root_Project_Info.all.Output_Dir) / ".ada-src-mapping";
+     +(+Root_Project_Info.Desc.Output_Dir.Full_Name) / ".ada-src-mapping";
    IC.Config_Pragmas_Mapping :=
-     +(+Root_Project_Info.all.Output_Dir) / "config-pragmas.json";
+     +(+Root_Project_Info.Desc.Output_Dir.Full_Name) / "config-pragmas.json";
    IC.Sources_Of_Interest_Response_File :=
-     +(+Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
+     +(+Root_Project_Info.Desc.Output_Dir.Full_Name) / ".sources_of_interest";
    IC.Ada_Preprocessor_Data_File :=
-     +(+Root_Project_Info.all.Output_Dir) / "prep-data.json";
+     +(+Root_Project_Info.Desc.Output_Dir.Full_Name) / "prep-data.json";
+   IC.Ada_Preprocessor_Data_File :=
+     +(+Root_Project_Info.Desc.Output_Dir.Full_Name) / "instr-mapping.json";
 
    Instrument.Ada_Unit_Provider.Create_Mapping_File (+IC.Mapping_File);
 
@@ -1410,28 +880,7 @@ begin
      Create_CPP_Instrumenter
        (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
 
-   if Dump_Config.Manual_Trigger then
-
-      --  Replace manual dump indications for C-like languages
-
-      for Lang in C_Family_Language loop
-         Replace_Manual_Indications
-           (Lang,
-            Project_Sources,
-            Instrumenters (Lang).all,
-            Manual_Dump_Inserted,
-            Dump_Config.Manual_Indication_Files);
-      end loop;
-
-      --  The replacement of manual indications may incur filling of e.g.
-      --  the files table, which is then dumped into the first written
-      --  checkpoint before being cleared out. Preemptively clear it to avoid
-      --  that.
-
-      Checkpoints.Checkpoint_Clear;
-   end if;
-
-   --  Write the files of interest to temporary files in the instrumentation
+   --  Write the files of interest to a temporary file in the instrumentation
    --  directory.
 
    declare
@@ -1446,257 +895,230 @@ begin
       Sources_Of_Interest_File.Close;
    end;
 
-   if not Quiet then
-      Put_Line ("Coverage instrumentation");
-   end if;
-
    --  Instrument every unit of interest asynchronously
 
-   declare
-      Instrument_Source_Pool : Process_Pool (Parallelism_Level);
-
-      Instrument_Source_Args : String_Vectors.Vector;
-      --  Common arguments for all of the gnatcov instrument-source
-      --  invocations.
-
-   begin
-      Instrument_Source_Args.Append (+"instrument-source");
-      Instrument_Source_Args.Append (Common_Switches (Cmd_Instrument_Source));
-      for Cur in Instrumented_Sources.Iterate loop
-         declare
-            Unit_Args : String_Vectors.Vector := Instrument_Source_Args;
-            --  Args specific to a gnatcov instrument-source invocation
-            --  (e.g. the common arguments + the sources that must be
-            --  instrumented for a specific unit).
-
-            Unit_Name : constant String := Unit_Maps.Key (Cur);
-            LU_Info   : constant Library_Unit_Info := Unit_Maps.Element (Cur);
-            Obj_SID   : constant String :=
-              SID_Filename (LU_Info, In_Library_Dir => False);
-
-            Prj  : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
-            Desc : constant Prj_Desc :=
-              IC.Project_Info_Map.Element (+String (Prj.Name)).Desc;
-         begin
-            --  Skip instrumentation of the unit if it was already
-            --  instrumented.
-
-            if LU_Info.All_Externally_Built then
-               goto Continue;
-            end if;
-
-            --  Add the arguments that are specific to the compilation unit
-
-            Unit_Args.Append (Compilation_Unit_Options (IC, Desc, LU_Info));
-            Unit_Args.Append (+"--sid=" & Obj_SID);
-
-            --  We instrument the body, spec and separates as a whole
-
-            Unit_Args.Append (+Unit_Name);
-
-            Show_Progress (LU_Info.Language, +LU_Info.Display_Name);
-
-            --  According to the set parallelism level, instrument in
-            --  the same process (thus reusing the libadalang context, which
-            --  is a big gain of time), or spawn another instrumentation
-            --  process.
-
-            if Parallelism_Level = 1 then
-               Instrument.Source
-                 (Unit_Name         => Unit_Name,
-                  SID_Name          => Obj_SID,
-                  Instrumenter      => Instrumenters (LU_Info.Language).all,
-                  Files_Of_Interest => Files_Of_Interest,
-                  Prj               => Desc);
-            else
-               --  Asynchronously instrument
-
-               Instrument_Source_Pool.Run_Command
-                 (Command             => Exec_Filename,
-                  Arguments           => Unit_Args,
-                  Origin_Command_Name => "gnatcov instrument",
-                  Ignore_Error        => False);
-            end if;
-         end;
-         <<Continue>>
-      end loop;
-   end;
-
-   --  Copy SID files into the library directory
-
-   for LU_Info of Instrumented_Sources loop
+   for Cur in Instrumented_Sources.Iterate loop
       declare
-         Obj_SID : constant String :=
-           SID_Filename (LU_Info, In_Library_Dir => False);
-         Lib_SID : constant String :=
-           SID_Filename (LU_Info, In_Library_Dir => True);
+         LU_Info : constant Library_Unit_Info := Unit_Maps.Element (Cur);
+         Prj     : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
+
+         Ada_Source_Instrumenter :
+           GPR2.Build.Actions.Instrument_Source.Ada.Object;
+         C_Source_Instrumenter   : GPR2.Build.Actions.Instrument_Source.Object;
+
       begin
-         if not LU_Info.All_Externally_Built
-           and then Lib_SID /= ""
-           and then Obj_SID /= Lib_SID
-         then
+         --  Skip instrumentation of the unit if it was already
+         --  instrumented.
 
-            --  Unlike the object directory, which GNATCOLL.Project
-            --  creates automatically, the library directory may not
-            --  exist: create it if needed.
+         if LU_Info.All_Externally_Built then
+            goto Continue;
+         end if;
 
-            begin
-               Create (Create (+Lib_SID).Dir_Name).Make_Dir;
-            exception
-               when Exc : VFS_Directory_Error =>
-                  Outputs.Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
-            end;
+         --  Asynchronously instrument
 
-            Copy_File (From => Obj_SID, To => Lib_SID);
+         if LU_Info.Language_Kind = Unit_Based_Language then
+            Ada_Source_Instrumenter.Initialize
+              (LU_Info      => LU_Info,
+               IC           => IC'Unrestricted_Access,
+               Instrumenter => Instrumenters (LU_Info.Language),
+               Prj_Info     =>
+                 IC.Project_Info_Map.Element (+String (Prj.Name)),
+               Dump_Config  => Dump_Config);
+
+            if not Tree_Db.Add_Action (Ada_Source_Instrumenter) then
+               raise Program_Error;
+            end if;
+         else
+            --  File based language
+
+            C_Source_Instrumenter.Initialize
+              (LU_Info      => LU_Info,
+               IC           => IC'Unrestricted_Access,
+               Instrumenter => Instrumenters (LU_Info.Language),
+               Prj_Info     =>
+                 IC.Project_Info_Map.Element (+String (Prj.Name)),
+               Dump_Config  => Dump_Config);
+
+            if not Tree_Db.Add_Action (C_Source_Instrumenter) then
+               raise Program_Error;
+            end if;
          end if;
       end;
+      <<Continue>>
    end loop;
 
-   --  Then, instrument asynchronously every main
+   --  Execute all of the actions. When parallelism is disabled, run all of
+   --  the actions in the same process to benefit from sharing the Libadalang
+   --  context. Otherwise, use the GPR2 process manager to execute the actions.
 
-   if Dump_Config.Auto_Trigger /= None then
+   if Parallelism_Level = 1 then
       declare
-         Instrument_Main_Pool : Process_Pool (Parallelism_Level);
-         Instrument_Main_Args : String_Vectors.Vector;
-
-         Main_Filename : Unbounded_String;
-
-         --  Fullname for the main. It can either be an instrumented version of
-         --  the main (if it also was instrumented as a source), or the
-         --  original version.
-
-         Explicit_Dump_Config : Any_Dump_Config := Dump_Config;
-         --  Dump config with explicited defaults. The only interesting thing
-         --  is the dump-filename-prefix that is computed after the name of the
-         --  main in the project file, if not specified explicitly on the
-         --  command line.
-
-         First_Main : Boolean := True;
-         --  Whether the next main to instrument is the first one
+         Opt : constant GPR2.Build.Actions_Scheduler.Options :=
+           (Keep_Temp_Files => Save_Temps, others => <>);
       begin
-         Instrument_Main_Args.Append (+"instrument-main");
+         case Tree_Db.Execute (In_Thread_Scheduler, Opt) is
+            when GPR2.Build.Actions_Scheduler.Success =>
+               null;
 
-         --  Add the root project name, as the symbol holding the list of
-         --  coverage buffers is defined accordingly.
+            when others                               =>
+               Ada.Command_Line.Set_Exit_Status (Failure);
+               raise Outputs.Xcov_Exit_Exc;
+         end case;
+      end;
+   else
+      declare
+         Opt : constant GPR2.Build.Actions_Scheduler.Processes.Options :=
+           (Jobs            => Parallelism_Level,
+            Keep_Temp_Files => Save_Temps,
+            others          => <>);
+      begin
+         case Tree_Db.Execute (Processes_Scheduler, Opt) is
+            when GPR2.Build.Actions_Scheduler.Success =>
+               null;
 
-         Instrument_Main_Args.Append
-           (+"--project-name=" & String (Root_Project_Info.Project.Name));
+            when others                               =>
+               Ada.Command_Line.Set_Exit_Status (Failure);
+               raise Outputs.Xcov_Exit_Exc;
+         end case;
+      end;
+   end if;
 
-         Instrument_Main_Args.Append (Common_Switches (Cmd_Instrument_Main));
+   --  If using the manual dump trigger: look for unit with dump annotations
+   --  and emit a dump helper unit for them.
 
-         for Dir of RTS_Source_Dirs loop
-            Instrument_Main_Args.Append
-              (+"--rts-source-dirs=" & (+Dir.Full_Name));
-         end loop;
+   if Dump_Config.Manual_Trigger then
+      declare
+         package Non_Root_Src_Calls_Sets is new
+           Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
 
-         for Language in Src_Supported_Language loop
-            for Main of Mains_To_Instrument (Language) loop
+         Non_Root_Src_Calls : Non_Root_Src_Calls_Sets.Set;
+         --  Set of names of source files containing a dump buffers indication
+         --  that belong to a non-root project when using the manual dump
+         --  trigger.
+
+         Emitted_Manual_Helpers : String_Sets.Set;
+         --  Set of names of manual dump helper units that have been emitted
+         --  thus far.
+
+         Manual_Dump_Inserted : Boolean := False;
+         --  Whether or not a dump procedure was inserted in any source file
+
+      begin
+         for Cur in Instrumented_Sources.Iterate loop
+            declare
+               Unit_Name    : constant String := Unit_Maps.Key (Cur);
+               LU_Info      : constant Library_Unit_Info :=
+                 Unit_Maps.Element (Cur);
+               Instrumenter : constant Language_Instrumenter_Acc :=
+                 Instrumenters (LU_Info.Language);
+               Prj          : Prj_Desc renames
+                 Get_Or_Create_Project_Info (IC, LU_Info.Instr_Project).Desc;
+               Is_Root_Prj  : constant Boolean :=
+                 LU_Info.Instr_Project.Is_Namespace_Root;
+
+               Files_Instr_Info_JSON : constant JSON_Value :=
+                 JSON.Read_File
+                   (Files_Instrumentation_Info_File (Prj, Unit_Name)
+                      .Display_Full_Name);
+            begin
+               --  Process dump indications
+
+               for Filename_JSON of
+                 JSON_Array'(Files_Instr_Info_JSON.Get ("dump_indications"))
+               loop
+                  Manual_Dump_Inserted := True;
+                  if not Is_Root_Prj then
+
+                     --  A call to the dump/reset buffers procedure is only
+                     --  able to dump/reset the buffers of the project it is
+                     --  in and its subprojects, meaning coverage data for
+                     --  all projects higher in the project tree will be
+                     --  missing or not reset. Record what file this call
+                     --  was in to warn the user later.
+
+                     Non_Root_Src_Calls.Include (Get (Filename_JSON));
+                  end if;
+               end loop;
+
+               --  Same for reset indications
+
+               for Filename_JSON of
+                 JSON_Array'(Files_Instr_Info_JSON.Get ("reset_indications"))
+               loop
+                  if not Is_Root_Prj then
+                     Non_Root_Src_Calls.Include (Get (Filename_JSON));
+                  end if;
+               end loop;
+
+               --  Then, emit the dump helper unit and the buffers list unit
+               --  for the project if needed.
+
                declare
-                  Unit_Name : constant Unbounded_String :=
-                    (if Main.Unit_Name = ""
-                     then +(+Main.File.Full_Name)
-                     else Main.Unit_Name);
-                  Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
+                  Helper_Unit_Name : constant Unbounded_String :=
+                    Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
                begin
-                  Unit_Args.Append
-                    (Compilation_Unit_Options
-                       (IC,
-                        Main.Prj_Info.Desc,
-                        Library_Unit_Info'
-                          (Unit_Name            => Unit_Name,
-                           Instr_Project        => Main.Prj_Info.Project,
-                           Language             => Language,
-                           All_Externally_Built => False,
-                           others               => <>)));
+                  if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
+                  then
+                     Instrumenter.Emit_Dump_Helper_Unit_Manual
+                       (Dump_Config, Prj);
 
-                  --  Pass main-specific dump-config options
+                     --  The creation of the root project's buffers list
+                     --  unit is already taken care of by the regular
+                     --  instrumentation process, so skip it.
 
-                  if Dump_Config.Channel = Binary_File then
-
-                     --  If no dump filename prefix was specified, compute it
-                     --  here: we use the executable name, that is retrieved
-                     --  from the project.
-
-                     if Dump_Config.Filename_Prefix = "" then
-                        Explicit_Dump_Config.Filename_Prefix :=
-                          +String
-                             (Root_Project_Info.Project.Executable
-                                (Source =>
-                                   GPR2.Simple_Name (Main.File.Base_Name),
-                                 At_Pos => 0)
-                                .Simple_Name);
+                     if not Is_Root_Prj then
+                        Instrumenter.Emit_Buffers_List_Unit
+                          (Instr_Units =>
+                             Units_Of_Interest (LU_Info.Instr_Project),
+                           Prj         => Prj);
                      end if;
                   end if;
                end;
-
-               declare
-                  Unit_Name : constant String :=
-                    (if Main.Unit_Name = ""
-                     then +Main.File.Full_Name
-                     else +Main.Unit_Name);
-                  Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
-               begin
-                  if not Quiet and then First_Main then
-                     First_Main := False;
-                     Put_Line ("Main instrumentation");
-                  end if;
-                  Show_Progress
-                    (Language,
-                     Display_Name (Language_Kind (Language), Unit_Name));
-
-                  Unit_Args.Append
-                    (Compilation_Unit_Options
-                       (IC,
-                        Main.Prj_Info.Desc,
-                        Library_Unit_Info'
-                          (Unit_Name            => +Unit_Name,
-                           Instr_Project        => Main.Prj_Info.Project,
-                           Language             => Language,
-                           All_Externally_Built => False,
-                           others               => <>)));
-
-                  Unit_Args.Append (Unparse_Config (Explicit_Dump_Config));
-
-                  --  Then append the main filename. If the main was
-                  --  instrumented as a unit of interest before, then pass the
-                  --  instrumented version.
-
-                  if Instrumented_Sources.Contains (Unit_Name) then
-                     Main_Filename :=
-                       +(+Root_Project_Info.Output_Dir)
-                       / (+Main.File.Base_Name);
-                  else
-                     Main_Filename := Full_Name (Main.File);
-                  end if;
-
-                  Unit_Args.Append (Main_Filename);
-
-                  if Parallelism_Level = 1 then
-                     declare
-                        Instr_Units : String_Sets.Set;
-                     begin
-                        for Source of Files_Of_Interest_Info loop
-                           Instr_Units.Insert
-                             (+String (Source.Path_Name.Value));
-                        end loop;
-                        Instrument.Main
-                          (Instrumenter  => Instrumenters (Language).all,
-                           Dump_Config   => Explicit_Dump_Config,
-                           Main_Filename => +Main_Filename,
-                           Prj           => Main.Prj_Info.Desc);
-                     end;
-                  else
-                     Instrument_Main_Pool.Run_Command
-                       (Command             => Exec_Filename,
-                        Arguments           => Unit_Args,
-                        Origin_Command_Name => "gnatcov instrument",
-                        Ignore_Error        => False);
-                  end if;
-               end;
-            end loop;
+            end;
          end loop;
+
+         if not Non_Root_Src_Calls.Is_Empty then
+
+            --  For each manual dump/reset call inserted in a file belonging
+            --  to a non-root project, warn the user the coverage data it
+            --  will produce will not cover the whole project tree or may
+            --  be inconsistent.
+
+            declare
+               All_File_Names : Unbounded_String;
+            begin
+               for File_Name of Non_Root_Src_Calls loop
+                  Append (All_File_Names, File_Name);
+                  Append (All_File_Names, ASCII.LF);
+               end loop;
+
+               Outputs.Warn
+                 ("Manual buffer dump/reset indications were found in"
+                  & " subprojects in the following files:"
+                  & ASCII.LF
+                  & (+All_File_Names)
+                  & "The coverage report built from the source traces they"
+                  & " will produce will show all code from projects higher in"
+                  & " the project tree as not covered. To get a full coverage"
+                  & " analysis, consider placing the manual dump buffers"
+                  & " indication in the root project."
+                  & ASCII.LF
+                  & ASCII.LF
+                  & "Additionally, resetting the buffers in a subproject may"
+                  & " result in incoherent coverage reports from traces dumped"
+                  & " from a source in a parent project.");
+            end;
+         end if;
+
+         if not Manual_Dump_Inserted then
+            Outputs.Warn
+              ("no indication for dump location was found, this might be"
+               & " caused by a misspelling in the expected pragma"
+               & " statement or comment.");
+         end if;
       end;
    end if;
+
    --  Emit the unit to contain the list of coverage buffers, exported to a
    --  C symbol, in one of the language supported by the project.
    --
@@ -1711,14 +1133,14 @@ begin
    --  C symbol importations).
 
    declare
-      use Files_Table;
       Instr_Units : Unit_Sets.Set;
       Langs       : constant GPR2.Containers.Language_Set :=
         Root_Project_Info.Project.Language_Ids;
    begin
       for LU_Info of Instrumented_Sources loop
-         Instr_Units.Insert
-           (Compilation_Unit'(LU_Info.Language_Kind, LU_Info.Unit_Name));
+         if LU_Info.Is_UOI then
+            Instr_Units.Insert (To_Compilation_Unit (LU_Info.Main_Part_Src));
+         end if;
       end loop;
       for Lang in Src_Supported_Language loop
          if Builtin_Support (Lang)
@@ -1734,31 +1156,9 @@ begin
       end loop;
    end;
 
-   if Dump_Config.Manual_Trigger then
-      Replace_Manual_Indications
-        (Ada_Language,
-         Project_Sources,
-         Ada_Instrumenter,
-         Manual_Dump_Inserted,
-         Dump_Config.Manual_Indication_Files);
+   --  Delete instrumentation artifacts from previous instrumentations
 
-      for Main of Mains_To_Instrument (Ada_Language) loop
-         Insert_With_Dump_Helper
-           (Ada_Instrumenter, Source => Main.File, Prj => Main.Prj_Info.Desc);
-      end loop;
-
-      --  At this point, all source files for all languages have been looked
-      --  through to insert a call to the manual dump procedure. If no call
-      --  has been inserted (i.e. no manual dump location indication was
-      --  found), warn the user.
-
-      if not Manual_Dump_Inserted then
-         Outputs.Warn
-           ("no indication for dump location was found, this might be"
-            & " caused by a misspelling in the expected pragma"
-            & " statement or comment.");
-      end if;
-   end if;
+   Clean_Objdirs (IC, Instrumented_Sources, Preserve_Artifacts => True);
 
    Destroy_Context (IC);
 
@@ -1769,7 +1169,7 @@ begin
    --  runtime, etc.) and whether that info is reliable (it is not if the
    --  dump trigger is manual).
    --
-   --  TODO: this should go at some point in Instrument_Main (in which case
+   --  TODO: this should go at some point in Instrument.Source (in which case
    --  one would be generated per main).
 
    declare
@@ -1792,6 +1192,16 @@ exception
    when
      Binary_Files.Error | Ada.IO_Exceptions.Name_Error | Outputs.Xcov_Exit_Exc
    =>
-      Clean_Objdirs (Keep_Going => True);
-      raise;
+      if not Save_Temps then
+         Clean_Objdirs
+           (IC,
+            Instrumented_Sources,
+
+            --  Do not preserve instrumentation artifacts on an exception
+            --  termination.
+
+            Preserve_Artifacts => False,
+            Keep_Going         => True);
+         raise;
+      end if;
 end Instrument.Projects;

@@ -25,8 +25,11 @@ with Ada.IO_Exceptions;
 with GNAT.Exception_Actions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with GNATCOLL.VFS;
+
 with Command_Line;
 with Support_Files;
+with Strings; use Strings;
 with Switches;
 with Version;
 
@@ -95,16 +98,18 @@ package body Outputs is
    procedure Clean_Dir
      (Dir           : String;
       Pattern       : String;
-      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set;
-      Keep_Going    : Boolean := False)
+      Ignored_Files : File_Sets.Set := File_Sets.Empty_Set;
+      Keep_Going    : Boolean := False;
+      Trace         : Logging.GNATCOLL_Trace := Logging.No_Trace)
    is
       use Ada.Directories;
+      use GNATCOLL.VFS;
 
       --  Removing items in a directory and iterate on these items at the same
       --  time is not supported: first collect all files to remove (iteration)
       --  and then remove them.
 
-      To_Delete : String_Vectors.Vector;
+      To_Delete : File_Sets.Set;
       Search    : Search_Type;
       Dir_Entry : Directory_Entry_Type;
    begin
@@ -124,11 +129,10 @@ package body Outputs is
       while More_Entries (Search) loop
          Get_Next_Entry (Search, Dir_Entry);
          declare
-            Name      : constant String := Simple_Name (Dir_Entry);
-            Full_Name : constant Unbounded_String := +(Dir / Name);
+            VF : constant Virtual_File := Create (+Full_Name (Dir_Entry));
          begin
-            if not Ignored_Files.Contains (Full_Name) then
-               To_Delete.Append (Full_Name);
+            if not Ignored_Files.Contains (VF) then
+               To_Delete.Insert (VF);
             end if;
          end;
       end loop;
@@ -136,9 +140,10 @@ package body Outputs is
 
       --  Do the deletion
 
-      for Name of To_Delete loop
+      for Source of To_Delete loop
          begin
-            Delete_File (+Name);
+            Trace.Trace ("Deleting " & Source.Display_Full_Name);
+            Delete_File (Source.Display_Full_Name);
          exception
             when
               Exc : Ada.IO_Exceptions.Use_Error | Ada.IO_Exceptions.Name_Error

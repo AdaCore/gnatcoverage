@@ -60,6 +60,8 @@ with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Project.View;
 
+with GPR2.Project.View;
+
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;
 with Namet;          use Namet;
@@ -167,10 +169,14 @@ package Instrument.Common is
    --  the same executable.
 
    function Project_Output_Dir
-     (Project : GPR2.Project.View.Object) return String;
+     (Project : GPR2.Project.View.Object; In_Extending : Boolean := True)
+      return GNATCOLL.VFS.Virtual_File;
    --  Return the directory in which we must create instrumented sources for
    --  Project. This returns an empty string for projects that do not have an
    --  object directory.
+   --
+   --  If In_Extending is False, return systematically the instrumentation
+   --  directory for Project, otherwise consider the most extending project.
 
    function Format_Fingerprint
      (Fingerprint : SC_Obligations.Fingerprint_Type; Opening, Closing : String)
@@ -459,6 +465,8 @@ package Instrument.Common is
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
+   type Language_Instrumenter_Acc is access all Language_Instrumenter'Class;
+
    function Language
      (Self : Language_Instrumenter) return Src_Supported_Language
    is abstract;
@@ -468,10 +476,11 @@ package Instrument.Common is
    is (Image (Self.Language));
 
    procedure Instrument_Unit
-     (Self              : in out Language_Instrumenter;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set)
+     (Self               : in out Language_Instrumenter;
+      Unit_Name          : String;
+      Prj                : in out Prj_Desc;
+      Files_Of_Interest  : File_Sets.Set;
+      Instrumented_Files : File_Sets.Set)
    is null;
    --  Instrument a single source file for the language that Self supports.
    --
@@ -481,21 +490,27 @@ package Instrument.Common is
    --  instrumentation of the unit. Files_Of_Interest provides the list of
    --  files of interest, to ignore e.g. part of the unit (e.g. a separate)
    --  when instrumenting it.
+   --
+   --  Instrumented indicates whether the unit was already instrumented or not.
+   --  Practically speaking, this only happens for C/C++ units when using the
+   --  manual dump trigger.
 
    procedure Auto_Dump_Buffers_In_Main
      (Self        : in out Language_Instrumenter;
-      Filename    : String;
+      Filename    : GNATCOLL.VFS.Virtual_File;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Try to instrument the Filename source file (whose language is assumed
    --  to be Self's) to insert a call to dump the list of coverage buffers,
    --  assumed to be named after Prj.Prj_Name. Do nothing if not successful.
+   --  Instrumented is set to True when the source was instrumented for
+   --  source instrumentation purposes.
 
    procedure Emit_Buffers_List_Unit
      (Self        : Language_Instrumenter;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Emit in the root project a unit (in Self's language) to contain the list
    --  of coverage buffers for the given instrumented files.
@@ -508,8 +523,7 @@ package Instrument.Common is
    function Emit_Buffers_List_Unit
      (Self           : Language_Instrumenter;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : Prj_Desc) return Compilation_Unit
-   is (No_Compilation_Unit);
+      Prj            : in out Prj_Desc) return Compilation_Unit;
    --  Same as above except Buffer_Symbols contains the list of C symbols
    --  holding coverage buffers for units of interest. Return the buffers list
    --  compilation unit.
@@ -518,7 +532,8 @@ package Instrument.Common is
      (Self : Language_Instrumenter; CU : Compilation_Unit; Prj : Prj_Desc)
       return Compilation_Unit
    is (No_Compilation_Unit);
-   --  Return the compilation unit holding coverage buffers
+   --  Return the compilation unit holding coverage buffers. This is especially
+   --  useful for integrated instrumentation.
 
    function Dump_Manual_Helper_Unit
      (Self : Language_Instrumenter; Prj : Prj_Desc) return Compilation_Unit
@@ -531,15 +546,17 @@ package Instrument.Common is
    --  Return the compilation unit holding the dump helper subprogram
 
    function Has_Main
-     (Self : in out Language_Instrumenter; Filename : String; Prj : Prj_Desc)
-      return Boolean
-   is (False);
+     (Self     : in out Language_Instrumenter;
+      Filename : GNATCOLL.VFS.Virtual_File;
+      Prj      : in out Prj_Desc) return Boolean;
    --  Return whether the given file is a main or not
+   --
+   --  Note that for C/C++, it preprocesses the file.
 
    procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out Language_Instrumenter;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Emit the dump helper unit with the appropriate content to allow for a
    --  simple call to a procedure dumping the coverage buffers to be made in
@@ -573,16 +590,41 @@ package Instrument.Common is
    --  Emit in the root project a file that exposes live coverage observability
    --  features, such as the number of bits set in the buffers.
 
-   function New_File (Prj : Prj_Desc; Name : String) return String;
-   --  Compute the path to the file to create in Self.Output_Dir
+   function Instrumentation_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Compute the path to the file to create in the instrumentation directory
+   --  of the given File.
+
+   function Is_Instrumented_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File) return Boolean;
+   --  Return whether the given file identified by its fullname is in the
+   --  instrumentation directory.
+
+   function Get_Main_File
+     (Self : Language_Instrumenter; Unit_Name : String) return Virtual_File
+   is (GNATCOLL.VFS.No_File);
+   --  Retrieve the main file for the given unit, i.e. the body if it exists,
+   --  the specification otherwise.
+
+   procedure For_All_Part
+     (Self      : in out Language_Instrumenter;
+      Unit_Name : String;
+      Process   : access procedure (Filename : Virtual_File))
+   is null;
+   --  Call process for every part of the given unit, including separates
 
    procedure Create_File
-     (Prj : Prj_Desc; File : in out Text_Files.File_Type; Name : String);
+     (Prj  : in out Prj_Desc;
+      File : in out Text_Files.File_Type;
+      Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
    --  Prj.Output_Dir.
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in Prj.Output_Dir.
+   --
+   --  In addition to that, the file is added to Prj.Instrumentation_Artifacts.
 
    type Macro_Definition (Define : Boolean := True) is record
       Name : Unbounded_String;
@@ -642,6 +684,10 @@ package Instrument.Common is
       Clang_Needs_M32 : Boolean := False;
       --  Wether we need to pass -m32 to libclang's parsing commands. This is
       --  only the case when the compiler driver is a native 32 bit compiler.
+
+      Dep_File_Options : String_Vectors.Vector;
+      --  Options to generate a dependency file, for incremental
+      --  instrumentation.
 
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
@@ -749,5 +795,23 @@ package Instrument.Common is
       SFI    : Source_File_Index);
    --  Populate the Annotations and Disabled_Cov_Regions of UIC with the
    --  annotations in Annots. The resulting annotations are tied to SFI.
+
+   function Dependency_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Return the dependency filename for the given file
+
+   function Instrumented_Files_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Return the file containing the list of instrumented files when
+   --  instrumenting the given file / main unit part.
+
+   function Files_Instrumentation_Info_File
+     (Prj : Prj_Desc; Unit_Name : String) return GNATCOLL.VFS.Virtual_File;
+   --  Files containing instrumentation information for the given Unit_Name.
+   --
+   --  This is used in the context of manual dump trigger instrumentation, to
+   --  indicate whether the source contains dump / reset annotations or not.
 
 end Instrument.Common;

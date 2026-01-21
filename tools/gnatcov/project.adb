@@ -44,6 +44,7 @@ with GPR2.Project.Registry.Pack.Description;
 with GPR2.Project.Registry.Pack;
 with GPR2.Reporter.Console;
 
+with Command_Line; use Command_Line;
 with Files_Table;  use Files_Table;
 with Inputs;       use Inputs;
 with Instrument;   use Instrument;
@@ -266,6 +267,7 @@ package body Project is
 
    overriding
    function Verbosity (Self : Reporter) return GPR2.Reporter.Verbosity_Level;
+   --  Return the verbosity level for the GPR2 reporter
 
    overriding
    procedure Internal_Report
@@ -282,27 +284,6 @@ package body Project is
          then To_Lower (String (First_Unit (Source).Name))
          else String (Source.Path_Name.Simple_Name));
    end Get_Unit_Name;
-
-   -------------------------
-   -- To_Compilation_Unit --
-   -------------------------
-
-   function To_Compilation_Unit
-     (Source : GPR2.Build.Source.Object) return Files_Table.Compilation_Unit
-   is
-      Language : constant Some_Language := To_Language (Source.Language);
-      U        : Compilation_Unit;
-   begin
-      U.Language := Language_Kind (Language);
-      case U.Language is
-         when Traces_Source.File_Based_Language =>
-            U.Unit_Name := +String (Source.Path_Name.Value);
-
-         when Traces_Source.Unit_Based_Language =>
-            U.Unit_Name := +To_Lower (String (First_Unit (Source).Name));
-      end case;
-      return U;
-   end To_Compilation_Unit;
 
    ---------
    -- "+" --
@@ -1982,7 +1963,18 @@ package body Project is
    overriding
    function Verbosity (Self : Reporter) return GPR2.Reporter.Verbosity_Level is
    begin
-      return Self.Inner.Verbosity;
+      --  Note that we cannot take into account exclusively
+      --  Self.Inner.Verbosity as it is resolved over CLI options only. The
+      --  user may also have specified gnatcov options in project files, which
+      --  is accounted for here.
+
+      if Args.Bool_Args (Command_Line.Opt_Verbose) then
+         return GPR2.Reporter.Verbose;
+      elsif Quiet then
+         return GPR2.Reporter.Quiet;
+      else
+         return Self.Inner.Verbosity;
+      end if;
    end Verbosity;
 
    ---------------------
@@ -2004,8 +1996,18 @@ package body Project is
    ---------------------
 
    function Create_Reporter return GPR2.Reporter.Object'Class is
-      Result : constant Reporter :=
-        (GPR2.Reporter.Object with Inner => GPR2.Reporter.Console.Create);
+
+      --  Set the right verbosity according to gnatcov CLI options
+
+      Verbosity : constant GPR2.Reporter.Verbosity_Level :=
+        (if Args.Bool_Args (Opt_Verbose)
+         then GPR2.Reporter.Verbose
+         elsif Quiet
+         then GPR2.Reporter.Quiet
+         else GPR2.Reporter.Regular);
+      Result    : constant Reporter :=
+        (GPR2.Reporter.Object
+         with Inner => GPR2.Reporter.Console.Create (Verbosity));
    begin
       return Result;
    end Create_Reporter;

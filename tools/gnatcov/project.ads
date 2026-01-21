@@ -137,10 +137,6 @@ package Project is
    --  the actual unit name (same meaning as in GPR2), but for other languages,
    --  it is the file basename.
 
-   function To_Compilation_Unit
-     (Source : GPR2.Build.Source.Object) return Files_Table.Compilation_Unit;
-   --  Return the Compilation_Unit for Info
-
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------

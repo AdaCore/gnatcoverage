@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2023-2024, AdaCore                     --
+--                        Copyright (C) 2026, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,24 +16,29 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Instrument.Common; use Instrument.Common;
+package GPR2.Build.Actions.Instrument_Source.Ada is
 
---  Implementation of the gnatcov instrument-main, which inserts a call to
---  dump coverage buffers according to the various dump options passed
---  on the command line.
+   type Object is new GPR2.Build.Actions.Instrument_Source.Object with private;
 
-procedure Instrument.Main
-  (Instrumenter  : in out Language_Instrumenter'Class;
-   Dump_Config   : Any_Dump_Config;
-   Main_Filename : String;
-   Prj           : Prj_Desc) is
-begin
-   --  If the dump-trigger is manual, there is nothing to do
+   overriding
+   procedure Compute_Signature
+     (Self : in out Object; Check_Checksums : Boolean);
 
-   if Dump_Config.Auto_Trigger = None then
-      return;
-   end if;
+   overriding
+   function Extended (Self : Object) return Object
+   is (raise Internal_Error with "This action is not extending");
 
-   Instrumenter.Auto_Dump_Buffers_In_Main
-     (Filename => Main_Filename, Dump_Config => Dump_Config, Prj => Prj);
-end Instrument.Main;
+   overriding
+   function Dependencies (Self : in out Object) return Containers.Filename_Set;
+   --  Retrieve the dependencies of the unit instrumented in the context of
+   --  the given source instrumentation action.
+
+   overriding
+   procedure Write_Instrumented_Files_List (Self : in out Object);
+
+private
+
+   type Object is new GPR2.Build.Actions.Instrument_Source.Object
+   with null record;
+
+end GPR2.Build.Actions.Instrument_Source.Ada;

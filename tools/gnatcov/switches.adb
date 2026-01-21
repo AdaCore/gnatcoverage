@@ -28,6 +28,43 @@ package body Switches is
    use type Unbounded_String;
    use Command_Line.Parser;
 
+   function CLI_Args return String_Vectors.Vector;
+   --  Return a string vector to hold arguments from Ada.Command_Line
+
+   function Parse
+     (Argv         : String_Vectors.Vector;
+      With_Command : Command_Type := No_Command;
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
+      return Parsed_Arguments;
+   --  Parse Args using Arg_Parser. If there is an error, call Fatal_Error with
+   --  the error message.
+
+   procedure Load_Target_Option (Default_Target : Boolean);
+   --  Split the --target option into its family name (Target_Family) and the
+   --  board name (Target_Board), if any.
+   --
+   --  If Default_Target is True and the target option is not present or empty,
+   --  use the native target. The target has the following format:
+   --  FAMILY[,BOARD]. In this case, the returned Target_Family is never null.
+   --  Otherwise, leave it unmodified.
+   --
+   --  In any case, the returned Target_Board may be null.
+
+   procedure Load_Project_Arguments (From_Driver : Boolean);
+   --  Load the project, if any, specified in Args, get the command-line
+   --  arguments it may specify in its Coverage package corresponding to
+   --  Args.Command. Then decode them and merge them with Args into Args
+   --  itself.
+   --
+   --  Note that this also writes Args.String_Args (Opt_Target) (same for
+   --  Opt_Runtime) if they are not present to mirror the target/RTS used to
+   --  load the project file.
+   --
+   --  From_Driver is passed as Project.Load_Root_Project's From_Driver
+   --  argument.
+
    --------------
    -- Copy_Arg --
    --------------
@@ -348,13 +385,13 @@ package body Switches is
    --------------------
 
    function Unparse_Config
-     (Dump_Config : Any_Dump_Config) return String_Vectors.Vector
+     (Dump_Config : Any_Dump_Config) return Command_Line_Args
    is
-      Result : String_Vectors.Vector;
+      Result : Command_Line_Args;
    begin
       if Dump_Config.Auto_Trigger /= None then
          Result.Append
-           (+("--dump-trigger=" & Image (Dump_Config.Auto_Trigger)));
+           (Create ("--dump-trigger=" & Image (Dump_Config.Auto_Trigger)));
       end if;
 
       if Dump_Config.Manual_Trigger then
@@ -366,27 +403,31 @@ package body Switches is
                  Manual_Trigger_Str & "," & Dump_File.Display_Full_Name;
             end loop;
 
-            Result.Append (Manual_Trigger_Str);
+            Result.Append (Create (+Manual_Trigger_Str));
          end;
       end if;
 
       case Dump_Config.Channel is
          when Binary_File            =>
-            Result.Append (+"--dump-channel=bin-file");
+            Result.Append (Create ("--dump-channel=bin-file"));
             if Dump_Config.Filename_Simple then
-               Result.Append (+"--dump-filename-simple");
+               Result.Append (Create ("--dump-filename-simple"));
             end if;
             if Dump_Config.Filename_Env_Var /= "" then
                Result.Append
-                 ("--dump-filename-env-var=" & Dump_Config.Filename_Env_Var);
+                 (Create
+                    ("--dump-filename-env-var="
+                     & (+Dump_Config.Filename_Env_Var)));
             end if;
             if Dump_Config.Filename_Prefix /= "" then
                Result.Append
-                 (+"--dump-filename-prefix=" & Dump_Config.Filename_Prefix);
+                 (Create
+                    ("--dump-filename-prefix="
+                     & (+Dump_Config.Filename_Prefix)));
             end if;
 
          when Base64_Standard_Output =>
-            Result.Append (+"--dump-channel=base64-stdout");
+            Result.Append (Create ("--dump-channel=base64-stdout"));
       end case;
       return Result;
    end Unparse_Config;
@@ -437,6 +478,271 @@ package body Switches is
    end Image;
 
    --------------------
+   -- To_Language_Id --
+   --------------------
+
+   function To_Language_Id (Language : Some_Language) return GPR2.Language_Id
+   is
+   begin
+      return
+        (case Language is
+           when Ada_Language => GPR2.Ada_Language,
+           when C_Language   => GPR2.C_Language,
+           when CPP_Language => GPR2.CPP_Language);
+   end To_Language_Id;
+
+   --------------
+   -- CLI_Args --
+   --------------
+
+   function CLI_Args return String_Vectors.Vector is
+   begin
+      return Result : String_Vectors.Vector do
+         for I in 1 .. Ada.Command_Line.Argument_Count loop
+            Result.Append (+Ada.Command_Line.Argument (I));
+         end loop;
+      end return;
+   end CLI_Args;
+
+   ------------------------
+   -- Load_Target_Option --
+   ------------------------
+
+   procedure Load_Target_Option (Default_Target : Boolean) is
+      Target_Arg : String_Option renames Args.String_Args (Opt_Target);
+   begin
+      if not Default_Target and then not Target_Arg.Present then
+
+         --  We have no target information and we are asked not to use a
+         --  default one: do nothing.
+
+         return;
+      end if;
+
+      declare
+         Real_Target : constant String :=
+           (if Target_Arg.Present
+            then +Target_Arg.Value
+            else Standard'Target_Name);
+      begin
+         --  If we find a comma, then we have both a target family and a board
+         --  name.
+
+         for I in Real_Target'Range loop
+            if Real_Target (I) = ',' then
+               Target_Family :=
+                 new String'(Real_Target (Real_Target'First .. I - 1));
+               Target_Board :=
+                 new String'(Real_Target (I + 1 .. Real_Target'Last));
+               return;
+            end if;
+         end loop;
+
+         --  Otherwise, it's just a family
+
+         Target_Family := new String'(Real_Target);
+         Target_Board := null;
+      end;
+   end Load_Target_Option;
+
+   ----------------------------
+   -- Load_Project_Arguments --
+   ----------------------------
+
+   procedure Load_Project_Arguments (From_Driver : Boolean) is
+
+      procedure Check_Allowed_Option
+        (Result : in out Parsed_Arguments; Ref : Option_Reference);
+      --  Put an error message in Result if Ref is an option that is forbidden
+      --  in project files.
+
+      --------------------------
+      -- Check_Allowed_Option --
+      --------------------------
+
+      procedure Check_Allowed_Option
+        (Result : in out Parsed_Arguments; Ref : Option_Reference)
+      is
+         Complain : Boolean := False;
+      begin
+         case Ref.Kind is
+            when String_Opt =>
+               Complain :=
+                 Ref.String_Option
+                 in Opt_Project
+                  | Opt_Target
+                  | Opt_Runtime
+                  | Opt_Subdirs
+                  | Opt_Root_Dir;
+
+            when others     =>
+               null;
+         end case;
+         if Complain then
+            Result.Error :=
+              +(Option_Name (Arg_Parser, Ref)
+                & " may not be specified in a project.");
+         end if;
+      end Check_Allowed_Option;
+
+      Project_Args : Parsed_Arguments;
+      Root_Project : String_Access;
+      Runtime      : String_Access;
+      CGPR_File    : String_Access;
+
+      --  Start of processing for Load_Project_Arguments
+
+   begin
+      if not Args.String_Args (Opt_Project).Present then
+         return;
+      end if;
+
+      --  In order to load the project file we need to set:
+      --    * scenario variables;
+      --    * the object subdir;
+      --    * the target architecture;
+      --    * the runtime system (RTS);
+      --    * the requested list of projects of interest (if any);
+      --    * the requested list of units of interest (if any);
+      --    * whether to process recursively the project tree.
+
+      Root_Project := new String'(+Args.String_Args (Opt_Project).Value);
+
+      for S_Var of Args.String_List_Args (Opt_Scenario_Var) loop
+         --  Get name and value from "-X<name>=<value>"
+
+         declare
+            Str                    : constant String := +S_Var;
+            Name_Last, Value_First : Natural;
+         begin
+            Name_Last := Str'First - 1;
+            while Name_Last < Str'Last and then Str (Name_Last + 1) /= '=' loop
+               Name_Last := Name_Last + 1;
+            end loop;
+
+            Value_First := Name_Last + 2;
+
+            S_Variables.Include
+              (Str (Str'First .. Name_Last), Str (Value_First .. Str'Last));
+         end;
+      end loop;
+
+      if Args.String_Args (Opt_Subdirs).Present then
+         Set_Subdirs (+Args.String_Args (Opt_Subdirs).Value);
+      end if;
+
+      if Args.Bool_Args (Opt_Externally_Built_Projects) then
+         Enable_Externally_Built_Projects_Processing;
+      end if;
+
+      if Args.String_Args (Opt_Relocate_Build_Tree).Present then
+         declare
+            Value : constant Unbounded_String :=
+              Args.String_Args (Opt_Relocate_Build_Tree).Value;
+         begin
+            Set_Build_Tree_Dir
+              (if Value = Null_Unbounded_String then "." else +Value);
+         end;
+
+         if Args.String_Args (Opt_Root_Dir).Present then
+            Set_Root_Dir (+Args.String_Args (Opt_Root_Dir).Value);
+         end if;
+      end if;
+
+      --  If the project file does not define a target, loading it needs the
+      --  target information: load it here. Likewise for the runtime system.
+
+      Load_Target_Option (Default_Target => False);
+      Copy_Arg (Opt_Runtime, Runtime);
+      Copy_Arg (Opt_Config, CGPR_File);
+
+      --  All -X command line switches have now been processed: initialize the
+      --  project subsystem and load the root project.
+
+      Load_Root_Project
+        (Root_Project.all,
+         Target_Family,
+         Runtime,
+         CGPR_File,
+         Value_Or_Null (Args.String_Args (Opt_Db)),
+         From_Driver);
+
+      --  Get common and command-specific switches, decode them (if any) and
+      --  store the result in Project_Args, then merge it into Args.
+
+      declare
+         Command_Name     : constant String :=
+           Parser.Command_Name (Arg_Parser, Args.Command);
+         Common_Switches  : constant String_Vectors.Vector :=
+           Project.Switches ("*");
+         Command_Switches : constant String_Vectors.Vector :=
+           Project.Switches (Command_Name);
+      begin
+         Project_Args :=
+           Parse
+             (Common_Switches,
+              With_Command => Args.Command,
+              Callback     => Check_Allowed_Option'Access);
+         Merge
+           (Project_Args,
+            Parse
+              (Command_Switches,
+               With_Command => Args.Command,
+               Callback     => Check_Allowed_Option'Access));
+
+         --  Project_Args have precedence over Args, so merge in Project_Args
+         --  first.
+
+         Merge (Project_Args, Args);
+         Args := Project_Args;
+      end;
+
+      --  Set default output directory, target and runtime from the project
+
+      if not Args.String_Args (Opt_Output_Directory).Present then
+         Args.String_Args (Opt_Output_Directory) :=
+           (Present => True, Value => +Project.Output_Dir);
+      end if;
+
+      if not Args.String_Args (Opt_Target).Present
+        and then Project.Target /= ""
+      then
+         Args.String_Args (Opt_Target) :=
+           (Present => True, Value => +Project.Target);
+      end if;
+
+      if not Args.String_Args (Opt_Runtime).Present
+        and then Project.Runtime /= ""
+      then
+         Args.String_Args (Opt_Runtime) :=
+           (Present => True, Value => +Project.Runtime);
+      end if;
+   end Load_Project_Arguments;
+
+   -----------
+   -- Parse --
+   -----------
+
+   function Parse
+     (Argv         : String_Vectors.Vector;
+      With_Command : Command_Type := No_Command;
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
+      return Parsed_Arguments
+   is
+      Result : constant Parsed_Arguments :=
+        Parse (Arg_Parser, Argv, With_Command, Callback);
+      Error  : constant String := +Result.Error;
+   begin
+      if Error'Length /= 0 then
+         Args.Command := Result.Command;
+         Fatal_Error_With_Usage (Error);
+      end if;
+      return Result;
+   end Parse;
+
+   --------------------
    -- Exception_Info --
    --------------------
 
@@ -461,6 +767,49 @@ package body Switches is
          end if;
       end;
    end Exception_Info;
+
+   ---------------------
+   -- Parse_Arguments --
+   ---------------------
+
+   procedure Parse_Arguments (From_Driver : Boolean) is
+   begin
+      --  Require at least one argument
+
+      if Ada.Command_Line.Argument_Count = 0 then
+         Print_Usage (Arg_Parser, False, False);
+         Normal_Exit;
+      end if;
+
+      --  Parse actual command-line arguments, then load the project, which may
+      --  contain additional arguments.
+
+      Args := Parse (CLI_Args);
+      Load_Project_Arguments (From_Driver);
+
+      --  Enable logs according to the logs/verbosity options
+
+      Logging.Initialize
+        (Verbose   => Args.Bool_Args (Opt_Verbose),
+         To_Enable => Args.String_List_Args (Opt_Log));
+
+      Quiet := Args.Bool_Args (Opt_Quiet);
+
+      --  Loading the project may have set a new target/RTS: update our
+      --  internal state accordingly.
+
+      Load_Target_Option (Default_Target => True);
+
+      --  At this point we know what the final value for Warnings_As_Errors
+      --  should be: if we already emitted a warning, make sure the exit code
+      --  is updated accordingly.
+
+      Warnings_As_Errors := Args.Bool_Args (Opt_Warnings_As_Errors);
+      if Warnings_Registered then
+         Register_Warning;
+      end if;
+      Instrument_Block := Args.Bool_Args (Opt_Instrument_Block);
+   end Parse_Arguments;
 
    -----------
    -- Image --
@@ -518,55 +867,92 @@ package body Switches is
       end if;
    end Value;
 
+   Common_Switches_Cache : Command_Line_Arg_Vectors_Maps.Map;
+
    ---------------------
    -- Common_Switches --
    ---------------------
 
    function Common_Switches
-     (Cmd : Command_Line.Command_Type) return String_Vectors.Vector
+     (Cmd : Command_Line.Command_Type) return Command_Line_Args
    is
+      Cmd_Img    : constant String := Command_Type'Image (Cmd);
       Has_Config : constant Boolean :=
         Is_Present (Args, Option_Reference'(String_Opt, Opt_Config));
       --  Whether the --config flag is on the command line. If this is the
       --  case, do not pass the --target and --RTS flags (they will be parsed
       --  from the config).
 
-      Result : String_Vectors.Vector;
+      Result : Command_Line_Args;
 
-      procedure Process (Option : Option_Reference);
+      procedure Process
+        (Opt         : Option_Reference;
+         Opt_Name    : Unbounded_String;
+         Opt_Args    : String_Vectors.Vector;
+         Incremental : Boolean);
       --  Add the command line value of Option to Result if Cmd supports it
 
       -------------
       -- Process --
       -------------
 
-      procedure Process (Option : Option_Reference) is
+      procedure Process
+        (Opt         : Option_Reference;
+         Opt_Name    : Unbounded_String;
+         Opt_Args    : String_Vectors.Vector;
+         Incremental : Boolean)
+      is
+         Mode : constant GPR2.Build.Command_Line.Signature_Mode :=
+           (if Incremental
+            then GPR2.Build.Command_Line.In_Signature
+            else GPR2.Build.Command_Line.Ignore);
       begin
-         if Is_Present (Args, Option)
-           and then Supports (Arg_Parser, Cmd, Option)
-         then
-            Result.Append_Vector (Unparse (Arg_Parser, Args, Option));
+         if Supports (Arg_Parser, Cmd, Opt) then
+            Result.Append (Create (+Opt_Name, Mode));
+            for Opt_Arg of Opt_Args loop
+               Result.Append (Create (+Opt_Arg, Mode));
+            end loop;
          end if;
       end Process;
 
    begin
+      if Common_Switches_Cache.Contains (Cmd_Img) then
+         return Common_Switches_Cache.Element (Cmd_Img);
+      end if;
+
       --  Unfortunately, we can't avoid the code duplication. Deal with all
       --  kind of options: boolean, string and strings list. Do not pass
       --  the --target and --RTS flags if there is a --config flag.
 
       for Opt in Bool_Options loop
-         Process (Option_Reference'(Bool_Opt, Opt));
+         Process_Option
+           (Arg_Parser,
+            Args,
+            Option_Reference'(Bool_Opt, Opt),
+            Process'Access);
       end loop;
 
       for Opt in String_Options loop
          if not Has_Config or else Opt not in Opt_Target | Opt_Runtime then
-            Process (Option_Reference'(String_Opt, Opt));
+            Process_Option
+              (Arg_Parser,
+               Args,
+               Option_Reference'(String_Opt, Opt),
+               Process'Access);
          end if;
       end loop;
 
       for Opt in String_List_Options loop
-         Process (Option_Reference'(String_List_Opt, Opt));
+         Process_Option
+           (Arg_Parser,
+            Args,
+            Option_Reference'(String_List_Opt, Opt),
+            Process'Access);
       end loop;
+
+      --  Save in the cache then return
+
+      Common_Switches_Cache.Insert (Cmd_Img, Result);
       return Result;
    end Common_Switches;
 

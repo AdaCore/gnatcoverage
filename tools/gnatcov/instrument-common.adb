@@ -24,8 +24,8 @@ with GPR2.Path_Name;
 with Coverage;
 with Diagnostics;
 with Outputs; use Outputs;
-with Paths;   use Paths;
 with SCOs;
+with Project; use Project;
 
 package body Instrument.Common is
 
@@ -119,21 +119,31 @@ package body Instrument.Common is
    ------------------------
 
    function Project_Output_Dir
-     (Project : GPR2.Project.View.Object) return String is
+     (Project : GPR2.Project.View.Object; In_Extending : Boolean := True)
+      return GNATCOLL.VFS.Virtual_File
+   is
+      Storage_Project : constant GPR2.Project.View.Object :=
+        (if In_Extending then Most_Extending (Project) else Project);
+      --  Actual project that will host instrumented sources: even when
+      --  we instrument an extended project, the resulting instrumented
+      --  sources must go to the ultimate extending project's object
+      --  directory. This is similar to the object directory that hosts
+      --  object files when GPRbuild processes a project that is
+      --  extended.
    begin
-      if Project.Kind not in GPR2.With_Object_Dir_Kind then
-         return "";
+      if Storage_Project.Kind not in GPR2.With_Object_Dir_Kind then
+         return GNATCOLL.VFS.No_File;
       end if;
 
       declare
-         Obj_Dir  : constant GPR2.Path_Name.Object := Project.Object_Directory;
+         Obj_Dir  : constant GPR2.Path_Name.Object :=
+           Storage_Project.Object_Directory;
          Prj_Name : constant String :=
-           Ada.Characters.Handling.To_Lower (String (Project.Name));
+           Ada.Characters.Handling.To_Lower (String (Storage_Project.Name));
       begin
          return
-           String
-             (Obj_Dir.Compose (GPR2.Simple_Name (Prj_Name & "-gnatcov-instr"))
-                .Value);
+           Obj_Dir.Compose (GPR2.Simple_Name (Prj_Name & "-gnatcov-instr"))
+             .Virtual_File;
       end;
    end Project_Output_Dir;
 
@@ -405,13 +415,14 @@ package body Instrument.Common is
       Blocks := Result;
    end Remap_Blocks;
 
-   --------------
-   -- New_File --
-   --------------
+   --------------------------
+   -- Instrumentation_File --
+   --------------------------
 
-   function New_File (Prj : Prj_Desc; Name : String) return String is
-      Base_Filename : constant String := Ada.Directories.Simple_Name (Name);
-
+   function Instrumentation_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File
+   is
       --  Determine the directory in which to create the instrumented source
       --  file.
       --
@@ -420,27 +431,37 @@ package body Instrument.Common is
       --  Prj.Special_Output_Dirs.
 
       Special_Output_Dir : constant String_Maps.Cursor :=
-        Prj.Special_Output_Dirs.Find (+Base_Filename);
-      Output_Dir         : constant Unbounded_String :=
+        Prj.Special_Output_Dirs.Find (+File.Display_Base_Name);
+      Output_Dir         : constant Virtual_File :=
         (if String_Maps.Has_Element (Special_Output_Dir)
-         then String_Maps.Element (Special_Output_Dir)
+         then Create (+(+String_Maps.Element (Special_Output_Dir)))
          else Prj.Output_Dir);
-
-      Output_Filename : constant String := (+Output_Dir) / Base_Filename;
    begin
-      return Output_Filename;
-   end New_File;
+      return GNATCOLL.VFS.Join (Output_Dir, GNATCOLL.VFS.Base_Name (File));
+   end Instrumentation_File;
+
+   --------------------------
+   -- Is_Instrumented_File --
+   --------------------------
+
+   function Is_Instrumented_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File) return Boolean is
+   begin
+      return GNATCOLL.VFS.Dir (File) = Prj.Output_Dir;
+   end Is_Instrumented_File;
 
    -----------------
    -- Create_File --
    -----------------
 
    procedure Create_File
-     (Prj : Prj_Desc; File : in out Text_Files.File_Type; Name : String)
+     (Prj : in out Prj_Desc; File : in out Text_Files.File_Type; Name : String)
    is
-      Filename : constant String := New_File (Prj, Name);
+      File_VF : constant Virtual_File :=
+        Instrumentation_File (Prj, Create (+Name));
    begin
-      File.Create (Filename);
+      File.Create (File_VF.Display_Full_Name);
+      Prj.Instr_Artifacts.Include (File_VF);
    end Create_File;
 
    -----------------
@@ -772,6 +793,34 @@ package body Instrument.Common is
       end loop;
    end Populate_Ext_Disabled_Cov;
 
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
+
+   function Emit_Buffers_List_Unit
+     (Self           : Language_Instrumenter;
+      Buffer_Symbols : String_Sets.Set;
+      Prj            : in out Prj_Desc) return Compilation_Unit
+   is
+      pragma Unreferenced (Prj);
+   begin
+      return No_Compilation_Unit;
+   end Emit_Buffers_List_Unit;
+
+   --------------
+   -- Has_Main --
+   --------------
+
+   function Has_Main
+     (Self     : in out Language_Instrumenter;
+      Filename : GNATCOLL.VFS.Virtual_File;
+      Prj      : in out Prj_Desc) return Boolean
+   is
+      pragma Unreferenced (Prj);
+   begin
+      return False;
+   end Has_Main;
+
    --------------------------------
    -- Replace_Manual_Indications --
    --------------------------------
@@ -785,6 +834,46 @@ package body Instrument.Common is
    begin
       raise Program_Error;
    end Replace_Manual_Indications;
+
+   ---------------------
+   -- Dependency_File --
+   ---------------------
+
+   function Dependency_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File is
+   begin
+      return
+        Instrumentation_File
+          (Prj, Create (+(Filename.Display_Base_Name & ".d")));
+   end Dependency_File;
+
+   -----------------------------
+   -- Instrumented_Files_File --
+   -----------------------------
+
+   function Instrumented_Files_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File is
+   begin
+      return
+        Instrumentation_File
+          (Prj, Create (+(Filename.Display_Base_Name & ".instr_files")));
+   end Instrumented_Files_File;
+
+   -------------------------------------
+   -- Files_Instrumentation_Info_File --
+   -------------------------------------
+
+   function Files_Instrumentation_Info_File
+     (Prj : Prj_Desc; Unit_Name : String) return GNATCOLL.VFS.Virtual_File is
+   begin
+      return
+        Instrumentation_File
+          (Prj,
+           GNATCOLL.VFS.Create
+             (+(Ada.Directories.Simple_Name (Unit_Name) & ".json")));
+   end Files_Instrumentation_Info_File;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));

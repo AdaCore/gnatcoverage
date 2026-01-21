@@ -36,8 +36,14 @@ thistest.fail_if_no_match(
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.ads\.instr_files",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.json",
             r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.ads\.instr_files",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.json",
             r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.ads\.instr_files",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.json",
         ]
     ),
     "\n".join(

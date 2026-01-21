@@ -24,6 +24,8 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with GNAT.Strings; use GNAT.Strings;
 with GNAT.Regexp;
 
+with GPR2.Build.Source;
+
 limited with Checkpoints;
 limited with LLVM_JSON_Checkpoints;
 with Coverage_Options; use Coverage_Options;
@@ -347,11 +349,16 @@ package Files_Table is
    function "=" (L, R : Compilation_Unit) return Boolean
    is (Image (L) = Image (R));
 
+   function To_Compilation_Unit
+     (Source : GPR2.Build.Source.Object) return Files_Table.Compilation_Unit;
+   --  Return the Compilation_Unit for Source
+
    No_Compilation_Unit : constant Compilation_Unit :=
      (Language => File_Based_Language, Unit_Name => Strings."+" (""));
 
    package Unit_Sets is new
      Ada.Containers.Ordered_Sets (Element_Type => Compilation_Unit);
+   subtype Unit_Set is Unit_Sets.Set;
 
    type Owning_Unit (Known : Boolean := False) is record
       case Known is

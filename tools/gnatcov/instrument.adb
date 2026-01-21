@@ -29,9 +29,14 @@ with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Command_Line;   use Command_Line;
-with Files_Handling; use Files_Handling;
-with Hex_Images;     use Hex_Images;
+--  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
+
+pragma Warnings (Off, "not referenced");
+with GPR2.Project.View.Set;
+pragma Warnings (On, "not referenced");
+
+with Command_Line; use Command_Line;
+with Hex_Images;   use Hex_Images;
 with Outputs;
 with Paths;
 
@@ -120,7 +125,10 @@ package body Instrument is
                if Char in 'Z' | 'z' then
                   Append (Result, "zz");
                else
-                  Append (Result, Char);
+                  --  Ada names are case insensitives, so always use the upper
+                  --  case version to avoid slug variations on case variations.
+
+                  Append (Result, To_Upper (Char));
                end if;
             end;
          end loop;
@@ -273,10 +281,11 @@ package body Instrument is
 
    function Load_From_Command_Line return Prj_Desc is
       use Command_Line.Parser;
-      Language : constant Some_Language :=
+      Language   : constant Some_Language :=
         To_Language (+Args.String_Args (Opt_Lang).Value);
-      Prj_Name : Unbounded_String;
-      Result   : Prj_Desc;
+      Output_Dir : Unbounded_String;
+      Prj_Name   : Unbounded_String;
+      Result     : Prj_Desc;
 
       procedure Fill_If_Present
         (Opt : String_Options; Field : out Unbounded_String);
@@ -304,9 +313,10 @@ package body Instrument is
          Fill_If_Present
            (Opt_Compiler_Driver, Result.Compiler_Driver (Language));
       end if;
-      Fill_If_Present (Opt_Output_Directory, Result.Output_Dir);
+      Fill_If_Present (Opt_Output_Directory, Output_Dir);
       Fill_If_Present (Opt_Project_Name, Prj_Name);
       Result.Prj_Name := To_Qualified_Name (+Prj_Name);
+      Result.Output_Dir := Create (+(+Output_Dir));
 
       declare
          NS     : Naming_Scheme_Desc renames Result.Naming_Scheme;
@@ -344,11 +354,11 @@ package body Instrument is
    -------------
 
    function Unparse
-     (Desc      : Prj_Desc;
-      Unit_Name : Unbounded_String;
-      Lang      : Src_Supported_Language) return String_Vectors.Vector
+     (Desc : Prj_Desc;
+      Src  : GPR2.Build.Source.Object;
+      Lang : Src_Supported_Language) return Command_Line_Args
    is
-      Result        : String_Vectors.Vector;
+      Result        : Command_Line_Args;
       Compiler_Opts : String_Vectors.Vector;
    begin
       --  Pass naming scheme settings
@@ -357,28 +367,27 @@ package body Instrument is
          NS : Naming_Scheme_Desc renames Desc.Naming_Scheme;
       begin
          if NS.Body_Suffix (Lang) /= "" then
-            Result.Append (+"--body-suffix");
-            Result.Append (NS.Body_Suffix (Lang));
+            Result.Append (Create ("--body-suffix"));
+            Result.Append (Create (+NS.Body_Suffix (Lang)));
          end if;
 
          if NS.Spec_Suffix (Lang) /= "" then
-            Result.Append (+"--spec-suffix");
-            Result.Append (NS.Spec_Suffix (Lang));
+            Result.Append (Create ("--spec-suffix"));
+            Result.Append (Create (+NS.Spec_Suffix (Lang)));
          end if;
 
          if NS.Dot_Replacement /= "" then
-            Result.Append (+"--dot-replacement");
-            Result.Append (NS.Dot_Replacement);
+            Result.Append (Create ("--dot-replacement"));
+            Result.Append (Create (+NS.Dot_Replacement));
          end if;
 
-         Result.Append (+"--casing");
-         Result.Append (+To_Lower (NS.Casing'Image));
+         Result.Append (Create ("--casing"));
+         Result.Append (Create (To_Lower (NS.Casing'Image)));
       end;
 
       if Lang in C_Family_Language then
-         Compiler_Opts.Append (Desc.Search_Paths);
          declare
-            File : constant Virtual_File := Create_Normalized (+Unit_Name);
+            File : constant Virtual_File := Src.Path_Name.Virtual_File;
          begin
             if Desc.Compiler_Options_Unit.Contains (File) then
                Compiler_Opts.Append
@@ -390,10 +399,10 @@ package body Instrument is
          if not Compiler_Opts.Is_Empty then
             case C_Family_Language (Lang) is
                when CPP_Language =>
-                  Result.Append (+"--c++-opts");
+                  Result.Append (Create ("--c++-opts"));
 
                when C_Language   =>
-                  Result.Append (+"--c-opts");
+                  Result.Append (Create ("--c-opts"));
             end case;
          end if;
          declare
@@ -408,17 +417,25 @@ package body Instrument is
                end if;
                Append (Compiler_Opts_Str, Compiler_Opt);
             end loop;
-            Result.Append (Compiler_Opts_Str);
+
+            --  Avoid adding an empty argument
+
+            if Length (Compiler_Opts_Str) > 0 then
+               Result.Append (Create (+Compiler_Opts_Str));
+            end if;
          end;
 
          if Desc.Compiler_Driver (Lang) /= "" then
-            Result.Append (+"--compiler-driver");
-            Result.Append (Desc.Compiler_Driver (Lang));
+            Result.Append (Create ("--compiler-driver"));
+            Result.Append (Create (+Desc.Compiler_Driver (Lang)));
          end if;
       end if;
 
-      Result.Append (+"--output-dir");
-      Result.Append (Desc.Output_Dir);
+      Result.Append (Create ("--output-dir"));
+      Result.Append (Create (+Desc.Output_Dir.Full_Name));
+
+      Result.Append (Create ("--project-name"));
+      Result.Append (Create (To_Ada (Desc.Prj_Name)));
 
       for Cur in Desc.Special_Output_Dirs.Iterate loop
          declare
@@ -427,10 +444,11 @@ package body Instrument is
               String_Maps.Element (Cur);
          begin
             Result.Append
-              (+("--special-output-dir="
-                 & (+Source_File)
-                 & Paths.Path_Separator
-                 & (+Output_Dir)));
+              (Create
+                 ("--special-output-dir="
+                  & (+Source_File)
+                  & Paths.Path_Separator
+                  & (+Output_Dir)));
          end;
       end loop;
 

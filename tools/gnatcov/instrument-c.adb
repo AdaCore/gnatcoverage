@@ -31,9 +31,9 @@ with Clang.Extensions;    use Clang.Extensions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
+with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Mmap;
 
-with Instrument.Setup_Config;
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
@@ -42,6 +42,7 @@ with Coverage;                 use Coverage;
 with Coverage_Options;
 with Hex_Images;               use Hex_Images;
 with Instrument.C_Annotations; use Instrument.C_Annotations;
+with Instrument.Setup_Config;
 with Outputs;                  use Outputs;
 with Paths;                    use Paths;
 with SCOs;
@@ -87,10 +88,10 @@ package body Instrument.C is
    --  temporary file.
 
    procedure Preprocess_Source
-     (Filename     : String;
+     (Filename     : GNATCOLL.VFS.Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      PP_Filename  : out Unbounded_String;
+      Prj          : in out Prj_Desc;
+      PP_Filename  : out GNATCOLL.VFS.Virtual_File;
       Options      : in out Analysis_Options);
    --  Preprocess the source at Filename and extend Options using the Prj and
    --  the preprocessor output to retrieve standard search paths.
@@ -103,7 +104,7 @@ package body Instrument.C is
      (Source       : Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : in out Prj_Desc;
-      PP_Filename  : out Unbounded_String);
+      PP_Filename  : out GNATCOLL.VFS.Virtual_File);
    --  Same procedure as above, but automatically record the search paths
    --  associated to Source in the project description.
 
@@ -251,6 +252,10 @@ package body Instrument.C is
    -- Generation of witness fragments --
    -------------------------------------
 
+   function Buffer_Slug (Filename : String) return String
+   is ("_b_" & Filename_Slug (Filename));
+   --  Return the buffer slug for the given file
+
    function Buffers_Subscript (Buffers_Index : Positive) return String
    is ("[" & Img (Buffers_Index - 1) & "]");
    --  Return a C array subscript to refer to the coverage buffers
@@ -352,33 +357,35 @@ package body Instrument.C is
    ----------------------------
 
    function New_Body_File
-     (Prj                  : Prj_Desc;
-      Instrumenter         : C_Family_Instrumenter_Type'Class;
+     (Instrumenter         : C_Family_Instrumenter_Type'Class;
+      Prj                  : Prj_Desc;
       Slug                 : String;
       With_Language_Suffix : Boolean := False) return String;
-   --  Wrapper around Instrument.Common.New_File to generate a file in the
-   --  given project output directory with a filename that matches:
+   --  Wrapper around Instrument.Common.Instrumentation_File to generate a file
+   --  in the given project output directory with a filename that matches:
    --
    --     {Sys_Suffix}{Slug}{Body_Suffix}
    --
    --  If With_Language_Suffix is True, append a language-specific suffix to
    --  Slug.
+   --
+   --  TODO??? return a GNATCOLL.VFS.Virtual_File
 
    procedure Emit_Buffer_Unit
      (UIC          : C_Unit_Inst_Context'Class;
       Unit         : Compilation_Unit;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc);
+      Prj          : in out Prj_Desc);
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit, for the given instrumenter.
 
    procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
       Trigger      : Valid_Dump_Trigger;
-      Main         : String;
+      Main         : GNATCOLL.VFS.Virtual_File;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc);
+      Prj          : in out Prj_Desc);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
@@ -399,13 +406,14 @@ package body Instrument.C is
 
    procedure Start_Rewriting
      (Self         : out C_Source_Rewriter;
-      Filename     : String;
+      Filename     : GNATCOLL.VFS.Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Options      : out Analysis_Options);
+      Prj          : in out Prj_Desc;
+      Options      : in out Analysis_Options);
    --  Start a rewriting session for the given file identified by its full
-   --  name. If not already done, preprocess it beforehand and record
-   --  information from the preprocessing stage in Options.
+   --  name. If Instrumented is True, preprocess it beforehand and record
+   --  information from the preprocessing stage in options, otherwise skip
+   --  the preprocessing.
 
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
@@ -2989,10 +2997,10 @@ package body Instrument.C is
    -----------------------
 
    procedure Preprocess_Source
-     (Filename     : String;
+     (Filename     : GNATCOLL.VFS.Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      PP_Filename  : out Unbounded_String;
+      Prj          : in out Prj_Desc;
+      PP_Filename  : out GNATCOLL.VFS.Virtual_File;
       Options      : in out Analysis_Options)
    is
       Base_Cmd : Command_Type;
@@ -3007,27 +3015,29 @@ package body Instrument.C is
       PID : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
-      Preprocessed_Filename : constant String :=
-        (+Prj.Output_Dir) / ("pp-" & Strip_Zero_Padding (Hex_Image (PID)));
+      Preprocessed_File : constant Virtual_File :=
+        Join (Prj.Output_Dir, +("pp-" & Strip_Zero_Padding (Hex_Image (PID))));
       --  Preprocessed file. We then postprocess it to remove redundant line
       --  markers inserted by the preprocessor.
 
-      Preprocessor_Output_Filename : constant String :=
-        (+Prj.Output_Dir)
-        / ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
+      Preprocessor_Output_Filename : constant Virtual_File :=
+        Join
+          (Prj.Output_Dir,
+           +("pp-output-" & Strip_Zero_Padding (Hex_Image (PID))));
       Preprocessor_Output_File     : Ada.Text_IO.File_Type;
       --  File containing the preprocessor output (used to get include search
       --  paths).
    begin
-      Import_Options (Options, Instrumenter, Prj, Filename);
-      PP_Filename := +New_File (Prj, Filename);
+      Import_Options
+        (Self         => Options,
+         Instrumenter => Instrumenter,
+         Prj          => Prj,
+         Filename     => Filename.Display_Full_Name);
+      PP_Filename := Instrumentation_File (Prj, Filename);
 
-      --  If the preprocessed output file already exists, consider that it was
-      --  already preprocessed and do nothing.
+      --  Add the file to the instrumentation artifacts
 
-      if Ada.Directories.Exists (+PP_Filename) then
-         return;
-      end if;
+      Prj.Instr_Artifacts.Insert (PP_Filename);
 
       Base_Cmd :=
         (Command => Prj.Compiler_Driver (Instrumenter.Language), others => <>);
@@ -3041,7 +3051,7 @@ package body Instrument.C is
 
       Append_Args (Base_Cmd, Options.Raw_Switches);
 
-      Append_Arg (Base_Cmd, Filename);
+      Append_Arg (Base_Cmd, +Filename.Full_Name);
 
       --  Register the preprocessing command. We need it to preprocess the file
       --  when producing the report, and getting the text of macro expansions.
@@ -3056,18 +3066,35 @@ package body Instrument.C is
 
       Append_Arg (Base_Cmd, "-C");
 
-      PP_Cmds.Insert
+      PP_Cmds.Include
         (Get_Index_From_Generic_Name
-           (Filename, Kind => Files_Table.Source_File),
+           (+Filename.Full_Name, Kind => Files_Table.Source_File),
          Base_Cmd);
 
       Cmd := Base_Cmd;
+
+      --  Add the switches to generate a dependency file for incremental
+      --  instrumentation purposes.
+
+      if Instrumenter.Instr_Mode = Project_Instrumentation then
+         declare
+            Dep_File : constant Virtual_File :=
+              Dependency_File (Prj, Filename);
+         begin
+            Append_Arg (Cmd, "-MMD");
+            Append_Arg (Cmd, "-MF");
+            Append_Arg (Cmd, Dep_File.Display_Full_Name);
+            Prj.Instr_Artifacts.Insert (Dep_File);
+         end;
+      end if;
+
+      Append_Args (Cmd, Options.Dep_File_Options);
 
       --  To get the include paths, we use the verbose output of cpp -E
 
       Append_Arg (Cmd, "-v");
       Append_Arg (Cmd, "-o");
-      Append_Arg (Cmd, Preprocessed_Filename);
+      Append_Arg (Cmd, +Preprocessed_File.Full_Name);
 
       --  Run the preprocessing command, keep track of whether it was
       --  successful for later
@@ -3076,7 +3103,7 @@ package body Instrument.C is
         Run_Command
           (Command             => Cmd,
            Origin_Command_Name => "Preprocessing",
-           Output_File         => Preprocessor_Output_Filename,
+           Output_File         => +Preprocessor_Output_Filename.Full_Name,
            Ignore_Error        => True);
 
       if not Success then
@@ -3104,20 +3131,20 @@ package body Instrument.C is
 
          PP_Cmds.Replace
            (Get_Index_From_Generic_Name
-              (Filename, Kind => Files_Table.Source_File),
+              (+Filename.Full_Name, Kind => Files_Table.Source_File),
             Base_Cmd);
 
          Cmd := Base_Cmd;
 
          Append_Arg (Cmd, "-v");
          Append_Arg (Cmd, "-o");
-         Append_Arg (Cmd, Preprocessed_Filename);
+         Append_Arg (Cmd, +Preprocessed_File.Full_Name);
 
          Success :=
            Run_Command
              (Command             => Cmd,
               Origin_Command_Name => "Preprocessing",
-              Output_File         => Preprocessor_Output_Filename,
+              Output_File         => +Preprocessor_Output_Filename.Full_Name,
               Ignore_Error        => True);
 
          --  If this preprocessing command succeeded, warn the user that we
@@ -3127,7 +3154,7 @@ package body Instrument.C is
          if Success then
             Warn
               ("Could not preserve comments while pre-processing "
-               & Filename
+               & (+Filename.Full_Name)
                & ", annotations in comments within this file or included"
                & " headers will not be taken into account");
          end if;
@@ -3143,7 +3170,10 @@ package body Instrument.C is
       --  ...
       --  End of search list
 
-      Open (Preprocessor_Output_File, In_File, Preprocessor_Output_Filename);
+      Open
+        (Preprocessor_Output_File,
+         In_File,
+         +Preprocessor_Output_Filename.Full_Name);
 
       declare
          RE_Begin_Pattern      : constant Pattern_Matcher :=
@@ -3201,8 +3231,9 @@ package body Instrument.C is
       --  Now, onto the postprocessing. Remove spurious system header line
       --  markers.
 
-      Postprocess_Source (Preprocessed_Filename, +PP_Filename);
-      Ada.Directories.Delete_File (Preprocessed_Filename);
+      Postprocess_Source
+        (+Preprocessed_File.Full_Name, +PP_Filename.Full_Name);
+      Ada.Directories.Delete_File (+Preprocessed_File.Full_Name);
    end Preprocess_Source;
 
    -----------------------------------------
@@ -3213,12 +3244,17 @@ package body Instrument.C is
      (Source       : Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : in out Prj_Desc;
-      PP_Filename  : out Unbounded_String)
+      PP_Filename  : out GNATCOLL.VFS.Virtual_File)
    is
       Options  : Analysis_Options;
-      Filename : constant String := +Source.Full_Name;
+      Filename : constant String := Source.Display_Full_Name;
    begin
-      Preprocess_Source (Filename, Instrumenter, Prj, PP_Filename, Options);
+      Import_Options
+        (Self         => Options,
+         Instrumenter => Instrumenter,
+         Prj          => Prj,
+         Filename     => Filename);
+      Preprocess_Source (Source, Instrumenter, Prj, PP_Filename, Options);
       declare
          use Files_Handling.File_To_String_Vectors_Maps;
          Cur      : Cursor;
@@ -3281,16 +3317,18 @@ package body Instrument.C is
 
    procedure Start_Rewriting
      (Self         : out C_Source_Rewriter;
-      Filename     : String;
+      Filename     : GNATCOLL.VFS.Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Options      : out Analysis_Options)
+      Prj          : in out Prj_Desc;
+      Options      : in out Analysis_Options)
    is
-      PP_Filename : Unbounded_String;
+      PP_Filename : GNATCOLL.VFS.Virtual_File := Filename;
 
       Args : String_Vectors.Vector;
    begin
-      Preprocess_Source (Filename, Instrumenter, Prj, PP_Filename, Options);
+      if not Is_Instrumented_File (Prj, Filename) then
+         Preprocess_Source (Filename, Instrumenter, Prj, PP_Filename, Options);
+      end if;
 
       Self.CIdx :=
         Create_Index
@@ -3309,14 +3347,14 @@ package body Instrument.C is
          Self.TU :=
            Parse_Translation_Unit
              (C_Idx                 => Self.CIdx,
-              Source_Filename       => +PP_Filename,
+              Source_Filename       => +PP_Filename.Full_Name,
               Command_Line_Args     => C_Args'Address,
               Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
               Options               => 0);
          if Self.TU = null then
-            Outputs.Error ("Failed to parse " & Filename);
+            Outputs.Error ("Failed to parse " & (+Filename.Full_Name));
             Outputs.Error
               ("Please make sure that the original project can"
                & " be compiled, and that the right set of"
@@ -3376,7 +3414,7 @@ package body Instrument.C is
          CX_Rewriter_Dispose (Self.Rewriter);
       end if;
       if Switches.Pretty_Print then
-         Run_Clang_Format (+Self.Output_Filename);
+         Run_Clang_Format (+Self.Output_Filename.Full_Name);
       end if;
    end Finalize;
 
@@ -3405,7 +3443,7 @@ package body Instrument.C is
       --  inhibit the use of clang predefined macros. We want to fully emulate
       --  the user's preprocessor.
 
-      Add_Options (Args, UIC.Options);
+      Add_Options (Args, UIC.Options, Pass_Builtins => False);
       String_Vectors.Append
         (Args, Common_Parse_TU_Args (Instrumenter.Language));
 
@@ -3471,14 +3509,19 @@ package body Instrument.C is
    ---------------------
 
    procedure Instrument_Unit
-     (Self              : in out C_Family_Instrumenter_Type;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set)
+     (Self               : in out C_Family_Instrumenter_Type;
+      Unit_Name          : String;
+      Prj                : in out Prj_Desc;
+      Files_Of_Interest  : File_Sets.Set;
+      Instrumented_Files : File_Sets.Set)
    is
       UIC : C_Unit_Inst_Context;
 
-      Orig_Filename : constant String := Unit_Name;
+      VF                  : constant Virtual_File := Create (+Unit_Name);
+      Is_Instrumented     : constant Boolean :=
+        Instrumented_Files.Contains (VF);
+      Instrumented_Source : constant Virtual_File :=
+        (if Is_Instrumented then Instrumentation_File (Prj, VF) else VF);
 
       Rewriter : C_Source_Rewriter;
       --  Holds the compilation index, the translation unit and the rewriter.
@@ -3534,13 +3577,25 @@ package body Instrument.C is
 
       UIC.SFI :=
         Get_Index_From_Generic_Name
-          (Orig_Filename, Kind => Files_Table.Source_File);
-      UIC.Fullname := +Orig_Filename;
+          (Unit_Name, Kind => Files_Table.Source_File);
+      UIC.Fullname := +Unit_Name;
 
       --  Initialize the C instrumentation context
 
       UIC.Instrumented_Unit := +Unit_Name;
       UIC.Files_Of_Interest := Files_Of_Interest;
+
+      --  No matter whether we are processing or not, we always need to
+      --  import the analysis options: some of them must be passed on to the
+      --  clang parsing command.
+
+      if Is_Instrumented then
+         Import_Options
+           (Self         => UIC.Options,
+            Instrumenter => Self,
+            Prj          => Prj,
+            Filename     => Unit_Name);
+      end if;
 
       --  Run the preprocessor (this also takes care of importing the
       --  preprocessor options into UIC.Options) and parse the preprocessed
@@ -3548,7 +3603,10 @@ package body Instrument.C is
 
       Start_Rewriting
         (Self         => Rewriter,
-         Filename     => Orig_Filename,
+
+         --  Make sure to not override any instrumented version of the source
+
+         Filename     => Instrumented_Source,
          Instrumenter => Self,
          Prj          => Prj,
          Options      => UIC.Options);
@@ -3563,8 +3621,8 @@ package body Instrument.C is
 
       --  Record preprocessing information
 
-      Sources_Trace.Trace ("Running the Record_P_Info pass");
-      Record_PP_Info (Orig_Filename, UIC, Self);
+      Sources_Trace.Trace ("Running the Record_PP_Info pass");
+      Record_PP_Info (Unit_Name, UIC, Self);
 
       --  Save the last SCO of the first pass (for a consistency check with
       --  the second pass later), and reset the SCO tables for the
@@ -3598,7 +3656,7 @@ package body Instrument.C is
 
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
          Outputs.Warn
-           (Orig_Filename
+           (Unit_Name
             & ": preprocessed file coverage obligations"
             & " inconsistent with original file obligations (expecting"
             & Nat'Image (Record_PP_Info_Last_SCO)
@@ -3907,7 +3965,7 @@ package body Instrument.C is
       Files_Table.Consolidate_Ignore_Status
         (Index  =>
            Files_Table.Get_Index_From_Generic_Name
-             (Name => Orig_Filename, Kind => Files_Table.Source_File),
+             (Name => Unit_Name, Kind => Files_Table.Source_File),
          Status => Files_Table.Never);
    end Instrument_Unit;
 
@@ -3950,8 +4008,8 @@ package body Instrument.C is
    -------------------
 
    function New_Body_File
-     (Prj                  : Prj_Desc;
-      Instrumenter         : C_Family_Instrumenter_Type'Class;
+     (Instrumenter         : C_Family_Instrumenter_Type'Class;
+      Prj                  : Prj_Desc;
       Slug                 : String;
       With_Language_Suffix : Boolean := False) return String
    is
@@ -3965,12 +4023,15 @@ package body Instrument.C is
          else "");
    begin
       return
-        New_File
+        Instrumentation_File
           (Prj,
-           To_Symbol_Name (Sys_Prefix)
-           & Slug
-           & Language_Suffix
-           & (+Prj.Naming_Scheme.Body_Suffix (Language)));
+           Create
+             (Filesystem_String
+                (To_Symbol_Name (Sys_Prefix)
+                 & Slug
+                 & Language_Suffix
+                 & (+Prj.Naming_Scheme.Body_Suffix (Instrumenter.Language)))))
+          .Display_Full_Name;
    end New_Body_File;
 
    ----------------------
@@ -3981,7 +4042,7 @@ package body Instrument.C is
      (UIC          : C_Unit_Inst_Context'Class;
       Unit         : Compilation_Unit;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc)
+      Prj          : in out Prj_Desc)
    is
       Buffer_Unit_Filename : constant String :=
         +Instrumenter.Buffer_Unit
@@ -4071,7 +4132,7 @@ package body Instrument.C is
 
       pragma Assert (for all CU of Buffers_CUs => CU /= No_CU_Id);
 
-      --  Start to emit the buffer unit
+      --  Start by emitting the buffer unit
 
       Create_File (Prj, File, Buffer_Unit_Filename);
 
@@ -4304,10 +4365,10 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
       Trigger      : Valid_Dump_Trigger;
-      Main         : String;
+      Main         : GNATCOLL.VFS.Virtual_File;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc)
+      Prj          : in out Prj_Desc)
    is
       File : Text_Files.File_Type;
 
@@ -4328,7 +4389,8 @@ package body Instrument.C is
          then Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
          else
            Instrumenter.Dump_Helper_Unit
-             (Compilation_Unit'(File_Based_Language, +Main), Prj)
+             (Compilation_Unit'(File_Based_Language, +Main.Display_Full_Name),
+              Prj)
              .Unit_Name);
 
       --  Compute the qualified names we need for instrumentation
@@ -4336,7 +4398,8 @@ package body Instrument.C is
       declare
          Filename        : constant String := +Helper_Unit;
          Dump_Procedure  : constant String :=
-           Dump_Procedure_Symbol (Main, Trigger = Manual, Prj.Prj_Name);
+           Dump_Procedure_Symbol
+             (Main.Display_Full_Name, Trigger = Manual, Prj.Prj_Name);
          Reset_Procedure : constant String :=
            Reset_Procedure_Symbol (Prj.Prj_Name);
       begin
@@ -4348,7 +4411,7 @@ package body Instrument.C is
                & Filename);
             Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
             Sources_Trace.Trace ("Filename: " & Filename);
-            Sources_Trace.Trace ("For main: " & Main);
+            Sources_Trace.Trace ("For main: " & Main.Display_Full_Name);
             Sources_Trace.Decrease_Indent;
          end if;
 
@@ -4424,7 +4487,7 @@ package body Instrument.C is
                      & C_String_Literal
                          (if Trigger = Manual
                           then To_Ada (Prj.Prj_Name)
-                          else Main)
+                          else Main.Display_Full_Name)
                      & "),");
                   File.Put_Line
                     (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
@@ -4444,7 +4507,7 @@ package body Instrument.C is
                   & C_String_Literal
                       (if Trigger = Manual
                        then To_Ada (Prj.Prj_Name)
-                       else Main)
+                       else Main.Display_Full_Name)
                   & "),");
                File.Put_Line (Indent2 & "0,");
                File.Put_Line (Indent2 & "STR ("""")");
@@ -4478,20 +4541,14 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is
-      Main : constant String := "";
-      --  Since the dump trigger is "manual" and there is no main to be given,
-      --  the Main argument in the following call to
-      --  Emit_Dump_Helper_Unit_For_Trigger will not be used.
-
       Dummy_Unit_Name : Unbounded_String;
-
    begin
       Emit_Dump_Helper_Unit_For_Trigger
         (Dump_Config  => Dump_Config,
          Trigger      => Manual,
-         Main         => Main,
+         Main         => GNATCOLL.VFS.No_File,
          Helper_Unit  => Dummy_Unit_Name,
          Instrumenter => Self,
          Prj          => Prj);
@@ -4505,12 +4562,12 @@ package body Instrument.C is
    procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : Virtual_File;
+      Source               : GNATCOLL.VFS.Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
       Ignore_Check    : constant Boolean := Check_Compiler_Driver (Prj, Self);
-      PP_Filename     : Unbounded_String;
+      PP_Filename     : Virtual_File;
       Dump_Procedure  : constant String :=
         Dump_Procedure_Symbol
           (Main => "", Manual => True, Prj_Name => Prj.Prj_Name);
@@ -4536,12 +4593,12 @@ package body Instrument.C is
       declare
          use Ada.Streams.Stream_IO;
          use GNATCOLL.Mmap;
-         File         : Mapped_File := Open_Read (To_String (PP_Filename));
+         File         : Mapped_File := Open_Read (+PP_Filename.Full_Name);
          Region       : Mapped_Region := Read (File);
          Raw_Str      : constant Str_Access := Data (Region);
          Raw_Str_Last : constant Natural := Last (Region);
          Str          : String renames Raw_Str (1 .. Raw_Str_Last);
-         Tmp_Filename : constant String := +PP_Filename & ".tmp";
+         Tmp_Filename : constant String := (+PP_Filename.Full_Name) & ".tmp";
 
          Output_File : Ada.Streams.Stream_IO.File_Type;
          S           : Ada.Streams.Stream_IO.Stream_Access;
@@ -4628,7 +4685,6 @@ package body Instrument.C is
             Close (File);
          else
             declare
-               PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
                Success  : Boolean;
             begin
@@ -4642,8 +4698,8 @@ package body Instrument.C is
 
                --  Overwrite the original file with its newer version
 
-               PP_File.Delete (Success);
-               Tmp_File.Rename (Full_Name => PP_File, Success => Success);
+               PP_Filename.Delete (Success);
+               Tmp_File.Rename (Full_Name => PP_Filename, Success => Success);
                if not Success then
                   Outputs.Fatal_Error
                     ("Failed to replace manual dump indication for Source "
@@ -4661,9 +4717,9 @@ package body Instrument.C is
    overriding
    procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
-      Filename    : String;
+      Filename    : GNATCOLL.VFS.Virtual_File;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is
       Helper_Filename : Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
@@ -4680,16 +4736,20 @@ package body Instrument.C is
    begin
       Check_Compiler_Driver (Prj, Self);
 
-      --  The source file Filename is already instrumented for coverage, and so
-      --  it contains #include directives for headers from the coverage
-      --  runtime. Make sure Clang has access to them so that it can parse
-      --  correctly.
+      --  The source file Filename may have already been instrumented for
+      --  coverage, and so it may contain #include directives for headers from
+      --  the coverage runtime. Make sure Clang has access to them so that it
+      --  can parse correctly.
 
       for D of Self.RTS_Source_Dirs loop
          Dummy_Options.PP_Search_Path.Append (+(+D.Full_Name));
       end loop;
 
-      Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
+      Rew.Start_Rewriting
+        (Filename     => Filename,
+         Instrumenter => Self,
+         Prj          => Prj,
+         Options      => Dummy_Options);
 
       Insert_Extern_Location :=
         Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
@@ -4697,7 +4757,7 @@ package body Instrument.C is
       if Main_Cursor = Get_Null_Cursor then
          Outputs.Fatal_Error
            ("Could not find main function in "
-            & (Ada.Directories.Simple_Name (Filename)));
+            & (GNATCOLL.VFS.Display_Base_Name (Filename)));
       end if;
 
       Emit_Dump_Helper_Unit_For_Trigger
@@ -4713,7 +4773,7 @@ package body Instrument.C is
          Insert_Extern_Location,
          Self,
          "void",
-         Dump_Procedure_Symbol (Filename),
+         Dump_Procedure_Symbol (Filename.Display_Full_Name),
          Func_Args => "void");
 
       if Dump_Config.Auto_Trigger = Ravenscar_Task_Termination then
@@ -4762,7 +4822,8 @@ package body Instrument.C is
                           (N    => Return_Expr,
                            Text =>
                              ", "
-                             & Dump_Procedure_Symbol (Filename)
+                             & Dump_Procedure_Symbol
+                                 (Filename.Display_Full_Name)
                              & "(), gnatcov_rts_return",
                            Rew  => Rew.Rewriter);
 
@@ -4813,7 +4874,8 @@ package body Instrument.C is
                      CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,
                         End_Sloc (Main_Body),
-                        Dump_Procedure_Symbol (Filename) & "();");
+                        Dump_Procedure_Symbol (Filename.Display_Full_Name)
+                        & "();");
                   end if;
                end;
             end;
@@ -4840,7 +4902,9 @@ package body Instrument.C is
                Insert_Text_In_Brackets
                  (CmpdStmt => Body_Cursor,
                   Text     =>
-                    "atexit (" & Dump_Procedure_Symbol (Filename) & ");",
+                    "atexit ("
+                    & Dump_Procedure_Symbol (Filename.Display_Full_Name)
+                    & ");",
                   Rew      => Rew.Rewriter);
             end;
 
@@ -4863,7 +4927,9 @@ package body Instrument.C is
           (Language  => File_Based_Language,
            Unit_Name =>
              +New_Body_File
-                (Prj, Self, "_b_" & Filename_Slug (+CU.Unit_Name)));
+                (Instrumenter => Self,
+                 Prj          => Prj,
+                 Slug         => Buffer_Slug (+CU.Unit_Name)));
    exception
       when Exc : Ada.IO_Exceptions.Name_Error =>
          Fatal_Error
@@ -4891,8 +4957,8 @@ package body Instrument.C is
           (Language  => File_Based_Language,
            Unit_Name =>
              +New_Body_File
-                (Prj,
-                 Self,
+                (Self,
+                 Prj,
                  "_d_b_" & To_Symbol_Name (Prj.Prj_Name),
                  With_Language_Suffix => True));
    end Dump_Manual_Helper_Unit;
@@ -4911,7 +4977,19 @@ package body Instrument.C is
           (Language  => File_Based_Language,
            Unit_Name =>
              +New_Body_File
-                (Prj, Self, "_d_" & Filename_Slug (+CU.Unit_Name)));
+                (Self,
+                 Prj,
+
+                 --  Make the slug resilient to source directory changes, as
+                 --  according to the calling context (when cleaning up
+                 --  artifacts, or when instrumenting the main), CU.Unit_Name
+                 --  may point to the original main, or to its source-
+                 --  instrumented version.
+
+                 Slug =>
+                   "_d_"
+                   & Filename_Slug
+                       (Ada.Directories.Base_Name (+CU.Unit_Name))));
    end Dump_Helper_Unit;
 
    --------------
@@ -4921,8 +4999,8 @@ package body Instrument.C is
    overriding
    function Has_Main
      (Self     : in out C_Family_Instrumenter_Type;
-      Filename : String;
-      Prj      : Prj_Desc) return Boolean
+      Filename : GNATCOLL.VFS.Virtual_File;
+      Prj      : in out Prj_Desc) return Boolean
    is
       Rew : C_Source_Rewriter;
 
@@ -4932,7 +5010,11 @@ package body Instrument.C is
       Dummy_Options : Analysis_Options;
 
    begin
-      Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
+      Rew.Start_Rewriting
+        (Filename     => Filename,
+         Instrumenter => Self,
+         Prj          => Prj,
+         Options      => Dummy_Options);
       Main_Cursor := Get_Main (Rew.TU);
       if Main_Cursor = Get_Null_Cursor then
          return False;
@@ -4940,6 +5022,31 @@ package body Instrument.C is
          return True;
       end if;
    end Has_Main;
+
+   -------------------
+   -- Get_Main_File --
+   -------------------
+
+   function Get_Main_File
+     (Self : C_Family_Instrumenter_Type; Unit_Name : String)
+      return Virtual_File is
+   begin
+      return Create (+Unit_Name);
+   end Get_Main_File;
+
+   ------------------
+   -- For_All_Part --
+   ------------------
+
+   procedure For_All_Part
+     (Self      : in out C_Family_Instrumenter_Type;
+      Unit_Name : String;
+      Process   : access procedure (Filename : Virtual_File))
+   is
+      pragma Unreferenced (Self);
+   begin
+      Process (Create (+Unit_Name));
+   end For_All_Part;
 
    ---------------------------
    -- Check_Compiler_Driver --
@@ -5108,7 +5215,7 @@ package body Instrument.C is
    procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is
       Buffer_Symbols : String_Sets.Set;
       Ignore_CU      : Compilation_Unit;
@@ -5125,10 +5232,10 @@ package body Instrument.C is
    function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : Prj_Desc) return Compilation_Unit
+      Prj            : in out Prj_Desc) return Compilation_Unit
    is
       Filename : constant String :=
-        New_Body_File (Prj, Self, "c-" & To_Symbol_Name (Prj.Prj_Name));
+        New_Body_File (Self, Prj, "c-" & To_Symbol_Name (Prj.Prj_Name));
       CU_Name  : constant Compilation_Unit := (File_Based_Language, +Filename);
 
       CU_File : Text_Files.File_Type;
@@ -5150,7 +5257,7 @@ package body Instrument.C is
 
       --  Emit the body to contain the list of buffers
 
-      CU_File.Create (+CU_Name.Unit_Name);
+      Create_File (Prj, CU_File, +CU_Name.Unit_Name);
 
       CU_File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
@@ -5276,7 +5383,7 @@ package body Instrument.C is
    --------------------
 
    procedure Import_Options
-     (Self         : out Analysis_Options;
+     (Self         : in out Analysis_Options;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc;
       Filename     : String)
@@ -5298,7 +5405,7 @@ package body Instrument.C is
       else
          Prj_Options.Append (Prj.Compiler_Options (Instrumenter.Language));
       end if;
-      Prj_Options.Append (Prj.Search_Paths);
+      Prj_Options.Append (Prj.Search_Paths (Instrumenter.Language));
 
       Import_From_Args (Self, Prj_Options);
       for Args of Cmdline_Opts loop
@@ -5311,7 +5418,7 @@ package body Instrument.C is
       Get_Builtin_Macros
         (Image (C_Family_Language (Instrumenter.Language)),
          +Prj.Compiler_Driver (Instrumenter.Language),
-         +Prj.Output_Dir,
+         +Prj.Output_Dir.Full_Name,
          Self.Compiler_Switches,
          Instrumenter.Instr_Mode,
          Self.Builtin_Macros);

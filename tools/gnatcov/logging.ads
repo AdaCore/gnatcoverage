@@ -33,6 +33,10 @@ package Logging is
    --  Wrapper around GNATCOLL.Traces.Create to create GNATcov-specific traces
    --  (with GNATCOLL_Trace_Prefix and standard settings).
 
+   No_Trace : GNATCOLL_Trace;
+   --  Trace that is always inactive. This is useful for subprograms accepting
+   --  an optional trace hook.
+
    procedure Initialize (Verbose : Boolean; To_Enable : String_Vectors.Vector);
    --  Initialize GNATCOLL traces from the ".gnatdebug" config file, if any.
    --
