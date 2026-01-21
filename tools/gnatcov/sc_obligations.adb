@@ -5193,7 +5193,6 @@ package body SC_Obligations is
          end;
 
          <<Skip_Unit>>
-         null;
       end loop;
       Free (CU_Load_Infos);
 

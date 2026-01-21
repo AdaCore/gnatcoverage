@@ -213,8 +213,9 @@ test_5.04a1_src_traces:
     - ln -s $STABLE_GNAT_PREFIX/bin/ar build-essentials/
     - ln -s $STABLE_GNAT_PREFIX/x86_64-pc-linux-gnu/bin/ld build-essentials/
     # Test using anod
-    - anod test gnatcov --minimal -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - TEST_QUALIFIER="-Q5.04a1,src-traces,gpr-mode,instr $ACI_TRACK_QUALIFIER"
+    - anod test gnatcov --minimal $TEST_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov $TEST_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - *common_testsuite_reports
 
@@ -275,8 +276,8 @@ test_block_instr:
     - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr,block,gpr-mode $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block,gpr-mode $ACI_TRACK_QUALIFIER build_space_name)
+    - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - *common_testsuite_reports
 

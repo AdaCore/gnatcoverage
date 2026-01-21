@@ -6495,6 +6495,7 @@ package body Instrument.Ada_Unit is
             --  be static, but we don't want to instrument static expressions.
             --  Checking this is thus needed to let calls of this form be
             --  seen as calls.
+            --
             --  TODO: This is a P_Is_Static_Expr bug, reported in issue
             --  eng/libadalang/libadalang#1523. Once this is fixed this
             --  variable and associated check should be safe to remove.
@@ -6523,8 +6524,6 @@ package body Instrument.Ada_Unit is
                   Then_Node    : constant Node_Rewriting_Handle :=
                     Clone (Full_Call_Node);
 
-                  Return_Type : Base_Type_Decl := No_Base_Type_Decl;
-
                   Needs_Qualified_Expr : constant Boolean :=
                     Full_Call_Node.Parent.Kind
                     in Ada_Dotted_Name | Ada_Explicit_Deref;
@@ -6542,12 +6541,6 @@ package body Instrument.Ada_Unit is
                   --
                   --  The if-expression alone suffices.
 
-                  Do_Not_Instrument : Boolean := False;
-                  --  Whether we can instrument this call. Depends on whether
-                  --  we need to use a qualified expression to insturment, and
-                  --  if the return type of the call is visible from the call
-                  --  site or not.
-
                   Location : constant Source_Location_Range :=
                     (if Node.Kind = Ada_Op_Concat
                      then
@@ -6564,6 +6557,9 @@ package body Instrument.Ada_Unit is
                   --  if-expression holding the witness call is created around
                   --  the operand, but the location of the SCO should still be
                   --  the operator's.
+
+                  Instrumented : Boolean := False;
+                  --  Whether we were able to instrument this function call
                begin
                   Append_SCO
                     (C1                 => 'c',
@@ -6574,47 +6570,49 @@ package body Instrument.Ada_Unit is
                      Last               => True,
                      Pragma_Aspect_Name => Namet.No_Name);
 
-                  --  Pre-compute the return type of the expression if we
-                  --  need to generate a qualified expression.
-                  --
-                  --  If we cannot determine it, do not instrument the call.
-
-                  begin
-                     if Needs_Qualified_Expr then
-                        Return_Type :=
-                          Full_Call_Node.As_Expr.P_Expression_Type;
-                     end if;
-                  exception
-                     when Property_Error =>
-                        Report
-                          (Full_Call_Node,
-                           "Failed to retrieve the expression type of the"
-                           & " call",
-                           Kind => Warning);
-                        Do_Not_Instrument := True;
-                  end;
-
                   --  TODO: LIMITATIONS
                   --
+                  --  Pre-Ada 2012
+                  --
+                  --  The instrumentation of function calls relies on IF
+                  --  expressions, so it is not possible in pre-2012 codebases.
+                  --
                   --  NON-IMPORTED TYPES
+                  --
                   --  Currently, gnatcov is unable to determine if the full
                   --  name of a type is visible and can be explicitely used in
-                  --  a unit. For this reason, we cannot currently turn
-                  --  the if-expressions into fully qualified names. This is
-                  --  need for call the are in the middle of a dotted name.
-                  --  For now, do not instrument calls that wouls require such
-                  --  an instrumentation.
+                  --  a unit. For this reason, we cannot currently turn the
+                  --  if-expressions into fully qualified names. This is need
+                  --  for call the are in the middle of a dotted name.  For
+                  --  now, do not instrument calls that wouls require such an
+                  --  instrumentation.
 
-                  Do_Not_Instrument := Needs_Qualified_Expr;
+                  if UIC.Language_Version not in If_Expr_Supported_Versions
+                  then
+                     Report
+                       (UIC,
+                        Full_Call_Node,
+                        "gnatcov limitation: cannot instrument calls before"
+                        & " Ada 2012",
+                        Warning);
 
-                  if not Do_Not_Instrument then
+                  elsif Needs_Qualified_Expr then
+                     Report
+                       (UIC,
+                        Full_Call_Node,
+                        "gnatcov limitation: cannot instrument calls "
+                        & (if Needs_Qualified_Expr
+                           then "within dotted names"
+                           else "to user-defined operators"),
+                        Warning);
+
+                  else
                      Fill_Expression_Insertion_Info
                        (UIC,
                         Allocate_Statement_Bit
                           (UIC.Unit_Bits, SCOs.SCO_Table.Last));
 
                      Replace (Orig_Handle, Dummy_Handle);
-
                      declare
                         If_Expression : constant Node_Rewriting_Handle :=
                           Create_Paren_Expr
@@ -6625,40 +6623,15 @@ package body Instrument.Ada_Unit is
                                 Then_Node,
                                 No_Node_Rewriting_Handle,
                                 Orig_Handle));
-
-                        Qualified_Expr : constant Node_Rewriting_Handle :=
-                          (if Needs_Qualified_Expr
-                           then
-                             Create_Qual_Expr
-                               (UIC.Rewriting_Context,
-                                F_Prefix =>
-                                  To_Nodes
-                                    (UIC.Rewriting_Context,
-                                     To_Qualified_Name
-                                       (Return_Type
-                                          .As_Basic_Decl
-                                          .P_Fully_Qualified_Name_Array)),
-                                F_Suffix =>
-                                  Create_Paren_Expr
-                                    (UIC.Rewriting_Context, If_Expression))
-                           else No_Node_Rewriting_Handle);
-
                      begin
-                        if Needs_Qualified_Expr then
-                           Replace (Dummy_Handle, Qualified_Expr);
-                        else
-                           Replace (Dummy_Handle, If_Expression);
-                        end if;
+                        Replace (Dummy_Handle, If_Expression);
                      end;
-                  else
-                     Report
-                       (UIC,
-                        Full_Call_Node,
-                        "gnatcov limitation: cannot instrument calls "
-                        & (if Needs_Qualified_Expr
-                           then "within dotted names"
-                           else "to user-defined operators"),
-                        Warning);
+                     Instrumented := True;
+                  end if;
+
+                  --  If we could not instrument this call, tag it accordingly
+
+                  if not Instrumented then
                      UIC.Non_Instr_LL_SCOs.Include
                        (SCO_Id (SCOs.SCO_Table.Last));
                   end if;
@@ -6677,6 +6650,9 @@ package body Instrument.Ada_Unit is
              (Method         => Expression_Function,
               Witness_Actual => No_Node_Rewriting_Handle,
               Witness_Formal => No_Node_Rewriting_Handle);
+
+         --  Start of processing for Process_Call_Expression
+
       begin
          if N.Is_Null then
             return;
@@ -6771,7 +6747,7 @@ package body Instrument.Ada_Unit is
                Node => E,
                Msg  =>
                  "Guarded Expression coverage is not available"
-                 & " before Ada2022",
+                 & " before Ada 2022",
                Kind => Diagnostics.Warning);
             UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
          end if;

@@ -1096,7 +1096,6 @@ package body Traces_Files is
          end;
 
          <<Skip>>
-         null;
       end loop;
 
       Close_Trace_File (Desc);
