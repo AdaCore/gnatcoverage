@@ -15,8 +15,9 @@ from SCOV.tc import TestCase
 
 tolerate_cov_messages = "|".join(
     [
-        r"warning: Discarding source coverage data for unit"
-        r".*foo.h \(from .*bar.c\), loaded from .*foo.c.sid",
+        r"warning: Discarding source coverage data for unit .*foo.h \(from"
+        r"(.*bar.c\), loaded from .*foo.c.sid"
+        r"|.*foo.c\), loaded from .*bar.c.sid)",
         r"warning: traces for .*foo.h .* are inconsistent .*",
     ]
 )

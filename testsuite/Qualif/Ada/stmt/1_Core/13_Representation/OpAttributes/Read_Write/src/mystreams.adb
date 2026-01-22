@@ -23,7 +23,7 @@ package body Mystreams is
 
    --
 
-   overriding procedure Read
+   procedure Read
      (Port   : in out Port_T;
       Buffer : out Stream_Element_Array;
       Last   : out Stream_Element_Offset)
@@ -32,7 +32,7 @@ package body Mystreams is
       null; -- # pread
    end Read;
 
-   overriding procedure Write
+   procedure Write
      (Port   : in out Port_T;
       Buffer : Stream_Element_Array)
    is

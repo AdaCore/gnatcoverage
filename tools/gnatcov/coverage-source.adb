@@ -315,7 +315,7 @@ package body Coverage.Source is
 
    begin
       Enumerate_Sources
-        (Callback'Access, Language => All_Languages, Only_UOIs => True);
+        (Callback'Access, Language => All_Languages, Mode => Only_UOIs);
    end Compute_Unit_Name_For_Excluded_Sources;
 
    -------------------------

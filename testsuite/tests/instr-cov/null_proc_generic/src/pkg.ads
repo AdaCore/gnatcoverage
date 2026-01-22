@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package Pkg is
    generic
       type T is private;

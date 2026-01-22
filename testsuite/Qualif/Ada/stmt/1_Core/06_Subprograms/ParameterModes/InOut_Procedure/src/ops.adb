@@ -23,7 +23,7 @@ package body Ops is
    end;
 
    function Quarter (X, Y : Integer) return T_Quarter is
-      P : T_Point := (X => X, Y => Y, Q => <>);
+      P : T_Point := (X => X, Y => Y, Q => T_Quarter'First);
    begin
       Set_Q (P);  -- # stmt
       return P.Q; -- # stmt

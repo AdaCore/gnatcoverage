@@ -1,3 +1,5 @@
+with Foo;
+
 procedure Test_0 is
 begin
    null;

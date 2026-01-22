@@ -4,12 +4,12 @@ package Mystreams is
 
    type Port_T is new Root_Stream_Type with null record;
 
-   overriding procedure Read
+   procedure Read
      (Port   : in out Port_T;
       Buffer : out Stream_Element_Array;
       Last   : out Stream_Element_Offset);
 
-   overriding procedure Write
+   procedure Write
      (Port   : in out Port_T;
       Buffer : Stream_Element_Array);
 

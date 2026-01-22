@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package body Pkg is
 
    overriding procedure P1 (Self : T; Arg : Arg_Type'Class) is null;

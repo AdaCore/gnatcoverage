@@ -13,6 +13,6 @@ package GCVRT.DB_z794ac68c is
    type Dump_Controlled_Type is new
      Ada.Finalization.Limited_Controlled
      with null record;
-   overriding procedure Finalize (Self : in out Dump_Controlled_Type);
+   procedure Finalize (Self : in out Dump_Controlled_Type);
 
 end GCVRT.DB_z794ac68c;

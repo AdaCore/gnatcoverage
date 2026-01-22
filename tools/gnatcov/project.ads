@@ -153,18 +153,35 @@ package Project is
    --  trace mode) corresponding to a unit of interest. This emits a warning
    --  for all units of interest that have no SCOs file.
 
+   type Source_Enumeration_Mode is (All_Sources, Only_UOIs, Only_UOI_Closures);
+   --  Control how Enumerate_Sources selects Ada source files.
+   --
+   --  All_Sources
+   --
+   --     Select all source files.
+   --
+   --  Only_UOIs
+   --
+   --     Select only units of interest (defined implicitly, with GPR
+   --     attributes, or on the command line).
+   --
+   --  Only_UOI_Closures
+   --
+   --     Like Only_UOIs, but without Ada source files which are not in the
+   --     build closure (same behavior as GPRbuild).
+
    procedure Enumerate_Sources
-     (Callback  :
+     (Callback :
         access procedure
           (Project : GPR2.Project.View.Object;
            File    : GPR2.Build.Source.Object);
-      Language  : Any_Language;
-      Only_UOIs : Boolean := False)
+      Language : Any_Language;
+      Mode     : Source_Enumeration_Mode := All_Sources)
    with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
-   --  mentionned in a previous Add_Project call. If Only_UOIs is set to True,
-   --  only call Callback on sources that are units of interest. Override_Units
-   --  has the same semantics as in Enumerate_LIs.
+   --  mentionned in a previous Add_Project call.
+   --
+   --  Mode controls which sources files to consider.
 
    function Enumerate_Mains
      (Language : Any_Language)

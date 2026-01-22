@@ -12,7 +12,7 @@ package body GCVRT.DB_z794ac68b is
          Exec_Date => 0);
    end Dump_Buffers;
 
-   overriding procedure Finalize (Self : in out Dump_Controlled_Type) is
+   procedure Finalize (Self : in out Dump_Controlled_Type) is
    begin
       Dump_Buffers;
    end Finalize;
