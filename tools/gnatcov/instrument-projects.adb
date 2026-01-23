@@ -886,7 +886,7 @@ is
                end;
                Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
                Prj_Info.Desc.Compiler_Options_Unit.Insert
-                 (Create_Normalized (+LU_Info.Unit_Name), Compiler_Opts);
+                 (Create_Normalized (Unit_Name), Compiler_Opts);
             end if;
          end;
       end if;
