@@ -168,6 +168,12 @@ is
       --  project. If it is the case, the unit won't be instrumented;
       --  otherwise, every unit part will.
 
+      Spec_Project, Body_Project : GPR2.Project.View.Object;
+      --  Track the owning project of this unit's spec source file (if present)
+      --  and body source file (likewise).
+
+      Sources : File_Info_Sets.Set;
+      --  Set of sources that belong to this unit
    end record;
 
    package Unit_Maps is new
@@ -789,14 +795,6 @@ is
 
       Prj_Info : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (IC, Source_File.Owning_View);
-
-      LU_Info : constant Library_Unit_Info :=
-        (Unit_Name            => +Unit_Name,
-         Instr_Project        => Project,
-         Language_Kind        => Lang_Kind,
-         Language             => Language,
-         All_Externally_Built => Prj_Info.Externally_Built);
-
    begin
       --  Check if this is an excluded source file
 
@@ -836,17 +834,53 @@ is
          return;
       end if;
 
-      if not Instrumented_Sources.Contains (Unit_Name) then
-         Instrumented_Sources.Insert (Unit_Name, LU_Info);
-      end if;
+      --  If not already done, note that the unit that owns this source file
+      --  must be instrumented.
+
       declare
-         Cur_Ref : constant Unit_Maps.Reference_Type :=
-           Instrumented_Sources.Reference (Unit_Name);
+         Cur      : Unit_Maps.Cursor := Instrumented_Sources.Find (Unit_Name);
+         Inserted : Boolean;
       begin
-         if not Prj_Info.Externally_Built then
-            Cur_Ref.Instr_Project := Project;
-            Cur_Ref.All_Externally_Built := False;
+         if not Unit_Maps.Has_Element (Cur) then
+            Instrumented_Sources.Insert
+              (Unit_Name,
+               (Unit_Name            => +Unit_Name,
+                Language_Kind        => Lang_Kind,
+                Language             => Language,
+                All_Externally_Built => Prj_Info.Externally_Built,
+                others               => <>),
+               Cur,
+               Inserted);
+            pragma Assert (Inserted);
          end if;
+
+         --  Keep track of this source file inside that unit. Also memorize
+         --  the project that owns it if it is a non-Ada source file, an Ada
+         --  spec or an Ada body.
+
+         declare
+            LU_Info : Library_Unit_Info renames
+              Instrumented_Sources.Reference (Cur);
+            Kind    : constant GPR2.Unit_Kind :=
+              (if Language = Ada_Language
+               then First_Unit (Source_File).Kind
+               else GPR2.S_Body);
+         begin
+            case Kind is
+               when GPR2.S_Spec =>
+                  LU_Info.Spec_Project := Project;
+
+               when GPR2.S_Body =>
+                  LU_Info.Body_Project := Project;
+
+               when others      =>
+                  null;
+            end case;
+            if not Prj_Info.Externally_Built then
+               LU_Info.All_Externally_Built := False;
+            end if;
+            LU_Info.Sources.Include (Source_File);
+         end;
       end;
 
       --  If the unit belongs to an externally built project, exit after it
@@ -1198,6 +1232,47 @@ begin
       end if;
    end loop;
 
+   --  For all units to instrument, determine the project that owns the source
+   --  file that will be compiled. In the process, remove units for which we
+   --  have found no spec and no body. TODO???  We should probably issue a
+   --  warning there, too.
+
+   declare
+      To_Remove : String_Sets.Set;
+   begin
+      for LU_Info of Instrumented_Sources loop
+         if LU_Info.Body_Project.Is_Defined then
+            LU_Info.Instr_Project := LU_Info.Body_Project;
+         elsif LU_Info.Spec_Project.Is_Defined then
+            LU_Info.Instr_Project := LU_Info.Spec_Project;
+         else
+            To_Remove.Insert (LU_Info.Unit_Name);
+         end if;
+
+         declare
+            Unit_Prj_Info   : Project_Info renames
+              Get_Or_Create_Project_Info (IC, LU_Info.Instr_Project).all;
+            Source_Prj_Info : Project_Info_Access;
+         begin
+            for Source of LU_Info.Sources loop
+               if GPR2.Project.View."/="
+                    (Source.Owning_View, LU_Info.Instr_Project)
+               then
+                  Source_Prj_Info :=
+                    Get_Or_Create_Project_Info (IC, Source.Owning_View);
+                  Unit_Prj_Info.Desc.Special_Output_Dirs.Insert
+                    (+String (Source.Path_Name.Simple_Name),
+                     Source_Prj_Info.Output_Dir);
+               end if;
+            end loop;
+         end;
+      end loop;
+
+      for Unit_Name of To_Remove loop
+         Instrumented_Sources.Delete (+Unit_Name);
+      end loop;
+   end;
+
    --  If we need to instrument all the mains, also go through them now, so
    --  that we can prepare output directories for their projects later on.
    --  Note that for user convenience, we want to do this for all the
@@ -1518,7 +1593,8 @@ begin
                            Instr_Project        => Main.Prj_Info.Project,
                            Language_Kind        => Language_Kind (Language),
                            Language             => Language,
-                           All_Externally_Built => False)));
+                           All_Externally_Built => False,
+                           others               => <>)));
 
                   --  Pass main-specific dump-config options
 
@@ -1562,7 +1638,8 @@ begin
                            Instr_Project        => Main.Prj_Info.Project,
                            Language_Kind        => Language_Kind (Language),
                            Language             => Language,
-                           All_Externally_Built => False)));
+                           All_Externally_Built => False,
+                           others               => <>)));
 
                   Unit_Args.Append (Unparse_Config (Explicit_Dump_Config));
 
