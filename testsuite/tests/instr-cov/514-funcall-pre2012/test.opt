@@ -1,1 +1,3 @@
 bin-traces DEAD Function and call coverage not supported for binary traces
+5.04a1 DEAD Reliable implementation of Ada 2012 needed for fun/call coverage
+7.1.2  DEAD Reliable implementation of Ada 2012 needed for fun/call coverage
