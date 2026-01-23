@@ -201,6 +201,7 @@ import optparse
 import os.path
 import re
 import sys
+import yaml
 
 # This lets us access modules that the testsuite
 # code features:
@@ -370,6 +371,9 @@ class QMAT:
         self.repodir = os.path.join(self.workdir, REPO_IMAGE_SUBDIR)
         self.qualdir = os.path.join(self.repodir, "qualification", "qualkit")
 
+        self.settings = {}
+        self.doc_versions = {}
+
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
         # is non-local:
@@ -383,6 +387,36 @@ class QMAT:
         # Sequence number of doc build pass we are processing:
 
         self.passno = 0
+
+    def get_doc_version(self, part):
+        """
+        Retrieve the document version string for the part document defined
+        in the document_settings.yaml file.
+        """
+        doc_settings_filename = os.path.join(
+            self.qualdir,
+            part,
+            "document_settings.yaml",
+        )
+        with open(doc_settings_filename) as fd:
+            for line in fd.readlines():
+                match_res = re.search(r"doc_version: +'(\d+)'", line)
+                if match_res:
+                    return match_res.group(1)
+
+    def load_settings(self):
+        """
+        Load project settings from the yaml common file
+        """
+        settings_file = os.path.join(
+            self.qualdir,
+            "_common",
+            "project_settings.yaml",
+        )
+        with open(settings_file) as fd:
+            self.settings = yaml.safe_load(fd)
+        for part in ["str", "plans", "tor"]:
+            self.doc_versions[part] = self.get_doc_version(part)
 
     # ---------------------
     # -- prepare_content --
@@ -490,19 +524,24 @@ class QMAT:
         """The name of the filesystem entity which materializes PART in a kit
         distribution.  This will be a subdirectory name for treeish formats
         a-la html (e.g. TOR, which will contain content.html etc), or a
-        specific filename (e.g. PLANS.pdf) for other formats. This is what
-        latch_into sets up eventually."""
+        specific filename (e.g. PLANS-<doc_id>.pdf) for other formats. This is
+        what latch_into sets up eventually."""
 
         this_item_is_tree = self.this_docformat == "html"
+
+        this_item_name = self.settings["project"]["subst"][
+            f"{part.lower()}_abb"
+        ].strip("*")
+
+        this_item_id = self.settings["project"]["subst"][f"{part.lower()}_id"]
 
         this_item_suffix = (
             "" if this_item_is_tree else ".%s" % self.this_docformat
         )
 
-        return "%(part)s%(suffix)s" % {
-            "part": part.lower(),
-            "suffix": this_item_suffix,
-        }
+        temp = f"{this_item_name}_{this_item_id}_v{self.doc_versions[part]}"
+
+        return temp.upper().replace(".", "_") + this_item_suffix
 
     # ----------------
     # -- latch_into --
@@ -544,7 +583,6 @@ class QMAT:
         this_target_is_tree = self.this_docformat == "html"
 
         # Compute the target dir or file name for our copy:
-
         this_target = (
             dirname
             if toplevel and this_target_is_tree
@@ -1031,6 +1069,9 @@ class QMAT:
 
         if self.o.testsuite_dir and not self.local_testsuite_dir:
             self.__localize_testsuite_dir()
+
+        if not self.settings:
+            self.load_settings()
 
         # Build the STR as needed, using the REST generated
         # by prepare_str_dir above:

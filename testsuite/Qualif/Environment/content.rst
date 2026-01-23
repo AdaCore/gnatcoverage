@@ -27,13 +27,11 @@ matching process.
    :widths: 5, 30, 60
    :delim:  /
 
-   e1 / Host Operating System name and version / |prj_host_platform|
-   e2 / GNATcoverage executable name and version / |gnatcov_version|
-   e3 / GNAT Pro compiler executable name and version / |gnatpro_version|
+   e1 / Host Operating System family / |prj_host_platform|
+   e2 / GNATcoverage version / |gnatcov_version|
+   e3 / GNAT Pro platform version / |gnatpro_version|
    s1 / GNAT Pro compilation switches / |prj_switches|
    s2 / GNAT Pro Runtime Library Profile / |prj_RTS|
-   s3 / GNATcov dump trigger switch value / |prj_dump_trigger|
-   s4 / GNATcov dump channel switch value / |prj_dump_channel|
 
 
 For the GNAT Pro compilation switches, additional options which do not
@@ -43,17 +41,11 @@ configuration pragma file which contains only pragmas not influencing code
 generation (``Restriction_Warnings`` pragmas or specific ``Restrictions`` such
 as ``No_Direct_Boolean_Operators`` for instance).
 
-The Runtime Library Profile indication conveys the --RTS switch for which the
-Verification Environment should be setup, designating a runtime library
-delivered with the GNAT Pro toolchain. Tool Users shall have their toolchain
-setup to compile programs with a :literal:`--RTS` switch as well, designating
-a runtime with a ``system.ads`` identical to the qualification one.
-
-The indications for the GNATcov dump trigger and GNATcov dump channel switch
-values represent the retained values for the corresponding switches, required
-as part of the :literal:`gnatcov instrument` command, in accordance to the
-restrictions imposed by the GNATPro runtime library profile and execution host
-capabilities defined above, as described in the tool's User Manual.
+The Runtime Library Profile indication conveys the :literal:`--RTS` switch for
+which the Verification Environment should be setup, designating a runtime
+library delivered with the GNAT Pro toolchain. Tool Users shall have their
+toolchain setup to compile programs with a :literal:`--RTS` switch as well,
+designating a runtime with a ``system.ads`` identical to the qualification one.
 
 Installation, Documentation and Qualified Interface
 ---------------------------------------------------
@@ -75,7 +67,7 @@ General use of the tool is described in the Tool User's Guide document, which
 can be found in the subdirectory :literal:`share/doc` of the tool
 installation.  For qualified use more specifically, the Tool User shall also
 conform to the rules described in the *Qualified Interface* section of the
- |plans_doc| document.
+|plans_doc| document.
 
 
 .. _language-scope:
@@ -130,10 +122,8 @@ In addition:
   an Assertion_Policy pragma.
 
 * For statement, decision or mcdc analysis on Ada 2012, the tool is not
-  qualified to assess coverage of the new forms of expression introduced in
-  the language, in particular *conditional expressions*, *generalized
-  membership tests* with more than one alternative, and *quantified
-  expressions*.
+  qualified to assess coverage of *generalized membership tests* with more
+  than one alternative.
 
   Such expressions are only allowed in assertion/contracts contexts, disabled
   for coverage analysis purposes as previously described in this section.

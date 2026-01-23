@@ -768,7 +768,7 @@ class TestCaseImporter(ArtifactImporter):
         has_TR = False
 
         for child in artifact.files:
-            has_TR = "tcs.dump" in child
+            has_TR = "tcs.dump" in child or "test.py.log" in child
             if has_TR:
                 break
 
