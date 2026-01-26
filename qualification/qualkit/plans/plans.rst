@@ -2,14 +2,6 @@
 GNATcoverage - |tool_standard| Qualification Material: |doc_title|
 ===================================================================
 
-.. rubric::  Revision History
-
-.. csv-table::
-   :delim: &
-   :header: "Version #", "Date", "Comment"
-
-   |release| & |today| & Initial version
-
 .. toctree::
    :maxdepth: 1
 

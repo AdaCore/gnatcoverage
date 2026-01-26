@@ -16,7 +16,7 @@ Compliance Matrices
    7  & Change Review                                 & 7.2.5           & N/A & Not required for CC2.
    8  & Configuration Status Accounting               & 7.2.6           & N/A & Not required for CC2.
    9  & Retrieval                                     & 7.2.7.a         & Yes & See :ref:`adacore-archive`.
-   10 & Protection against Unauthorized Changes       & 7.2.7.b.1       & Yes & See :ref:`adacore-archive`.
+   10 & Protection against Unauthorized Changes       & 7.2.7.b.1       & Yes & See :ref:`adacore-archive` and :ref:`adacore-change-control`.
    11 & Media Selection, Refreshing, Duplication      & 7.2.7.b.2,3,4, 7.2.7.c & N/A & Not required for CC2.
    12 & Release                                       & 7.2.7.d         & N/A & Not required for CC2.
    13 & Data Retention                                & 7.2.7.e         & Yes & See :ref:`adacore-archive`.
