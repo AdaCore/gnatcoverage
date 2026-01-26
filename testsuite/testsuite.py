@@ -1383,12 +1383,6 @@ class TestSuite(e3.testsuite.Testsuite):
         if args.qualif_level and "-gnatec" not in cargs_ada:
             raise FatalError("Missing -gnatec in cargs:Ada for qualification")
 
-        # Source traces require the use of project files to convey units of
-        # interest, which --gprmode will do:
-
-        if args.trace_mode == "src":
-            args.gprmode = True
-
         # On some targets, we need to link with -lgnat for any executable
         # to run and the toolchain doesn't do it automatically in some cases
         # (e.g. C only programs). This is a workaround:

@@ -1492,11 +1492,6 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
         self.use_manual_dump = self.dump_trigger == "manual"
 
     def mode_build(self):
-        # We first need to instrument, with proper selection of the units of
-        # interest. Expect we are to provide this through a project file as
-        # we have no LI file at hand:
-        assert self.gprmode
-
         # If we have a request for specific options, honor that. Otherwise,
         # use the already computed project file for this test:
         if self.covctl and self.covctl.gprsw:
