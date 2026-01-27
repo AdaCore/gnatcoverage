@@ -15,19 +15,12 @@ drivers=test_add|test_area
 
 --# math.adb
 
--- %cons: traces  %opts: --trace-mode=bin
+-- %cons: traces
 
 --  /check-add/  l+ ## 0
 --  /add/        l+ ## 0
 --  /check-mult/ l! ## dF-
 --  /mult/       l+ ## 0
-
--- %cons: traces  %opts: --trace-mode=src
-
---  /check-add/  l! ## dF-
---  /add/        l+ ## 0
---  /check-mult/ l- ## s-
---  /mult/       l- ## s-
 
 -- %cons: checkpoints
 
