@@ -25,6 +25,8 @@ package Paths is
 
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
+   Path_Separator : constant Character := (if On_Windows then ';' else ':');
+
    subtype File_Name is String_Access;
 
    function Build_Filename (Dir : String; Filename : String) return String;

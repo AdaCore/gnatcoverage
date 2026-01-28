@@ -413,8 +413,23 @@ package body Instrument.Common is
    --------------
 
    function New_File (Prj : Prj_Desc; Name : String) return String is
-      Base_Filename   : constant String := Ada.Directories.Simple_Name (Name);
-      Output_Filename : constant String := (+Prj.Output_Dir) / Base_Filename;
+      Base_Filename : constant String := Ada.Directories.Simple_Name (Name);
+
+      --  Determine the directory in which to create the instrumented source
+      --  file.
+      --
+      --  By default, instrumented source files must go to Prj.Output_Dir, but
+      --  we must first take into account special cases from
+      --  Prj.Special_Output_Dirs.
+
+      Special_Output_Dir : constant String_Maps.Cursor :=
+        Prj.Special_Output_Dirs.Find (+Base_Filename);
+      Output_Dir         : constant Unbounded_String :=
+        (if String_Maps.Has_Element (Special_Output_Dir)
+         then String_Maps.Element (Special_Output_Dir)
+         else Prj.Output_Dir);
+
+      Output_Filename : constant String := (+Output_Dir) / Base_Filename;
    begin
       return Output_Filename;
    end New_File;

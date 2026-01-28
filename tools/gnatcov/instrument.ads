@@ -325,6 +325,15 @@ package Instrument is
       Search_Paths : String_Vectors.Vector;
       --  List of compiler switches to look up the project source directories
 
+      Special_Output_Dirs : String_Maps.Map;
+      --  Mapping from original source file (basename) to output directory for
+      --  instrumented sources that must be written to another project's output
+      --  directory.
+      --
+      --  Tracking this is necessary for source files owned by another project,
+      --  but compiled in this project. This happens for instance in Ada, when
+      --  the spec belongs to project A, and the body belongs to project B
+      --  (which depends on A).
    end record;
    --  This record stores the information that is required from the project
    --  for instrumentation purposes.
