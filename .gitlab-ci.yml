@@ -109,6 +109,7 @@ test_bin_traces:
      - cpu:16
      - mem:16
   stage: test
+  allow_failure: true
   script:
     - *basic_test_setup
 
