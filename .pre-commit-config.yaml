@@ -5,18 +5,7 @@ repos:
       - id: clang-format
         types: [file]
         files: \.(cc|c|h|cpp|hh)$
-        args: ["--style={
-            BasedOnStyle: gnu,
-            ContinuationIndentWidth: 2,
-
-            # Unfortunately, a bug in clang-format makes this ineffective
-            IndentExternBlock: NoIndent,
-
-            SpaceAfterCStyleCast: true,
-            SpacesInLineCommentPrefix: {
-              Minimum: 0,
-              Maximum: -1
-            }}"]
+        args: ["--style=file"]
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:

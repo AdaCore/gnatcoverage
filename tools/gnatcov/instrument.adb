@@ -42,6 +42,7 @@ with Files_Handling; use Files_Handling;
 with Hashes;         use Hashes;
 with Hex_Images;     use Hex_Images;
 with Outputs;
+with Paths;
 
 package body Instrument is
 
@@ -584,6 +585,17 @@ package body Instrument is
          end if;
       end;
 
+      for Item of Args.String_List_Args (Opt_Special_Output_Dirs) loop
+         declare
+            Sep_Index : constant Natural :=
+              US.Index (Item, (1 => Paths.Path_Separator));
+         begin
+            Result.Special_Output_Dirs.Insert
+              (US.Unbounded_Slice (Item, 1, Sep_Index - 1),
+               US.Unbounded_Slice (Item, Sep_Index + 1, US.Length (Item)));
+         end;
+      end loop;
+
       --  Compiler options are loaded through the --c/c++-opts switch
 
       return Result;
@@ -669,6 +681,20 @@ package body Instrument is
 
       Result.Append (+"--output-dir");
       Result.Append (Desc.Output_Dir);
+
+      for Cur in Desc.Special_Output_Dirs.Iterate loop
+         declare
+            Source_File : constant Unbounded_String := String_Maps.Key (Cur);
+            Output_Dir  : constant Unbounded_String :=
+              String_Maps.Element (Cur);
+         begin
+            Result.Append
+              (+("--special-output-dir="
+                 & (+Source_File)
+                 & Paths.Path_Separator
+                 & (+Output_Dir)));
+         end;
+      end loop;
 
       return Result;
    end Unparse;

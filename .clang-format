@@ -1,0 +1,10 @@
+BasedOnStyle: gnu
+ContinuationIndentWidth: 2
+
+# is working now, but will make a big diff
+# IndentExternBlock: NoIndent
+
+SpaceAfterCStyleCast: true
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1

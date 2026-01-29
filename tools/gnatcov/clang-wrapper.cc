@@ -405,6 +405,7 @@ clang_isInstrumentableCallExpr (CXCursor C)
     case Stmt::CallExprClass:            //  Simple call expression
     case Stmt::CXXOperatorCallExprClass: // C++ Overloaded operator call
     case Stmt::CXXMemberCallExprClass:   // C++ Method Call
+    case Stmt::UserDefinedLiteralClass:  // C++ suffixes after literals
 
       // TODO??? All theses classes are regrouped under the CXCursor_Call_Expr
       //         kind. Decide what to do with them, so the call coverage
@@ -414,7 +415,6 @@ clang_isInstrumentableCallExpr (CXCursor C)
       // case Stmt::CXXInheritedCtorInitExprClass:
       // case Stmt::CXXTemporaryObjectExprClass:
       // case Stmt::CXXUnresolvedConstructExprClass:
-      // case Stmt::UserDefinedLiteralClass:
       return true;
 
     default:

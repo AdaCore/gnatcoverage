@@ -195,7 +195,8 @@ package Command_Line is
       Opt_Files,
       Opt_RTS_Source_Dirs,
       Opt_Compiler_Wrappers,
-      Opt_Ext_Annotations);
+      Opt_Ext_Annotations,
+      Opt_Special_Output_Dirs);
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is
@@ -1981,6 +1982,20 @@ package Command_Line is
              (Cmd_Instrument | Cmd_Coverage | Cmd_All_Annotate => True,
               others                                           => False),
            Pattern   => "FILENAME|@LISTFILE",
+           Internal  => False),
+
+      Opt_Special_Output_Dirs     =>
+        Create
+          (Long_Name => "--special-output-dirs",
+           Pattern   => "[SOURCE_FILE][PATH_SEP][OUTPUT_DIR]",
+           Help      =>
+             "Map a source file to a non-default output directory, for"
+             & " instrumented files that must not go to the default output"
+             & " directory. Both must be separated by the current platform"
+             & " path separator.",
+           Commands  =>
+             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+              others                                      => False),
            Internal  => False));
 
    procedure Bool_Callback
