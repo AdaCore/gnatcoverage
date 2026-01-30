@@ -393,6 +393,27 @@ clang_getRBracLoc (CXCursor C)
 }
 
 extern "C" unsigned
+clang_isCallExprLimitation (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return false;
+
+  const Expr *E = getCursorExpr (C);
+
+  if (E->getStmtClass () != Stmt::CXXConstructExprClass)
+    return false;
+
+  const auto Parents = getContext (C).getParents (*E);
+  assert (!Parents.empty () && "Unexpected empty parents");
+
+  auto VD = Parents[0].get<VarDecl> ();
+  if (VD == NULL)
+    return false;
+
+  return VD->getInitStyle () == VarDecl::CallInit;
+}
+
+extern "C" unsigned
 clang_isInstrumentableCallExpr (CXCursor C)
 {
   if (!clang_isExpression (C.kind))
@@ -423,27 +444,53 @@ clang_isInstrumentableCallExpr (CXCursor C)
     }
 }
 
-// Return True if C points to a CXXConstructExpr, and its direct parent is a
-// VarDecl in Call-like form.
-extern "C" unsigned
-clang_isVarDeclCallInitCtorExpr (CXCursor C)
+static const VarDecl *
+get_CtorVarDecl (CXCursor C)
 {
   if (!clang_isExpression (C.kind))
-    return false;
+    return nullptr;
 
   const Expr *E = getCursorExpr (C);
 
   if (E->getStmtClass () != Stmt::CXXConstructExprClass)
-    return false;
+    return nullptr;
 
   const auto Parents = getContext (C).getParents (*E);
   assert (!Parents.empty () && "Unexpected empty parents");
 
   auto VD = Parents[0].get<VarDecl> ();
-  if (VD == NULL)
+  return VD;
+}
+
+// Return True if C points to a CXXConstructExpr, and its direct parent is a
+// VarDecl in Call-like form.
+//
+// (i.e. `Foo foo(args)` rather than `Foo foo = Foo(args)`).
+extern "C" unsigned
+clang_isVarDeclCallInitCtorExpr (CXCursor C)
+{
+  auto Parent_VD = get_CtorVarDecl (C);
+  if (Parent_VD == nullptr)
     return false;
 
-  return VD->getInitStyle () == VarDecl::CallInit;
+  return Parent_VD->getInitStyle () == VarDecl::CallInit;
+}
+
+// Return True if C is a ConstructExpr which parents is a VarDecl in Call-like
+// form and the type of the declaration is `auto`.
+//
+// (i.e. `auto foo(args)`)
+extern "C" unsigned
+clang_isCallExprInstrumentationLimitation (CXCursor C)
+{
+  auto Parent_VD = get_CtorVarDecl (C);
+  if (Parent_VD == nullptr)
+    return false;
+
+  return Parent_VD->getInitStyle () == VarDecl::CallInit
+         && Parent_VD->getTypeSourceInfo ()
+              ->getType ()
+              ->isUndeducedAutoType ();
 }
 
 // Return true if the cursor is C++ Method Call with an explicit base.

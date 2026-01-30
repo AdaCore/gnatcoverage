@@ -2112,14 +2112,22 @@ package body Instrument.C is
          end if;
 
          if Is_Instrumentable_Call_Expr (C) then
-            Sources_Trace.Trace
-              ("Instrument Call at " & Image (Start_Sloc (C)));
-
             declare
                From         : Source_Location := Start_Sloc (C);
                To           : Source_Location := End_Sloc (C);
                Instr_Scheme : Instr_Scheme_Type := Instr_Expr;
+               Instrument   : Boolean := True;
             begin
+               Sources_Trace.Trace ("Instrument Call at " & Image (From));
+
+               if Is_Call_Expr_Instrumentation_Limitation (C) then
+                  Warn
+                    (Image (From)
+                     & ": functional constructor call with `auto` type will"
+                     & " not be instrumented");
+                  Instrument := False;
+               end if;
+
                if Is_Prefixed_CXX_Member_Call_Expr (C) then
 
                   --  C++ only.
@@ -2174,12 +2182,16 @@ package body Instrument.C is
                   To   => To,
                   Last => True);
 
-               UIC.Pass.Instrument_Statement
-                 (UIC          => UIC,
-                  LL_SCO       => SCOs.SCO_Table.Last,
-                  Insertion_N  => C,
-                  Instr_Scheme => Instr_Scheme,
-                  Kind         => Call);
+               if Instrument then
+                  UIC.Pass.Instrument_Statement
+                    (UIC          => UIC,
+                     LL_SCO       => SCOs.SCO_Table.Last,
+                     Insertion_N  => C,
+                     Instr_Scheme => Instr_Scheme,
+                     Kind         => Call);
+               else
+                  UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+               end if;
             end;
          end if;
 

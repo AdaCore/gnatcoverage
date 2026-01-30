@@ -185,6 +185,14 @@ package Clang.Extensions is
    --
    --  (i.e. `Foo foo(args)` rather than `Foo foo = Foo(args)`).
 
+   function Is_Call_Expr_Instrumentation_Limitation
+     (C : Cursor_T) return Boolean
+   with Inline;
+   --  Return True if C is a ConstructExpr which parents is a VarDecl in
+   --  Call-like form and the type of the declaration is `auto`.
+   --
+   --  (i.e. `auto foo(args)`)
+
    function Get_CXX_Member_Call_Expr_SCO_Sloc_Range
      (C : Cursor_T) return Source_Range_T
    with
