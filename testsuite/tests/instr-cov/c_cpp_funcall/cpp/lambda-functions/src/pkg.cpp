@@ -1,8 +1,6 @@
 #include "pkg.h"
 
-void        // # foo_def_1
-foo (int i) // # foo_def_2
-{           // # foo_def_2
+void foo (int i) { // # foo_def
 
   auto f =         // # lambda_assign
     [&i] (int x) { // # lambda_def
@@ -10,9 +8,8 @@ foo (int i) // # foo_def_2
       return x + i; // # lambda_return
     }; // # lambda_bracket
 
-  // This should not be instrumented as a call even though under the hood, a
-  // call to a copy constructor is made for f.
-  auto f_copy = f; // # assignment
+  // A call to the copy constructor is made
+  auto f_copy = f; // # copy_ctor
 
   // A copy of the lambda will cover the lambda for function coverage.
   // Also, this call is to be instrumented.
