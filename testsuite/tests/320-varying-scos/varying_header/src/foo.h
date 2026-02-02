@@ -10,6 +10,6 @@ foo ()
 int
 bar ()
 {
-  return 0;
+  return 10;
 }
 #endif;
