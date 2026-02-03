@@ -734,8 +734,9 @@ The coverage state of these cases will be reported as undetermined.
 For the C++ language, gnatcov will currently not instrument nor provide
 coverage information for:
 
-* Constructor and Destructor functions.
-* Constructor and Destructor calls.
+* Body-less constructor and destructor functions (example: ``Foo() = default``).
+* Constructor calls that use the "call-init" convention and whose type is
+  "auto" (example: ``auto a(Foo(...))``).
 
 Guarded expression coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
