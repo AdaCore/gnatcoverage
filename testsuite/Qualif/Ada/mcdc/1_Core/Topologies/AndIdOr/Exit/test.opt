@@ -1,0 +1,1 @@
+bin-traces,aarch64-elf,CARGS_O1 XFAIL Related to eng/toolchain/gcc#732
