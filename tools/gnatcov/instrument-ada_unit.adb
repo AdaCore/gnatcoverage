@@ -6515,6 +6515,40 @@ package body Instrument.Ada_Unit is
          function Aux_Process_Call_Expression
            (Node : Ada_Node'Class) return Visit_Status
          is
+            function Type_Name_Visible
+              (Full_Call_Node : Ada_Node; Call_Type : Base_Type_Decl)
+               return Boolean;
+            --  Check if we can instrument Full_Call_Node (which is expected to
+            --  be a call made within a dotted name) with a qualified
+            --  expression. We can only do so if the name of the call's return
+            --  type can be used explicitely in the unit, i.e. if the unit
+            --  defining this type in imported.
+
+            function Type_Name_Visible
+              (Full_Call_Node : Ada_Node; Call_Type : Base_Type_Decl)
+               return Boolean
+            is
+               Imported_Units : constant Compilation_Unit_Array :=
+                 Full_Call_Node.Unit.Root.As_Compilation_Unit.P_Imported_Units;
+            begin
+               --  If the type was decalred in the unit it is used in, it can
+               --  be used explicitely.
+
+               if Full_Call_Node.Unit.Root.As_Compilation_Unit
+                 = Call_Type.Unit.Root.As_Compilation_Unit
+               then
+                  return True;
+               end if;
+
+               for Unit of Imported_Units loop
+                  if Call_Type.P_Enclosing_Compilation_Unit = Unit then
+                     return True;
+                  end if;
+               end loop;
+
+               return False;
+            end Type_Name_Visible;
+
             Is_Op_String_Call : constant Boolean :=
               Node.Kind in Ada_String_Literal
               and then
@@ -6522,6 +6556,7 @@ package body Instrument.Ada_Unit is
                  or else
                    (Node.Parent.Kind = Ada_Dotted_Name
                     and then Node.Parent.Parent.Kind = Ada_Call_Expr));
+
             --  For call of the form "+"(A,B), Node will be a String_Literal
             --  inside a Call_Expr. String_Literals are always considered to
             --  be static, but we don't want to instrument static expressions.
@@ -6559,8 +6594,17 @@ package body Instrument.Ada_Unit is
                   Needs_Qualified_Expr : constant Boolean :=
                     Full_Call_Node.Parent.Kind
                     in Ada_Dotted_Name | Ada_Explicit_Deref;
+
+                  Call_Type : constant Base_Type_Decl :=
+                    Full_Call_Node.As_Expr.P_Expression_Type.P_Base_Subtype;
+                  Type_Name : constant Text_Type :=
+                    Call_Type.P_Fully_Qualified_Name;
+
+                  Can_Use_Qualified_Expr : constant Boolean :=
+                    Type_Name_Visible (Full_Call_Node, Call_Type);
+
                   --  We only need to turn the if-expression into a qualified
-                  --  when the parent of the call and its parent are both
+                  --  name when the parent of the call and its parent are both
                   --  dotted named. For example, with A and B packages, F a
                   --  function returning a record and X a field of this record:
                   --
@@ -6583,6 +6627,7 @@ package body Instrument.Ada_Unit is
                           .As_Ada_Node
                           .Sloc_Range)
                      else Full_Call_Node.Sloc_Range);
+
                   --  Special case for concatenation operators: Node holds
                   --  "& <operand>" where the call that needs to be monitored
                   --  is the operator "&". In order to produce valid code, the
@@ -6602,22 +6647,23 @@ package body Instrument.Ada_Unit is
                      Last               => True,
                      Pragma_Aspect_Name => Namet.No_Name);
 
-                  --  TODO: LIMITATIONS
+                  --  LIMITATIONS
                   --
-                  --  Pre-Ada 2012
+                  --  PRE-ADA 2012
                   --
                   --  The instrumentation of function calls relies on IF
                   --  expressions, so it is not possible in pre-2012 codebases.
                   --
                   --  NON-IMPORTED TYPES
                   --
-                  --  Currently, gnatcov is unable to determine if the full
-                  --  name of a type is visible and can be explicitely used in
-                  --  a unit. For this reason, we cannot currently turn the
-                  --  if-expressions into fully qualified names. This is need
-                  --  for call the are in the middle of a dotted name.  For
-                  --  now, do not instrument calls that wouls require such an
-                  --  instrumentation.
+                  --  Calls within dotted names need to be instrumented with
+                  --  a qualified expression version of the regular
+                  --  if-expression we use for other calls. In order to be
+                  --  able to do so, the type of the expression must be visible
+                  --  from this unit as we must explicitely use its full name.
+                  --  For this reasons, when the return type of a call made
+                  --  within a dotted name is not imported, we cannot
+                  --  instrument the call.
 
                   if UIC.Language_Version not in If_Expr_Supported_Versions
                   then
@@ -6627,16 +6673,15 @@ package body Instrument.Ada_Unit is
                         "cannot instrument calls before Ada 2012",
                         Diagnostics.Limitation);
 
-                  elsif Needs_Qualified_Expr then
+                  elsif Needs_Qualified_Expr
+                    and then not Can_Use_Qualified_Expr
+                  then
                      Report
                        (UIC,
                         Full_Call_Node,
-                        "cannot instrument calls "
-                        & (if Needs_Qualified_Expr
-                           then "within dotted names"
-                           else "to user-defined operators"),
+                        "cannot instrument calls in dotted names whose return"
+                        & " type is not visible from their unit.",
                         Diagnostics.Limitation);
-
                   else
                      Fill_Expression_Insertion_Info
                        (UIC,
@@ -6644,6 +6689,7 @@ package body Instrument.Ada_Unit is
                           (UIC.Unit_Bits, SCOs.SCO_Table.Last));
 
                      Replace (Orig_Handle, Dummy_Handle);
+
                      declare
                         If_Expression : constant Node_Rewriting_Handle :=
                           Create_Paren_Expr
@@ -6655,9 +6701,18 @@ package body Instrument.Ada_Unit is
                                 No_Node_Rewriting_Handle,
                                 Orig_Handle));
                      begin
-                        Replace (Dummy_Handle, If_Expression);
+                        Replace
+                          (Dummy_Handle,
+                           (if not Needs_Qualified_Expr
+                            then If_Expression
+                            else
+                              Create_Qual_Expr
+                                (UIC.Rewriting_Context,
+                                 Make_Identifier
+                                   (UIC.Rewriting_Context, Type_Name),
+                                 If_Expression)));
+                        Instrumented := True;
                      end;
-                     Instrumented := True;
                   end if;
 
                   --  If we could not instrument this call, tag it accordingly

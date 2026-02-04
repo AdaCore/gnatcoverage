@@ -5,6 +5,9 @@ from SUITE.context import thistest
 TestCase(
     category=CAT.mcdc,
     fun_call_lvl=True,
-    tolerate_messages=(r"cannot instrument calls within dotted names"),
+    tolerate_messages=(
+        "cannot instrument calls in dotted names whose return"
+        " type is not visible from their unit."
+    ),
 ).run()
 thistest.result()
