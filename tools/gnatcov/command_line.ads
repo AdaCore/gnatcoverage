@@ -854,7 +854,7 @@ package Command_Line is
      (Opt_Project                =>
         Create
           (Short_Name   => "-P",
-           Pattern      => "[GPR]",
+           Pattern      => "GPR",
            Help         =>
              "Use GPR as root project to locate SCOs, select"
              & " units to analyze and find default options.",
@@ -870,7 +870,7 @@ package Command_Line is
       Opt_Root_Dir               =>
         Create
           (Long_Name    => "--root-dir",
-           Pattern      => "[DIR]",
+           Pattern      => "DIR",
            Help         =>
              "When --relocate-build-tree is active, this"
              & " designates the topmost directory of the tree of"
@@ -884,7 +884,7 @@ package Command_Line is
       Opt_Subdirs                =>
         Create
           (Long_Name    => "--subdirs",
-           Pattern      => "[SUBDIR]",
+           Pattern      => "SUBDIR",
            Help         =>
              "When using project files, look for ALI/SID files in"
              & " the provided SUBDIR of the projects' build"
@@ -898,7 +898,7 @@ package Command_Line is
         Create
           (Long_Name    => "--target",
            Short_Name   => "-t",
-           Pattern      => "[TARGET]",
+           Pattern      => "TARGET",
            Help         =>
              "State the target toolchain configuration used to"
              & " build the analyzed programs, as provided to"
@@ -916,7 +916,7 @@ package Command_Line is
       Opt_Runtime                =>
         Create
           (Long_Name    => "--RTS",
-           Pattern      => "[RUNTIME]",
+           Pattern      => "RUNTIME",
            Help         =>
              "When using projects files, state the runtime used"
              & " to build the analyzed programs. If project files"
@@ -928,7 +928,7 @@ package Command_Line is
       Opt_Config                 =>
         Create
           (Long_Name    => "--config",
-           Pattern      => "[CONFIG-FILE]",
+           Pattern      => "CONFIG-FILE",
            Help         =>
              "Specify a configuration project file name. If"
              & " passed, this file must exist and neither --target"
@@ -940,7 +940,7 @@ package Command_Line is
         Create
           (Long_Name    => "--output",
            Short_Name   => "-o",
-           Pattern      => "[FILE]",
+           Pattern      => "FILE",
            Help         =>
              "Put the report/asm output/trace file/external annotations into"
              & " FILE.",
@@ -957,7 +957,7 @@ package Command_Line is
       Opt_Output_Directory       =>
         Create
           (Long_Name    => "--output-dir",
-           Pattern      => "[SUBDIR]",
+           Pattern      => "SUBDIR",
            Help         => "Place the output files into SUBDIR.",
            Commands     =>
              (Cmd_Coverage
@@ -971,7 +971,7 @@ package Command_Line is
         Create
           (Long_Name    => "--tag",
            Short_Name   => "-T",
-           Pattern      => "[TAG]",
+           Pattern      => "TAG",
            Help         => "Tag to put into trace file.",
            Commands     => (Cmd_Run | Cmd_Convert => True, others => False),
            At_Most_Once => False,
@@ -979,7 +979,7 @@ package Command_Line is
       Opt_Kernel                 =>
         Create
           (Long_Name    => "--kernel",
-           Pattern      => "[KERNEL]",
+           Pattern      => "KERNEL",
            Help         => "Specify which kernel to use.",
            Commands     => (Cmd_Run => True, others => False),
            At_Most_Once => False,
@@ -988,7 +988,7 @@ package Command_Line is
         Create
           (Long_Name    => "--level",
            Short_Name   => "-c",
-           Pattern      => "[LEVEL]",
+           Pattern      => "LEVEL",
            Help         =>
              ("Specify coverage levels to assess."
               & ASCII.LF
@@ -1016,7 +1016,7 @@ package Command_Line is
       Opt_Text_Start             =>
         Create
           (Long_Name    => "--text-start",
-           Pattern      => "[HEX_ADDR]",
+           Pattern      => "HEX_ADDR",
            Help         =>
              "??? This option was likely introduced for a feature"
              & " that is not completely implemented.",
@@ -1025,7 +1025,7 @@ package Command_Line is
       Opt_Exec_Prefix            =>
         Create
           (Long_Name    => "--exec-prefix",
-           Pattern      => "[PREFIX]",
+           Pattern      => "PREFIX",
            Help         =>
              "In cases where we cannot find executable files, look"
              & " for them in the PREFIX directory.",
@@ -1034,7 +1034,7 @@ package Command_Line is
       Opt_HW_Trigger_Traces      =>
         Create
           (Long_Name    => "--hw-trigger-traces",
-           Pattern      => "[START_ID],[START_ADDR],[STOP_ID]",
+           Pattern      => "START_ID,START_ADDR,STOP_ID",
            Help         =>
              "Identity of start and stop triggers, and address for"
              & " start.",
@@ -1044,7 +1044,7 @@ package Command_Line is
       Opt_Input                  =>
         Create
           (Long_Name    => "--input",
-           Pattern      => "[INPUT_TRACE]",
+           Pattern      => "INPUT_TRACE",
            Help         => "File containing trace data to be converted.",
            Commands     => (Cmd_Convert => True, others => False),
            At_Most_Once => False,
@@ -1052,7 +1052,7 @@ package Command_Line is
       Opt_Output_Format          =>
         Create
           (Short_Name   => "-f",
-           Pattern      => "[FORMAT]",
+           Pattern      => "FORMAT",
            Help         =>
              "If given, call dot(1) to produce the actual output"
              & " (SVG, PDF, DOT, ...).",
@@ -1062,7 +1062,7 @@ package Command_Line is
       Opt_Trace_Source           =>
         Create
           (Long_Name    => "--trace-source",
-           Pattern      => "[SOURCE]",
+           Pattern      => "SOURCE",
            Help         => "Specify a trace source.",
            Commands     => (Cmd_Convert => True, others => False),
            At_Most_Once => False,
@@ -1287,7 +1287,7 @@ package Command_Line is
       Opt_Lang                   =>
         Create
           (Long_Name    => "--lang",
-           Pattern      => "[C|C++|Ada]",
+           Pattern      => "C|C++|Ada",
            Help         => "Language for the given compilation unit",
            Commands     =>
              (Cmd_Instrument_Main | Cmd_Instrument_Source => True,
@@ -1576,7 +1576,7 @@ package Command_Line is
      (Opt_Log                     =>
         Create
           (Long_Name               => "--log",
-           Pattern                 => "[GNATCOLL_TRACE_NAME]",
+           Pattern                 => "GNATCOLL_TRACE_NAME",
            Help                    =>
              "Enable logging for the given GNATCOLL trace name.",
            Internal                => True,
@@ -1584,7 +1584,7 @@ package Command_Line is
       Opt_Projects                =>
         Create
           (Long_Name => "--projects",
-           Pattern   => "[GPR|@LISTFILE]",
+           Pattern   => "GPR|@LISTFILE",
            Help      =>
              "Focus on specific projects within the transitive"
              & " closure reachable from the root designated by -P.",
@@ -1610,7 +1610,7 @@ package Command_Line is
       Opt_Scenario_Var            =>
         Create
           (Short_Name => "-X",
-           Pattern    => "[NAME]=[VALUE]",
+           Pattern    => "NAME=VALUE",
            Help       => "Specify an external reference for Project Files.",
            Commands   =>
              (Cmd_Print_GPR_Registry | Cmd_All_Setups => False,
@@ -1619,7 +1619,7 @@ package Command_Line is
       Opt_Cargs                   =>
         Create
           (Long_Name => "--cargs",
-           Pattern   => "[CARGS ...]",
+           Pattern   => "CARGS...",
            Help      => "Pass CARGS arguments to the wrapped compiler.",
            Commands  => (Cmd_Gcc_Wrapper => True, others => False),
            Internal  => True,
@@ -1627,7 +1627,7 @@ package Command_Line is
       Opt_Eargs                   =>
         Create
           (Long_Name => "-eargs",
-           Pattern   => "[EARGS ...]",
+           Pattern   => "EARGS...",
            Help      =>
              "For emulated cross targets, pass EARGS to the"
              & " low-level emulator. For native configurations, pass"
@@ -1641,7 +1641,7 @@ package Command_Line is
       Opt_Gargs                   =>
         Create
           (Long_Name => "-gargs",
-           Pattern   => "[GARGS ...]",
+           Pattern   => "GARGS...",
            Help      => "Pass GARGS arguments to gprbuild.",
            Commands  => (Cmd_Setup => True, others => False),
            Internal  => False,
@@ -1649,7 +1649,7 @@ package Command_Line is
       Opt_Scos                    =>
         Create
           (Long_Name => "--scos|--alis",
-           Pattern   => "[FILE|@LISTFILE]",
+           Pattern   => "FILE|@LISTFILE",
            Help      =>
              "Load SCOs and exemption info from FILE for this"
              & " operation; or do that for each file listed in"
@@ -1666,7 +1666,7 @@ package Command_Line is
       Opt_Units                   =>
         Create
           (Long_Name => "--units",
-           Pattern   => "[UNIT|@LISTFILE]",
+           Pattern   => "UNIT|@LISTFILE",
            Help      =>
              "State the set of units of interest by name,"
              & " overriding the GPR-based selection by -P, etc."
@@ -1682,7 +1682,7 @@ package Command_Line is
       Opt_SID                     =>
         Create
           (Long_Name => "--sid",
-           Pattern   => "[FILE|@LISTFILE]",
+           Pattern   => "FILE|@LISTFILE",
            Help      =>
              "Load Source Instrumentation Data from FILE for this"
              & " operation; or do that for each file listed in"
@@ -1693,7 +1693,7 @@ package Command_Line is
       Opt_Routines                =>
         Create
           (Long_Name => "--routines",
-           Pattern   => "[ROUTINE|@LISTFILE]",
+           Pattern   => "ROUTINE|@LISTFILE",
            Help      =>
              "Add ROUTINE, or all routines listed in LISTFILE to"
              & " the list of routines.",
@@ -1707,7 +1707,7 @@ package Command_Line is
         Create
           (Long_Name  => "--routine-list",
            Short_Name => "-l",
-           Pattern    => "[LISTFILE] (DEPRECATED)",
+           Pattern    => "LISTFILE",
            Help       =>
              "Add all routines listed in LISTFILE to the list of"
              & " routines.",
@@ -1716,7 +1716,7 @@ package Command_Line is
       Opt_Exec                    =>
         Create
           (Long_Name => "--exec",
-           Pattern   => "[EXE]",
+           Pattern   => "EXE",
            Help      =>
              "For ""coverage"", use E as the base executable for"
              & " the traces that follow on the command line. For"
@@ -1727,19 +1727,18 @@ package Command_Line is
       Opt_Source_Rebase           =>
         Create
           (Long_Name => "--source-rebase",
-           Pattern   => "[OLD_PREFIX]=[NEW_PREFIX]|@[LISTFILE]",
+           Pattern   => "OLD_PREFIX=NEW_PREFIX|@LISTFILE",
            Help      =>
-             "Specify alternative path to find source files."
-             & " [OLD_PREFIX] accepts globbing patterns. Each line"
-             & " in LISTFILE shall be of the form [OLD_PREFIX]="
-             & "[NEW_PREFIX]. Globbing patterns can also be used in"
-             & " [OLD_PREFIX] in a response file.",
+             "Specify alternative path to find source files. OLD_PREFIX"
+             & " accepts globbing patterns. Each line in LISTFILE shall be of"
+             & " the form OLD_PREFIX=NEW_PREFIX. Globbing patterns can also be"
+             & " used in OLD_PREFIX in a response file.",
            Commands  => (Cmd_Coverage => True, others => False),
            Internal  => False),
       Opt_Source_Search           =>
         Create
           (Long_Name => "--source-search",
-           Pattern   => "[PREFIX]|@[LISTFILE]",
+           Pattern   => "PREFIX|@LISTFILE",
            Help      =>
              "Specify an alternative prefix to find source files,"
              & " or add each line of LISTFILE as an alternative"
@@ -1756,7 +1755,7 @@ package Command_Line is
         Create
           (Long_Name  => "--trace",
            Short_Name => "-T",
-           Pattern    => "[TRACE|@LISTFILE]",
+           Pattern    => "TRACE|@LISTFILE",
            Help       =>
              "Specify trace files to read. If the path ends with a directory "
              & " separator, consider it is a directory path containing the"
@@ -1775,14 +1774,14 @@ package Command_Line is
         Create
           (Long_Name  => "--checkpoint",
            Short_Name => "-C",
-           Pattern    => "[CHECKPOINT|@LISTFILE]",
+           Pattern    => "CHECKPOINT|@LISTFILE",
            Help       => "Specify checkpointed coverage information to load.",
            Commands   => (Cmd_Coverage => True, others => False),
            Internal   => False),
       Opt_LLVM_JSON_Checkpoint    =>
         Create
           (Long_Name => "--llvm-json-checkpoint",
-           Pattern   => "[CHECKPOINT|@LISTFILE]",
+           Pattern   => "CHECKPOINT|@LISTFILE",
            Help      =>
              "Specify a list of json files containing"
              & "LLVM coverage information to load.",
@@ -1791,7 +1790,7 @@ package Command_Line is
       Opt_Excluded_Source_Files   =>
         Create
           (Long_Name => "--excluded-source-files",
-           Pattern   => "[FILE|@LISTFILE]",
+           Pattern   => "FILE|@LISTFILE",
            Help      =>
              "Specify a list of source files to ignore for coverage."
              & " Supports globbing patterns.",
@@ -1804,7 +1803,7 @@ package Command_Line is
       Opt_Files                   =>
         Create
           (Long_Name => "--files",
-           Pattern   => "[FILE|@LISTFILE]",
+           Pattern   => "FILE|@LISTFILE",
            Help      =>
              "Specify a list of source files of interest by their"
              & " full name.",
@@ -1819,7 +1818,7 @@ package Command_Line is
         Create
           (Long_Name  => "--shared-object",
            Short_Name => "-L",
-           Pattern    => "[none|all|SHARED_OBJECT|@LISTFILE]",
+           Pattern    => "none|all|SHARED_OBJECT|@LISTFILE",
            Help       =>
              "Specify the set of shared object files that will"
              & " contribute to the code coverage assessment. The"
@@ -1843,7 +1842,7 @@ package Command_Line is
       Opt_Restricted_To_Languages =>
         Create
           (Long_Name               => "--restricted-to-languages",
-           Pattern                 => "[LANGUAGE|LIST|@LISTFILE]",
+           Pattern                 => "LANGUAGE|LIST|@LISTFILE",
            Help                    =>
              "Restrict the set of languages for units of interest. Supports"
              & " Ada, C and C++. Note that main units of other languages may"
@@ -1858,7 +1857,7 @@ package Command_Line is
         Create
           (Long_Name               => "--annotate",
            Short_Name              => "-a",
-           Pattern                 => "[FORM|LIST]",
+           Pattern                 => "FORM|LIST",
            Help                    =>
              "Generate a FORM report. FORM is one of:"
              & ASCII.LF
@@ -1875,7 +1874,7 @@ package Command_Line is
       Opt_C_Opts                  =>
         Create
           (Long_Name => "--c-opts",
-           Pattern   => "[COMMA-SEPARATED-OPTIONS]",
+           Pattern   => "COMMA-SEPARATED-OPTIONS",
            Help      =>
              "List of additional compiler switches to analayze C source"
              & " files.",
@@ -1885,7 +1884,7 @@ package Command_Line is
       Opt_CPP_Opts                =>
         Create
           (Long_Name => "--c++-opts",
-           Pattern   => "[COMMA-SEPARATED-OPTIONS]",
+           Pattern   => "COMMA-SEPARATED-OPTIONS",
            Help      =>
              "List of additional compiler switches to analayze C++ source"
              & " files.",
@@ -1987,7 +1986,7 @@ package Command_Line is
       Opt_Special_Output_Dirs     =>
         Create
           (Long_Name => "--special-output-dirs",
-           Pattern   => "[SOURCE_FILE][PATH_SEP][OUTPUT_DIR]",
+           Pattern   => "SOURCE_FILE[PATH_SEP]OUTPUT_DIR",
            Help      =>
              "Map a source file to a non-default output directory, for"
              & " instrumented files that must not go to the default output"
