@@ -111,6 +111,37 @@ package body Clang.Extensions is
       return Is_Struct_Field_Call_Expr_C (C) /= 0;
    end Is_Struct_Field_Call_Expr;
 
+   ------------------------------------
+   --  Is_VarDecl_CallInit_CtorExpr  --
+   ------------------------------------
+
+   function Is_VarDecl_CallInit_CtorExpr (C : Cursor_T) return Boolean is
+      function Is_VarDecl_CallInit_CtorExpr_C (C : Cursor_T) return unsigned
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isVarDeclCallInitCtorExpr";
+   begin
+      return Is_VarDecl_CallInit_CtorExpr_C (C) /= 0;
+   end Is_VarDecl_CallInit_CtorExpr;
+
+   ---------------------------------------------
+   -- Is_Call_Expr_Instrumentation_Limitation --
+   ---------------------------------------------
+
+   function Is_Call_Expr_Instrumentation_Limitation
+     (C : Cursor_T) return Boolean
+   is
+      function Is_Call_Expr_Instrumentation_Limitation_C
+        (C : Cursor_T) return unsigned
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isCallExprInstrumentationLimitation";
+   begin
+      return Is_Call_Expr_Instrumentation_Limitation_C (C) /= 0;
+   end Is_Call_Expr_Instrumentation_Limitation;
+
    --------------------------------
    -- Get_Try_Stmt_Handler_Count --
    --------------------------------

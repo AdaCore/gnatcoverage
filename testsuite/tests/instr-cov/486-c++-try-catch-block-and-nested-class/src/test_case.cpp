@@ -7,15 +7,11 @@ main ()
   class Exceptional
   {
   public:
-    void                                            // # ffirst
-    first ()                                        // # ffirst
-    {                                               // # ffirst
+    void first () {                                 // # ffirst
       throw std::runtime_error ("First Exception"); // # ffirst
     }
 
-    void                                             // # fsecond-1
-    second ()                                        // # fsecond
-    {                                                // # fsecond
+    void second () {                                 // # fsecond-1
       throw std::runtime_error ("Second Exception"); // # fsecond-2
     }
   };
@@ -39,7 +35,7 @@ main ()
 //
 // /fsecond/        l- ## 0
 // /fsecond-1/      l= ## f-
-// /fsecond-2/      l= ## s-
+// /fsecond-2/      l= ## s-,c-
 //
 // /obj/            l+ ## 0
 // /call_first/     l+ ## 0
@@ -48,5 +44,5 @@ main ()
 // /return/         l+ ## 0
 //
 // %tags:block
-// =/obj/           l- ## s-
+// =/obj/           l! ## s-
 // =/call_first/    l! ## s-

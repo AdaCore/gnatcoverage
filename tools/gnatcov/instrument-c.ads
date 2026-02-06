@@ -183,7 +183,8 @@ package Instrument.C is
       Instr_Expr,
       Instr_In_Compound,
       Instr_Prefixed_CXXMemberCallExpr,
-      Instr_StructField_CallExpr);
+      Instr_StructField_CallExpr,
+      Instr_CallInit_ConstructExpr);
    --  Depending on the statement construct, we can instrument it either with
    --  another statement right before (Instr_Stmt), which is the case for most
    --  statements:
@@ -209,19 +210,34 @@ package Instrument.C is
    --  execution of the witness statement, but we would still be executing the
    --  condition of the loop on the second iteration.
    --
-   --  The variant Instr_In_Compound shall be used with a Compound Statement
-   --  only. The specificity of a compound statement is that it is delimited
-   --  by brackets. Using this scheme, the instrumentation will insert a
-   --  witness statement *just* after the opening bracket. This is used for
-   --  Function coverage, and particularly useful for functions with empty
-   --  bodies in which it is not possible to refer to the body's first
-   --  statement to insert a witness statement before it.
+   --  Instr_In_Compound:
+   --    shall be used with a Compound Statement only. The specificity of a
+   --    compound statement is that it is delimited by brackets. Using this
+   --    scheme, the instrumentation will insert a witness statement *just*
+   --    after the opening bracket. This is used for Function coverage, and
+   --    particularly useful for functions with empty bodies in which it is not
+   --    possible to refer to the body's first statement to insert a witness
+   --    statement before it.
    --
-   --  The variant Instr_Prefixed_CXXMemberCallExpr is expected to be used on
-   --  C++ prefixed method calls like `foo.bar()` or `foo->bar()`.
-   --  It will be instrumented using a generic templated witness to conserve
-   --  the execution order of witnesses in method call chains.
-   --  Note that NON-prefixed method calls are handled like simple functions.
+   --  Instr_Prefixed_CXXMemberCallExpr:
+   --    is expected to be used on C++ prefixed method calls like `foo.bar()`
+   --    or `foo->bar()`. It will be instrumented using a generic templated
+   --    witness to conserve the execution order of witnesses in method call
+   --    chains. Note that NON-prefixed method calls are handled like simple
+   --    functions.
+   --
+   --  Instr_CallInit_ConstructExpr:
+   --    expected to be used on C++ ConstructExprs that are in CallInit
+   --    VarDecls (i.e. `Foo foo(args)`). The instrumentation will add a
+   --    pointer declaration before it.
+   --
+   --    Example:
+   --
+   --    Foo a(args);
+   --
+   --    becomes
+   --
+   --    Foo *witness_x(witness_call(...) ? nullptr : nullptr), a(args);
 
    type C_Source_Statement is record
       LL_SCO : Nat;

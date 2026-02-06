@@ -12,20 +12,16 @@ public:
   Point2D add (Point2D &other) const;
 };
 
-Point2D                             // # point2d_add_def_1
-Point2D::add (Point2D &other) const // # point2d_add_def_2
-{                                   // # point2d_add_def_2
+Point2D Point2D::add (Point2D &other) const { // # point2d_add_def_1
 
   // This calls a constructor
   return Point2D (this->x + other.x, this->y + other.y); // # return
 }
 
-void       // # foo_def_1
-foo (void) // # foo_def_2
-{          // # foo_def_2
+void foo (void) { // # foo_def_1
 
-  Point2D A;                  // # point_a
-  Point2D B = Point2D (1, 3); // # point_b
+  Point2D A;                  // # decl_a
+  Point2D B = Point2D (1, 3); // # decl_b
 
   auto sum = A.add (B); // # sum
 }

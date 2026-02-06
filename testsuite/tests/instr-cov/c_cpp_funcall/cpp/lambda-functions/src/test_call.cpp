@@ -8,4 +8,4 @@ main (void)
 }
 
 //# pkg.cpp
-// /foo_def_1/ l+ ## 0
+// /foo_def/ l+ ## 0
