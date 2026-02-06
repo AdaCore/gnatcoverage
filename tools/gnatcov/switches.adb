@@ -658,8 +658,13 @@ package body Switches is
       end if;
 
       if Args.String_Args (Opt_Relocate_Build_Tree).Present then
-         Set_Build_Tree_Dir
-           (+Args.String_Args (Opt_Relocate_Build_Tree).Value);
+         declare
+            Value : constant Unbounded_String :=
+              Args.String_Args (Opt_Relocate_Build_Tree).Value;
+         begin
+            Set_Build_Tree_Dir
+              (if Value = Null_Unbounded_String then "." else +Value);
+         end;
 
          if Args.String_Args (Opt_Root_Dir).Present then
             Set_Root_Dir (+Args.String_Args (Opt_Root_Dir).Value);

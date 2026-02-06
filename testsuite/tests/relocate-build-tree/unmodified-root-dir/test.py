@@ -43,7 +43,7 @@ tests_gpr = os.path.abspath(
 # Build directory is relocated in tmp
 build_run_and_coverage(
     gprsw=GPRswitches(
-        tests_gpr, units=["ops"], relocate_build_tree=os.getcwd()
+        tests_gpr, units=["ops"], relocate_build_tree=GPRswitches.no_arg
     ),
     covlevel="stmt",
     mains=["test_inc"],
@@ -56,7 +56,7 @@ check_xcov_reports("out-instr", expected_reports, discard_empty=False)
 os.environ["GPR_PROJECT_PATH"] += os.pathsep + os.path.dirname(tests_gpr)
 build_run_and_coverage(
     gprsw=GPRswitches(
-        tests_gpr, units=["ops"], relocate_build_tree=os.getcwd()
+        tests_gpr, units=["ops"], relocate_build_tree=GPRswitches.no_arg
     ),
     covlevel="stmt",
     mains=["test_inc"],

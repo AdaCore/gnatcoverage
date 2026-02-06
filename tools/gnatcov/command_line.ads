@@ -1425,16 +1425,17 @@ package Command_Line is
 
       Opt_Relocate_Build_Tree    =>
         Create
-          (Long_Name    => "--relocate-build-tree",
-           Pattern      => "PATH",
-           Help         =>
+          (Long_Name      => "--relocate-build-tree",
+           Pattern        => "PATH",
+           Help           =>
              "Relocate object, library and exec directories in the"
              & " specified directory.",
-           Commands     =>
+           Commands       =>
              (Cmd_All_Setups | Cmd_Print_GPR_Registry => False,
               others                                  => True),
-           At_Most_Once => True,
-           Internal     => False),
+           At_Most_Once   => True,
+           Optional_Value => True,
+           Internal       => False),
 
       Opt_Source_Root            =>
         Create

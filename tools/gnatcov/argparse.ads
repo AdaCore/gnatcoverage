@@ -164,13 +164,21 @@ is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal, At_Most_Once      : Boolean;
+      Internal                    : Boolean;
+      At_Most_Once                : Boolean;
+      Optional_Value              : Boolean := False;
       Pattern                     : String := "") return String_Option_Info
    with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
-   --  Create a single string option description. Long_Name and Short_Name are
-   --  |-separated lists of options names. If At_Most_Once is true, the command
-   --  cannot appear multiple times on the command-line; otherwise, the
-   --  retained value is the one from the last occurence on the command line.
+   --  Create a single string option description.
+   --
+   --  Long_Name and Short_Name are |-separated lists of options names.
+   --
+   --  If At_Most_Once is true, the command cannot appear multiple times on the
+   --  command-line; otherwise, the retained value is the one from the last
+   --  occurence on the command line.
+   --
+   --  If Optional_Value is true, the option may not be followed by a value: in
+   --  that case the option is considered as present but empty.
 
    function Create
      (Long_Name, Short_Name, Help : String := "";
@@ -409,8 +417,9 @@ private
    type Bool_Option_Info is new Option_Info with null record;
 
    type String_Option_Info is new Option_Info with record
-      At_Most_Once : Boolean;
-      Pattern      : Unbounded_String;
+      At_Most_Once   : Boolean;
+      Optional_Value : Boolean;
+      Pattern        : Unbounded_String;
    end record;
 
    type String_List_Option_Info is new Option_Info with record
