@@ -7,12 +7,11 @@ main (void)
 }
 
 //# pkg.cpp
-// /.*def_1/        l- ## f-
-// /.*def_2/        l- ## 0
+// /foo_def/        l- ## f-
 // /lambda_assign/  l- ## s-
 // /lambda_def/     l- ## f-
 // /lambda_comment/ l- ## 0
 // /lambda_return/  l- ## s-
 // /lambda_bracket/ l- ## 0
-// /assignment/     l- ## s-
+// /copy_ctor/      l- ## s-,c-
 // /call_copy/      l- ## s-,c-

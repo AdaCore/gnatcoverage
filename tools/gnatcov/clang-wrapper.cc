@@ -20,6 +20,7 @@
 /* Make sure we refer to the static version of symbols on Windows, not to DLL
    importers.  */
 
+#include "clang/AST/Decl.h"
 #define CINDEX_NO_EXPORTS
 
 #include "libclang/CXCursor.h"
@@ -392,6 +393,27 @@ clang_getRBracLoc (CXCursor C)
 }
 
 extern "C" unsigned
+clang_isCallExprLimitation (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return false;
+
+  const Expr *E = getCursorExpr (C);
+
+  if (E->getStmtClass () != Stmt::CXXConstructExprClass)
+    return false;
+
+  const auto Parents = getContext (C).getParents (*E);
+  assert (!Parents.empty () && "Unexpected empty parents");
+
+  auto VD = Parents[0].get<VarDecl> ();
+  if (VD == NULL)
+    return false;
+
+  return VD->getInitStyle () == VarDecl::CallInit;
+}
+
+extern "C" unsigned
 clang_isInstrumentableCallExpr (CXCursor C)
 {
   if (!clang_isExpression (C.kind))
@@ -402,24 +424,73 @@ clang_isInstrumentableCallExpr (CXCursor C)
   const Expr *E = getCursorExpr (C);
   switch (E->getStmtClass ())
     {
-    case Stmt::CallExprClass:            //  Simple call expression
-    case Stmt::CXXOperatorCallExprClass: // C++ Overloaded operator call
-    case Stmt::CXXMemberCallExprClass:   // C++ Method Call
-    case Stmt::UserDefinedLiteralClass:  // C++ suffixes after literals
+    case Stmt::CallExprClass:               //  Simple call expression
+    case Stmt::CXXOperatorCallExprClass:    // C++ Overloaded operator call
+    case Stmt::CXXMemberCallExprClass:      // C++ Method Call
+    case Stmt::UserDefinedLiteralClass:     // C++ suffixes after literals
+    case Stmt::CXXTemporaryObjectExprClass: // C++ ctor call for temporary
+    case Stmt::CXXConstructExprClass:       // C++ ctor call
+      return true;
 
       // TODO??? All theses classes are regrouped under the CXCursor_Call_Expr
       //         kind. Decide what to do with them, so the call coverage
       //         instrumentation of Ctors and Dtors makes sense.
       // case Stmt::CUDAKernelCallExprClass:
-      // case Stmt::CXXConstructExprClass:
       // case Stmt::CXXInheritedCtorInitExprClass:
-      // case Stmt::CXXTemporaryObjectExprClass:
       // case Stmt::CXXUnresolvedConstructExprClass:
-      return true;
 
     default:
       return false;
     }
+}
+
+static const VarDecl *
+get_CtorVarDecl (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return nullptr;
+
+  const Expr *E = getCursorExpr (C);
+
+  if (E->getStmtClass () != Stmt::CXXConstructExprClass)
+    return nullptr;
+
+  const auto Parents = getContext (C).getParents (*E);
+  assert (!Parents.empty () && "Unexpected empty parents");
+
+  auto VD = Parents[0].get<VarDecl> ();
+  return VD;
+}
+
+// Return True if C points to a CXXConstructExpr, and its direct parent is a
+// VarDecl in Call-like form.
+//
+// (i.e. `Foo foo(args)` rather than `Foo foo = Foo(args)`).
+extern "C" unsigned
+clang_isVarDeclCallInitCtorExpr (CXCursor C)
+{
+  auto Parent_VD = get_CtorVarDecl (C);
+  if (Parent_VD == nullptr)
+    return false;
+
+  return Parent_VD->getInitStyle () == VarDecl::CallInit;
+}
+
+// Return True if C is a ConstructExpr which parents is a VarDecl in Call-like
+// form and the type of the declaration is `auto`.
+//
+// (i.e. `auto foo(args)`)
+extern "C" unsigned
+clang_isCallExprInstrumentationLimitation (CXCursor C)
+{
+  auto Parent_VD = get_CtorVarDecl (C);
+  if (Parent_VD == nullptr)
+    return false;
+
+  return Parent_VD->getInitStyle () == VarDecl::CallInit
+         && Parent_VD->getTypeSourceInfo ()
+              ->getType ()
+              ->isUndeducedAutoType ();
 }
 
 // Return true if the cursor is C++ Method Call with an explicit base.
