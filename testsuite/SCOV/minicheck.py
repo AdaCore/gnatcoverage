@@ -198,7 +198,7 @@ def build_and_run(
 
     extra_args = extra_args or []
 
-    gpr_exe_dir = gpr_exe_dir or gprsw.relocate_build_tree or "."
+    gpr_exe_dir = gpr_exe_dir or gprsw.effective_relocate_build_tree or "."
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
 
     trace_mode = trace_mode or thistest.options.trace_mode
