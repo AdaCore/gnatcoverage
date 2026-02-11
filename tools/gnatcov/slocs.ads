@@ -18,6 +18,7 @@
 
 --  Source locations
 
+with SCOs;
 with Types; use Types;
 
 package Slocs is
@@ -43,6 +44,9 @@ package Slocs is
    --  Raise Constraint_Error if not possible.
 
    No_Local_Location : constant Local_Source_Location := (0, 0);
+
+   function "+" (Self : Local_Source_Location) return SCOs.Source_Location
+   is ((Logical_Line_Number (Self.Line), Column_Number (Self.Column)));
 
    type Local_Source_Location_Range is record
       First_Sloc, Last_Sloc : Local_Source_Location;

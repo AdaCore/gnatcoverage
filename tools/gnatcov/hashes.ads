@@ -20,6 +20,11 @@
 
 with Ada.Containers; use Ada.Containers;
 
+with GNAT.SHA1;
+
+with Logging; use Logging;
+with Strings; use Strings;
+
 package Hashes is
 
    function Shift_Left (Value : Hash_Type; Amount : Natural) return Hash_Type;
@@ -41,5 +46,43 @@ package Hashes is
    --  The implementation is inspired from Boost's hash_combine function
    --  (https://www.boost.org/doc/libs/latest/libs/container_hash/doc/html
    --  /hash.html#notes_hash_combine).
+
+   type Tracing_Hash is private;
+   --  Wrapper around GNAT.SHA1.Context to add the ability to log about the
+   --  hashed content.
+
+   function Start_Hash
+     (Label : String; Trace : GNATCOLL_Trace) return Tracing_Hash;
+   --  Start computing a hash.
+   --
+   --  Label must be a human readable description of what is hashed, for
+   --  logging purposes.
+   --
+   --  Trace is used to emit logging for this hash computation.
+
+   procedure Update_Hash (Self : in out Tracing_Hash; S : String);
+   --  Append S to the hashed content
+
+   function Digest
+     (Self : in out Tracing_Hash) return GNAT.SHA1.Binary_Message_Digest;
+   --  Return the digest for this hash
+
+private
+
+   type Tracing_Hash is record
+      Ctx : GNAT.SHA1.Context;
+      --  Actual hash computation context
+
+      Trace : GNATCOLL_Trace;
+      --  Trace that controls whether to keep the content used for hashing:
+      --  preserving may be costly, so do it only when the relevant trace is
+      --  enabled.
+
+      Label : Unbounded_String;
+      --  Label for what is hashed
+
+      Buffer : Unbounded_String;
+      --  Content used for hashing
+   end record;
 
 end Hashes;
