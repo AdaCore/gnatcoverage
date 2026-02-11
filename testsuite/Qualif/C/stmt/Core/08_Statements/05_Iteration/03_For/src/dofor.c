@@ -9,6 +9,7 @@ dofor (int start, int behavior)
   if (behavior & GOTO_IN) // # body
     {
       ++a;         // # goto-in
+      i = start;   // # goto-in
       goto in_for; // # goto-in
     }
 
