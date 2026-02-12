@@ -37,13 +37,17 @@ class Source:
     # Source file basename. The contents of the source file is derived from the
     # extension:
     # * .ads: Ada package (must not be a main).
-    # * .adb: Ada procedure (must be a main).
+    # * .adb: Ada procedure (must be a main or a pragma No_Body unit).
     # * .c: C source file that defines a variable (when not a main) or the
     #   "main" function (when a main).
     filename: str
 
     # Whether this source file must be a main in project files
     is_main: bool = False
+
+    # Whether this source file must contain only "pragma No_Body;" (for Ada
+    # bodies only).
+    no_body: bool = False
 
     # List of unit dependencies for this source file (for Ada sources only)
     deps: list[str] = dataclasses.field(default_factory=list)
@@ -70,6 +74,7 @@ class Source:
         unit_name, ext = os.path.splitext(self.filename)
         if ext == ".c":
             assert not self.deps, str(self.filename)
+            assert not self.no_body, str(self.filename)
             if self.is_main:
                 contents = ""
                 for sym in c_deps_symbols:
@@ -96,6 +101,7 @@ class Source:
             with_clause = "with {};".format(", ".join(deps))
             if ext == ".ads":
                 assert not self.is_main, str(self.filename)
+                assert not self.no_body, str(self.filename)
                 contents = (
                     f"{with_clause}"
                     "\n"
@@ -105,18 +111,21 @@ class Source:
                     "\n"
                 )
             elif ext == ".adb":
-                unit_name = unit_name.capitalize()
-                contents = f"{with_clause}\n\nprocedure {unit_name} is"
-                for sym in c_deps_symbols:
-                    contents += f"\n   {sym} : Integer;"
-                    contents += f"\n   pragma Import (C, {sym});"
-                contents += "\nbegin"
-                if c_deps_symbols:
-                    for sym in c_deps_symbols:
-                        contents += f"\n   {sym} := {sym} + 1;"
+                if self.no_body:
+                    contents = "pragma No_Body;\n"
                 else:
-                    contents += "\n   null;"
-                contents += f"\nend {unit_name};\n"
+                    unit_name = unit_name.capitalize()
+                    contents = f"{with_clause}\n\nprocedure {unit_name} is"
+                    for sym in c_deps_symbols:
+                        contents += f"\n   {sym} : Integer;"
+                        contents += f"\n   pragma Import (C, {sym});"
+                    contents += "\nbegin"
+                    if c_deps_symbols:
+                        for sym in c_deps_symbols:
+                            contents += f"\n   {sym} := {sym} + 1;"
+                    else:
+                        contents += "\n   null;"
+                    contents += f"\nend {unit_name};\n"
             else:
                 raise AssertionError(f"unhandled filename: {self.filename}")
 
@@ -210,6 +219,15 @@ class Test:
             assert not self.missing_unit_info
 
 
+# GNAT 5.04a1 does not support "pragma No_Body;"
+def no_body_unit(name: str) -> list[Source]:
+    return (
+        []
+        if "5.04a1" in thistest.options.tags
+        else [Source(name, no_body=True)]
+    )
+
+
 tests = [
     # Start with basic cases: single projects (no dependencies).
     #
@@ -220,6 +238,8 @@ tests = [
             sources=[
                 Source("basic1_pkg1.ads"),
                 Source("basic1_pkg2.ads"),
+                # Check that no body units are correctly handled
+                *no_body_unit("basic1_pkg2.adb"),
             ],
         ),
     ),
@@ -282,7 +302,11 @@ tests = [
     Test(
         root_project=Project(
             name="lib1",
-            sources=[Source("lib1_pkg1.ads"), Source("lib1_pkg2.ads")],
+            sources=[
+                Source("lib1_pkg1.ads"),
+                Source("lib1_pkg2.ads"),
+                *no_body_unit("lib1_pkg2.adb"),
+            ],
             is_library=True,
         ),
     ),
