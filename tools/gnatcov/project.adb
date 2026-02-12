@@ -595,7 +595,9 @@ package body Project is
                   for Source of View.Sources loop
                      if Source.Has_Units then
                         for Unit of Source.Units loop
-                           Queue.Include (Unit.Name);
+                           if Unit.Kind in GPR2.Valid_Unit_Kind then
+                              Queue.Include (Unit.Name);
+                           end if;
                         end loop;
                      end if;
                   end loop;
