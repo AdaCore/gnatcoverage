@@ -143,6 +143,12 @@ class GPRswitches:
     with the build step that precedes the gnatcov invocations (e.g. --subdirs).
     """
 
+    no_arg: str = "__noarg__"
+    """
+    Special value to designate the absence of a value for a command line option
+    that must be passed nonetheless (see --relocate-build-tree).
+    """
+
     def __init__(
         self,
         root_project,
@@ -181,6 +187,15 @@ class GPRswitches:
         self.subdirs = subdirs
 
     @property
+    def effective_relocate_build_tree(self) -> str | None:
+        if self.relocate_build_tree is None:
+            return None
+        elif self.relocate_build_tree == self.no_arg:
+            return os.getcwd()
+        else:
+            return self.relocate_build_tree
+
+    @property
     def build_switches(self):
         """
         Switches that would be valid for gprbuild as well and which
@@ -196,7 +211,9 @@ class GPRswitches:
 
         if self.relocate_build_tree:
             switches.append(
-                "--relocate-build-tree={}".format(self.relocate_build_tree)
+                "--relocate-build-tree"
+                if self.relocate_build_tree == self.no_arg
+                else f"--relocate-build-tree={self.relocate_build_tree}"
             )
 
         if self.root_dir:

@@ -322,7 +322,9 @@ package body Argparse is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal, At_Most_Once      : Boolean;
+      Internal                    : Boolean;
+      At_Most_Once                : Boolean;
+      Optional_Value              : Boolean := False;
       Pattern                     : String := "") return String_Option_Info
    is (+Long_Name,
        +Short_Name,
@@ -330,6 +332,7 @@ package body Argparse is
        Commands,
        Internal,
        At_Most_Once,
+       Optional_Value,
        +Pattern);
 
    ------------
@@ -447,6 +450,9 @@ package body Argparse is
       begin
          if Info in String_Option_Info'Class then
             Candidate := String_Option_Info (Info).Pattern;
+            if String_Option_Info (Info).Optional_Value then
+               Candidate := +"[" & Candidate & (+"]");
+            end if;
          elsif Info in String_List_Option_Info'Class then
             Candidate := String_List_Option_Info (Info).Pattern;
          else
@@ -632,9 +638,13 @@ package body Argparse is
       --  is no argument left.
 
       function Consume_Next_Arg
-        (For_Arg : Slice; I : in out Natural) return Unbounded_String;
+        (For_Arg : Slice; I : in out Natural; Optional : Boolean := False)
+         return Unbounded_String;
       --  Fetch the next argument and return an access to it. Update I
       --  accordingly. Raise an Arg_Error if there is no argument left.
+      --
+      --  If Optional is True and there is no argument left, or if the next
+      --  argument starts with a dash, return the empty string.
 
       function Select_Option
         (Opt_Name : String; Opt_Vec : Option_Reference_Vector)
@@ -709,16 +719,22 @@ package body Argparse is
       ----------------------
 
       function Consume_Next_Arg
-        (For_Arg : Slice; I : in out Natural) return Unbounded_String is
+        (For_Arg : Slice; I : in out Natural; Optional : Boolean := False)
+         return Unbounded_String
+      is
+         None_Left : constant Boolean := Args.Last_Index <= I;
       begin
-         if I < Args.Last_Index then
-            I := I + 1;
-            return Args (I);
-         else
+         if Optional and then (None_Left or else Has_Prefix (+Args (I), "-"))
+         then
+            return Null_Unbounded_String;
+         elsif None_Left then
             raise Arg_Error
               with
                 (US.Slice (Args (I), For_Arg.First, For_Arg.Last)
                  & " requires a value");
+         else
+            I := I + 1;
+            return Args (I);
          end if;
       end Consume_Next_Arg;
 
@@ -904,7 +920,16 @@ package body Argparse is
                            Str : constant Unbounded_String :=
                              (if Has_Value
                               then +Arg (Value.First .. Value.Last)
-                              else Consume_Next_Arg (Option, I));
+                              else
+                                Consume_Next_Arg
+                                  (Option,
+                                   I,
+                                   Optional =>
+                                     (Opt.Kind = String_Opt
+                                      and then
+                                        Parser.Data.String_Info
+                                          (Opt.String_Option)
+                                          .Optional_Value)));
                         begin
                            if Opt.Kind = String_Opt then
                               if Parser.Data.String_Info (Opt.String_Option)

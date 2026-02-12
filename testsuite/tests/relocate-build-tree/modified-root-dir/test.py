@@ -49,7 +49,7 @@ build_run_and_coverage(
         tests_gpr,
         units=["ops"],
         root_dir=project_root + os.sep,
-        relocate_build_tree=os.getcwd(),
+        relocate_build_tree=GPRswitches.no_arg,
     ),
     covlevel="stmt",
     gpr_exe_dir=os.path.join(project_root, "tests"),

@@ -37,6 +37,7 @@ with Checkpoints;           use Checkpoints;
 with Coverage;              use Coverage;
 with Diagnostics;           use Diagnostics;
 with Files_Table;           use Files_Table;
+with Hashes;                use Hashes;
 with Inputs;                use Inputs;
 with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;               use Outputs;
@@ -110,7 +111,9 @@ package body SC_Obligations is
       --  Hash of Bit_Maps, for consistency checks with source traces
 
       Annotations_Fingerprint : Fingerprint_Type := No_Fingerprint;
-      --  Hash of ALI_Annotations, for consistency checks with source traces
+      --  Hash of the subset of ALI_Annotations that affect source
+      --  instrumentation i.e. for Cov_On .. Cov_Off annotations. This is used
+      --  to perform consistency checks with source traces.
 
    end record;
    --  Part of the information stored in a SID file, and needed to compute
@@ -280,16 +283,12 @@ package body SC_Obligations is
       Entries : Nat_Range_Vectors.Vector;
       --  Sequence of SCO entries to load from low level tables for this unit
 
-      Fingerprint_Context : GNAT.SHA1.Context;
+      Fingerprint_Context : Tracing_Hash;
       --  Context to compute the fingerprint of SCOs for this unit.
       --
       --  The aim is to include in the hash all information for which
       --  inconsistency during consolidation would make coverage analysis
       --  nonsensical.
-
-      Fingerprint_Buffer : Unbounded_String;
-      --  When SCOs_Trace is active, buffer to hold the bytes used to compute
-      --  the fingerprint.
    end record;
    --  Information about a compilation unit to load, i.e. to create a CU_Info
    --  record and the associated information.
@@ -313,13 +312,9 @@ package body SC_Obligations is
    --
    --  See Process_Low_Level_SCOs for Deps' semantics.
 
-   procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; S : String);
-   --  Append S to the fingerprint computation for Unit_Info
-
-   procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; Sloc : SCOs.Source_Location);
-   --  Append Sloc to the fingerprint computation for Unit_Info
+   procedure Update_Hash
+     (Context : in out Tracing_Hash; From, To : SCOs.Source_Location);
+   --  Append the From-To sloc range to a fingerprint computation
 
    procedure Build_CU_Load_Info
      (Infos : out CU_Load_Info_Vectors.Vector;
@@ -4492,29 +4487,32 @@ package body SC_Obligations is
       return Result;
    end Main_Source_For;
 
-   ----------------------------
-   -- Append_For_Fingerprint --
-   ----------------------------
+   -----------------
+   -- Update_Hash --
+   -----------------
 
-   procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; S : String) is
-   begin
-      GNAT.SHA1.Update (Unit_Info.Fingerprint_Context, S);
-      if SCOs_Trace.Is_Active then
-         Append (Unit_Info.Fingerprint_Buffer, S);
-      end if;
-   end Append_For_Fingerprint;
+   procedure Update_Hash
+     (Context : in out Tracing_Hash; From, To : SCOs.Source_Location)
+   is
+      --  Keep track of the number of lines that span between the two sloc
+      --  boundaries, but not the line numbers themselves, so that fingerprints
+      --  does not change when lines (including annotations) are added or
+      --  removed (i.e. when the line numbers slide).
+      --
+      --  Note that for some SCOs, there is no sloc range (only the start
+      --  sloc): just disregard the line number in this case.
+      --
+      --  Keep track of column numbers however: these are not expected to
+      --  change when annotations are adeded.
 
-   procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; Sloc : SCOs.Source_Location) is
+      Line_Count  : constant String :=
+        (if To.Line = 0 then "?" else Img (Integer (To.Line - From.Line + 1)));
+      Column_From : constant String := Img (Integer (From.Col));
+      Column_To   : constant String := Img (Integer (To.Col));
    begin
-      Append_For_Fingerprint
-        (Unit_Info,
-         ":"
-         & Logical_Line_Number'Image (Sloc.Line)
-         & ":"
-         & Column_Number'Image (Sloc.Col));
-   end Append_For_Fingerprint;
+      Update_Hash
+        (Context, "#" & Line_Count & ":" & Column_From & "-" & Column_To);
+   end Update_Hash;
 
    ------------------------
    -- Build_CU_Load_Info --
@@ -4557,16 +4555,17 @@ package body SC_Obligations is
                       (File_Name_Ptr       => Unit.File_Name,
                        Source_File         => Source_File,
                        Entries             => <>,
-                       Fingerprint_Context => <>,
-                       Fingerprint_Buffer  => <>);
+                       Fingerprint_Context =>
+                         Start_Hash (Unit.File_Name.all & "SCOs", SCOs_Trace));
                   Infos.Append (Unit_Info);
                   Units.Insert (Source_File, Unit_Info);
 
                   --  Start  the computation of the fingerprint for this unit
                   --  with the name of this unit.
 
-                  Append_For_Fingerprint
-                    (Unit_Info.all, Get_File (Source_File).Simple_Name.all);
+                  Update_Hash
+                    (Unit_Info.Fingerprint_Context,
+                     Get_File (Source_File).Simple_Name.all);
                end if;
 
                --  Plan to load the range of SCO entries for this low level
@@ -4584,12 +4583,25 @@ package body SC_Obligations is
                      E : SCOs.SCO_Table_Entry renames
                        SCOs.SCO_Table.Table (SCO_Index);
                   begin
-                     Append_For_Fingerprint (Unit_Info.all, E.From);
-                     Append_For_Fingerprint (Unit_Info.all, E.To);
-                     Append_For_Fingerprint
-                       (Unit_Info.all, String'((E.C1, E.C2)));
+                     --  Do not let Annotate pragmas contribute to
+                     --  SCOs fingerprints, so that adding or removing these
+                     --  pragmas (which definitely do not contribute to the
+                     --  coverage report) do not change fingerprints.
+                     --
+                     --  For binary traces, the compiler always emit SCOs for
+                     --  these annotations, so we have to do this filtering
+                     --  here.
+
+                     if E.Pragma_Aspect_Name = Snames.Name_Annotate then
+                        goto Next_SCO;
+                     end if;
+
+                     Update_Hash (Unit_Info.Fingerprint_Context, " ");
+                     Update_Hash (Unit_Info.Fingerprint_Context, E.From, E.To);
+                     Update_Hash
+                       (Unit_Info.Fingerprint_Context, String'((E.C1, E.C2)));
                      if E.Last then
-                        Append_For_Fingerprint (Unit_Info.all, "Last");
+                        Update_Hash (Unit_Info.Fingerprint_Context, "[Last]");
                      end if;
 
                      --  Directly streaming E.Pragma_Aspect_Name (an enumerated
@@ -4600,30 +4612,17 @@ package body SC_Obligations is
                      --  values.
 
                      if E.Pragma_Aspect_Name /= No_Name then
-                        Append_For_Fingerprint
-                          (Unit_Info.all,
-                           Get_Name_String (E.Pragma_Aspect_Name));
+                        Update_Hash
+                          (Unit_Info.Fingerprint_Context,
+                           "|" & Get_Name_String (E.Pragma_Aspect_Name));
                      end if;
                   end;
+
+                  <<Next_SCO>>
                end loop;
             end if;
          end;
       end loop;
-
-      --  If requested, show the string used to compute fingerprint for each
-      --  unit.
-
-      if SCOs_Trace.Is_Active then
-         for Unit_Info of Infos loop
-            SCOs_Trace.Trace
-              ("Computing fingerprint for "
-               & Unit_Info.File_Name_Ptr.all
-               & " SCOs from:");
-            SCOs_Trace.Trace ("BEGIN ...");
-            SCOs_Trace.Trace (+Unit_Info.Fingerprint_Buffer);
-            SCOs_Trace.Trace ("... END");
-         end loop;
-      end if;
    end Build_CU_Load_Info;
 
    -----------------
@@ -5131,9 +5130,7 @@ package body SC_Obligations is
             First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
 
             Fingerprint : constant Fingerprint_Type :=
-              Fingerprint_Type
-                (GNAT.SHA1.Binary_Message_Digest'
-                   (GNAT.SHA1.Digest (Info.Fingerprint_Context)));
+              Fingerprint_Type (Digest (Info.Fingerprint_Context));
 
             CU    : constant CU_Id :=
               Allocate_CU
@@ -5851,43 +5848,39 @@ package body SC_Obligations is
    ------------------
 
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps) is
-      use GNAT.SHA1;
-
       Info       : CU_Info renames CU_Vector.Reference (CU);
       CU_Version : SID_Info renames
         Info.SIDs_Info.Reference (Info.SIDs_Info.First);
-      Ctx        : GNAT.SHA1.Context;
+      Ctx        : Tracing_Hash :=
+        Start_Hash ("bit maps of " & Image (CU), SCOs_Trace);
       LF         : constant String := (1 => ASCII.LF);
 
       procedure Update (SCO : SCO_Id);
       --  Helper for fingerprint computation: update Ctx to include a reference
-      --  to the given SCO. That infomation is made relative to CU's first SCO,
-      --  so that during consolidation, bit maps are treated as equivalent
-      --  modulo SCO relocation. For instance, the following units/maps should
-      --  be equivalent:
+      --  to the given SCO.
       --
-      --    CU #1
-      --      First_SCO => 10
-      --      Last_SCO  => 12
-      --      Statement_Bits => (1 => 10, 2 => 11, 3 => 12)
-      --
-      --    CU #2
-      --      First_SCO => 20
-      --      Last_SCO  => 22
-      --      Statement_Bits => (1 => 20, 2 => 21, 3 => 22)
-      --
-      --  Because when we attempt to consolidate CUs #1 and #2, the bit maps
-      --  will be equal after the relocation of SCOs #20..#22 to #10..#12.
+      --  In order to achieve this while keeping the fingerprint stable when
+      --  line number change (when annotations pragmas are added to source
+      --  files, for instance), we do not include line numbers themselves in
+      --  the computation. Fingerprints must also be stable after
+      --  SID/checkpoint loading, so since SCO ids can be relocated, they also
+      --  must not be included.
 
       ------------
       -- Update --
       ------------
 
       procedure Update (SCO : SCO_Id) is
-         Relative_SCO : constant SCO_Id := SCO - Info.SCOs.First_Element.First;
+         SCOD : SCO_Descriptor renames SCO_Vector.Constant_Reference (SCO);
       begin
-         Update (Ctx, Relative_SCO'Image);
+         Update_Hash (Ctx, SCOD.Kind'Image & ":");
+         Update_Hash
+           (Ctx, +SCOD.Sloc_Range.L.First_Sloc, +SCOD.Sloc_Range.L.Last_Sloc);
       end Update;
+
+      First : Boolean;
+
+      --  Start of processing for Set_Bit_Maps
 
    begin
       pragma Assert (Are_Bit_Maps_In_Range (Bit_Maps, Info));
@@ -5896,29 +5889,45 @@ package body SC_Obligations is
 
       --  Compute the fingerprint for these bit maps
 
-      Update (Ctx, "stmt:");
+      First := True;
+      Update_Hash (Ctx, "stmt:");
       for Id of Bit_Maps.Statement_Bits.all loop
+         if First then
+            First := False;
+         else
+            Update_Hash (Ctx, " ");
+         end if;
          Update (Id);
       end loop;
-      Update (Ctx, LF);
+      Update_Hash (Ctx, LF);
 
-      Update (Ctx, "dc:");
+      First := True;
+      Update_Hash (Ctx, "dc:");
       for D of Bit_Maps.Decision_Bits.all loop
+         if First then
+            First := False;
+         else
+            Update_Hash (Ctx, " ");
+         end if;
          Update (D.D_SCO);
-         Update (Ctx, ":" & D.Outcome'Image);
+         Update_Hash (Ctx, "=>" & D.Outcome'Image);
       end loop;
-      Update (Ctx, LF);
+      Update_Hash (Ctx, LF);
 
-      Update (Ctx, "mcdc:");
+      First := True;
+      Update_Hash (Ctx, "mcdc:");
       for M of Bit_Maps.MCDC_Bits.all loop
+         if First then
+            First := False;
+         else
+            Update_Hash (Ctx, " ");
+         end if;
          Update (M.D_SCO);
-         Update (Ctx, ":" & M.Path_Index'Image);
+         Update_Hash (Ctx, "=>" & Img (M.Path_Index));
       end loop;
-      Update (Ctx, LF);
+      Update_Hash (Ctx, LF);
 
-      CU_Version.Bit_Maps_Fingerprint :=
-        Fingerprint_Type
-          (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
+      CU_Version.Bit_Maps_Fingerprint := Fingerprint_Type (Digest (Ctx));
    end Set_Bit_Maps;
 
    ----------------
@@ -5938,16 +5947,22 @@ package body SC_Obligations is
    ---------------------
 
    procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map) is
-      use GNAT.SHA1;
-
       Current_SFI : Source_File_Index := No_Source_File;
       Current_CU  : CU_Id := No_CU_Id;
-      Current_Ctx : GNAT.SHA1.Context := Initial_Context;
       --  Current file being processed
+
+      Has_Relevant_Annotation : Boolean := False;
+      --  Whether at least one annotation was included in the annotations
+      --  fingerprint. If not, we want to keep the Annotations_Fingerprint
+      --  component set to the null hash, so that a unit with only-irrelevant
+      --  annotations has the same hash than a unit with no annotation at all.
+
+      Hash_Ctx : Tracing_Hash;
+      --  Hash context for the annotations fingerprint
 
       procedure Set_Annotations_Fingerprint;
       --  Set the annotations fingerprint for Current_CU if it is not null,
-      --  stored in Current_Ctx.
+      --  stored in Hash_Ctx.
 
       ---------------------------------
       -- Set_Annotations_Fingerprint --
@@ -5955,19 +5970,19 @@ package body SC_Obligations is
 
       procedure Set_Annotations_Fingerprint is
       begin
-         if Current_CU /= No_CU_Id then
+         if Current_CU /= No_CU_Id and then Has_Relevant_Annotation then
             declare
                SID_Maps : SID_Info_Maps.Map renames
                  CU_Vector.Reference (Current_CU).SIDs_Info;
                SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
             begin
                SID.Annotations_Fingerprint :=
-                 Fingerprint_Type
-                   (GNAT.SHA1.Binary_Message_Digest'
-                      (GNAT.SHA1.Digest (Current_Ctx)));
+                 Fingerprint_Type (Digest (Hash_Ctx));
             end;
          end if;
       end Set_Annotations_Fingerprint;
+
+      --  Start of processing for Set_Annotations
 
    begin
       --  As a reminder, Source_Location sort on the file index first, so we
@@ -5984,15 +5999,28 @@ package body SC_Obligations is
 
             if Sloc.Source_File /= Current_SFI then
                Set_Annotations_Fingerprint;
-               Current_Ctx := Initial_Context;
                Current_SFI := Sloc.Source_File;
                Current_CU := Comp_Unit (Current_SFI);
+               Has_Relevant_Annotation := False;
+               Hash_Ctx :=
+                 Start_Hash
+                   ("annotations of "
+                    & Get_Full_Name (Current_SFI, Or_Simple => True),
+                    SCOs_Trace);
             end if;
-            Update (Current_Ctx, Image (Sloc));
-            Update (Current_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
-            if Ann.Message /= null then
-               Update (Current_Ctx, Ann.Message.all);
+
+            --  Not all annotation kinds must be considered for consisency
+            --  checks: see the comment for SID_Info.Annotations_Fingerprint.
+
+            if Ann.Kind in Cov_On .. Cov_Off then
+               Has_Relevant_Annotation := True;
+               Update_Hash (Hash_Ctx, Image (Sloc));
+               Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
+               if Ann.Message /= null then
+                  Update_Hash (Hash_Ctx, Ann.Message.all);
+               end if;
             end if;
+
             CU_Vector.Reference (Current_CU).ALI_Annotations.Include
               (Sloc, Ann);
          end;

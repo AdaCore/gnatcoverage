@@ -5,6 +5,6 @@ foo ()
   return 0;
 #endif
 #ifdef B
-  return 1;
+  return 10;
 #endif;
 }
