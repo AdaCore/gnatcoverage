@@ -5148,6 +5148,25 @@ package body Instrument.Ada_Unit is
                      end;
                   end loop;
 
+                  --  Check if the No_Elaboration_Code_All pragma applies to
+                  --  the unit.
+
+                  begin
+                     if CU_Decl.P_Has_Aspect
+                          (To_Unbounded_Text ("No_Elaboration_Code_All"))
+                     then
+                        UIC.Has_No_Elaboration_Code_All := True;
+                     end if;
+                  exception
+                     when Libadalang.Common.Property_Error =>
+                        Report
+                          (Msg  =>
+                             "failed to determine No_Elaboration_Code_All"
+                             & " constraint for "
+                             & CU_Decl.Unit.Get_Filename,
+                           Kind => Warning);
+                  end;
+
                   --  Note: we do not traverse the context clause or generate
                   --  any SCOs for it, as nothing there can generate any code.
 
@@ -6234,26 +6253,6 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
-
-      --  Check if the No_Elaboration_Code_All pragma applies to the unit.
-      --  It can only appear in the specification of a unit-level package.
-
-      begin
-         if N.P_Is_Compilation_Unit_Root
-           and then
-             N.P_Has_Aspect (To_Unbounded_Text ("No_Elaboration_Code_All"))
-         then
-            UIC.Has_No_Elaboration_Code_All := True;
-         end if;
-      exception
-         when Libadalang.Common.Property_Error =>
-            Report
-              (Msg  =>
-                 "failed to determine No_Elaboration_Code_All constraint"
-                 & " for "
-                 & N.Unit.Get_Filename,
-               Kind => Warning);
-      end;
 
       Start_Statement_Block (UIC);
       Traverse_Declarations_Or_Statements

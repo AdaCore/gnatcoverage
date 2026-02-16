@@ -21,12 +21,16 @@ check_xcov_reports(
     "xcov",
     {
         "main.adb.xcov": {
-            "+": {5},
-            "!": {7, 9},
-            "-": {8, 10},
+            "+": {7, 9, 11, 12},
+            "!": {13, 15},
+            "-": {14, 16},
         },
+        "gen_proc.adb.xcov": {"+": {3}},
+        "gen_proc.ads.xcov": {},
         "pkg.adb.xcov": {"+": {14, 15}, "!": {17}},
         "pkg.ads.xcov": {},
+        "proc.adb.xcov": {"+": {3}},
+        "proc.ads.xcov": {},
     },
     discard_empty=False,
 )
