@@ -1457,6 +1457,9 @@ Using assertion coverage levels allows to compute the coverage of the pragma
 statements `Assert`, `Assert_And_Cut`, `Assume`, `Check`, `Loop_Invariant`, and
 the aspects `Type_Invariant`, `Precondition` and `Postcondition`.
 
+The limitations of this coverage level are detailed in the
+:ref:`instr-limitations` section.
+
 Core notions and Reporting (:cmd-option:`--level=...+atc`)
 ----------------------------------------------------------
 
@@ -1539,6 +1542,9 @@ When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
 (:cmd-option:`=xcov+`), a precise description of the actual violations is
 available for each line in addition to the annotation. The :cmd-option:`=html`
 provides it by default.
+
+The limitations of this coverage level are detailed in the
+:ref:`instr-limitations` section.
 
 .. _scov-fun_call:
 
