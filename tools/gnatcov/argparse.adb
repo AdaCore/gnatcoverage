@@ -724,7 +724,8 @@ package body Argparse is
       is
          None_Left : constant Boolean := Args.Last_Index <= I;
       begin
-         if Optional and then (None_Left or else Has_Prefix (+Args (I), "-"))
+         if Optional
+           and then (None_Left or else Has_Prefix (+Args (I + 1), "-"))
          then
             return Null_Unbounded_String;
          elsif None_Left then
