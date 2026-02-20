@@ -27,13 +27,28 @@ with Instrument.Common; use Instrument.Common;
 with JSON;
 with Traces_Files;      use Traces_Files;
 
---  Implementation of the gnatcov instrument-source command, which instrument
---  the given command-line unit. If the unit is of a unit based language, the
---  unit name is the name of the unit, otherwise, it is the (full) filename.
+--  Implementation of the gnatcov instrument-source command.
 --
---  Note: it is important that Unit_Name is the original unit name , even
---  when we are instrumenting a source that has already been instrumented
---  for external annotations / manual indications purposes.
+--  The process for source instrumentation is 3-fold, and vary according to the
+--  compilation unit language.
+--
+--  For C/C++ source instrumentation, start by processing the source for
+--  manual annotation replacements. It has to be done first, as external
+--  annotations, which may contain dump / reset annotations, operate on
+--  unpreprocessed sources.
+--
+--  Then, if Is_UOI is set to True, instrument the source as a unit of
+--  interest. According to whether the user uses the manual dump trigger,
+--  it may operate on a file which has already been processed for C/C++
+--  sources. In any case, we always pass the original source version to the
+--  Instrument_Unit subprogram to make sure this is the one referenced in the
+--  generated SID file (whose name is SID_Name).
+--
+--  Then, if Is_Main is set to True, instrument the file as a main. This file
+--  may already have been instrumented, in which case pass the instrumented
+--  version.
+--
+--  Finally, process Ada sources for manual annotation replacements.
 
 procedure Instrument.Source
   (Unit_Name         : String;

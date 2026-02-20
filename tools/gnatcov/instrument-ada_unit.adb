@@ -10181,7 +10181,8 @@ package body Instrument.Ada_Unit is
       --
       --  TODO??? this will not work when processing a file instrumented as a
       --  main but that is not of interest. Idea: we could process manual
-      --  indications prior to instrumenting mains.
+      --  indications prior to instrumenting mains. Update the header comment
+      --  in Instrument.Source when done.
 
       if not Is_Instrumented_File (Prj, Source) then
          External_Annotations :=

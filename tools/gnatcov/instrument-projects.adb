@@ -126,6 +126,9 @@ is
 
    function Main_Part_Src
      (Source : GPR2.Build.Source.Object) return GPR2.Build.Source.Object;
+   --  Return the main part of the compilation unit Source is part of. It may
+   --  be Source itself, or the body part if Source is e.g. a specification and
+   --  the unit also has a body.
 
    function Skip_Source (Src : GPR2.Build.Source.Object) return Boolean;
    --  Return whether the given source should be skipped (e.g. if it is a C/C++
