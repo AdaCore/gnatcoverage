@@ -132,15 +132,19 @@ is
    --  header).
 
    procedure Add_Project_Source
-     (Source : GPR2.Build.Source.Object; Is_Main : Boolean);
-   --  Add the given source to the list of units to instrument, for units that
-   --  are not of interest.
+     (Source  : GPR2.Build.Source.Object;
+      Is_UOI  : Boolean := False;
+      Is_Main : Boolean := False);
+   --  Add the given source to the list of units to instrument, for source,
+   --  instrumentation, main instrumentation or annotations replacement.
+   --
+   --  If Is_UOI is True, consider Source to be a unit of interest.
+   --
+   --  If Is_Main is True, consider Source to be a main.
 
    procedure Add_Instrumented_Unit
-     (Project     : GPR2.Project.View.Object;
-      Source_File : GPR2.Build.Source.Object);
-   --  Add this source file to the list of units (of interest) to instrument.
-   --  TODO??? maybe this could use the Add_Project_Source subprogram.
+     (Project : GPR2.Project.View.Object; Source : GPR2.Build.Source.Object);
+   --  Add this source file to the list of units (of interest) to instrument
 
    function Units_Of_Interest
      (Project : GPR2.Project.View.Object) return Unit_Sets.Set;
@@ -342,9 +346,13 @@ is
    ------------------------
 
    procedure Add_Project_Source
-     (Source : GPR2.Build.Source.Object; Is_Main : Boolean)
+     (Source  : GPR2.Build.Source.Object;
+      Is_UOI  : Boolean := False;
+      Is_Main : Boolean := False)
    is
-      Project : constant GPR2.Project.View.Object := Source.Owning_View;
+      Project  : constant GPR2.Project.View.Object := Source.Owning_View;
+      Prj_Info : constant Project_Info_Access :=
+        Get_Or_Create_Project_Info (IC, Project);
    begin
       --  Start by checking if this is a supported language
 
@@ -363,7 +371,6 @@ is
            or else Project.Is_Externally_Built
            or else Project.Is_Runtime
            or else Skip_Source (Source)
-           or else Instrumented_Sources.Contains (Unit_Name)
          then
             return;
          end if;
@@ -377,24 +384,100 @@ is
             Outputs.Error
               ("source files containing multiple compilation units"
                & " are not supported");
-            return;
+            raise Outputs.Xcov_Exit_Exc;
          end if;
 
-         declare
-            Main_Src : constant GPR2.Build.Source.Object :=
-              Main_Part_Src (Source);
+         --  If not already done, note that the unit that owns this source file
+         --  must be instrumented.
 
-            LU_Info : constant Library_Unit_Info :=
-              (Instr_Project        => Project,
-               Language_Kind        => Lang_Kind,
-               Language             => Language,
-               All_Externally_Built => False,
-               Main_Part_Src        => Main_Src,
-               Is_Main              => Is_Main,
-               Is_UOI               => False,
-               others               => <>);
+         declare
+            Cur      : Unit_Maps.Cursor :=
+              Instrumented_Sources.Find (Unit_Name);
+            Inserted : Boolean;
          begin
-            Instrumented_Sources.Insert (Unit_Name, LU_Info);
+            if not Unit_Maps.Has_Element (Cur) then
+               Instrumented_Sources.Insert
+                 (Unit_Name,
+                  (Main_Part_Src        => Main_Part_Src (Source),
+
+                   --  Set both fields afterwards
+
+                   Is_UOI               => False,
+                   Is_Main              => False,
+                   Language_Kind        => Lang_Kind,
+                   Language             => Language,
+                   All_Externally_Built => Prj_Info.Externally_Built,
+                   others               => <>),
+                  Cur,
+                  Inserted);
+               pragma Assert (Inserted);
+
+               --  Also get compiler switches that are file-specific and
+               --  register them in the project description.
+
+               if Language in C_Family_Language then
+                  declare
+                     package R renames GPR2.Project.Registry.Attribute;
+
+                     Options       : Analysis_Options;
+                     Compiler_Opts : String_Vectors.Vector;
+                     Switches      : GPR2.Project.Attribute.Object;
+                     Basename      : constant String :=
+                       String (Source.Path_Name.Simple_Name);
+                  begin
+                     Switches :=
+                       Project.Attribute
+                         (Name  => R.Compiler.Switches,
+                          Index =>
+                            GPR2.Project.Attribute_Index.Create (Basename));
+                     if Switches.Is_Defined then
+                        declare
+                           Args : String_Vectors.Vector;
+                        begin
+                           for S of Switches.Values loop
+                              Args.Append (+S.Text);
+                           end loop;
+                           Import_From_Args (Options, Args);
+                        end;
+                        Add_Options
+                          (Compiler_Opts, Options, Pass_Builtins => False);
+                        Prj_Info.Desc.Compiler_Options_Unit.Insert
+                          (Create_Normalized (Unit_Name), Compiler_Opts);
+                     end if;
+                  end;
+               end if;
+            end if;
+
+            --  Keep track of this source file inside that unit. Also memorize
+            --  the project that owns it if it is a non-Ada source file, an Ada
+            --  spec or an Ada body.
+
+            declare
+               LU_Info : Library_Unit_Info renames
+                 Instrumented_Sources.Reference (Cur);
+               Kind    : constant GPR2.Unit_Kind :=
+                 (if Language = Ada_Language
+                  then First_Unit (Source).Kind
+                  else GPR2.S_Body);
+            begin
+               case Kind is
+                  when GPR2.S_Spec =>
+                     LU_Info.Spec_Project := Project;
+
+                  when GPR2.S_Body =>
+                     LU_Info.Body_Project := Project;
+
+                  when others      =>
+                     null;
+               end case;
+               if not Prj_Info.Externally_Built then
+                  LU_Info.All_Externally_Built := False;
+               end if;
+               LU_Info.Sources.Include (Source);
+
+               LU_Info.Is_UOI := LU_Info.Is_UOI or else Is_UOI;
+               LU_Info.Is_Main := LU_Info.Is_Main or else Is_Main;
+            end;
          end;
       end;
    end Add_Project_Source;
@@ -404,159 +487,22 @@ is
    ---------------------------
 
    procedure Add_Instrumented_Unit
-     (Project     : GPR2.Project.View.Object;
-      Source_File : GPR2.Build.Source.Object)
+     (Project : GPR2.Project.View.Object; Source : GPR2.Build.Source.Object)
    is
-      Language  : constant Src_Supported_Language :=
-        To_Language (Source_File.Language);
-      Lang_Kind : constant Supported_Language_Kind := Language_Kind (Language);
-
-      use Unit_Maps;
-      Unit_Name : constant String := Unique_Unit_Name (Source_File);
-
-      Prj_Info : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (IC, Source_File.Owning_View);
-
+      pragma Unreferenced (Project);
+      Language : constant Src_Supported_Language :=
+        To_Language (Source.Language);
    begin
-      --  Check if this is an excluded source file
+      --  Check if this is a file of interest
 
-      if Is_Excluded_Source_File
-           (IC, String (Source_File.Path_Name.Simple_Name))
+      if not Is_Excluded_Source_File
+               (IC, String (Source.Path_Name.Simple_Name))
+        and then Builtin_Support (Language)
       then
-         return;
-      end if;
-
-      --  Check if gnatcov was built with support for this language. If not,
-      --  exit early.
-
-      if not Builtin_Support (Language) then
-         return;
-      end if;
-
-      --  Check that this is not a multi unit source as gnatcov does not
-      --  support these. Do not error out, but print an error message.
-
-      if Source_File.Has_Units and then Source_File.Units.Length > 1 then
-         Outputs.Error
-           ("instrumentation failed for "
-            & String (Source_File.Path_Name.Name));
-         Outputs.Error
-           ("source files containing multiple compilation units"
-            & " are not supported");
-         raise Outputs.Xcov_Exit_Exc;
-      end if;
-
-      --  Otherwise, this is a source of interest
-
-      Files_Of_Interest_Info.Insert (Source_File);
-      IC.Files_Of_Interest.Insert
-        (Create (+String (Source_File.Path_Name.Value)));
-
-      --  Do not instrument header files / No_Body Ada files
-
-      if Skip_Source (Source_File) then
-         return;
-      end if;
-
-      --  If not already done, note that the unit that owns this source file
-      --  must be instrumented.
-
-      declare
-         Cur      : Unit_Maps.Cursor := Instrumented_Sources.Find (Unit_Name);
-         Inserted : Boolean;
-      begin
-         if not Unit_Maps.Has_Element (Cur) then
-            Instrumented_Sources.Insert
-              (Unit_Name,
-               (Main_Part_Src        =>
-                  (case Lang_Kind is
-                     when Unit_Based_Language =>
-                       Project.Visible_Source
-                         (Project.Own_Unit (GPR2.Name_Type (Unit_Name))
-                            .Main_Part
-                            .Source),
-                     when File_Based_Language => Source_File),
-                Is_Main              =>
-                  Mains_To_Instrument.Contains (Source_File),
-                Is_UOI               => True,
-                Language_Kind        => Lang_Kind,
-                Language             => Language,
-                All_Externally_Built => Prj_Info.Externally_Built,
-                others               => <>),
-               Cur,
-               Inserted);
-            pragma Assert (Inserted);
-         end if;
-
-         --  Keep track of this source file inside that unit. Also memorize
-         --  the project that owns it if it is a non-Ada source file, an Ada
-         --  spec or an Ada body.
-
-         declare
-            LU_Info : Library_Unit_Info renames
-              Instrumented_Sources.Reference (Cur);
-            Kind    : constant GPR2.Unit_Kind :=
-              (if Language = Ada_Language
-               then First_Unit (Source_File).Kind
-               else GPR2.S_Body);
-         begin
-            case Kind is
-               when GPR2.S_Spec =>
-                  LU_Info.Spec_Project := Project;
-
-               when GPR2.S_Body =>
-                  LU_Info.Body_Project := Project;
-
-               when others      =>
-                  null;
-            end case;
-            if not Prj_Info.Externally_Built then
-               LU_Info.All_Externally_Built := False;
-            end if;
-            LU_Info.Sources.Include (Source_File);
-         end;
-      end;
-
-      --  If the unit belongs to an externally built project, exit after it
-      --  was added it to the instrumented sources. We won't instrument it
-      --  in the current instrumentation run, so there is no need to grab
-      --  information useful for instrumentation purposes.
-
-      if Source_File.Owning_View.Is_Externally_Built then
-         return;
-      end if;
-
-      --  Also get compiler switches that are file-specific and register them
-      --  in the project description.
-
-      if Language in C_Family_Language then
-         declare
-            package R renames GPR2.Project.Registry.Attribute;
-
-            Options       : Analysis_Options;
-            Compiler_Opts : String_Vectors.Vector;
-            Switches      : GPR2.Project.Attribute.Object;
-            Basename      : constant String :=
-              String (Source_File.Path_Name.Simple_Name);
-         begin
-            Switches :=
-              Project.Attribute
-                (Name  => R.Compiler.Switches,
-                 Index => GPR2.Project.Attribute_Index.Create (Basename));
-            if Switches.Is_Defined then
-               declare
-                  Args : String_Vectors.Vector;
-               begin
-                  for S of Switches.Values loop
-                     Args.Append (+S.Text);
-                  end loop;
-                  Import_From_Args (Options, Args);
-               end;
-               Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
-               Prj_Info.Desc.Compiler_Options_Unit.Insert
-                 (Create_Normalized (Unit_Name), Compiler_Opts);
-            end if;
-         end;
+         Files_Of_Interest_Info.Insert (Source);
+         IC.Files_Of_Interest.Insert
+           (Create (+String (Source.Path_Name.Value)));
+         Add_Project_Source (Source, Is_UOI => True);
       end if;
 
       --  If dump debug info was requested, add entries for buffer symbols
@@ -566,7 +512,7 @@ is
       then
          declare
             CU : constant Files_Table.Compilation_Unit :=
-              (Lang_Kind, Unit_Name => +Unit_Name);
+              To_Compilation_Unit (Source);
          begin
             Instrument.Debug_Dump.Register_Buffer_Symbols_For_Unit (CU);
          end;
