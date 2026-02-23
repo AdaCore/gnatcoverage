@@ -218,7 +218,7 @@ begin
             Lib_SID : constant String :=
               SID_Filename (LU_Info.Main_Part_Src, In_Library_Dir => True);
          begin
-            if LU_Info.All_Externally_Built then
+            if LU_Info.Is_UOI then
                Instr_Artifacts.Insert (Create (+Obj_SID));
                if Lib_SID /= "" and then Obj_SID /= Lib_SID then
                   Instr_Artifacts.Insert (Create (+Lib_SID));

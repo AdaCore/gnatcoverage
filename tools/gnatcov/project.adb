@@ -2039,23 +2039,35 @@ package body Project is
       Result : Source_Vectors.Vector;
       --  List of sources found so far
    begin
-      for Source of View.Visible_Sources loop
-         declare
-            View : constant GPR2.Project.View.Object := Source.Owning_View;
-         begin
-            --  If we were asked to include this view in the closure, add its
-            --  sources to Result. Note also that we need to ignore extended
-            --  projects: only the sources of the corresponding extending
-            --  project matter.
+      --  Iterate over the project closure and the sources of each project
+      --  rather than using the Visible_Sources API, which does not return
+      --  homonym source files. TODO??? revisit when eng/gpr/gpr-issues#803 is
+      --  resolved.
 
-            if not View.Is_Extended
-              and then
-                (With_Externally_Built or else not View.Is_Externally_Built)
-              and then (With_Runtime or else not View.Is_Runtime)
-            then
-               Result.Append (Source);
-            end if;
-         end;
+      for Project of
+        View.Closure
+          (Include_Self       => True,
+           Include_Extended   => True,
+           Include_Aggregated => True)
+      loop
+         for Source of Project.Sources loop
+            declare
+               View : constant GPR2.Project.View.Object := Source.Owning_View;
+            begin
+               --  If we were asked to include this view in the closure, add
+               --  its sources to Result. Note also that we need to ignore
+               --  extended projects: only the sources of the corresponding
+               --  extending project matter.
+
+               if not View.Is_Extended
+                 and then
+                   (With_Externally_Built or else not View.Is_Externally_Built)
+                 and then (With_Runtime or else not View.Is_Runtime)
+               then
+                  Result.Append (Source);
+               end if;
+            end;
+         end loop;
       end loop;
       return Result;
    end Source_Closure;

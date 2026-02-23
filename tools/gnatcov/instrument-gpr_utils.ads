@@ -142,11 +142,6 @@ package Instrument.GPR_Utils is
       Language : Src_Supported_Language;
       --  Actual language representation
 
-      All_Externally_Built : Boolean;
-      --  Whether all of the parts of this unit belongs to an externally-built
-      --  project. If it is the case, the unit won't be instrumented;
-      --  otherwise, every unit part will.
-
       Spec_Project, Body_Project : GPR2.Project.View.Object;
       --  Track the owning project of this unit's spec source file (if present)
       --  and body source file (likewise).

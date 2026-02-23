@@ -134,6 +134,9 @@ is
    --  Return whether the given source should be skipped (e.g. if it is a C/C++
    --  header).
 
+   function Is_Multi_Unit (Src : GPR2.Build.Source.Object) return Boolean
+   is (Src.Has_Units and then Src.Units.Length > 1);
+
    procedure Add_Project_Source
      (Source  : GPR2.Build.Source.Object;
       Is_UOI  : Boolean := False;
@@ -150,7 +153,8 @@ is
    --  Add this source file to the list of units (of interest) to instrument
 
    function Units_Of_Interest
-     (Project : GPR2.Project.View.Object) return Unit_Sets.Set;
+     (IC : Inst_Context; Project : GPR2.Project.View.Object)
+      return Unit_Sets.Set;
    --  Return the list of units of interest in the project closure
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
@@ -277,8 +281,8 @@ is
    --  purpose.
 
    Files_Of_Interest_Info : Source_Sets.Set;
-   --  Mapping from file to GPR2.Build.Source.Object, to be able to retrieve,
-   --  e.g. the separates of a compilation unit.
+   --  List of GPR2.Build.Source.Object, to be able to retrieve, e.g. the
+   --  separates of a compilation unit.
 
    Mains_To_Instrument : Source_Sets.Set;
    --  List of mains to instrument. Note that this is filled even when using
@@ -381,7 +385,7 @@ is
          --  Check that this is not a multi unit source as gnatcov does not
          --  support these.
 
-         if Source.Has_Units and then Source.Units.Length > 1 then
+         if Is_Multi_Unit (Source) then
             Outputs.Error
               ("instrumentation failed for " & String (Source.Path_Name.Name));
             Outputs.Error
@@ -401,16 +405,15 @@ is
             if not Unit_Maps.Has_Element (Cur) then
                Instrumented_Sources.Insert
                  (Unit_Name,
-                  (Main_Part_Src        => Main_Part_Src (Source),
+                  (Main_Part_Src => Main_Part_Src (Source),
 
                    --  Set both fields afterwards
 
-                   Is_UOI               => False,
-                   Is_Main              => False,
-                   Language_Kind        => Lang_Kind,
-                   Language             => Language,
-                   All_Externally_Built => Prj_Info.Externally_Built,
-                   others               => <>),
+                   Is_UOI        => False,
+                   Is_Main       => False,
+                   Language_Kind => Lang_Kind,
+                   Language      => Language,
+                   others        => <>),
                   Cur,
                   Inserted);
                pragma Assert (Inserted);
@@ -473,9 +476,6 @@ is
                   when others      =>
                      null;
                end case;
-               if not Prj_Info.Externally_Built then
-                  LU_Info.All_Externally_Built := False;
-               end if;
                LU_Info.Sources.Include (Source);
 
                LU_Info.Is_UOI := LU_Info.Is_UOI or else Is_UOI;
@@ -502,10 +502,12 @@ is
                (IC, String (Source.Path_Name.Simple_Name))
         and then Builtin_Support (Language)
       then
-         Files_Of_Interest_Info.Insert (Source);
-         IC.Files_Of_Interest.Insert
-           (Create (+String (Source.Path_Name.Value)));
          Add_Project_Source (Source, Is_UOI => True);
+         if not Is_Multi_Unit (Source) then
+            Files_Of_Interest_Info.Insert (Source);
+            IC.Files_Of_Interest.Insert
+              (Create (+String (Source.Path_Name.Value)));
+         end if;
       end if;
 
       --  If dump debug info was requested, add entries for buffer symbols
@@ -527,10 +529,14 @@ is
    -----------------------
 
    function Units_Of_Interest
-     (Project : GPR2.Project.View.Object) return Unit_Sets.Set
+     (IC : Inst_Context; Project : GPR2.Project.View.Object)
+      return Unit_Sets.Set
    is
       Result : Unit_Sets.Set;
    begin
+      --  Include all units of interest, including those from externally
+      --  built projects.
+
       for S of
         Source_Closure
           (View                  => Project,
@@ -538,34 +544,11 @@ is
              Externally_Built_Projects_Processing_Enabled,
            With_Runtime          => False)
       loop
-         --  First, check if S is even a source of a language we
-         --  recognize. If not, it can't have been instrumented
-         --  so skip it.
-
-         if To_Language_Or_All (S.Language) = All_Languages then
-            goto Skip_File;
+         if IC.Files_Of_Interest.Contains (S.Path_Name.Virtual_File)
+           and then not Skip_Source (S)
+         then
+            Result.Include (To_Compilation_Unit (S));
          end if;
-
-         declare
-            use Unit_Maps;
-            Unit_C : constant Unit_Maps.Cursor :=
-              Instrumented_Sources.Find (+To_Compilation_Unit (S).Unit_Name);
-         begin
-            if Unit_C /= Unit_Maps.No_Element then
-               declare
-                  Unit       : constant Library_Unit_Info := Element (Unit_C);
-                  Instr_Unit : constant Compilation_Unit :=
-                    Compilation_Unit'
-                      (Unit.Language_Kind,
-                       +Unique_Unit_Name (Unit.Main_Part_Src));
-               begin
-                  if Unit.Is_UOI then
-                     Result.Include (Instr_Unit);
-                  end if;
-               end;
-            end if;
-         end;
-         <<Skip_File>>
       end loop;
       return Result;
    end Units_Of_Interest;
@@ -856,13 +839,6 @@ begin
          C_Source_Instrumenter   : GPR2.Build.Actions.Instrument_Source.Object;
 
       begin
-         --  Skip instrumentation of the unit if it was already
-         --  instrumented.
-
-         if LU_Info.All_Externally_Built then
-            goto Continue;
-         end if;
-
          --  Asynchronously instrument
 
          if LU_Info.Language_Kind = Unit_Based_Language then
@@ -893,7 +869,6 @@ begin
             end if;
          end if;
       end;
-      <<Continue>>
    end loop;
 
    --  Execute all of the actions. When parallelism is disabled, run all of
@@ -1018,7 +993,7 @@ begin
                      if not Is_Root_Prj then
                         Instrumenter.Emit_Buffers_List_Unit
                           (Instr_Units =>
-                             Units_Of_Interest (LU_Info.Instr_Project),
+                             Units_Of_Interest (IC, LU_Info.Instr_Project),
                            Prj         => Prj);
                      end if;
                   end if;
@@ -1082,22 +1057,16 @@ begin
    --  C symbol importations).
 
    declare
-      Instr_Units : Unit_Sets.Set;
-      Langs       : constant GPR2.Containers.Language_Set :=
+      Langs : constant GPR2.Containers.Language_Set :=
         Root_Project_Info.Project.Language_Ids;
    begin
-      for LU_Info of Instrumented_Sources loop
-         if LU_Info.Is_UOI then
-            Instr_Units.Insert (To_Compilation_Unit (LU_Info.Main_Part_Src));
-         end if;
-      end loop;
       for Lang in Src_Supported_Language loop
          if Builtin_Support (Lang)
            and then Langs.Contains (To_Language_Id (Lang))
          then
             Instrumenters (Lang).Emit_Buffers_List_Unit
-              (Instr_Units, Root_Project_Info.Desc);
-
+              (Units_Of_Interest (IC, Root_Project_Info.Project),
+               Root_Project_Info.Desc);
             Instrumenters (Lang).Emit_Observability_Unit
               (Root_Project_Info.Desc);
             exit;
