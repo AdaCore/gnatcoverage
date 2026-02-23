@@ -223,9 +223,6 @@ class GPRswitches:
             # and:
             #
             #   --relocate-build-tree [actual dir]
-            #
-            # TODO: to be removed if we figure out a solution in
-            # eng/das/cov/gnatcoverage#521
             if self.relocate_build_tree == self.no_arg:
                 switches.append("-XDUMMY_X_VAR=SOMEVALUE")
 
