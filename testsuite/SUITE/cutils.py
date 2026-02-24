@@ -10,8 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
-
-from typing import AnyStr, Optional
+from typing import final, override
 
 from e3.fs import cp, mkdir
 from e3.os.fs import cd, which
@@ -314,24 +313,41 @@ def multi_range(*args, minus=None):
     return result
 
 
-class FilePathRefiner(OutputRefiner[AnyStr]):
+@final
+class FilePathRefiner(OutputRefiner[str]):
     """
     For each tag "@@FILE@@", find the file by looking at src_dir/FILE, and
     replace the tag with the absolute path of the file.
     """
 
     TAG_REGEX = re.compile(r"@@(?P<filename>(?:\w|[./])+)@@")
+    src_dir: str
 
-    def __init__(self, src_dir: Optional[AnyStr] = None) -> None:
+    def __init__(self, src_dir: str | None = None) -> None:
+        super().__init__()
         self.src_dir = src_dir or ".."
 
-    def refine(self, output: AnyStr) -> AnyStr:
-        def _replace_tag(pat):
+    @override
+    def refine(self, output: str) -> str:
+        def _replace_tag(pat: re.Match[str]):
             filename = pat.group("filename")
             path = os.path.abspath(os.path.join(self.src_dir, filename))
             return path
 
         return re.sub(self.TAG_REGEX, _replace_tag, output)
+
+
+@final
+class AbsoluteToBasenameRefiner(OutputRefiner[str]):
+    """
+    Replace absolute path by basename.
+    """
+
+    @override
+    def refine(self, output: str) -> str:
+        if exists(output.strip("\n")):
+            return os.path.basename(output)
+        return output
 
 
 class Identifier:
