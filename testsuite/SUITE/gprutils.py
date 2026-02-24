@@ -216,13 +216,13 @@ class GPRswitches:
                 else f"--relocate-build-tree={self.relocate_build_tree}"
             )
             # Add a subsequent dummy argument if there is no argument to
-            # --relocate-build-tree to lift ambiguity between
-            # --relocate-build-tree [independent positional file]
-            # and
-            # --relocate-build-tree [actual dir]
+            # --relocate-build-tree to lift ambiguity between:
             #
-            # TODO: to be removed if we figure out a solution in
-            # eng/das/cov/gnatcoverage#521
+            #   --relocate-build-tree [independent positional file]
+            #
+            # and:
+            #
+            #   --relocate-build-tree [actual dir]
             if self.relocate_build_tree == self.no_arg:
                 switches.append("-XDUMMY_X_VAR=SOMEVALUE")
 
