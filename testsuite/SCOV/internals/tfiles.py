@@ -8,13 +8,18 @@ Essentially, Tline allows the association of a line number with each line and
 Tfile offers a line hook processing facility.
 """
 
+from dataclasses import dataclass
+from typing import Callable
 
+from .cnotes import Enote
+
+
+@dataclass(frozen=True)
 class Tline:
     """Associate a line contents with its position in a text file."""
 
-    def __init__(self, lno, text):
-        self.lno = lno
-        self.text = text
+    lno: int
+    text: str
 
 
 class Tfile:
@@ -23,16 +28,18 @@ class Tfile:
     at class instanciation time.
     """
 
-    def __init__(self, filename, process):
-        self.nlines = 0
+    def __init__(
+        self, filename: str, process: Callable[[Tline], Enote | None]
+    ) -> None:
+        self.nlines: int = 0
         self.process = process
         self.tlines = [self.new_tline(text) for text in open(filename)]
 
-    def new_tline(self, text):
+    def new_tline(self, text: str) -> Tline:
         self.nlines += 1
         tline = Tline(self.nlines, text)
         self.process(tline)
         return tline
 
-    def contents(self):
+    def contents(self) -> list[Tline]:
         return self.tlines
