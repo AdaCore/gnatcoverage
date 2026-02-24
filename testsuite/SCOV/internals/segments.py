@@ -9,6 +9,9 @@ This is essentially used to determine if what an emitted coverage indication
 designates discharges some expected coverage expectation.
 """
 
+from dataclasses import dataclass
+from typing import ClassVar, Self
+
 import re
 
 from SUITE.control import LANGINFO
@@ -26,22 +29,22 @@ class Spoint:
     the end of it.
     """
 
-    def __init__(self, line, col):
+    def __init__(self, line: int, col: int):
         self.lineno = line
         self.c = col
 
-    def pastoreq(self, other):
+    def pastoreq(self, other: Self) -> bool:
         return self.lineno > other.lineno or (
             self.lineno == other.lineno and (self.c >= other.c or other.c == 0)
         )
 
-    def beforeq(self, other):
+    def beforeq(self, other: Self) -> bool:
         return self.lineno < other.lineno or (
             self.lineno == other.lineno and (self.c <= other.c or other.c == 0)
         )
 
 
-def Spoint_from(text):
+def Spoint_from(text: str) -> Spoint:
     items = text.split(":", 1)
     return Spoint(line=int(items[0]), col=int(items[1]))
 
@@ -72,14 +75,14 @@ class Section:
     #               c1
     #  3:1-7:5
 
-    def __init__(self, l0, c0, l1, c1):
+    def __init__(self, l0: int, c0: int, l1: int, c1: int):
         self.sp0 = Spoint(line=l0, col=c0)
         self.sp1 = Spoint(line=l1, col=c1)
 
-    def within(self, other):
+    def within(self, other: Self) -> bool:
         return self.sp0.pastoreq(other.sp0) and self.sp1.beforeq(other.sp1)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "section %d:%d-%d:%d" % (
             self.sp0.lineno,
             self.sp0.c,
@@ -88,7 +91,7 @@ class Section:
         )
 
 
-def Section_from(text):
+def Section_from(text: str) -> Section:
     topitems = text.split("-", 1)
     subitems0 = topitems[0].split(":", 1)
     subitems1 = topitems[1].split(":", 1)
@@ -106,14 +109,14 @@ class Segment(Section):
     same line.
     """
 
-    def __init__(self, lno, clo, chi):
+    def __init__(self, lno: int, clo: int, chi: int):
         Section.__init__(self, l0=lno, c0=clo, l1=lno, c1=chi)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "segment %d:%d-%d" % (self.sp0.lineno, self.sp0.c, self.sp1.c)
 
 
-def Segment_from(text):
+def Segment_from(text: str) -> Segment:
     topitems = text.split(":", 1)
     subitems = topitems[1].split("-", 1)
     return Segment(
@@ -124,14 +127,14 @@ def Segment_from(text):
 class Line(Segment):
     """A Line is a Segment spanning from first to last column."""
 
-    def __init__(self, lno):
+    def __init__(self, lno: int):
         Segment.__init__(self, lno=lno, clo=0, chi=0)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "line %d" % self.sp0.lineno
 
 
-def Line_from(text):
+def Line_from(text: str) -> Line:
     items = text.split(":", 1)
     return Line(lno=int(items[0]))
 
@@ -141,19 +144,19 @@ class Point(Segment):
     A Point is a Segment for which the start and end columns are identical.
     """
 
-    def __init__(self, lno, col):
+    def __init__(self, lno: int, col: int):
         Segment.__init__(self, lno=lno, clo=col, chi=col)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "sloc %d:%d" % (self.sp0.lineno, self.sp0.c)
 
 
-def Point_from(text):
+def Point_from(text: str) -> Point:
     items = text.split(":", 1)
     return Point(lno=int(items[0]), col=int(items[1]))
 
 
-def Section_within(text):
+def Section_within(text: str) -> Section | None:
     """
     Search and return a possible Section object with TEXT, specialized in
     accordance with the possible section expression shapes.
@@ -181,10 +184,10 @@ def Section_within(text):
     return None
 
 
+@dataclass(frozen=True)
 class Sloc:
-    def __init__(self, filename, section):
-        self.filename = filename
-        self.section = section
+    filename: str
+    section: Section
 
     # Regular expression to try-match a text line in order to
     # produce a valid object of this class
@@ -200,18 +203,27 @@ class Sloc:
 
     # Note that the registered LANGINFO extensions embed the '.'  character,
 
-    re = "(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)" % "|".join(
-        ext for li in LANGINFO.values() for ext in li.src_ext
+    re: ClassVar[str] = (
+        "(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)"
+        % "|".join(ext for li in LANGINFO.values() for ext in li.src_ext)
     )
 
 
-def Sloc_from_match(m):
+def Sloc_from_match(m: re.Match[str]) -> Sloc:
+    section = Section_within(m.group("sec"))
+    assert section is not None
     return Sloc(
         filename="".join([m.group("sbase"), m.group("ext")]),
-        section=Section_within(m.group("sec")),
+        section=section,
     )
 
 
-def Sloc_from(text):
+def Sloc_from(text: str) -> Sloc | None:
     p = re.match(pattern=Sloc.re, string=text)
     return Sloc_from_match(m=p) if p else None
+
+
+def Sloc_or_error(text: str) -> Sloc:
+    sloc = Sloc_from(text)
+    assert sloc
+    return sloc
