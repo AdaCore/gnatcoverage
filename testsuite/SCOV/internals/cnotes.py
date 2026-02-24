@@ -169,6 +169,17 @@
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
 
+from __future__ import annotations
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .xnotep import XnoteP
+
+from .segments import Section
+from .stags import Stag
+
 (
     lNoCode,
     lFullCov,
@@ -391,7 +402,7 @@ erNoteKinds = (
     + XNoteKinds
     + disabledNoteKinds
 )
-erNoteKinds += aNoteKinds + fNoteKinds + gNoteKinds
+erNoteKinds += aNoteKinds + fNoteKinds + gNoteKinds  # type: ignore
 xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds
 
 
@@ -400,7 +411,7 @@ xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds
 # ==========================
 
 
-def deviation_p(nkind):
+def deviation_p(nkind: int) -> bool:
     """
     DEVIATION notes are those representing violations of a coverage mandate
     associated with a general criterion.
@@ -408,7 +419,7 @@ def deviation_p(nkind):
     return nkind > deviationNote and nkind < blockNote
 
 
-def positive_p(nkind):
+def positive_p(nkind: int) -> bool:
     """
     POSITIVE notes are those representing a positive statement about a coverage
     mandate, only present in =xcov outputs.
@@ -416,7 +427,7 @@ def positive_p(nkind):
     return nkind == lFullCov
 
 
-def block_p(nkind):
+def block_p(nkind: int) -> bool:
     """
     BLOCK notes are those emitted as a single note for a block of code in
     =report outputs,
@@ -424,7 +435,7 @@ def block_p(nkind):
     return nkind > blockNote
 
 
-def strict_p(nkind):
+def strict_p(nkind: int) -> bool:
     """
     STRICT notes are those for which an exact match between reports and
     expectations is required: an expected note should be reported (errout
@@ -437,7 +448,7 @@ def strict_p(nkind):
     return nkind > strictNote
 
 
-def anti_p(nkind):
+def anti_p(nkind: int) -> bool:
     """
     ANTI expectations are those that explicitly state that we expect absence of
     emitted indications.
@@ -445,7 +456,7 @@ def anti_p(nkind):
     return nkind in rAntiKinds
 
 
-def transparent_p(nkind):
+def transparent_p(nkind: int) -> bool:
     """
     TRANSPARENT expectations are those that should not produce an expected note
     to be matched. It is relevant for exempted regions. For an exempted region,
@@ -496,6 +507,7 @@ def transparent_p(nkind):
 # ===========================
 
 
+@dataclass
 class Block:
     """
     Source regions to which expected coverage note instances belong.
@@ -505,32 +517,32 @@ class Block:
     an object id is enough + a parent link to represent nesting trees.
     """
 
-    def __init__(self, parent):
-        self.parent = parent
+    parent: str
 
 
+@dataclass
 class Cnote:
     """Some precise coverage note, either expected or reported."""
 
-    def __init__(self, kind):
-        # Kind of note, line segment and report section id
-        self.kind = kind
-        self.segment = None
+    # Kind of note, line segment and report section id
+    kind: int | None
+    segment: Section | None = None
 
-        # An expected note for one segment will be discharged by an emitted
-        # note of the same kind for a tighter segment. The emitted note will
-        # have to be found in the expected report section. =xcov reports are
-        # considered section-less.
+    # An expected note for one segment will be discharged by an emitted
+    # note of the same kind for a tighter segment. The emitted note will
+    # have to be found in the expected report section. =xcov reports are
+    # considered section-less.
 
-        # In addition, any note might have an associated "separation tag" to
-        # provide finer grained diagnostics in presence of inlining or generic
-        # instances.
-        self.stag = None
+    # In addition, any note might have an associated "separation tag" to
+    # provide finer grained diagnostics in presence of inlining or generic
+    # instances.
+    stag: Stag | str | None = None
 
-    def image(self):
+    def image(self) -> str:
+        assert isinstance(self.stag, Stag) or self.stag is None
         return "%s%s mark at %s" % (
             NK_image[self.kind],
-            "(from %s)" % self.stag.text if self.stag else "",
+            ("(from %s)" % self.stag.text if self.stag else ""),
             self.segment,
         )
 
@@ -541,7 +553,7 @@ class Xnote(Cnote):
     line.
     """
 
-    def __init__(self, xnp, block, kind):
+    def __init__(self, xnp: XnoteP, block: Block | None, kind: int):
         Cnote.__init__(self, kind)
         self.weak = xnp.weak
         self.block = block
@@ -550,9 +562,9 @@ class Xnote(Cnote):
         self.stag = xnp.stag
         self.nmatches = 0
 
-        self.discharger = None  # The Enote that discharged this
+        self.discharger: Enote | None = None  # The Enote that discharged this
 
-    def register_match(self, segment):
+    def register_match(self, segment: Section) -> None:
         """
         Register that this instance matched SEGMENT for a source line.
         Increase the number of such matches and remember only the last.
@@ -560,8 +572,10 @@ class Xnote(Cnote):
         self.nmatches += 1
         self.segment = segment
 
-    def satisfied(self):
+    def satisfied(self) -> bool:
         """Tell whether this [anti-]expectation is satisfied at this point."""
+        assert self.kind is not None
+
         if anti_p(self.kind):
             return self.discharger is None
         else:
@@ -571,20 +585,28 @@ class Xnote(Cnote):
 class Enote(Cnote):
     """Emitted note, as extracted from an xcov report."""
 
-    def __init__(self, kind, segment, source, stag=None):
+    def __init__(
+        self,
+        kind: int | None,
+        segment: Section,
+        source: str,
+        stag: Stag | None = None,
+    ):
         Cnote.__init__(self, kind)
         self.segment = segment  # The line segment it designates
         self.source = source  # The corresponding source name
         self.stag = stag  # The separation tag it contains
 
-        self.discharges = None  # The Xnote it discharges
+        self.discharges: Xnote | None = None  # The Xnote it discharges
 
 
-class KnoteDict(dict):
+class KnoteDict[Note: Cnote](dict[NK, list[Note]]):
     """Dictionary of coverage notes indexed by note kind."""
 
-    def __init__(self, possible_keys):
+    def __init__(self, possible_keys: Iterable[NK]):
         self.update((key, []) for key in possible_keys)
 
-    def register(self, note):
+    def register(self, note: Note) -> None:
+        assert note.kind is not None
+
         self[note.kind].append(note)
