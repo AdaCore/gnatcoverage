@@ -5,7 +5,9 @@ Expose the RnotesExpander class which constructs a { source -> KnoteDict }
 dictionary of emitted Line Notes from a provided =report outputs.
 """
 
+from dataclasses import dataclass
 import re
+from typing import override, ClassVar
 
 from SUITE.context import thistest
 from .cnotes import (
@@ -55,7 +57,7 @@ from .cnotes import (
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
-from .tfiles import Tfile
+from .tfiles import Tfile, Tline
 
 
 # =========================================
@@ -92,37 +94,45 @@ from .tfiles import Tfile
 # 2 DECISION violations.                  <- mapped to an internal "contents
 #                                         <- block" representation.
 
+type ReNotes = dict[str, int]
 
+
+@dataclass(frozen=True)
 class Rdiagline:
     """
     Abstract diagnostic line, a-la "p.adb:8:4 statement not executed". This is
     a general Sloc followed by some diagnostic text.
     """
 
-    def __init__(self, sloc, diag):
-        # SLOC object and DIAGnostic text
+    sloc: Sloc
+    """
+    Sloc object
+    """
 
-        self.sloc = sloc
-        self.diag = diag
+    diag: str
+    """
+    Diagnostic text
+    """
 
-    # Regular expression to try-match a text line in order to
-    # produce a valid object of this class
+    re: ClassVar[str] = Sloc.re + " (?P<diag>.*)"
+    """
+    Regular expression to try-match a text line in order to
+    produce a valid object of this class
 
-    # Expect something like:
-    #
-    #      "andthen.adb:10:33: statement not covered",
-    #       -----------:-----: ---------------------
-    #       source name:segmt: diagnostic text
+    Expect something like:
 
-    re = Sloc.re + " (?P<diag>.*)"
+         "andthen.adb:10:33: statement not covered",
+          -----------:-----: ---------------------
+          source name:segmt: diagnostic text
+    """
 
 
-def Rdiagline_from(text):
+def Rdiagline_from(text: str) -> Rdiagline | None:
     p = re.match(Rdiagline.re, text)
-
-    return (
-        Rdiagline(sloc=Sloc_from_match(p), diag=p.group("diag")) if p else None
-    )
+    if p is None:
+        return None
+    sloc = Sloc_from_match(p)
+    return Rdiagline(sloc=sloc, diag=p.group("diag"))
 
 
 class Rblock:
@@ -131,10 +141,15 @@ class Rblock:
     specializations will derive.
     """
 
-    def __init__(self, name, re_start, re_end):
-        # NAME holds the text with which this block will be referred to in
-        # error messages. RE_START/RE_END are regexps which tells whether a
-        # line of text matches the expected header line for this block:
+    def __init__(self, name: str, re_start: str, re_end: str):
+        """
+        :param name: holds the text with which this block will be referred to
+            in error messages.
+        :param re_start: regex which matches the expected header line for this
+            block.
+        :param re_end: regex which matches the expected footer line for this
+            block.
+        """
 
         self.name = name
         self.re_start = re_start
@@ -142,10 +157,10 @@ class Rblock:
 
         # Text lines that we have matched as start/end text for this block:
 
-        self.start_hits = []
-        self.end_hits = []
+        self.start_hits: list[str] = []
+        self.end_hits: list[str] = []
 
-    def starts_on(self, rline):
+    def starts_on(self, rline: str) -> re.Match[str] | None:
         """
         Called on a report text line found while searching for a possible new
         block start.
@@ -156,7 +171,7 @@ class Rblock:
             self.start_hits.append(rline)
         return p
 
-    def ends_on(self, rline):
+    def ends_on(self, rline: str) -> re.Match[str] | None:
         """
         Called on a report text line found while searching for a possible end
         of the current block. Return the match operation result.
@@ -167,7 +182,7 @@ class Rblock:
             self.end_hits.append(rline)
         return p
 
-    def check(self):
+    def check(self) -> None:
         """
         Once we're done reading the entire report, sanity check what we found
         for this block. Raise a test failure.
@@ -182,7 +197,7 @@ class Rblock:
             % (self.name, n_starts, n_ends),
         )
 
-    def value(self, count):
+    def value(self, count: str) -> int:
         return 0 if count == "No" else int(count)
 
 
@@ -195,7 +210,7 @@ class Rblock:
 # characters.
 
 
-def re_block_number(pre, ndigits):
+def re_block_number(pre: str, ndigits: int) -> str:
     return pre + r"[0-9]\." * ndigits + " "
 
 
@@ -205,7 +220,7 @@ class Rchapter(Rblock):
     #
     # == 2. COVERAGE VIOLATIONS ==
 
-    def __init__(self, re_start, re_end):
+    def __init__(self, re_start: str, re_end: str):
         Rblock.__init__(
             self,
             name=re_start,
@@ -220,7 +235,7 @@ class Rsection(Rblock):
     #
     # 2.1. STATEMENT COVERAGE VIOLATIONS
 
-    def __init__(self, re_start, re_end):
+    def __init__(self, re_start: str, re_end: str):
         Rblock.__init__(
             self,
             name=re_start,
@@ -239,16 +254,16 @@ class Rsection(Rblock):
 
 
 class Nblock(Rblock):
-    def __init__(self, re_notes):
+    def __init__(self, re_notes: ReNotes | None):
         self.re_notes = re_notes
 
         # Remember the set of notes that we found in this block, so
         # we can compare the count with what the end of block summary
         # line advertises.
 
-        self.enotes = []
+        self.enotes: list[Enote] = []
 
-    def try_parse_enote(self, rline):
+    def try_parse_enote(self, rline: str) -> Enote | None:
         dline = Rdiagline_from(rline)
 
         # If no match at all, punt.
@@ -271,7 +286,7 @@ class Nblock(Rblock):
         # text. Removal is useful to facilitate matching of other parts, hence
         # attempted first.
 
-        def __stag_replacement_for(m):
+        def __stag_replacement_for(m: re.Match[str]) -> str:
             # Side effect on caller here
             enote.stag = Stag_from(m.group(1), True)
             return ""
@@ -288,27 +303,27 @@ class Nblock(Rblock):
 
         return self.check_enote(this_diag, enote)
 
-    def report_unexpected_enote(self, rline):
+    def report_unexpected_enote(self, rline: str) -> None:
         thistest.failed(
             "(%s report section) '%s' does not"
             " correspond to any expected violation note"
             % (self.name, rline.rstrip("\n"))
         )
 
-    def check_enote(self, rline, enote):
+    def check_enote(self, rline: str, enote: Enote) -> Enote | None:
         if enote.kind is None:
             self.report_unexpected_enote(rline)
             return None
         else:
             return enote
 
-    def try_parse(self, rline):
+    def try_parse(self, rline: str) -> Enote | None:
         enote = self.try_parse_enote(rline)
         if enote:
             self.enotes.append(enote)
         return enote
 
-    def validate_ecount(self, count):
+    def validate_ecount(self, count: int) -> None:
         self.ecount = len(self.enotes)
         thistest.fail_if(
             count != self.ecount,
@@ -316,13 +331,14 @@ class Nblock(Rblock):
             % (self.name, self.ecount, count),
         )
 
-    def ends_on(self, rline):
+    @override
+    def ends_on(self, rline: str) -> re.Match[str] | None:
         p = Rblock.ends_on(self, rline)
         if p:
             self.validate_ecount(count=self.value(p.group(1)))
         return p
 
-    def re_summary(self):
+    def re_summary(self) -> str:
         """
         Regexp matching the string that we expect to find in the analysis
         summary line for this block, with a group holding the note counter.
@@ -330,7 +346,8 @@ class Nblock(Rblock):
 
         return self.re_end
 
-    def nkind_for(self, rline):
+    def nkind_for(self, rline: str) -> int | None:
+        assert self.re_notes is not None
         for key in self.re_notes:
             if re.match(key, rline):
                 return self.re_notes[key]
@@ -338,13 +355,13 @@ class Nblock(Rblock):
 
 
 class Nsection(Nblock, Rsection):
-    def __init__(self, re_start, re_end, re_notes):
+    def __init__(self, re_start: str, re_end: str, re_notes: ReNotes | None):
         Rsection.__init__(self, re_start=re_start, re_end=re_end)
         Nblock.__init__(self, re_notes=re_notes)
 
 
 class Nchapter(Nblock, Rchapter):
-    def __init__(self, re_start, re_end, re_notes):
+    def __init__(self, re_start: str, re_end: str, re_notes: ReNotes):
         Rchapter.__init__(self, re_start=re_start, re_end=re_end)
         Nblock.__init__(self, re_notes=re_notes)
 
@@ -358,7 +375,7 @@ class Nchapter(Nblock, Rchapter):
 class VIOsection(Nsection):
     """Coverage Violations section."""
 
-    def __init__(self, re_start, re_notes):
+    def __init__(self, re_start: str, re_notes: ReNotes):
         Nsection.__init__(
             self,
             re_start=re_start,
@@ -366,14 +383,15 @@ class VIOsection(Nsection):
             re_notes=re_notes,
         )
 
-    def re_summary(self):
+    @override
+    def re_summary(self) -> str:
         return r"(No|\d+).* %s violation[s]*\.$" % self.name.split()[0]
 
 
 class OERsection(Nsection):
     """Other errors section."""
 
-    def __init__(self, re_start):
+    def __init__(self, re_start: str):
         Nsection.__init__(
             self,
             re_start=re_start,
@@ -381,7 +399,8 @@ class OERsection(Nsection):
             re_notes=None,
         )
 
-    def nkind_for(self, rline):
+    @override
+    def nkind_for(self, rline: str) -> None:
         # Messages in this section are always unexpected and should trigger
         # test failure. Just tell we don't know how to bind them on any sort
         # of expected note kind, and let the generic engine do the rest.
@@ -392,7 +411,9 @@ class OERsection(Nsection):
 class XREchapter(Nchapter):
     """Exemptions Regions chapter."""
 
-    def __init__(self, re_start, re_notes, exempted_notes):
+    def __init__(
+        self, re_start: str, re_notes: ReNotes, exempted_notes: ReNotes
+    ):
         # The list of notes acceptable for an exempted violation
         self.exempted_notes = exempted_notes
 
@@ -408,7 +429,9 @@ class XREchapter(Nchapter):
             self, re_start=re_start, re_end=re_end, re_notes=re_notes
         )
 
-    def __check_summary_count(self, sec, sum_count, sec_count):
+    def __check_summary_count(
+        self, sec: Rblock, sum_count: int, sec_count: int
+    ) -> None:
         thistest.fail_if(
             sum_count != sec_count,
             "summary count %d != section count %d for %s"
@@ -419,7 +442,7 @@ class XREchapter(Nchapter):
             "summary found for section starts != 1 (%s)" % sec.name,
         )
 
-    def check_exempted_summary(self, sec, p):
+    def check_exempted_summary(self, sec: Rblock, p: re.Match[str]) -> None:
         # The emitted notes of exempted violations are logged in self.enotes
         # to be checked for discharging expected notes later on. However
         # we still need to check the number of notes belonging to the exempted
@@ -433,14 +456,17 @@ class XREchapter(Nchapter):
             sec, self.value(p.group(2)), self.ecount_exempted
         )
 
-    def __validate(self, actual_count, count, element_counted):
+    def __validate(
+        self, actual_count: int, count: int, element_counted: str
+    ) -> None:
         thistest.fail_if(
             actual_count != count,
             "(%s report section) recognized %d notes != summary (%d)"
             "for (%s)\n" % (self.name, actual_count, count, element_counted),
         )
 
-    def ends_on(self, rline):
+    @override
+    def ends_on(self, rline: str) -> re.Match[str] | None:
         p = Rblock.ends_on(self, rline)
         if p:
             # Validate the number of exempted regions
@@ -459,7 +485,8 @@ class XREchapter(Nchapter):
 
         return p
 
-    def check_enote(self, rline, enote):
+    @override
+    def check_enote(self, rline: str, enote: Enote) -> Enote | None:
         if enote.kind is None:
             self.report_unexpected_enote(rline)
             return None
@@ -472,10 +499,10 @@ class XREchapter(Nchapter):
         return enote
 
 
-class DCRchapter(Nsection):
+class DCRchapter(Nchapter):
     """Disabled Coverage Regions section."""
 
-    def __init__(self, re_start):
+    def __init__(self, re_start: str):
         Nchapter.__init__(
             self,
             re_start=re_start,
@@ -483,14 +510,15 @@ class DCRchapter(Nsection):
             re_notes={".*": dBlock},
         )
 
-    def re_summary(self):
+    @override
+    def re_summary(self) -> str:
         return r"(\d+) region[s]* with disabled coverage\.$"
 
 
 class NCIchapter(Nchapter):
     """Non-coverable Items chapter."""
 
-    def __init__(self, re_start, re_notes):
+    def __init__(self, re_start: str, re_notes: ReNotes):
         Nchapter.__init__(
             self,
             re_start=re_start,
@@ -498,14 +526,15 @@ class NCIchapter(Nchapter):
             re_notes=re_notes,
         )
 
-    def re_summary(self):
+    @override
+    def re_summary(self) -> str:
         return r"(No|\d+) coverage exclusion[s]*\.$"
 
 
 class UCIchapter(Nchapter):
     """Undetermined Coverage Items chapter."""
 
-    def __init__(self, re_start, re_notes):
+    def __init__(self, re_start: str, re_notes: ReNotes):
         Nchapter.__init__(
             self,
             re_start=re_start,
@@ -513,28 +542,29 @@ class UCIchapter(Nchapter):
             re_notes=re_notes,
         )
 
-    def re_summary(self):
+    @override
+    def re_summary(self) -> str:
         return r"(\d+) undetermined coverage item[s]*\.$"
 
 
 class SMRchapter(Rchapter):
     """Analysis Summary chapter."""
 
-    def __init__(self, re_start, skeys):
+    def __init__(self, re_start: str, skeys: dict[Nblock, str]):
         Rchapter.__init__(
             self, re_start=re_start, re_end=".. END OF REPORT ..$"
         )
         self.skeys = skeys
         self.checked = dict.fromkeys(skeys, False)
 
-    def try_match(self, sec, rline):
+    def try_match(self, sec: Nblock, rline: str) -> None:
         p = re.match(self.skeys[sec], rline)
         if p:
             # If the check is done on the exempted regions chapter then the
             # summary verification has to be done on the number of regions and
             # the number of violations
 
-            if sec.name == "EXEMPTED REGIONS":
+            if isinstance(sec, XREchapter):
                 sec.check_exempted_summary(sec, p)
             else:
                 sum_count = self.value(p.group(1))
@@ -550,13 +580,14 @@ class SMRchapter(Rchapter):
                 )
             self.checked[sec] = True
 
-    def try_parse(self, rline):
+    def try_parse(self, rline: str) -> None:
         for sec in self.skeys:
             if not self.checked[sec]:
                 self.try_match(sec, rline)
         return None
 
-    def check(self):
+    @override
+    def check(self) -> None:
         Rchapter.check(self)
 
         for sec in self.skeys:
@@ -582,13 +613,14 @@ class SMRchapter(Rchapter):
 #          VIOsection     XMPchapter  SMRchapter
 #          OERsection     NCIchapter
 #                         UCIchapter
+#                         DCRchapter
 #
 # We now add grab bags specializations aimed at catching
 # unexpected blocks:
 
 
 class Ublock(Rblock):
-    def check(self):
+    def check(self) -> None:
         thistest.fail_if(
             len(self.start_hits) > 0,
             "Unexpected headers caught by %s:\n%s"
@@ -597,12 +629,12 @@ class Ublock(Rblock):
 
 
 class Uchapter(Ublock, Rchapter):
-    def __init__(self):
+    def __init__(self) -> None:
         Rchapter.__init__(self, re_start=".", re_end=".")
 
 
 class Usection(Ublock, Rsection):
-    def __init__(self):
+    def __init__(self) -> None:
         Rsection.__init__(self, re_start=".", re_end=".")
 
 
@@ -613,7 +645,7 @@ class Usection(Ublock, Rsection):
 
 
 class Tchapter(Rchapter):
-    def __init__(self, re_start):
+    def __init__(self, re_start: str):
         Rchapter.__init__(self, re_start=re_start, re_end=".")
 
 
@@ -622,13 +654,13 @@ class Tchapter(Rchapter):
 
 
 class RblockSet:
-    def __init__(self):
+    def __init__(self) -> None:
         # We need a list of all the blocks to drive the report parsing
         # process, and a list of all the note blocks to setup the analysis
         # summary checker:
 
-        self.noteblocks = []
-        self.allblocks = []
+        self.noteblocks: list[Nblock] = []
+        self.allblocks: list[Rblock] = []
 
         # Violation sections
 
@@ -714,8 +746,7 @@ class RblockSet:
 
         ni_notes = {
             "statement was not instrumented": sUndetCov,
-            "decision was not instrumented"
-            " for decision coverage": dUndetCov,
+            "decision was not instrumented for decision coverage": dUndetCov,
             "decision was not instrumented for MCDC": eUndetCov,
             "decision was not instrumented for UC_MCDC": eUndetCov,
             "function was not instrumented": fUndetCov,
@@ -795,13 +826,13 @@ class RblockSet:
         self.allblocks.append(Usection())
         self.allblocks.append(Uchapter())
 
-    def starts_with(self, rline):
+    def starts_with(self, rline: str) -> Rblock | None:
         for rs in self.allblocks:
             if rs.starts_on(rline):
                 return rs
         return None
 
-    def check(self):
+    def check(self) -> None:
         for rs in self.allblocks:
             rs.check()
 
@@ -809,25 +840,32 @@ class RblockSet:
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
 
-    def to_enotes(self, report):
+    def __init__(self, report: str):
+        # xcov --annotate=report produces a single report featuring a list of
+        # indications for slocs in all the units.
+
+        self.ernotes: dict[str, KnoteDict[Enote]] = {}
+        self.to_enotes(report)
+
+    def to_enotes(self, report: str) -> None:
         # We need to ignore everything not in the report sections
         # of interest, so until we know we're in ...
 
         self.rset = RblockSet()
-        self.rs = None
+        self.rs: Rblock | None = None
 
         self.report = report
         Tfile(filename=self.report, process=self.process_tline)
 
         self.rset.check()
 
-    def register(self, enote):
+    def register(self, enote: Enote) -> None:
         source = enote.source
         if source not in self.ernotes:
             self.ernotes[source] = KnoteDict(erNoteKinds)
         self.ernotes[source].register(enote)
 
-    def process_tline(self, tline):
+    def process_tline(self, tline: Tline) -> Enote | None:
         rline = tline.text
 
         # Check if we are getting in a section of interest. If so, register
@@ -848,6 +886,7 @@ class RnotesExpander:
         if self.rs is None:
             return None
 
+        assert isinstance(self.rs, (Nblock, SMRchapter))
         enote = self.rs.try_parse(rline)
 
         # Some sections produce enotes, some don't (e.g. analysis summary).
@@ -858,10 +897,3 @@ class RnotesExpander:
             self.register(enote)
 
         return enote
-
-    def __init__(self, report):
-        # xcov --annotate=report produces a single report featuring a list of
-        # indications for slocs in all the units.
-
-        self.ernotes = {}
-        self.to_enotes(report)
