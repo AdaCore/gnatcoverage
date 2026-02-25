@@ -1,4 +1,0 @@
-project Math is
-   for Source_Dirs use ("src-math");
-   for Object_Dir use "obj-math";
-end Math;

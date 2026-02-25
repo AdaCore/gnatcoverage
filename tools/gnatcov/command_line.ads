@@ -133,6 +133,7 @@ package Command_Line is
       Opt_Dump_Filename_Tag,
       Opt_Ada,
       Opt_Dump_Units_To,
+      Opt_Dump_Debug,
       Opt_Timezone,
       Opt_Prefix,
       Opt_RTS_Profile,
@@ -1196,6 +1197,17 @@ package Command_Line is
            Commands     => (Cmd_Coverage => True, others => False),
            At_Most_Once => True,
            Internal     => False),
+
+      Opt_Dump_Debug             =>
+        Create
+          (Long_Name    => "--dump-debug",
+           Pattern      => "FILE",
+           Help         =>
+             "Write debug information about instrumented files in JSON format"
+             & " in the given file.",
+           Commands     => (Cmd_Instrument => True, others => False),
+           At_Most_Once => True,
+           Internal     => True),
 
       Opt_Timezone               =>
         Create

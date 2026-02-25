@@ -204,7 +204,7 @@ class Test(object):
 
     # Test status management
 
-    def log(self, text, new_line=True):
+    def log(self, text: str, new_line: bool = True):
         """Calls self.report.log."""
         self.report.log(text, new_line)
 
@@ -222,19 +222,18 @@ class Test(object):
         self.report.enable_diffs()
         self.n_failed += 1
 
-    def fail_if(self, expr, comment="assertion failed"):
+    def fail_if(self, expr: bool, comment: str = "assertion failed"):
         """Register a check failure when EXPR is true."""
         if expr:
             self.failed(comment)
 
-    def fail_if_not_equal(self, what, expected, actual):
+    def fail_if_not_equal(self, what: str, expected: str, actual: str):
         """Register a check failure when EXPECTED and ACTUAL are not equal."""
         self.fail_if(
             expected != actual,
-            "Unexpected {}. Expected:"
-            "\n{}"
-            "\nBut got:"
-            "\n{}".format(what, indent(str(expected)), indent(str(actual))),
+            "Unexpected {}. Expected:\n{}\nBut got:\n{}".format(
+                what, indent(str(expected)), indent(str(actual))
+            ),
         )
 
     def _fail_if_regex(self, what, regexp, actual, match_is_fail=False):
@@ -245,11 +244,7 @@ class Test(object):
         matching = bool(regexp.match(actual))
         self.fail_if(
             matching == match_is_fail,
-            "Error {}."
-            "\n{}:"
-            "\n{}"
-            "\nBut got:"
-            "\n{}".format(
+            "Error {}.\n{}:\n{}\nBut got:\n{}".format(
                 what,
                 "Unexpected" if match_is_fail else "Expected",
                 indent(regexp.pattern),
@@ -376,11 +371,11 @@ class Test(object):
 
     def fail_if_diff(
         self,
-        baseline_file,
-        actual_file,
-        failure_message="unexpected output",
+        baseline_file: str,
+        actual_file: str,
+        failure_message: str = "unexpected output",
         output_refiners=None,
-        ignore_white_chars=True,
+        ignore_white_chars: bool = True,
     ):
         """
         Wrapper around fail_if_diff_internal, taking an actual_file parameter
@@ -441,7 +436,7 @@ class Test(object):
         parser.add_argument(
             "--report-file",
             metavar="FILE",
-            help="The filename where to store the test report" " [required]",
+            help="The filename where to store the test report [required]",
         )
         parser.add_argument(
             "--qualif-level",

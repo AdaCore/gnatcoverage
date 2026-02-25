@@ -3,29 +3,30 @@ Test that instrumented source coverage works as expected on a setup of library
 projects and one program project.
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-
-
-main_gpr = os.path.abspath("main.gpr")
-main_obj_dir = os.path.abspath("obj-main")
+from SUITE.tutils import gprfor
 
 tmp = Wdir("tmp_")
 
+vectors_prj = gprfor(prjid="vectors", srcdirs=["../src-vectors"], mains=[])
+math_prj = gprfor(prjid="math", srcdirs=["../src-math"], mains=[])
+main_prj = gprfor(
+    prjid="main",
+    deps=(vectors_prj, math_prj),
+    srcdirs=["../src-main"],
+    mains=["main.adb"],
+)
+
 build_run_and_coverage(
     gprsw=GPRswitches(
-        root_project=main_gpr, projects=["main", "math", "vectors"]
+        root_project=main_prj, projects=[main_prj, math_prj, vectors_prj]
     ),
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
-    gpr_obj_dir=main_obj_dir,
-    gpr_exe_dir=main_obj_dir,
     trace_mode="src",
 )
 check_xcov_reports(
