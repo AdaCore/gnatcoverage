@@ -10,7 +10,13 @@ import json
 
 from SCOV.minicheck import xcov_instrument
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of, exists, AbsoluteToBasenameRefiner
+from SUITE.cutils import (
+    AbsoluteToBasenameRefiner,
+    Base64TraceRefiner,
+    Wdir,
+    contents_of,
+    exists,
+)
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, run_cov_program
 
@@ -92,6 +98,10 @@ thistest.fail_if_diff(
     "actual.out",
     "List of units differs from baseline",
     output_refiners=[
+        # harness dumps a trace at the end of its execution: targets that have
+        # no filesystem support will use the base64-stdout channel, and so we
+        # need to remove the trace before baseline comparison.
+        Base64TraceRefiner(),
         # For C files, get rid of the absolute path
         LineByLine(AbsoluteToBasenameRefiner()),
         # Ignore platform specificities

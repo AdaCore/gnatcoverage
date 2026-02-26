@@ -350,6 +350,27 @@ class AbsoluteToBasenameRefiner(OutputRefiner[str]):
         return output
 
 
+@final
+class Base64TraceRefiner(OutputRefiner[str]):
+    """
+    Remove base64 traces from the output.
+    """
+
+    @override
+    def refine(self, output: str) -> str:
+        in_trace = False
+        result = []
+        for line in output.splitlines():
+            if in_trace:
+                if line == "== End ==":
+                    in_trace = False
+            elif line == "== GNATcoverage source trace file ==":
+                in_trace = True
+            else:
+                result.append(line)
+        return "\n".join(result)
+
+
 class Identifier:
     def __init__(self, name):
         self.name = name
