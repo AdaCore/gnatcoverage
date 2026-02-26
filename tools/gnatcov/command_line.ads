@@ -104,7 +104,8 @@ package Command_Line is
       Opt_Force,
       Opt_Annotate_After,
       Opt_No_Stdlib,
-      Opt_Split_Extracted_Traces);
+      Opt_Split_Extracted_Traces,
+      Opt_Suppress_Limitations);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -764,7 +765,8 @@ package Command_Line is
         Create
           (Long_Name => "--all-warnings",
            Help      =>
-             "Print low warnings in addition to warnings and errors.",
+             "Print low warnings in addition to instrumenter limitations,"
+             & " warnings and errors. This overrides --suppress-limitations.",
            Internal  => True),
 
       Opt_Save_Temps                   =>
@@ -849,6 +851,17 @@ package Command_Line is
              & " of the first trace is the provided name, and the following"
              & " are derived from it with an appended index.",
            Commands  => (Cmd_Extract_Base64_Trace => True, others => False),
+           Internal  => False),
+      Opt_Suppress_Limitations         =>
+        Create
+          (Long_Name => "--suppress-limitations",
+           Help      =>
+             "Do not emit warning messages for instrumenter limitations. The"
+             & " coverage obligations for source constructs which cannot be"
+             & " instrumented will still be emitted and reported as such in"
+             & " the coverage reports unless explicitly exempted.",
+           Commands  =>
+             (Cmd_Instrument | Cmd_Coverage => True, others => False),
            Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=

@@ -50,6 +50,7 @@ package Diagnostics is
    type Report_Kind is
      (Notice,
       Low_Warning,
+      Limitation,
       Warning,
       Error,
       Info,
@@ -109,6 +110,7 @@ package Diagnostics is
    --  kind are omitted unless global flag Verbose is set. A prefix is
    --  prepended depending on message kind:
    --     --- notice
+   --     ??? Limitation
    --     *** warning
    --     !!! error
    --     .C. coverage info

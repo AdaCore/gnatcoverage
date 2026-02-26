@@ -12,7 +12,7 @@ from SUITE.cutils import contents_of
 
 
 warning = (
-    "*** pkg.adb:21:36: warning: gnatcov limitation: cannot instrument calls"
+    "??? pkg.adb:21:36: gnatcov limitation: cannot instrument calls"
     " before Ada 2012"
 )
 TestCase(

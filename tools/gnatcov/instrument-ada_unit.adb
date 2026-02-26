@@ -2063,10 +2063,10 @@ package body Instrument.Ada_Unit is
          Report
            (UIC,
             E,
-            "gnatcov limitation: cannot find local declarative part for MC/DC;"
-            & " consider switching to Ada 2022: declare expressions allow to"
-            & " lift this limitation",
-            Kind => Diagnostics.Error);
+            "cannot find local declarative part for MC/DC; consider switching"
+            & " to Ada 2022: declare expressions allow to lift this"
+            & " limitation",
+            Kind => Diagnostics.Limitation);
          return False;
       end if;
 
@@ -4472,9 +4472,9 @@ package body Instrument.Ada_Unit is
                Report
                  (UIC,
                   N,
-                  "gnatcov limitation: "
-                  & "cannot instrument generic expression functions."
-                  & " Consider turning it into a regular function body.");
+                  "cannot instrument generic expression functions."
+                  & " Consider turning it into a regular function body.",
+                  Diagnostics.Limitation);
 
             else
                --  As Traverse_Degenerate_Subprogram deals only with expression
@@ -4485,10 +4485,10 @@ package body Instrument.Ada_Unit is
                Report
                  (UIC,
                   N,
-                  "gnatcov limitation:"
-                  & " cannot instrument generic null procedures."
+                  "cannot instrument generic null procedures."
                   & " Consider turning it into a regular procedure"
-                  & " body.");
+                  & " body.",
+                  Diagnostics.Limitation);
             end if;
          end if;
 
@@ -4529,12 +4529,11 @@ package body Instrument.Ada_Unit is
                Report
                  (UIC,
                   N,
-                  "gnatcov limitation:"
-                  & " cannot instrument an expression function which is"
+                  "cannot instrument an expression function which is"
                   & " a primitive of its return type, when this type is"
                   & " a tagged type. Consider turning it into a regular"
                   & " function body.",
-                  Warning);
+                  Diagnostics.Limitation);
             elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
               and then not Common_Nodes.Ctrl_Type.Is_Null
             then
@@ -4542,8 +4541,7 @@ package body Instrument.Ada_Unit is
                Report
                  (UIC,
                   N,
-                  "gnatcov limitation:"
-                  & " instrumenting a self referencing (i.e. recursive)"
+                  " instrumenting a self referencing (i.e. recursive)"
                   & " expression function which is a primitive of some"
                   & " tagged type will move the freezing point of that"
                   & " type if the expression function is not the last"
@@ -4551,7 +4549,7 @@ package body Instrument.Ada_Unit is
                   & " expression function into a regular function body"
                   & " or moving it to the end of the declarative"
                   & " region.",
-                  Warning);
+                  Diagnostics.Limitation);
             end if;
          end if;
 
@@ -5634,19 +5632,15 @@ package body Instrument.Ada_Unit is
                                    when Name_Precondition   => "Precondition",
                                    when Name_Postcondition  => "Postcondition",
                                    when others              => "");
-                              Location    : constant String :=
-                                Ada.Directories.Simple_Name
-                                  (N.Unit.Get_Filename)
-                                & ":"
-                                & Image (Sloc (N));
                            begin
-                              Warn
-                                ("gnatcov limitation: pragma "
+                              Report
+                                (N,
+                                 "pragma "
                                  & Pragma_Name
-                                 & " ignored during instrumentation at "
-                                 & Location
-                                 & ". Consider expressing it as"
-                                 & " an aspect instead.");
+                                 & " ignored during instrumentation."
+                                 & " Consider expressing it as an aspect"
+                                 & " instead.",
+                                 Diagnostics.Limitation);
                            end;
                         end if;
 
@@ -6630,19 +6624,18 @@ package body Instrument.Ada_Unit is
                      Report
                        (UIC,
                         Full_Call_Node,
-                        "gnatcov limitation: cannot instrument calls before"
-                        & " Ada 2012",
-                        Warning);
+                        "cannot instrument calls before Ada 2012",
+                        Diagnostics.Limitation);
 
                   elsif Needs_Qualified_Expr then
                      Report
                        (UIC,
                         Full_Call_Node,
-                        "gnatcov limitation: cannot instrument calls "
+                        "cannot instrument calls "
                         & (if Needs_Qualified_Expr
                            then "within dotted names"
                            else "to user-defined operators"),
-                        Warning);
+                        Diagnostics.Limitation);
 
                   else
                      Fill_Expression_Insertion_Info

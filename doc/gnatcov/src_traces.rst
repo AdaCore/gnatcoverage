@@ -612,6 +612,12 @@ the coverage report.
 |gcvins| limitations
 --------------------
 
+This section details limitations of the source based instrumentation tool.
+These are split up by language and/or coverage level.
+
+Ada limitations
+^^^^^^^^^^^^^^^
+
 There are situations and code patterns not handled correctly by |gcvins|.
 Below are listed the limitations associated with general Ada sources.
 Coverage of SPARK sources require additional considerations, detailed in
@@ -625,7 +631,7 @@ retrieve the langage version for a specific source file which contains a
 argument.
 
 Unsupported source constructs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""
 
 There are a few language constructs that |gcvins| doesn't support.
 The tool emits a warning when it encounters such cases and the corresponding
@@ -658,16 +664,8 @@ containing a single return statement with the original expression.
 Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
 and/or perform a manual coverage analysis for these special cases.
 
-The MC/DC instrumentation of decisions with many conditions may require more
-memory than available (during instrumentation and/or at run-time) to enumerate
-the possible paths through the decision. To avoid this, |gcv| will not
-instrument such decisions for MC/DC, emitting a warning in the process, and the
-MC/DC coverage for each decision will be reported as ``Undetermined_Coverage``
-state. Should the default limit not be satisfactory, it can be tuned with the
-option :cmd-option:`--path-count-limit`.
-
-Other source-traces limitations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Other Ada source-traces limitations
+"""""""""""""""""""""""""""""""""""
 
 In Ada, variable or type declarations at the package level can yield elaboration
 code. Such code constructs are thus considered to have corresponding coverage
@@ -694,16 +692,23 @@ This limitation happens on the decision coverage level, which makes use of
 if-expressions to instrument ``elsif`` decisions when the language version is
 2012 or above.
 
-Toolchain-specific limitations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Ada toolchain-specific limitations
+""""""""""""""""""""""""""""""""""
 
 With GNAT versions from 7.1 to 7.3, compiling with optimization will result in
 coverage violations on all statement obligations associated with expression
 functions. Explicitly disabling optimization (with ``-O0`` for instance) will
 resolve this issue.
 
+.. _c-cpp-limitations:
+
 C/C++ limitations
 ^^^^^^^^^^^^^^^^^
+
+The instrumentation process relies on function calls that have side effects.
+These functions are thus not ``constexpr`` and cannot be inserted in any such
+context. As such, |gcvins| will not instrument functions or constructors
+declared as ``constexpr``, and they will not generate any coverage obligations.
 
 The instrumentation process yields preprocessed versions of the sources. Thus,
 it is required to remove any :cmd-option:`-include` switch that is passed to
@@ -716,6 +721,17 @@ when preprocessing the sources. If this is not possible (e.g. due to illegal
 concatenation of a comment with another token), the tool will emit a warning
 and ignore any in-source annotation for the mentioned file, as well as any
 other transitively included file.
+
+Modified condition decision coverage limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The MC/DC instrumentation of decisions with many conditions may require more
+memory than available (during instrumentation and/or at run-time) to enumerate
+the possible paths through the decision. To avoid this, |gcv| will not
+instrument such decisions for MC/DC, emitting a warning in the process, and the
+MC/DC coverage for each decision will be reported as ``Undetermined_Coverage``
+state. Should the default limit not be satisfactory, it can be tuned with the
+option :cmd-option:`--path-count-limit`.
 
 Function and call coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
