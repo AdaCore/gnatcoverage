@@ -12,7 +12,7 @@ from SCOV.minicheck import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of, exists, AbsoluteToBasenameRefiner
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import cmdrun, gprbuild, gprfor
+from SUITE.tutils import gprbuild, gprfor, run_cov_program
 
 tmp = Wdir("tmp_")
 
@@ -23,36 +23,35 @@ PRJ_FILE = gprfor(
 )
 HARNESS_FILE = gprfor(
     prjid="harness",
-    mains=["main-harness.c"],
+    mains=["harness.adb"],
     srcdirs=["../harness-src", "."],
-    deps=["proj"],
+    deps=["proj", "gnatcov_rts"],
 )
 
 
 def generate_buffer_list(bufs: list[str]):
-    TEMPLATE = """
-    #include "gnatcov_rts_c-buffers.h"
+    items = []
+    decls = []
+    for buf in bufs:
+        new_id = f"G{len(items)}"
+        items.append(f"{new_id}'Access")
+        decls += [
+            f"{new_id} : aliased constant GNATcov_RTS_Coverage_Buffers_Group;",
+            f'pragma Import (C, {new_id}, "{buf}");',
+        ]
+    contents = f"""
+        with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
-    %BUFFER_SYMBOL_DECLS%
+        package Generated is
+            {"\n".join(decls)}
 
-    // generated_buffer_list.c
-    struct gnatcov_rts_coverage_buffers_group *BUFFERS[] = {
-    %BUFFER_SYMBOLS%
-    NULL
-    };
+            Buffers_Groups : constant Coverage_Buffers_Group_Array := (
+              {", ".join(items)}
+            );
+        end Generated;
     """
-
-    with open("generated.c", "w") as f:
-        symbols = "".join(f"&{buf},\n" for buf in bufs)
-        decls = "".join(
-            f"extern struct gnatcov_rts_coverage_buffers_group {buf};\n"
-            for buf in bufs
-        )
-        _ = f.write(
-            TEMPLATE.replace("%BUFFER_SYMBOLS%", symbols).replace(
-                "%BUFFER_SYMBOL_DECLS%", decls
-            )
-        )
+    with open("generated.ads", "w") as f:
+        f.write(contents)
 
 
 # Generate a dummy `generated.c` with an empty list
@@ -84,7 +83,7 @@ generate_buffer_list(buffer_symbol_list)
 p_build = gprbuild(project=HARNESS_FILE)
 
 # Run the program and check its output
-p_run = cmdrun(["./main-harness"], for_pgm=True, out="actual.out")
+p_run = run_cov_program("./harness", out="actual.out")
 
 
 # Compare the list of units with the ones expected from the baseline
