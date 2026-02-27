@@ -1,14 +1,21 @@
 """Helpers to test instrumentation-based source coverage."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 import os.path
+from pathlib import Path
 import re
 import shutil
+from typing import IO, TYPE_CHECKING
 
 from e3.fs import mkdir, sync_tree
+from e3.os.process import Run, STDOUT
 
 from SUITE.context import thistest
 from SUITE.control import env
 from SUITE.cutils import contents_of, ext, copy_to_dir
+from SUITE.gprutils import GPRswitches
 from SUITE.tutils import (
     RUNTIME_INFO,
     GNATCOV_INFO,
@@ -18,7 +25,11 @@ from SUITE.tutils import (
 )
 
 
-def default_dump_trigger(mains):
+if TYPE_CHECKING:
+    from e3.os.process import DEVNULL_VALUE, PIPE_VALUE, STDOUT_VALUE
+
+
+def default_dump_trigger(mains: Iterable[str]) -> str:
     """Return the default dump trigger to use in testcases."""
     if thistest.options.default_dump_trigger:
         return thistest.options.default_dump_trigger
@@ -40,7 +51,7 @@ def default_dump_trigger(mains):
         return "main-end"
 
 
-def default_dump_channel():
+def default_dump_channel() -> str:
     """Return the default dump channel to use in testcases."""
     if thistest.options.default_dump_channel:
         return thistest.options.default_dump_channel
@@ -51,49 +62,50 @@ def default_dump_channel():
 
 
 def xcov_instrument(
-    gprsw,
-    covlevel,
-    quiet=True,
+    gprsw: GPRswitches,
+    covlevel: str | None,
+    quiet: bool = True,
     extra_args: list[str] | None = None,
     dump_trigger: str | list[str] = "auto",
     dump_channel: str = "auto",
-    gpr_obj_dir=None,
-    runtime_project=None,
-    out=None,
-    err=None,
-    tolerate_messages=None,
-    register_failure=True,
-    auto_config_args=True,
-    auto_target_args=True,
-):
+    gpr_obj_dir: str | None = None,
+    runtime_project: str | None = None,
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = None,
+    err: (
+        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+    ) = STDOUT,
+    tolerate_messages: str | None = None,
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+    auto_target_args: bool = True,
+) -> Run:
     """
     Run "gnatcov instrument" on a project.
 
-    :param GPRswitches gprsw: Project file command line switches to honor.
-    :param None|str covlevel: Coverage level for the instrumentation
-        (--level argument). Not passed if None.
-    :param bool quiet: Whether to pass the "--quiet" flag.
-    :param list[str] | None extra_args: Extra arguments to append to the
-        command line.
-    :param str | list[str] dump_trigger: If None, do not pass the
-        --dump-trigger argument. If "auto", pass the result of
-        default_dump_trigger(). Otherwise, pass the given value. In case the
-        given value is a list, pass as many --dump-trigger options.
-    :param None|str dump_channel: If None, do not pass the --dump-channel
-        argument. If "auto", pass the result of default_dump_channel().
-        Otherwise, pass the given value.
-    :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
-        will create build artifacts. If left to None, assume they are produced
-        in the current directory.
-    :param None|str runtime_project: If None, use the default name for the
+    :param gprsw: Project file command line switches to honor.
+    :param covlevel: Coverage level for the instrumentation (--level argument).
+        Not passed if None.
+    :param quiet: Whether to pass the "--quiet" flag.
+    :param extra_args: Extra arguments to append to the command line.
+    :param dump_trigger: If None, do not pass the --dump-trigger argument. If
+        "auto", pass the result of default_dump_trigger(). Otherwise, pass the
+        given value. In case the given value is a list, pass as many
+        --dump-trigger options.
+    :param dump_channel: If None, do not pass the --dump-channel argument. If
+        "auto", pass the result of default_dump_channel().  Otherwise, pass the
+        given value.
+    :param gpr_obj_dir: Optional name of the directory where gprbuild will
+        create build artifacts. If left to None, assume they are produced in
+        the current directory.
+    :param runtime_project: If None, use the default name for the
         instrumentation runtime project. Otherwise, use the name given for this
         option.
-    :param None|str tolerate_messages: If not None, a re pattern of warning
-        or error messsages tolerated in the tool output. Messages not matching
-        this pattern will cause a test failure when register_failure is True.
-    :param bool register_failure: See SUITE.tutils.xcov.
-    :param bool auto_config_args: See SUITE.tutils.xcov.
-    :param bool auto_target_args: See SUITE.tutils.xcov.
+    :param tolerate_messages: If not None, a re pattern of warning or error
+        messsages tolerated in the tool output. Messages not matching this
+        pattern will cause a test failure when register_failure is True.
+    :param register_failure: See SUITE.tutils.xcov.
+    :param auto_config_args: See SUITE.tutils.xcov.
+    :param auto_target_args: See SUITE.tutils.xcov.
 
     See SUITE.tutils.xcov for the other supported options.
     """
@@ -115,7 +127,7 @@ def xcov_instrument(
     )
 
     # If found, split then remove whitespaces and double quotes
-    mains = []
+    mains: list[str] = []
     if m:
         mains = m.group("mains").split(",")
         mains = [main.strip(' "') for main in mains]
@@ -178,7 +190,7 @@ def xcov_instrument(
             for mre in ["object directory.*not found", re_tolerate_messages]
         )
 
-    out = out or "instrument.log"
+    out = "instrument.log" if out is None else out
     result = xcov(
         args,
         out=out,
@@ -193,17 +205,17 @@ def xcov_instrument(
 
 
 def xcov_convert_base64(
-    base64_file,
-    output_trace_file,
+    base64_file: str,
+    output_trace_file: str,
     split_extracted: bool = False,
-    out=None,
-    err=None,
-    register_failure=True,
-):
+    out: str | None = None,
+    err: str | None = None,
+    register_failure: bool = True,
+) -> None:
     """Extract a trace file out of a Base64 file.
 
-    :param str base64_file: Name of the file to read.
-    :param str output_trace_file: Name of the file to write.
+    :param base64_file: Name of the file to read.
+    :param output_trace_file: Name of the file to write.
 
     See SUITE.tutils.xcov for the other supported options.
     """
@@ -218,19 +230,23 @@ def xcov_convert_base64(
     )
 
 
-def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
+def add_dumper_lch_hook(
+    project: str,
+    obj_dir: str,
+    subdirs: str | None,
+    main_unit: str,
+) -> None:
     """
     Add a unit to instrumented sources to hold a last chance handler
     entry hook dumping the coverage buffers for the given main_unit.
 
-    :param str project: Instrumented project. This can be either the name of
-        the project file, or the name of the project.
-    :param str obj_dir: Path to the object directory of the instrumented
-        project.
-    :param None|str subdirs: Value of --subdirs passed to gnatcov and gprbuild.
-        None if this argument is not passed.
-    :param str main_unit: Name of the main unit for which the hook will call
-        the coverage buffers dump routine.
+    :param project: Instrumented project. This can be either the name of the
+        project file, or the name of the project.
+    :param obj_dir: Path to the object directory of the instrumented project.
+    :param Value of --subdirs passed to gnatcov and gprbuild.  None if this
+        argument is not passed.
+    :param main_unit: Name of the main unit for which the hook will call the
+        coverage buffers dump routine.
     """
     # Isolate the dependency to the libadalang module. This means that a user
     # testing natively (thus not needing the support for last chance handlers)
@@ -275,7 +291,7 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     auto_dump_unit = "GCVRT.DB_{}".format(auto_dump_suffix)
     handler_unit = "Last_Chance_Dumper"
 
-    def filename(prefix, ext):
+    def filename(prefix: str, ext: str) -> str:
         return os.path.join(
             obj_dir,
             "{}-gnatcov-instr".format(project),
@@ -326,7 +342,12 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     # with_handler clause.
     assert not unit.diagnostics
     assert isinstance(unit.root, lal.CompilationUnit)
+    first_token = unit.first_token
+    assert first_token
+    last_token = unit.last_token
+    assert last_token
     after_body_token = unit.lookup_token(unit.root.f_body.sloc_range.start)
+    assert after_body_token
     before_body_token = after_body_token.previous
 
     # build the new source
@@ -335,17 +356,17 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
             (
                 ""
                 if before_body_token is None
-                else lal.Token.text_range(unit.first_token, before_body_token)
+                else lal.Token.text_range(first_token, before_body_token)
             ),
             "with {};".format(handler_unit),
-            lal.Token.text_range(after_body_token, unit.last_token),
+            lal.Token.text_range(after_body_token, last_token),
         ]
     )
     with open(main_file, "w") as f:
         f.write(new_source)
 
 
-def available_ada_dump_triggers():
+def available_ada_dump_triggers() -> list[str]:
     """
     Return the list of dump triggers available for the current Ada runtime.
     """
@@ -362,7 +383,11 @@ def available_ada_dump_triggers():
         return ["main-end"]
 
 
-def maybe_relocate_binaries(object_dir, exe_dir, mains):
+def maybe_relocate_binaries(
+    object_dir: str,
+    exe_dir: str,
+    mains: Iterable[str],
+) -> None:
     """
     Relocate binaries produced in the object_dir to the exe_dir for the AAMP
     target.
@@ -382,13 +407,15 @@ def maybe_relocate_binaries(object_dir, exe_dir, mains):
             copy_to_dir(object_dir, exe_dir, main)
 
 
-def maybe_copy_runtime(test_dir):
+def maybe_copy_runtime(test_dir: str) -> None:
     """
     Copy the Ada instrumentation runtime in test_dir for the AAMP target.
     """
     if "aamp" in env.target.platform:
+        gnatcov_exe = shutil.which("gnatcov")
+        assert gnatcov_exe
         rts_path = os.path.join(
-            os.path.dirname(shutil.which("gnatcov")),
+            os.path.dirname(gnatcov_exe),
             "..",
             "share",
             "gnatcoverage",
