@@ -4,6 +4,7 @@ Testsuite control
 
 from __future__ import annotations
 
+import argparse
 from collections.abc import Callable
 import dataclasses
 import os.path
@@ -19,10 +20,10 @@ from SUITE.cutils import contents_of, no_ext, version
 env = Env()
 
 
-def xcov_pgm(auto_arch, for_target=True):
+def xcov_pgm(auto_arch: bool, for_target: bool = True) -> str:
     """Return the name of the "gnatcov" program to run.
 
-    :param bool auto_arch: If True, autodetect which "gnatcov" run depending on
+    :param auto_arch: If True, autodetect which "gnatcov" run depending on
         FOR_TARGET.
 
     :param for_target: If True, consider that we run "gnatcov" for the target
@@ -122,7 +123,7 @@ LANGINFO = {
 KNOWN_LANGUAGES = [li.name for li in LANGINFO.values() if li.scofile_for]
 
 
-def language_info(source_filename):
+def language_info(source_filename: str) -> LangInfo | None:
     """Return the LangInfo associated to a given source filename.
     The language is determined based on the filename extension.
 
@@ -143,7 +144,7 @@ class BUILDER:
     """
 
     @staticmethod
-    def SCOV_CARGS(options):
+    def SCOV_CARGS(options: argparse.Namespace) -> list[str]:
         """
         Compilation args needed by tests exercising source coverage, passed by
         default to build invocations issued through the gprbuild() API.
@@ -192,7 +193,10 @@ class BUILDER:
     SUITE_CGPR = "suite.cgpr"
 
     @staticmethod
-    def RUN_CONFIG_SEQUENCE(toplev_options, toolchain_discriminant):
+    def RUN_CONFIG_SEQUENCE(
+        toplev_options: argparse.Namespace,
+        toolchain_discriminant: str,
+    ) -> None:
         """Arrange to generate the SUITE_CONFIG configuration file"""
 
         # In principle, this would be something like
@@ -256,10 +260,10 @@ class BUILDER:
         rm(tempgpr.name)
 
 
-class RuntimeInfo(object):
+class RuntimeInfo:
     """Gather runtime-specific information and behaviors."""
 
-    def __init__(self, runtime_name=None):
+    def __init__(self, runtime_name: str):
         self.runtime_name = runtime_name
 
         # Categorize the runtime we have. The selection of the instrumentation
@@ -303,7 +307,7 @@ class RuntimeInfo(object):
             raise AssertionError("Unknown runtime: {}".format(runtime_name))
 
     @property
-    def gnatcov_rts_project(self):
+    def gnatcov_rts_project(self) -> str:
         """Name of the gnatcov_rts project to use in instrumented projects."""
 
         # gnatcov_rts_full and gnatcov_rts were merged with the introduction
@@ -316,7 +320,7 @@ class RuntimeInfo(object):
         )
 
 
-def _runtime_info(runtime, target):
+def _runtime_info(runtime: str, target: str) -> RuntimeInfo:
     if target == "c":
         assert not runtime
         # CCG's runtime has no name, but it is for our purposes equivalent
@@ -325,7 +329,8 @@ def _runtime_info(runtime, target):
     return RuntimeInfo(runtime)
 
 
-def runtime_info():
+def runtime_info() -> RuntimeInfo:
+    assert env.main_options
     return _runtime_info(env.main_options.RTS, env.target.platform)
 
 
@@ -336,18 +341,23 @@ def runtime_info():
 class TargetInfo:
     """
     Gather target specific information and behaviors
-
-    exeext (str): Filename extension for programs.
-
-    partiallinks (bool): Whether the linker performs partial links.  Knowing
-    this is needed to make -gc-sections work properly.
-
-    to_platform_specific_symbol: Function that turns a platform-independent
-    symbol into a platform specific one, or None if they are the same.  This
-    enables us to use platform-independent symbol names in testcases.
     """
 
-    def __init__(self, exeext, partiallinks, to_platform_specific_symbol=None):
+    def __init__(
+        self,
+        exeext: str,
+        partiallinks: bool,
+        to_platform_specific_symbol: Callable[[str], str] | None = None,
+    ):
+        """
+        :param exeext: Filename extension for programs.
+        :param partiallinks: Whether the linker performs partial links.
+            Knowing this is needed to make -gc-sections work properly.
+        :param to_paltform_specific_symbol: Function that turns a
+            platform-independent symbol into a platform specific one, or None
+            if they are the same.  This enables us to use platform-independent
+            symbol names in testcases.
+        """
         self.exeext = exeext
         self.partiallinks = partiallinks
         self.to_platform_specific_symbol = to_platform_specific_symbol or (
@@ -376,7 +386,7 @@ TARGETINFO = {
 }
 
 
-def target_info(target=None):
+def target_info(target: str | None = None) -> TargetInfo:
     """
     The TargetInfo data for the provided `target` triplet. If `target` is None,
     use the testsuite target.
@@ -389,14 +399,16 @@ def target_info(target=None):
         if re.match(pattern=re_target, string=target):
             return TARGETINFO[re_target]
 
+    raise AssertionError("unreachable code")
+
 
 class GnatcovInfo:
-    def __init__(self):
+    def __init__(self) -> None:
         p = re.search(pattern=r"GNATcoverage (\d+)", string=version("gnatcov"))
         self._major = int(p.group(1)) if p else None
         self.has_setup = self.major_at_least(23)
 
-    def major_at_most(self, val):
+    def major_at_most(self, val: int) -> bool:
         """
         Returns whether the major version of gnatcov is less or equal than
         val. Consider that development versions of gnatcov have a greater
@@ -404,7 +416,7 @@ class GnatcovInfo:
         """
         return self._major is not None and self._major <= val
 
-    def major_at_least(self, val):
+    def major_at_least(self, val: int) -> bool:
         """
         Returns whether the major version of gnatcov is greater or equal than
         val. Consider that development versions of gnatcov have a greater
@@ -412,7 +424,7 @@ class GnatcovInfo:
         """
         return self._major is None or self._major >= val
 
-    def major(self):
+    def major(self) -> int | None:
         """
         Major of gnatcov, if defined, or None if gnatcov is a development
         version.
@@ -420,7 +432,7 @@ class GnatcovInfo:
         return self._major
 
 
-def gnatcov_info():
+def gnatcov_info() -> GnatcovInfo:
     return GnatcovInfo()
 
 
@@ -439,7 +451,7 @@ BOARD_INFO = {
 }
 
 
-def gnatemu_board_name(name):
+def gnatemu_board_name(name: str) -> str:
     """
     Return the gnatemu board name corresponding to the run-cross2 board name
     passed as argument. If name is unknown in the mapping, return it
@@ -457,7 +469,7 @@ BSP_MAP = {
 }
 
 
-def bsp_project(cpu):
+def bsp_project(cpu: str) -> str | None:
     """
     Return the name of the bsp project (without extension) for the given cpu
     """
@@ -465,10 +477,10 @@ def bsp_project(cpu):
 
 
 # Driver cache to avoid inspecting the configuration file multiple times
-driver_cache = {}
+driver_cache: dict[str, str | None] = {}
 
 
-def driver_for_lang(config, lang: str) -> str | None:
+def driver_for_lang(config: str, lang: str) -> str | None:
     """
     Inspect the contents of the gpr configuration file config to determine what
     the compiler driver for the given language is. lang is case sensitive. This
@@ -500,30 +512,33 @@ ALTRUN_HOOK_PAIRS = (
 ALTRUN_GPR = ("gprbuild",)
 
 
-def altrun_opt_for(p0, p1=None):
+def altrun_opt_for(p0: str, p1: str | None = None) -> str:
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
     return "%s_%s" % (p0, p1) if p1 else p0
 
 
-def altrun_attr_for(p0, p1=None):
+def altrun_attr_for(p0: str, p1: str | None = None) -> str:
     """Name of our internal controlling options attribute for the
     ALTRUN (P0, P1) pair."""
     return "%s_%s" % (p0, p1) if p1 else p0
 
 
-def cargs_opt_for(lang):
+def cargs_opt_for(lang: str | None) -> str:
     """Name of the command line option to pass for language LANG."""
     return "cargs" + (":%s" % lang if lang else "")
 
 
-def cargs_attr_for(lang):
+def cargs_attr_for(lang: str | None) -> str:
     """
     Name of our internal options attribute to hold cargs for language LANG.
     """
     return "cargs" + ("_%s" % lang if lang else "")
 
 
-def add_shared_options_to(parser, toplevel):
+def add_shared_options_to(
+    parser: argparse.ArgumentParser,
+    toplevel: bool,
+) -> None:
     """
     Shared command line options.
 
