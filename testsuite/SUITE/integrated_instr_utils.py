@@ -1,18 +1,26 @@
 # This modules exposes common utilty functions for integrated instrumentation
 # tests.
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+import abc
+from collections.abc import Iterable, Sequence
+import dataclasses
 import os
 from pathlib import Path
 
-import SUITE.control
+from e3.os.process import Run
 
+import SUITE.control
 from SUITE.context import get_c_bsp_info, ROOT_DIR
 from SUITE.cutils import contents_of, no_ext, text_to_file, to_list
 from SUITE.tutils import cmdrun, run_cov_program, thistest, xcov
 
 
-def find_files_with_exts(exts, root_dir=None):
+def find_files_with_exts(
+    exts: Iterable[str],
+    root_dir: str | None = None,
+) -> list[str]:
     """
     Recursively find source files with the given extensions, starting at
     root_dir. If root_dir is None, start at the current directory.
@@ -22,16 +30,18 @@ def find_files_with_exts(exts, root_dir=None):
     return [str(p) for p in root_path.rglob("*") if p.suffix in exts]
 
 
-def driver_for_lang(lang):
+def driver_for_lang(lang: str) -> str:
     """
     Refer to SUITE.control.driver_for_lang.
     """
-    return SUITE.control.driver_for_lang(
+    result = SUITE.control.driver_for_lang(
         os.path.join(ROOT_DIR, "suite.cgpr"), lang
     )
+    assert result
+    return result
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class Workflow:
     """
     Interface class for building workflows.
@@ -41,79 +51,73 @@ class Workflow:
     lang: str = "C"
 
     # Where to setup and run the workflow
-    cwd: None | str = None
+    cwd: str = "."
 
     # File containing the output of the build
     out_file = "build.out"
 
-    def __post_init__(self):
-        self.cwd = self.cwd or os.getcwd()
-        # Call the __post_init__ for the next class in the method resolution
-        # order. This is needed as we use multi-inheritance.
-        if hasattr(super(), "__post_init__"):
-            super().__post_init__()
+    def __post_init__(self) -> None:
+        self.cwd = os.path.abspath(self.cwd)
 
-    def build(self, env, register_failure=True):
+    @abc.abstractmethod
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
         pass
 
 
-@dataclass(kw_only=True)
-class LinkBits:
+@dataclasses.dataclass(kw_only=True)
+class LinkBits(Workflow):
     """
     Shared common code between all of the workflows linking an executable.
     """
 
     # Switches to pass when linking
-    linker_switches: None | list[str] = None
+    linker_switches: list[str] = dataclasses.field(default_factory=list)
 
     # Name for the executable
     exec_name: str = "main"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self.linker_switches = to_list(self.linker_switches)
         if thistest.env.is_cross:
-            self.linker_switches = (
-                self.linker_switches + get_c_bsp_info().linker_switches
-            )
+            bsp_info = get_c_bsp_info()
+            assert bsp_info
+            self.linker_switches += bsp_info.linker_switches
 
-        # See the comment in the Workflow.__post_init__ method
-        if hasattr(super(), "__post_init__"):
-            super().__post_init__()
-
-    def linker(self, lang):
+    def linker(self, lang: str) -> str:
         return os.path.basename(driver_for_lang(lang))
 
-    def get_executable(self):
+    def get_executable(self) -> str:
         return os.path.join(self.cwd, self.exec_name)
 
 
-@dataclass(kw_only=True)
-class CompileBits:
+@dataclasses.dataclass(kw_only=True)
+class CompileBits(Workflow):
     """
     Shared common code between all of the workflows compiling code.
     """
 
     # Switches to pass when compiling
-    compiler_switches: None | list[str] = None
+    compiler_switches: list[str] = dataclasses.field(default_factory=list)
 
-    def __post_init__(self):
-        self.compiler_switches = to_list(self.compiler_switches)
+    def __post_init__(self) -> None:
+        super().__post_init__()
         if thistest.env.is_cross:
-            self.compiler_switches = (
-                self.compiler_switches + get_c_bsp_info().compiler_switches
-            )
+            bsp_info = get_c_bsp_info()
+            assert bsp_info
+            self.compiler_switches += bsp_info.compiler_switches
 
-        # See the comment in the Workflow.__post_init__ method
-        if hasattr(super(), "__post_init__"):
-            super().__post_init__()
-
-    def compiler(self, lang):
+    def compiler(self, lang: str) -> str:
         return os.path.basename(driver_for_lang(lang))
 
 
-@dataclass(kw_only=True)
-class MakefileCommon(Workflow, CompileBits):
-    build_target: None | str = None
+@dataclasses.dataclass(kw_only=True)
+class MakefileCommon(CompileBits):
+    build_target: str = "None"
 
     # Template for the Makefile. Class deriving from the MakefileCommon class
     # must implement one.
@@ -122,7 +126,7 @@ class MakefileCommon(Workflow, CompileBits):
     # Target dependencies for the build target
     build_target_deps: list[str]
 
-    def template_params(self):
+    def template_params(self) -> dict[str, str]:
         return {
             "build_target": self.build_target,
             "build_target_deps": " ".join(self.build_target_deps),
@@ -131,7 +135,7 @@ class MakefileCommon(Workflow, CompileBits):
             "compiler_switches": " ".join(self.compiler_switches),
         }
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.build_target_deps = to_list(self.build_target_deps)
         self.out_file = "make.out"
@@ -143,7 +147,11 @@ class MakefileCommon(Workflow, CompileBits):
             filename=os.path.join(self.cwd, "Makefile"),
         )
 
-    def build(self, env, register_failure=True):
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
         return cmdrun(
             ["make", "-C", self.cwd, self.build_target],
             out=self.out_file,
@@ -152,7 +160,7 @@ class MakefileCommon(Workflow, CompileBits):
             register_failure=register_failure,
         )
 
-    def clean(self):
+    def clean(self) -> None:
         cmdrun(
             ["make", "-C", self.cwd, "clean"],
             out="make.out",
@@ -160,17 +168,17 @@ class MakefileCommon(Workflow, CompileBits):
         )
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class MakefileMain(MakefileCommon, LinkBits):
 
-    def template_params(self):
+    def template_params(self) -> dict[str, str]:
         return {
             **super().template_params(),
             "linker": self.linker(self.lang),
             "linker_switches": " ".join(self.linker_switches),
         }
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Initialize the template file prior to calling the super __post_init__
         # method that fills it.
         self.tmplt = "template.Makefile"
@@ -178,47 +186,53 @@ class MakefileMain(MakefileCommon, LinkBits):
         super().__post_init__()
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class MakefileSharedLib(MakefileCommon, LinkBits):
 
-    def template_params(self):
+    def template_params(self) -> dict[str, str]:
         return {
             **super().template_params(),
             "linker": self.linker(self.lang),
             "linker_switches": " ".join(self.linker_switches),
         }
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.tmplt = "template.Makefile_shared_lib"
         if thistest.env.target.os.name == "windows":
             shared_lib_ext = ".dll"
         else:
             shared_lib_ext = ".so"
-        self.build_target = self.build_target or "liblib" + shared_lib_ext
+        if self.build_target == "None":
+            self.build_target = "liblib" + shared_lib_ext
         super().__post_init__()
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class MakefileStaticLib(MakefileCommon):
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.tmplt = "template.Makefile_static_lib"
-        self.build_target = self.build_target or "liblib.a"
+        if self.build_target == "None":
+            self.build_target = "liblib.a"
         super().__post_init__()
 
 
-@dataclass(kw_only=True)
-class CompileSource(Workflow, CompileBits):
-    out: None | str = None
+@dataclasses.dataclass(kw_only=True)
+class CompileSource(CompileBits):
+    out: str = ""
     source: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         if not self.out:
             self.out = no_ext(os.path.basename(self.source)) + ".o"
         self.out_file = "compile_" + os.path.basename(self.source) + ".out"
 
-    def build(self, env, register_failure=True):
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
         return cmdrun(
             [self.compiler(self.lang), self.source, "-c", "-o", self.out]
             + self.compiler_switches,
@@ -229,15 +243,19 @@ class CompileSource(Workflow, CompileBits):
         )
 
 
-@dataclass(kw_only=True)
-class LinkMain(Workflow, LinkBits):
+@dataclasses.dataclass(kw_only=True)
+class LinkMain(LinkBits):
     objects: list[str]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.out_file = "link_" + self.exec_name + ".out"
 
-    def build(self, env, register_failure=True):
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
         return cmdrun(
             [self.linker(self.lang), "-o", self.exec_name]
             + self.objects
@@ -248,16 +266,20 @@ class LinkMain(Workflow, LinkBits):
         )
 
 
-@dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True)
 class RunCompiler(Workflow):
     switches: list[str]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.compiler = os.path.basename(driver_for_lang(self.lang))
         self.out_file = f"{self.compiler}.out"
 
-    def build(self, env, register_failure=True):
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
         return cmdrun(
             [self.compiler] + self.switches,
             for_pgm=False,
@@ -267,25 +289,22 @@ class RunCompiler(Workflow):
 
 
 def setup_integration(
-    files_of_interest=None,
-    covlevel="stmt",
-    output_dir=None,
-    extra_args=None,
-):
+    files_of_interest: Iterable[str] | None = None,
+    covlevel: str = "stmt",
+    output_dir: str | None = None,
+    extra_args: Iterable[str] | None = None,
+) -> dict[str, str]:
     """
     Run the gnatcov setup-integration command.
 
-    :param None|list[str] files_of_interest: files of interest for coverage
-        analysis. if None, defaults to all of the files with a C/C++
-        extension recursively found under the current directory.
-    :param str covlevel: coverage level passed to the setup-integration
-        command.
-    :param None|str output_dir: output directory for gnatcov artifacts, current
+    :param files_of_interest: Files of interest for coverage analysis. if None,
+        defaults to all of the files with a C/C++ extension recursively found
+        under the current directory.
+    :param covlevel: Coverage level passed to the setup-integration command.
+    :param output_dir: Output directory for gnatcov artifacts, current
         directory if None.
-    :param None|list[str] extra_args: arguments to forward to the
-        setup-integration command.
+    :param extra_args: Arguments to forward to the setup-integration command.
 
-    :rtype: dict[str]
     :return: Environment with the compiler wrapper on the PATH.
     """
 
@@ -319,7 +338,7 @@ def setup_integration(
         ]
         + [f"--compilers={comp}" for comp in compilers]
         + [f"--files={f}" for f in files_of_interest]
-        + to_list(extra_args)
+        + to_list(extra_args or [])
     )
     env = dict(os.environ)
     env["PATH"] = "{}{}{}".format(output_dir, os.path.pathsep, env["PATH"])
@@ -327,12 +346,12 @@ def setup_integration(
 
 
 def build_run_and_coverage(
-    wfs,
-    covlevel="stmt",
-    files_of_interest=None,
-    extra_setup_args=None,
-    register_failure=True,
-):
+    wfs: Sequence[Workflow],
+    covlevel: str = "stmt",
+    files_of_interest: Iterable[str] | None = None,
+    extra_setup_args: Iterable[str] | None = None,
+    register_failure: bool = True,
+) -> None:
     """
     Integrated instrumentation workflow, using the given workflows to build the
     instrumented main.
@@ -350,14 +369,14 @@ def build_run_and_coverage(
     Last, run the "gnatcov coverage" command, generating an xcov coverage
     report by default.
 
-    :param Workflow wf: Workflows to build the main.
-    :param str covlevel: Coverage level.
-    :param None|list[str] files_of_interest: List of files of interest. By
-        default, consider recursively all the files with the following
-        extension: .c, .h, .cpp, .hpp.
-    :param None|list[str] extra setup_args: List of arguments to pass to the
-        setup-integration command.
-    :param bool register_failure: Exit on program failure.
+    :param wf: Workflows to build the main.
+    :param covlevel: Coverage level.
+    :param files_of_interest: List of files of interest. By default, consider
+        recursively all the files with the following extension: .c, .h, .cpp,
+        .hpp.
+    :param extra setup_args: List of arguments to pass to the setup-integration
+        command.
+    :param register_failure: Exit on program failure.
     """
 
     output_dir = os.getcwd()
@@ -367,7 +386,7 @@ def build_run_and_coverage(
         files_of_interest=files_of_interest,
         covlevel=covlevel,
         output_dir=output_dir,
-        extra_args=extra_setup_args,
+        extra_args=extra_setup_args or [],
     )
 
     # Run the build processes with the modified environment
@@ -380,8 +399,10 @@ def build_run_and_coverage(
 
     # Run the executable
     run_log = "run.log"
+    last_wf = wfs[-1]
+    assert isinstance(last_wf, LinkBits)
     p = run_cov_program(
-        wfs[-1].get_executable(),
+        last_wf.get_executable(),
         out=run_log,
         register_failure=register_failure,
     )
