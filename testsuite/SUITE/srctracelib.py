@@ -7,9 +7,10 @@ This module can be used as a script to read and decode a source trace file,
 possibly enabling debug output to investigate malformed files.
 """
 
-from __future__ import absolute_import, division, print_function
+from __future__ import annotations
 
 import argparse
+from typing import IO
 
 from SUITE.stream_decoder import ByteStreamDecoder, Struct, swap_bytes
 
@@ -45,7 +46,11 @@ trace_entry_header_struct = Struct(
 )
 
 
-def read_aligned(fp, count, alignment):
+def read_aligned(
+    fp: ByteStreamDecoder,
+    count: int,
+    alignment: int,
+) -> bytes | None:
     """
     Read `count` bytes from the `fp` file, plus the required padding according
     to `alignment`. Return the bytes that were read, without the padding, or
@@ -68,7 +73,7 @@ def read_aligned(fp, count, alignment):
     return content
 
 
-def write_aligned(fp, data, alignment):
+def write_aligned(fp: IO[bytes], data: bytes, alignment: int) -> None:
     """
     Assuming that the number of bytes already written to the `fp` file is a
     multiple of `alignment`, write the given `data` to `fp`, plus the required
@@ -88,7 +93,7 @@ def write_aligned(fp, data, alignment):
         fp.write(padding)
 
 
-class SrcTraceFile(object):
+class SrcTraceFile:
     """
     In-memory representation of a source trace file.
     """
@@ -103,7 +108,13 @@ class SrcTraceFile(object):
     }
     ENDIANITY_CODES = {value: key for key, value in ENDIANITY_NAMES.items()}
 
-    def __init__(self, alignment, endianity, info_entries, entries):
+    def __init__(
+        self,
+        alignment: int,
+        endianity: str,
+        info_entries: list[TraceInfoEntry],
+        entries: list[TraceEntry],
+    ):
         self.alignment = alignment
         self.endianity = endianity
         self.info_entries = info_entries
@@ -112,19 +123,23 @@ class SrcTraceFile(object):
         self.big_endian = endianity == "big-endian"
 
     @classmethod
-    def read(cls, fp):
+    def read(cls, fp: ByteStreamDecoder) -> SrcTraceFile:
         """
         Read a trace file from the `fp` file. Return a TraceFile instance.
         """
         header = trace_file_header_struct.read(fp)
+        assert header is not None
 
         magic = header["magic"]
         if magic != cls.MAGIC:
-            raise ValueError("Invalid magic: {}".format(magic))
+            raise ValueError(f"Invalid magic: {magic!r}")
 
-        endianity = cls.ENDIANITY_NAMES[header["endianity"]]
+        endianity_id = header["endianity"]
+        assert isinstance(endianity_id, int)
+        endianity = cls.ENDIANITY_NAMES[endianity_id]
 
         format_version = header["format_version"]
+        assert isinstance(format_version, int)
 
         # We read the header as little-endian before knowing the trace file
         # endianity. This matters for the only multi-bytes field in this
@@ -133,23 +148,22 @@ class SrcTraceFile(object):
         if endianity == "big-endian":
             format_version = swap_bytes(format_version, 4)
         if format_version != cls.FORMAT_VERSION:
-            raise ValueError(
-                "Unsupported format version: {}".format(format_version)
-            )
+            raise ValueError(f"Unsupported format version: {format_version}")
 
         alignment = header["alignment"]
+        assert isinstance(alignment, int)
         if alignment not in (1, 2, 4, 8, 16):
-            raise ValueError("Invalid alignment: {}".format(alignment))
+            raise ValueError(f"Invalid alignment: {alignment}")
 
-        info_entries = []
-        entries = []
+        info_entries: list[TraceInfoEntry] = []
+        entries: list[TraceEntry] = []
         result = cls(alignment, endianity, info_entries, entries)
 
         while True:
-            entry = TraceInfoEntry.read(fp, result, result.big_endian)
-            if entry.kind == "end":
+            info_entry = TraceInfoEntry.read(fp, result, result.big_endian)
+            if info_entry is None or info_entry.kind == "end":
                 break
-            info_entries.append(entry)
+            info_entries.append(info_entry)
 
         while True:
             entry = TraceEntry.read(fp, result, result.big_endian)
@@ -159,31 +173,28 @@ class SrcTraceFile(object):
 
         return result
 
-    def write(self, fp):
+    def write(self, fp: IO[bytes]) -> None:
         """Write this source trace to the `fp` file."""
         big_endian = self.endianity == "big-endian"
 
-        trace_file_header_struct.write(
-            fp,
-            {
-                "magic": self.MAGIC,
-                "format_version": self.FORMAT_VERSION,
-                "alignment": self.alignment,
-                "endianity": self.ENDIANITY_CODES[self.endianity],
-                "padding": 0,
-            },
-            big_endian=big_endian,
-        )
+        field_values: dict[str, int | bytes] = {
+            "magic": self.MAGIC,
+            "format_version": self.FORMAT_VERSION,
+            "alignment": self.alignment,
+            "endianity": self.ENDIANITY_CODES[self.endianity],
+            "padding": 0,
+        }
+        trace_file_header_struct.write(fp, field_values, big_endian=big_endian)
 
-        for entry in self.info_entries:
-            entry.write(fp, big_endian, self.alignment)
+        for info_entry in self.info_entries:
+            info_entry.write(fp, big_endian, self.alignment)
         TraceInfoEntry("end", None).write(fp, big_endian, self.alignment)
 
         for entry in self.entries:
             entry.write(fp, big_endian, self.alignment)
 
-    def dump(self):
-        def format_buffer(b):
+    def dump(self) -> None:
+        def format_buffer(b: TraceBuffer) -> str:
             bounds = (
                 "[{}-{}]".format(0, len(b.bits) - 1)
                 if len(b.bits)
@@ -195,26 +206,20 @@ class SrcTraceFile(object):
             )
             return "{} {}".format(bounds, content)
 
+        def format_fingerprint(fingerprint: bytes) -> str:
+            return "".join("{:02x}".format(b) for b in fingerprint)
+
         print("Source trace file:")
         print("  Alignment: {}".format(self.alignment))
         print("  Endianity: {}".format(self.endianity))
         print("")
         for e in self.entries:
             print(
-                (
-                    "  Unit {} ({}, SCOS hash={}, bit maps hash={}, "
-                    " annotations hash={})"
-                ).format(
-                    e.unit_name,
-                    e.unit_part,
-                    "".join("{:02x}".format(b) for b in e.fingerprint),
-                    "".join(
-                        "{:02x}".format(b) for b in e.bit_maps_fingerprint
-                    ),
-                    "".join(
-                        "{:02x}".format(b) for b in e.annotations_fingerprint
-                    ),
-                )
+                f"  Unit {e.unit_name!r} ({e.unit_part},"
+                f" SCOS hash={format_fingerprint(e.fingerprint)},"
+                f" bit maps hash={format_fingerprint(e.bit_maps_fingerprint)},"
+                " annotations hash="
+                f"{format_fingerprint(e.annotations_fingerprint)})"
             )
             print("  Stmt buffer: {}".format(format_buffer(e.stmt_buffer)))
             print("  Dc buffer:   {}".format(format_buffer(e.dc_buffer)))
@@ -222,7 +227,7 @@ class SrcTraceFile(object):
             print("")
 
 
-class TraceInfoEntry(object):
+class TraceInfoEntry:
     """
     In-memory representation of a trace info entry.
     """
@@ -235,12 +240,17 @@ class TraceInfoEntry(object):
     }
     KIND_CODES = {value: key for key, value in KIND_NAMES.items()}
 
-    def __init__(self, kind, data):
+    def __init__(self, kind: str, data: bytes | None):
         self.kind = kind
         self.data = data
 
     @classmethod
-    def read(cls, fp, trace_file, big_endian):
+    def read(
+        cls,
+        fp: ByteStreamDecoder,
+        trace_file: SrcTraceFile,
+        big_endian: bool,
+    ) -> TraceInfoEntry | None:
         """
         Read a trace info entry from the `fp` file. Return a TraceInfoEntry
         instance.
@@ -250,31 +260,33 @@ class TraceInfoEntry(object):
             if not header:
                 return None
 
-            kind = cls.KIND_NAMES[header["kind"]]
+            kind_id = header["kind"]
+            assert isinstance(kind_id, int)
+            kind = cls.KIND_NAMES[kind_id]
 
             if kind == "end" and header["length"]:
                 raise ValueError('invalid "end" marker')
 
+            length = header["length"]
+            assert isinstance(length, int)
+
             with fp.label_context("data"):
-                data = read_aligned(fp, header["length"], trace_file.alignment)
+                data = read_aligned(fp, length, trace_file.alignment)
 
         return cls(kind, data)
 
-    def write(self, fp, big_endian, alignment):
+    def write(self, fp: IO[bytes], big_endian: bool, alignment: int) -> None:
         """Write this trace info entry to the `fp` file."""
-        trace_info_header_struct.write(
-            fp,
-            {
-                "kind": self.KIND_CODES[self.kind],
-                "length": len(self.data) if self.data else 0,
-            },
-            big_endian=big_endian,
-        )
+        field_values: dict[str, int | bytes] = {
+            "kind": self.KIND_CODES[self.kind],
+            "length": len(self.data) if self.data else 0,
+        }
+        trace_info_header_struct.write(fp, field_values, big_endian=big_endian)
         if self.data:
             write_aligned(fp, self.data, alignment)
 
 
-class TraceEntry(object):
+class TraceEntry:
     """
     In-memory representation of a trace entry.
     """
@@ -297,15 +309,15 @@ class TraceEntry(object):
 
     def __init__(
         self,
-        language,
-        unit_part,
-        unit_name,
-        fingerprint,
-        bit_maps_fingerprint,
-        annotations_fingerprint,
-        stmt_buffer,
-        dc_buffer,
-        mcdc_buffer,
+        language: str,
+        unit_part: str,
+        unit_name: bytes,
+        fingerprint: bytes,
+        bit_maps_fingerprint: bytes,
+        annotations_fingerprint: bytes,
+        stmt_buffer: TraceBuffer,
+        dc_buffer: TraceBuffer,
+        mcdc_buffer: TraceBuffer,
     ):
         self.language = language
         self.unit_part = unit_part
@@ -318,7 +330,12 @@ class TraceEntry(object):
         self.mcdc_buffer = mcdc_buffer
 
     @classmethod
-    def read(cls, fp, trace_file, big_endian):
+    def read(
+        cls,
+        fp: ByteStreamDecoder,
+        trace_file: SrcTraceFile,
+        big_endian: bool,
+    ) -> TraceEntry | None:
         """
         Read a trace entry from the `fp` file. Return a TraceFile instance.
         """
@@ -327,75 +344,96 @@ class TraceEntry(object):
             if not header:
                 return None
 
-            unit_part = cls.UNIT_PART_NAMES[header["unit_part"]]
+            unit_part_id = header["unit_part"]
+            assert isinstance(unit_part_id, int)
+            unit_part = cls.UNIT_PART_NAMES[unit_part_id]
 
-            language = cls.LANGUAGE_NAMES[header["language"]]
+            language_id = header["language"]
+            assert isinstance(language_id, int)
+            language = cls.LANGUAGE_NAMES[language_id]
 
-            if header["padding"] != 0:
-                raise ValueError(
-                    "Invalid padding: {}".format(header["padding"])
-                )
+            padding = header["padding"]
+            assert isinstance(padding, int)
+            if padding != 0:
+                raise ValueError(f"Invalid padding: {padding}")
 
+            bit_buffer_encoding_id = header["bit_buffer_encoding"]
+            assert isinstance(bit_buffer_encoding_id, int)
             bit_buffer_encoding = cls.BIT_BUFFER_ENCODING_NAMES[
-                header["bit_buffer_encoding"]
+                bit_buffer_encoding_id
             ]
+
+            unit_name_length = header["unit_name_length"]
+            assert isinstance(unit_name_length, int)
+
+            fingerprint = header["fingerprint"]
+            assert isinstance(fingerprint, bytes)
+
+            bit_maps_fingerprint = header["bit_maps_fingerprint"]
+            assert isinstance(bit_maps_fingerprint, bytes)
+
+            annotations_fingerprint = header["annotations_fingerprint"]
+            assert isinstance(annotations_fingerprint, bytes)
+
+            stmt_bit_count = header["stmt_bit_count"]
+            assert isinstance(stmt_bit_count, int)
+
+            dc_bit_count = header["dc_bit_count"]
+            assert isinstance(dc_bit_count, int)
+
+            mcdc_bit_count = header["mcdc_bit_count"]
+            assert isinstance(mcdc_bit_count, int)
 
             with fp.label_context("unit name"):
                 unit_name = read_aligned(
-                    fp, header["unit_name_length"], trace_file.alignment
+                    fp, unit_name_length, trace_file.alignment
                 )
+                assert isinstance(unit_name, bytes)
 
             with fp.label_context("stmt buffer"):
                 stmt_buffer = TraceBuffer.read(
-                    fp,
-                    trace_file,
-                    bit_buffer_encoding,
-                    header["stmt_bit_count"],
+                    fp, trace_file, bit_buffer_encoding, stmt_bit_count
                 )
             with fp.label_context("dc buffer"):
                 dc_buffer = TraceBuffer.read(
-                    fp, trace_file, bit_buffer_encoding, header["dc_bit_count"]
+                    fp, trace_file, bit_buffer_encoding, dc_bit_count
                 )
             with fp.label_context("mcdc buffer"):
                 mcdc_buffer = TraceBuffer.read(
-                    fp,
-                    trace_file,
-                    bit_buffer_encoding,
-                    header["mcdc_bit_count"],
+                    fp, trace_file, bit_buffer_encoding, mcdc_bit_count
                 )
 
         return cls(
             language,
             unit_part,
             unit_name,
-            header["fingerprint"],
-            header["bit_maps_fingerprint"],
-            header["annotations_fingerprint"],
+            fingerprint,
+            bit_maps_fingerprint,
+            annotations_fingerprint,
             stmt_buffer,
             dc_buffer,
             mcdc_buffer,
         )
 
-    def write(self, fp, big_endian, alignment):
+    def write(self, fp: IO[bytes], big_endian: bool, alignment: int) -> None:
         """Write this trace info entry to the `fp` file."""
+        field_values: dict[str, int | bytes] = {
+            "unit_name_length": len(self.unit_name),
+            "stmt_bit_count": len(self.stmt_buffer.bits),
+            "dc_bit_count": len(self.dc_buffer.bits),
+            "mcdc_bit_count": len(self.mcdc_buffer.bits),
+            "language": self.LANGUAGE_CODES[self.language],
+            "unit_part": self.UNIT_PART_CODES[self.unit_part],
+            "bit_buffer_encoding": self.BIT_BUFFER_ENCODING_CODES[
+                "lsb_first_bytes"
+            ],
+            "fingerprint": self.fingerprint,
+            "bit_maps_fingerprint": self.bit_maps_fingerprint,
+            "annotations_fingerprint": self.annotations_fingerprint,
+            "padding": 0,
+        }
         trace_entry_header_struct.write(
-            fp,
-            {
-                "unit_name_length": len(self.unit_name),
-                "stmt_bit_count": len(self.stmt_buffer.bits),
-                "dc_bit_count": len(self.dc_buffer.bits),
-                "mcdc_bit_count": len(self.mcdc_buffer.bits),
-                "language": self.LANGUAGE_CODES[self.language],
-                "unit_part": self.UNIT_PART_CODES[self.unit_part],
-                "bit_buffer_encoding": self.BIT_BUFFER_ENCODING_CODES[
-                    "lsb_first_bytes"
-                ],
-                "fingerprint": self.fingerprint,
-                "bit_maps_fingerprint": self.bit_maps_fingerprint,
-                "annotations_fingerprint": self.annotations_fingerprint,
-                "padding": 0,
-            },
-            big_endian=big_endian,
+            fp, field_values, big_endian=big_endian
         )
 
         write_aligned(fp, self.unit_name, alignment)
@@ -405,16 +443,16 @@ class TraceEntry(object):
         self.mcdc_buffer.write(fp, alignment)
 
 
-class TraceBuffer(object):
+class TraceBuffer:
     """
     In-memory representation of a coverage buffer.
     """
 
-    def __init__(self, bits):
+    def __init__(self, bits: list[bool]):
         self.bits = bits
 
     @staticmethod
-    def byte_count(bit_count):
+    def byte_count(bit_count: int) -> int:
         """
         Return the number of bytes required to represent the given number of
         bits.
@@ -425,26 +463,34 @@ class TraceBuffer(object):
         return bytes_count
 
     @classmethod
-    def read(cls, fp, trace_file, bit_buffer_encoding, bit_count):
+    def read(
+        cls,
+        fp: ByteStreamDecoder,
+        trace_file: SrcTraceFile,
+        bit_buffer_encoding: str,
+        bit_count: int,
+    ) -> TraceBuffer:
         assert bit_buffer_encoding == "lsb_first_bytes"
 
         bytes_count = cls.byte_count(bit_count)
         bytes_and_padding = read_aligned(fp, bytes_count, trace_file.alignment)
 
-        bits = []
-        for byte_index in range(bytes_count):
-            byte = bytes_and_padding[byte_index]
-            for bit_index in range(8):
-                global_bit_index = 8 * byte_index + bit_index
-                if global_bit_index >= bit_count:
-                    return cls(bits)
+        bits: list[bool] = []
+        if bytes_count > 0:
+            assert isinstance(bytes_and_padding, bytes)
+            for byte_index in range(bytes_count):
+                byte = bytes_and_padding[byte_index]
+                for bit_index in range(8):
+                    global_bit_index = 8 * byte_index + bit_index
+                    if global_bit_index >= bit_count:
+                        return cls(bits)
 
-                bits.append(bool(byte & 1))
-                byte = byte >> 1
+                    bits.append(bool(byte & 1))
+                    byte = byte >> 1
 
         return cls(bits)
 
-    def write(self, fp, alignment):
+    def write(self, fp: IO[bytes], alignment: int) -> None:
         """Write this coverage buffer to the `fp` file."""
         bit_count = len(self.bits)
         bytes_count = self.byte_count(bit_count)
