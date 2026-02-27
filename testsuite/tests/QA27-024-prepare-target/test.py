@@ -75,8 +75,8 @@ for info_entry in trace_info.values():
         expected_contents = expected_entries[info_entry.kind]
         thistest.fail_if(
             not re.match(pattern=expected_contents, string=info_entry.data),
-            "expected contents '%s' not found in entry of kind %d;\n"
-            "value was '%s'"
+            "expected contents '%r' not found in entry of kind %d;\n"
+            "value was '%r'"
             % (expected_contents, info_entry.kind, info_entry.data),
         )
         found_entries[info_entry.kind] = info_entry
@@ -89,7 +89,8 @@ thistest.fail_if(
 # Check that the trace file does not contain the execution section.
 
 thistest.fail_if(
-    trace.second_header, "exec section header found in trace file, unexpected"
+    bool(trace.second_header),
+    "exec section header found in trace file, unexpected",
 )
 
 thistest.result()
