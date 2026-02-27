@@ -2,6 +2,10 @@
 Testsuite control
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+import dataclasses
 import os.path
 import re
 
@@ -37,50 +41,45 @@ GPRCONFIG = "gprconfig" + env.host.os.exeext
 GPRCLEAN = "gprclean" + env.host.os.exeext
 
 
+@dataclasses.dataclass(frozen=True)
 class LangInfo:
-    """A class that provides some info about a given language.
+    """A class that provides some info about a given language."""
 
-    ATTRIBUTES:
-        name:
-          The name of the language. Eg: "Ada", or "C".
-
-        src_ext:
-           A list of extensions used for filenames of that language.
-           Eg: [".ads", ".adb"] for GNAT, or [".h", ".c"] for C.
-
-        comment:
-           The comment marker used by that language to specify the start of a
-           comment that runs until the end of the current line.  For instance,
-           in Ada, it would be '--'.
-
-        scofile_for:
-           A function which returns the name of the file where SCOs can
-           be found for a given SOURCE file name. This is, for example,
-           "x.ali" for "x.adb" in Ada or "t.c.gli" for "t.c" in C.
-
-        sidfile_for:
-           A function which returns the name of the SID file for a given SOURCE
-           file name. This is, for example, "x.sid" for "x.adb".
-
-        in_gpr:
-           Whether this language can be mentionned in project files.
+    name: str
+    """
+    The name of the language. Eg: "Ada", or "C".
     """
 
-    def __init__(
-        self,
-        name,
-        src_ext,
-        comment,
-        scofile_for,
-        sidfile_for=None,
-        in_gpr=True,
-    ):
-        self.name = name
-        self.src_ext = src_ext
-        self.comment = comment
-        self.scofile_for = scofile_for
-        self.sidfile_for = sidfile_for
-        self.in_gpr = in_gpr
+    src_ext: list[str]
+    """
+    A list of extensions used for filenames of that language.  E.g. [".ads",
+    ".adb"] for GNAT, or [".h", ".c"] for C.
+    """
+
+    comment: str
+    """
+    The comment marker used by that language to specify the start of a comment
+    that runs until the end of the current line.  For instance, in Ada, it
+    would be '--'.
+    """
+
+    scofile_for: Callable[[str], str] | None = None
+    """
+    A function which returns the name of the file where SCOs can be found for a
+    given SOURCE file name. This is, for example, "x.ali" for "x.adb" in Ada or
+    "t.c.gli" for "t.c" in C.
+    """
+
+    sidfile_for: Callable[[str], str] | None = None
+    """
+    A function which returns the name of the SID file for a given SOURCE file
+    name. This is, for example, "x.sid" for "x.adb".
+    """
+
+    in_gpr: bool = True
+    """
+    Whether this language can be mentionned in project files.
+    """
 
 
 # A dictionary mapping a LangInfo instance to each known language.
@@ -107,18 +106,14 @@ LANGINFO = {
         name="C++",
         src_ext=[".hh", ".cpp"],
         comment="//",
-        scofile_for=None,
         sidfile_for=lambda source: source + ".sid",
     ),
-    "Rust": LangInfo(
-        name="Rust", src_ext=[".rs"], comment="//", scofile_for=None
-    ),
-    "Asm": LangInfo(name="Asm", src_ext=[".s"], comment="#", scofile_for=None),
+    "Rust": LangInfo(name="Rust", src_ext=[".rs"], comment="//"),
+    "Asm": LangInfo(name="Asm", src_ext=[".s"], comment="#"),
     "Cons": LangInfo(
         name="Consolidation",
         src_ext=[".txt"],
         comment="--",
-        scofile_for=None,
         in_gpr=False,
     ),
 }
