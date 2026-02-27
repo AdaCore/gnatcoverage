@@ -136,6 +136,15 @@ def language_info(source_filename: str) -> LangInfo | None:
     return None
 
 
+def language_info_or_error(source_filename: str) -> LangInfo:
+    """
+    Wrapper around "language_info" that complains if the language is unknown.
+    """
+    result = language_info(source_filename)
+    assert result, f"Unknown language for {source_filename}"
+    return result
+
+
 class BUILDER:
     """
     Builder related testsuite controls, such as default compilation options

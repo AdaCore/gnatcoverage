@@ -8,17 +8,21 @@
 
 # ***************************************************************************
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 import glob
 import os
+from pathlib import Path
 import re
 import sys
 import time
-
+from typing import IO, TYPE_CHECKING
 
 from e3.fs import cp
 from e3.os.fs import touch, unixpath, which
-from e3.os.process import Run
+from e3.os.process import PIPE, Run, STDOUT
 
 
 # Expose a few other items as a test util facilities as well
@@ -30,6 +34,7 @@ from SUITE.control import (
     env,
     gnatemu_board_name,
     language_info,
+    language_info_or_error,
     xcov_pgm,
 )
 from SUITE.context import ROOT_DIR, thistest
@@ -46,6 +51,17 @@ from SUITE.cutils import (
     unhandled_exception_in,
     Wdir,
 )
+
+
+if TYPE_CHECKING:
+    from e3.os.process import (
+        CmdLine,
+        DEVNULL_VALUE,
+        PIPE_VALUE,
+        STDOUT_VALUE,
+    )
+
+    from SUITE.gprutils import GPRswitches
 
 
 # Precompute some values we might be using repeatedly
@@ -111,35 +127,63 @@ GPRLS_PARSING_RE = re.compile(r'^.*\.gpr: info: Parsing "(.*)"$')
 #
 # ----------------------------------------------------------------------------
 
-run_processes = []
+
+@dataclass(frozen=True)
+class ProcessResult:
+    p: Run
+    original_cmd: CmdLine
+    duration: float
+
+
+run_processes: list[ProcessResult] = []
 """
 List of processes run through run_and_log. Useful for debugging.
-
-:type: list[Run]
 """
 
 
-def run_and_log(*args, **kwargs):
+def run_and_log(
+    cmds: CmdLine,
+    cwd: str | Path | None = None,
+    output: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    error: (
+        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+    ) = STDOUT,
+    input: (  # noqa: A002
+        DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None
+    ) = None,
+    bg: bool = False,
+    timeout: int | None = None,
+    env: dict | None = None,
+    set_sigpipe: bool = True,
+    parse_shebang: bool = False,
+    ignore_environ: bool = True,
+) -> Run:
     """
     Wrapper around e3.os.process.Run to collect all processes that are run.
     """
     start = time.time()
-    p = Run(*args, **kwargs)
+    p = Run(
+        cmds,
+        cwd,
+        output,
+        error,
+        input,
+        bg,
+        timeout,
+        env,
+        set_sigpipe,
+        parse_shebang,
+        ignore_environ,
+    )
 
     # Register the command for this process as well as the time it took to run
     # it.
-    try:
-        cmd = kwargs["cmds"]
-    except KeyError:
-        cmd = args[0]
-    p.original_cmd = cmd
-    p.duration = time.time() - start
-    run_processes.append(p)
+    run_processes.append(ProcessResult(p, cmds, time.time() - start))
 
     return p
 
 
-def effective_trace_mode(override_trace_mode):
+def effective_trace_mode(override_trace_mode: str | None) -> str:
     """
     Compute the effective trace mode to be used from override_trace_mode
     if available, or from the testsuite options otherwise.
@@ -150,7 +194,11 @@ def effective_trace_mode(override_trace_mode):
         return override_trace_mode
 
 
-def gprbuild_gargs_with(thisgargs, trace_mode=None, runtime_project=None):
+def gprbuild_gargs_with(
+    thisgargs: Iterable[str],
+    trace_mode: str | None = None,
+    runtime_project: str | None = None,
+) -> list[str]:
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
     specific requests in THISGARGS.
@@ -191,7 +239,11 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None, runtime_project=None):
     return result
 
 
-def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
+def gprbuild_cargs_with(
+    thiscargs: Iterable[str],
+    scovcargs: bool = True,
+    suitecargs: bool = True,
+) -> list[str]:
     """
     Compute and return all the cargs arguments to pass on gprbuild invocations,
     in accordance with the gprbuild() documentation.
@@ -209,7 +261,7 @@ def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
             FatalError("SCOV_CARGS required for qualification test"),
         )
         thistest.stop_if(
-            thiscargs,
+            bool(thiscargs),
             FatalError("Specific CARGS forbidden for qualification test"),
         )
 
@@ -250,7 +302,7 @@ def gprbuild_cargs_with(thiscargs, scovcargs=True, suitecargs=True):
     return lang_cargs + other_cargs
 
 
-def gprbuild_largs_with(thislargs):
+def gprbuild_largs_with(thislargs: Iterable[str]) -> list[str]:
     """
     Compute and return all the largs gprbuild arguments to pass.  Account for
     specific requests in THISLARGS.
@@ -273,7 +325,7 @@ def gprbuild_largs_with(thislargs):
     return all_largs
 
 
-def gpr_common_args(project, auto_config_args=True):
+def gpr_common_args(project: str, auto_config_args: bool = True) -> list[str]:
     """
     Return common GPR tools options for the current testsuite run.
 
@@ -310,18 +362,18 @@ def gpr_common_args(project, auto_config_args=True):
 
 
 def gprbuild(
-    project,
-    scovcargs=True,
-    suitecargs=True,
-    extracargs=None,
-    gargs=None,
-    largs=None,
-    trace_mode=None,
-    runtime_project=None,
-    out="gprbuild.out",
-    register_failure=True,
-    auto_config_args=True,
-):
+    project: str,
+    scovcargs: bool = True,
+    suitecargs: bool = True,
+    extracargs: Iterable[str] | None = None,
+    gargs: Iterable[str] | None = None,
+    largs: Iterable[str] | None = None,
+    trace_mode: str | None = None,
+    runtime_project: str | None = None,
+    out: str = "gprbuild.out",
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+) -> Run:
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
@@ -347,13 +399,15 @@ def gprbuild(
     # Fetch options, from what is requested specifically here
     # or from command line requests
     all_gargs = gprbuild_gargs_with(
-        thisgargs=gargs,
+        thisgargs=gargs or [],
         trace_mode=trace_mode,
         runtime_project=runtime_project,
     )
-    all_largs = gprbuild_largs_with(thislargs=largs)
+    all_largs = gprbuild_largs_with(thislargs=largs or [])
     all_cargs = gprbuild_cargs_with(
-        scovcargs=scovcargs, suitecargs=suitecargs, thiscargs=extracargs
+        scovcargs=scovcargs,
+        suitecargs=suitecargs,
+        thiscargs=extracargs or [],
     )
     common_args = gpr_common_args(project, auto_config_args)
 
@@ -399,12 +453,11 @@ def gprbuild(
     return p
 
 
-def gprinstall(project, gargs=None):
+def gprinstall(project: str, gargs: Iterable[str] | None = None) -> None:
     """
     Run "gprinstall" on the provided project file.
 
-    :param None|list[str] gargs: list of command line switches to pass to
-        gprinstall
+    :param gargs: list of command line switches to pass to gprinstall.
     """
     ofile = "gprinstall.out"
     args = ["gprinstall", "-P", project, "-p"]
@@ -421,7 +474,7 @@ def gprinstall(project, gargs=None):
     )
 
 
-def gpr_emulator_package():
+def gpr_emulator_package() -> str:
     """
     If there is a board name, return a package Emulator to be included in a GPR
     file to provide this information to GNATemulator.
@@ -437,19 +490,19 @@ def gpr_emulator_package():
 
 
 def gprfor(
-    mains,
-    prjid="gen",
-    srcdirs="src",
-    objdir=None,
-    exedir=".",
-    main_cargs=None,
-    langs=None,
-    deps=None,
-    scenario_extra="",
-    compiler_extra="",
-    extra="",
-    cwd=None,
-):
+    mains: Iterable[str] | str | None,
+    prjid: str = "gen",
+    srcdirs: list[str] | str = "src",
+    objdir: str | None = None,
+    exedir: str = ".",
+    main_cargs: Iterable[str] | None = None,
+    langs: Iterable[str] | None = None,
+    deps: Iterable[str] | None = None,
+    scenario_extra: str = "",
+    compiler_extra: str = "",
+    extra: str = "",
+    cwd: str | None = None,
+) -> str:
     """
     Generate a simple PRJID.gpr project file to build executables for each main
     source file in the MAINS list, sources in SRCDIRS. Inexistant directories
@@ -469,8 +522,8 @@ def gprfor(
 
     cwd = cwd or os.getcwd()
     mains = to_list(mains)
-    srcdirs = to_list(srcdirs)
-    langs = to_list(langs)
+    srcdirs_list = to_list(srcdirs)
+    langs_list = to_list(langs)
 
     # Fetch the support project file template
     template = contents_of(os.path.join(ROOT_DIR, "templates", "template.gpr"))
@@ -488,20 +541,22 @@ def gprfor(
     # Likewise for source dirs. Filter on existence, to allow widening the set
     # of tentative dirs while preventing complaints from gprbuild about
     # inexistent ones.
-    srcdirs_list = [d for d in srcdirs if os.path.exists(os.path.join(cwd, d))]
+    srcdirs_list = [
+        d for d in srcdirs_list if os.path.exists(os.path.join(cwd, d))
+    ]
 
     # Determine the language(s) from the sources if they are not explicitly
     # passed as parameters.
-    if not langs:
+    if not langs_list:
         lang_infos = [
             language_info(src)
             for srcdir in srcdirs_list
             for src in os.listdir(os.path.join(cwd, srcdir))
         ]
-        langs = {li.name for li in lang_infos if li and li.in_gpr}
+        langs_list = sorted({li.name for li in lang_infos if li and li.in_gpr})
 
-    srcdirs = ", ".join('"%s"' % d for d in srcdirs_list)
-    languages = ", ".join('"%s"' % lang for lang in langs)
+    srcdirs_str = ", ".join('"%s"' % d for d in srcdirs_list)
+    languages = ", ".join('"%s"' % lang for lang in langs_list)
 
     # In addition to the provided dependencies, figure out if this project
     # should extend or with some support or helper facilities. These are
@@ -548,7 +603,7 @@ def gprfor(
                     '  Compiler\'Default_Switches ("%s") & (%s);'
                     % (
                         main,
-                        language_info(main).name,
+                        language_info_or_error(main).name,
                         ",".join(
                             ['"%s"' % carg for carg in to_list(main_cargs)]
                         ),
@@ -564,7 +619,7 @@ def gprfor(
         "prjname": prjid,
         "extends": ('extends "%s"' % basegpr) if basegpr else "",
         "scenario": scenario_extra,
-        "srcdirs": srcdirs,
+        "srcdirs": srcdirs_str,
         "exedir": exedir,
         "objdir": objdir or (exedir + "/obj"),
         "compswitches": compswitches,
@@ -589,35 +644,48 @@ def gprfor(
 # PGMNAME is allowed, in which case the functions return only the extensions.
 
 
-def exename_for(pgmname):
+def exename_for(pgmname: str) -> str:
     """Name of the executable for the given program name"""
     return pgmname + TARGET_INFO.exeext
 
 
-def tracename_for(pgmname):
+def tracename_for(pgmname: str) -> str:
     """Name for the binary trace file for the given program name"""
     return exename_for(pgmname) + ".trace"
 
 
-def srctrace_pattern_for(pgmname, manual: bool = False, manual_prj_name=None):
+def srctrace_pattern_for(
+    pgmname: str,
+    manual: bool = False,
+    manual_prj_name: str | None = None,
+) -> str:
     """
     Glob pattern for the source trace file for the given program name.
 
-    :param bool manual: Indicates if the trace file was created as a result of
-        a manual dump buffers procedure call.
-    :param None|str manual_prj_name: Trace files emitted in manual dump trigger
-        mode contain the name of the relevant project in their name.
+    :param manual: Indicates if the trace file was created as a result of a
+        manual dump buffers procedure call.
+    :param manual_prj_name: Trace files emitted in manual dump trigger mode
+        contain the name of the relevant project in their name.
         manual_prj_name is the name of the project which trace we want to find.
     """
     # Do not take into account the executable extension as under some
     # configurations (e.g. integrated instrumentation), we use the main
     # basename.
-    return (manual_prj_name if manual else pgmname) + "*.srctrace"
+    if manual:
+        assert manual_prj_name
+        prefix = manual_prj_name
+    else:
+        prefix = pgmname
+
+    return prefix + "*.srctrace"
 
 
-def srctracename_for(
-    pgmname, register_failure=True, manual=False, manual_prj_name=None
-):
+def srctracename_or_none_for(
+    pgmname: str,
+    register_failure: bool = True,
+    manual: bool = False,
+    manual_prj_name: str | None = None,
+) -> str | None:
     """
     Name for the source trace file for the given program name.
 
@@ -643,12 +711,36 @@ def srctracename_for(
                 f"\nBut got {len(trace_files)} traces instead"
             )
         )
+        # SUITE.context.Test.stop has the NoReturn annotation, so the following
+        # should not be necessary: mypy bug?
+        raise AssertionError("unreachable")
 
     else:
         return None
 
 
-def ckptname_for(pgmname):
+def srctracename_for(
+    pgmname: str,
+    manual: bool = False,
+    manual_prj_name: str | None = None,
+) -> str:
+    """
+    Name for the source trace file for the given program name.
+
+    Since source trace files is not predictible, we need to do produce the
+    source trace file first and then look for a file matching a pattern to find
+    it.
+
+    If we find zero or multiple traces, this stops the testcase.  that case.
+    """
+    result = srctracename_or_none_for(
+        pgmname=pgmname, manual=manual, manual_prj_name=manual_prj_name
+    )
+    assert result
+    return result
+
+
+def ckptname_for(pgmname: str) -> str:
     """Coverage checkpoint name"""
     return exename_for(pgmname) + ".ckpt"
 
@@ -658,7 +750,7 @@ def ckptname_for(pgmname):
 # expressions, where backslashes as directory separators introduce confusion.
 
 
-def exepath_to(pgmname):
+def exepath_to(pgmname: str) -> str:
     """
     Return the absolute path to the executable file expected in the current
     directory for a main subprogram PGMNAME.
@@ -666,7 +758,7 @@ def exepath_to(pgmname):
     return os.path.abspath(exename_for(pgmname))
 
 
-def unixpath_to(pgmname):
+def unixpath_to(pgmname: str) -> str:
     """
     Return the absolute path to the executable file expected in the current
     directory for a main subprogram PGMNAME, unixified.
@@ -674,7 +766,7 @@ def unixpath_to(pgmname):
     return unixpath(os.path.abspath(exename_for(pgmname)))
 
 
-def maybe_valgrind(command):
+def maybe_valgrind(command: Iterable[str]) -> list[str]:
     """
     Return the input COMMAND list, wrapped with valgrind or callgrind,
     depending on the options.  If such a wrapper is added, valgrind will have
@@ -698,10 +790,10 @@ def maybe_valgrind(command):
                 thistest.options.enable_valgrind
             )
         )
-    return prefix + command
+    return prefix + list(command)
 
 
-def platform_specific_symbols(symbols):
+def platform_specific_symbols(symbols: Iterable[str]) -> list[str]:
     """
     Given SYMBOLS, a list of architecture-independant symbol names, return a
     list of corresponding of architecture-specific symbol names.
@@ -711,7 +803,7 @@ def platform_specific_symbols(symbols):
     return [TARGET_INFO.to_platform_specific_symbol(sym) for sym in symbols]
 
 
-def locate_gpr_file(gprswitches):
+def locate_gpr_file(gprswitches: GPRswitches) -> str:
     """
     Use gprls to locate the GPR file for ``gprswitches``'s root project.
     """
@@ -737,12 +829,12 @@ def locate_gpr_file(gprswitches):
 
 
 def xcov_suite_args(
-    covcmd,
-    covargs,
-    auto_config_args=True,
-    auto_target_args=True,
-    force_project_args=False,
-):
+    covcmd: str,
+    covargs: Iterable[str],
+    auto_config_args: bool = True,
+    auto_target_args: bool = True,
+    force_project_args: bool = False,
+) -> list[str]:
     """
     Arguments we should pass to gnatcov to obey what we received on the command
     line, in particular --config and --target/--RTS.
@@ -834,15 +926,17 @@ def xcov_suite_args(
 
 
 def cmdrun(
-    cmd,
-    for_pgm,
-    inp=None,
-    out=None,
-    err=None,
-    env=None,
-    register_failure=True,
-    expect_non_zero_code=False,
-):
+    cmd: Iterable[str],
+    for_pgm: bool,
+    inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = None,
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    err: (
+        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+    ) = STDOUT,
+    env: dict[str, str] | None = None,
+    register_failure: bool = True,
+    expect_non_zero_code: bool = False,
+) -> Run:
     """
     Execute the command+args list in CMD, redirecting its input, output and
     error streams to INP, OUT and ERR when not None, respectively. If ENV is
@@ -862,55 +956,50 @@ def cmdrun(
 
     In absence of fatal error, return the process descriptor.
     """
-
-    # Setup a dictionary of Run input/output/error arguments for which a
-    # non default value is requested.
-
-    kwargs = {
-        key: value
-        for key, value in [
-            ("input", inp),
-            ("output", out),
-            ("error", err),
-            ("env", env),
-        ]
-        if value
-    }
-
     # Workaround it/e3-core#66
     paths = env["PATH"] if env and "PATH" in env else None
+    cmd = list(cmd)
     cmd[0] = which(cmd[0], paths=paths, default=cmd[0])
 
-    p = run_and_log(cmd, timeout=thistest.options.timeout, **kwargs)
+    p = run_and_log(
+        cmd,
+        output=out,
+        error=err,
+        input=inp,
+        env=env,
+        timeout=thistest.options.timeout,
+    )
 
     # Check for FatalError conditions. Minimize the situations where we look
     # into the program's output as this is a central spot.
+
+    outfile = out if isinstance(out, str) else None
 
     if expect_non_zero_code:
         if p.status == 0:
             thistest.stop(
                 FatalError(
                     '"%s"' % " ".join(cmd) + ": expected non-zero exit code",
-                    outfile=out,
+                    outfile=outfile,
                 )
             )
     elif register_failure and p.status != 0:
-        output = contents_of(out) if out else p.out
+        output = contents_of(outfile) if outfile else p.out
         thistest.stop(
             FatalError(
                 '"%s"' % " ".join(cmd) + " exit in error",
-                outfile=out,
+                outfile=outfile,
                 outstr=output,
             )
         )
 
     if register_failure and for_pgm and thistest.options.target:
-        output = contents_of(out) if out else p.out
+        output = contents_of(outfile) if outfile else p.out
         thistest.stop_if(
             unhandled_exception_in(output),
             FatalError(
                 '"%s"' % " ".join(cmd) + " raised an unhandled exception",
-                outfile=out,
+                outfile=outfile,
                 outstr=output,
             ),
         )
@@ -919,35 +1008,35 @@ def cmdrun(
 
 
 def xcov(
-    args,
-    out=None,
-    err=None,
-    inp=None,
-    env=None,
-    register_failure=True,
-    auto_config_args=True,
-    auto_target_args=True,
-    force_project_args=False,
-    tolerate_messages=None,
-):
+    args: Sequence[str],
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    err: (
+        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+    ) = STDOUT,
+    inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = None,
+    env: dict[str, str] | None = None,
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+    auto_target_args: bool = True,
+    force_project_args: bool = False,
+    tolerate_messages: str | None = None,
+) -> Run:
     """
     Run "gnatcov".
 
-    :param list[str] args: arguments to pass to gnatcov.
-    :param None|str out: if not None, redirect gnatcov output to out.
-    :param None|str err: if not None, redirect gnatcov error output to err.
-    :param None|str inp: if not None, redirect gnatcov input to inp.
-    :param None|dict[str, str] env: If not none, environment variables for the
-        program to run.
-    :param bool register_failure: If True, register execution failure.
-    :param bool auto_config_args: see xcov_suite_args.
-    :param bool auto_target_args: see xcov_suite_args.
-    :param bool force_project_args: see xcov_suite_args.
-    :param None|str tolerate_messages: If not None, a re pattern of warning
-        or error messsages tolerated in the tool output. Messages not matching
-        this pattern will cause a test failure when register_failure is True.
+    :param args: arguments to pass to gnatcov.
+    :param out: if not None, redirect gnatcov output to out.
+    :param err: if not None, redirect gnatcov error output to err.
+    :param inp: if not None, redirect gnatcov input to inp.
+    :param env: If not none, environment variables for the program to run.
+    :param register_failure: If True, register execution failure.
+    :param auto_config_args: see xcov_suite_args.
+    :param auto_target_args: see xcov_suite_args.
+    :param force_project_args: see xcov_suite_args.
+    :param tolerate_messages: If not None, a re pattern of warning or error
+        messsages tolerated in the tool output. Messages not matching this
+        pattern will cause a test failure when register_failure is True.
 
-    :rtype: Run
     :return: Process status descriptor for the gnatcov invocation.
     """
 
@@ -966,26 +1055,24 @@ def xcov(
     covargs = args[1:]
 
     if thistest.options.all_warnings:
-        covargs = ["--all-warnings"] + covargs
+        covargs = ["--all-warnings"] + list(covargs)
 
-    covargs = (
-        xcov_suite_args(
-            covcmd,
-            covargs,
-            auto_config_args,
-            auto_target_args,
-            force_project_args,
-        )
-        + covargs
-    )
+    covargs = xcov_suite_args(
+        covcmd,
+        covargs,
+        auto_config_args,
+        auto_target_args,
+        force_project_args,
+    ) + list(covargs)
 
     # Determine which program we are actually going launch. This is
     # "gnatcov <cmd>" unless we are to execute some designated program
     # for this:
     covpgm = thistest.suite_covpgm_for(covcmd)
-    covpgm = (
+    args_prefix = (
         [covpgm] if covpgm is not None else maybe_valgrind([XCOV]) + [covcmd]
     )
+    args = args_prefix + list(covargs)
 
     # Execute, check status, raise on error and return otherwise.
     #
@@ -993,7 +1080,7 @@ def xcov(
     # projects. They are pointless wrt coverage run or analysis activities
     # so we don't include them here.
     p = cmdrun(
-        cmd=covpgm + covargs,
+        cmd=args,
         inp=inp,
         out=out,
         err=err,
@@ -1009,7 +1096,7 @@ def xcov(
     # Do not check warnings when running the testsuite in binary traces mode,
     # as it would require modifying / adapting too many tests.
     if register_failure and thistest.options.trace_mode == "src":
-        output = contents_of(out) if out else p.out
+        output = contents_of(out) if isinstance(out, str) else p.out
 
         # Check for unexpected messages. Beware that the "warning:"
         # indication at least is not necessarily at the beginning of
@@ -1029,7 +1116,7 @@ def xcov(
             if not re.search(pattern=re_tolerate_messages, string=w)
         ]
         thistest.fail_if(
-            unexpected_messages,
+            bool(unexpected_messages),
             f"Unexpected messages in the output of 'gnatcov {covcmd}':"
             f"\n{indent(output)}"
             + (
@@ -1042,23 +1129,23 @@ def xcov(
     if thistest.options.enable_valgrind == "memcheck":
         memcheck_log = contents_of(MEMCHECK_LOG)
         thistest.fail_if(
-            memcheck_log,
+            bool(memcheck_log),
             "MEMCHECK log not empty"
             '\nFROM "%s":'
-            "\n%s" % (" ".join(covpgm + covargs), memcheck_log),
+            "\n%s" % (" ".join(args), memcheck_log),
         )
 
     return p
 
 
 def xrun(
-    args,
-    out=None,
-    env=None,
-    register_failure=True,
-    auto_config_args=True,
-    auto_target_args=True,
-):
+    args: Iterable[str],
+    out: str | None = None,
+    env: dict[str, str] | None = None,
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+    auto_target_args: bool = True,
+) -> Run:
     """
     Run <xcov run> with arguments ARGS for the current target, performing
     operations only relevant to invocations intended to execute a program (for
@@ -1101,7 +1188,7 @@ def xrun(
     return xcov(
         ["run"] + runargs,
         inp=nulinput,
-        out=out,
+        out=out or PIPE,
         env=env,
         register_failure=register_failure,
         auto_config_args=auto_config_args,
@@ -1111,13 +1198,13 @@ def xrun(
 
 
 def run_cov_program(
-    executable,
-    out=None,
-    env=None,
-    exec_args=None,
-    register_failure=True,
-    expect_non_zero_code=False,
-):
+    executable: str,
+    out: str | None = None,
+    env: dict[str, str] | None = None,
+    exec_args: Iterable[str] | None = None,
+    register_failure: bool = True,
+    expect_non_zero_code: bool = False,
+) -> Run:
     """
     Assuming that `executable` was instrumented, run it according to the
     current target.
@@ -1150,14 +1237,14 @@ def run_cov_program(
             args.append("@test.sod")
             cp(os.path.join(ROOT_DIR, "facade.cfg"), "facade.cfg")
             args.extend(exec_args)
-            out = cmdrun(
+            p = cmdrun(
                 args,
                 out=out,
                 env=env,
                 register_failure=register_failure,
                 for_pgm=True,
             )
-            return out
+            return p
 
     # If we are in a cross configuration, run the program using run-cross2
     if thistest.options.target and thistest.env.target.platform != "c":
@@ -1228,7 +1315,7 @@ def run_cov_program(
     return result
 
 
-def do(command):
+def do(command: list[str] | str) -> str:
     """
     Execute COMMAND. Abort and dump output on failure. Return output otherwise.
     """
@@ -1237,20 +1324,13 @@ def do(command):
 
 
 class frame:
-    def register(self, text):
-        if len(text) > self.width:
-            self.width = len(text)
-
-    def display(self):
-        thistest.log("\n" * self.pre + self.char * (self.width + 6))
-        for text in self.lines:
-            thistest.log(
-                "%s %s %s"
-                % (self.char * 2, text.center(self.width), self.char * 2)
-            )
-        thistest.log(self.char * (self.width + 6) + "\n" * self.post)
-
-    def __init__(self, text, char="o", pre=1, post=1):
+    def __init__(
+        self,
+        text: str,
+        char: str = "o",
+        pre: int = 1,
+        post: int = 1,
+    ):
         self.pre = pre
         self.post = post
         self.char = char
@@ -1259,6 +1339,19 @@ class frame:
         self.lines = text.split("\n")
         for text in self.lines:
             self.register(text)
+
+    def register(self, text: str) -> None:
+        if len(text) > self.width:
+            self.width = len(text)
+
+    def display(self) -> None:
+        thistest.log("\n" * self.pre + self.char * (self.width + 6))
+        for text in self.lines:
+            thistest.log(
+                "%s %s %s"
+                % (self.char * 2, text.center(self.width), self.char * 2)
+            )
+        thistest.log(self.char * (self.width + 6) + "\n" * self.post)
 
 
 @dataclass
@@ -1274,7 +1367,12 @@ class Ext_Annotation:
     # End location for the annotation, if relevant
     end_sloc: str | None
 
-    def __init__(self, start_sloc, source_file, end_sloc=None):
+    def __init__(
+        self,
+        start_sloc: str,
+        source_file: str,
+        end_sloc: str | None = None,
+    ):
         self.start_sloc = start_sloc
         self.source_file = source_file
         self.end_sloc = end_sloc
@@ -1285,7 +1383,7 @@ class Ext_Annotation:
             self.source_file = self.source_file.replace("/", os.path.sep)
             self.source_file = self.source_file.replace("\\", os.path.sep)
 
-    def cmd_line_args(self):
+    def cmd_line_args(self) -> list[str]:
         args = [self.source_file]
         args.append(f"--kind={self.__class__.__name__}")
         if self.end_sloc:
@@ -1303,7 +1401,7 @@ class Exempt_On(Ext_Annotation):
     # Justification for the exempted region
     justification: str | None = None
 
-    def cmd_line_args(self):
+    def cmd_line_args(self) -> list[str]:
         return super().cmd_line_args() + (
             [f"--justification={self.justification}"]
             if self.justification
@@ -1319,7 +1417,7 @@ class Exempt_Region(Exempt_On):
     Requires end_sloc to be specified
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.end_sloc
 
 
@@ -1352,7 +1450,7 @@ class Reset_Buffers(Ext_Annotation):
     # statement designated by start_sloc
     insert_after: bool = False
 
-    def cmd_line_args(self):
+    def cmd_line_args(self) -> list[str]:
         return super().cmd_line_args() + (
             ["--annotate-after"] if self.insert_after else []
         )
@@ -1365,7 +1463,7 @@ class Dump_Buffers(Reset_Buffers):
     # Optionnal trace prefix to be used when dumping the coverage buffers
     trace_prefix: str | None = None
 
-    def cmd_line_args(self):
+    def cmd_line_args(self) -> list[str]:
         return super().cmd_line_args() + (
             [f"--dump-filename-prefix={self.trace_prefix}"]
             if self.trace_prefix
@@ -1378,13 +1476,13 @@ def xcov_annotate(
     annot_out_file: str,
     annot_in_files: list[str] | None = None,
     extra_args: list[str] | None = None,
-    out=None,
-    env=None,
-    register_failure=True,
-    auto_config_args=True,
-    auto_target_args=True,
-    tolerate_messages=None,
-):
+    out: str | None = None,
+    env: dict[str, str] | None = None,
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+    auto_target_args: bool = True,
+    tolerate_messages: str | None = None,
+) -> None:
     """
     Invoke "gnatcov annotate" with the correct arguments to generate
     an external annotation.
@@ -1392,16 +1490,16 @@ def xcov_annotate(
     No validation is performed on the function arguments before being
     transformed to a command line.
 
-    :param Ext_Annotation) annotation: Annotation to be generated by gnatcov
-    :param str source_file: source file to be annotated
-    :param str annot_out_file: File to which the annotations should be written.
+    :param annotation: Annotation to be generated by gnatcov.
+    :param source_file: Source file to be annotated.
+    :param annot_out_file: File to which the annotations should be written.
         This will overwrite any pre-existing file.
-    :param list[str] | None annot_in_files : List of filenames containing
-        pre-existing annotations, to be loaded and to which the new annotation
+    :param annot_in_files: List of filenames containing pre-existing
+        annotations, to be loaded and to which the new annotation
         will be added. Defaults to None.
-    :param list[str] | None  extra_args: extra arguments passed on the command
-        line. Defaults to None.
-    :param str | None tolerate_messages: see documentation of xcov.
+    :param extra_args: Extra arguments passed on the command line. Defaults to
+        None.
+    :param tolerate_messages: See documentation of xcov.
     """
     args = ["add-annotation"]
     args.extend(annotation.cmd_line_args())
@@ -1424,7 +1522,11 @@ def xcov_annotate(
     )
 
 
-def generate_annotations(annotations, subdir="", tolerate_messages=None):
+def generate_annotations(
+    annotations: Iterable[Ext_Annotation],
+    subdir: str = "",
+    tolerate_messages: str | None = None,
+) -> str:
     """
     Setup a temporary working directory in which an annotation file
     will be generated from annotations, using gnatcov add-annotation
