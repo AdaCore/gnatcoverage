@@ -49,6 +49,9 @@ out units of interest: :cmd-option:`--units` and :cmd-option:`--projects`. Refer
 to :ref:`src_traces` for more information regarding the source instrumentation
 specific switches.
 
+The same limitations apply as those specific to C and C++ coverage, see the 
+:ref:`c-cpp-limitations` paragraph for the full details.
+
 As there is no project acting as a units of interest provider, every file that
 is not a system header is considered as a file of interest. The user can
 explicitly specify files of interest through the :cmd-option:`--files` switch,

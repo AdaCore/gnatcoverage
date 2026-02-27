@@ -23,7 +23,7 @@ main ()
 
 //# test_constexpr.cpp
 //
-//    /ce-body/        l. ## 0
+//    /ce-body/        l? ## s?
 //    /single-ce-decl/ l+ ## 0
 //    /double-ce-decl/ l+ ## 0
 //    /if-ce/          l+ ## 0

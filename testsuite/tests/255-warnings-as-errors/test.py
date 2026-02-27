@@ -95,4 +95,35 @@ check(
     extra_args=[],
 )
 
+instr_limit_prj = gprfor(
+    prjid="instr_limitation",
+    mains=["main.adb"],
+    srcdirs=["../instr-limitation"],
+)
+
+# Check that instrumenter limitations do trigger the warnings-as-error
+# mechanism...
+check(
+    "instrumenter-limitation",
+    instr_limit_prj,
+    r"\?\?\? main.adb:5:7: gnatcov limitation: cannot instrument an"
+    " expression function which is a primitive of its return type, when"
+    " this type is a tagged type. Consider turning it into a regular function"
+    " body.",
+    extra_args=[],
+)
+
+# .. Except when --suppress-limitations is passed to 'gnatcov instrument',
+# in which case no message should be emitted at all.
+p = xcov_instrument(
+    gprsw=GPRswitches(root_project=instr_limit_prj),
+    covlevel="stmt",
+    extra_args=["--suppress-limitations"],
+)
+thistest.fail_if_not_equal(
+    "'gnatov instrument' failed with --suppress-limitations",
+    p.status,
+    0,
+)
+
 thistest.result()

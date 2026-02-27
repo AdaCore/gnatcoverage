@@ -44,7 +44,7 @@ if thistest.options.trace_mode == "src":
     cov_log = contents_of("coverage.log").strip()
     thistest.fail_if_no_match(
         "'gnatcov coverage' output",
-        r"warning: gnatcov limitation: ignoring unit identity\.h from"
+        r"\?\?\? gnatcov limitation: ignoring unit identity\.h from"
         r".*[\\/]identity\.c\.sid because identity\.c is ignored$",
         cov_log,
     )
