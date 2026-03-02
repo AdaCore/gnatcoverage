@@ -106,7 +106,7 @@ instr_limit_prj = gprfor(
 check(
     "instrumenter-limitation",
     instr_limit_prj,
-    r"\?\?\? main.adb:5:7: gnatcov limitation: cannot instrument an"
+    r"\?\?\? main.adb:7:7: gnatcov limitation: cannot instrument an"
     " expression function which is a primitive of its return type, when"
     " this type is a tagged type. Consider turning it into a regular function"
     " body.",
