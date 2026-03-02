@@ -1,5 +1,3 @@
-#include <assert.h>
-
 // Recursive constexpr function
 constexpr int
 fac (int n)
@@ -10,7 +8,8 @@ fac (int n)
 int
 main (int argc, char *argv[])
 {
-  assert (fac (3) == 6); // # check
+  bool i = fac (3) == 6; // # check
+  return 0;              // # check
 }
 
 //# test_main.cpp
