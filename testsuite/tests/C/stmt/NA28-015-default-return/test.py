@@ -16,7 +16,7 @@ Wdir("tmp_")
 # return in the default alternative of a switch case.
 
 
-def run_trace_with_args(prefix, exec_args):
+def run_trace_with_args(prefix: str, exec_args: list[str]) -> None:
     build_and_run(
         gprsw=GPRswitches(
             root_project=gprfor(srcdirs=[".."], mains=["calc.c"])
@@ -34,25 +34,27 @@ def run_trace_with_args(prefix, exec_args):
     )
 
 
-def trycov(cases, xnocov):
+def trycov(cases: list[str], xnocov: list[str]) -> None:
     """
     Consolidate the set of traces whose basenames are provided in CASES.  Check
     that we have '-' notes on lines designated by exprs in XNOCOV, and only
     there.
     """
 
-    fun_tracename = (
-        srctracename_for
-        if thistest.options.trace_mode == "src"
-        else tracename_for
-    )
+    def tracename_wrapper(pgmname: str) -> str:
+        if thistest.options.trace_mode == "src":
+            result = srctracename_for(pgmname)
+            assert result
+            return result
+        else:
+            return tracename_for(pgmname)
 
     xcov(
         "coverage --level=stmt --annotate=xcov"
-        " -P gen.gpr %s" % " ".join(fun_tracename(c) for c in cases)
+        " -P gen.gpr %s" % " ".join(tracename_wrapper(c) for c in cases)
     )
 
-    def check_mark_on(line):
+    def check_mark_on(line: str) -> None:
         m = re.search(string=line, pattern=r"^ *\d+ (?P<note>.):")
         if not m:
             return

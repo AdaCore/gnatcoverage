@@ -10,10 +10,10 @@ from SUITE.cutils import Wdir
 
 
 test_drivers = {"test_1": {"not.c": ["-O0"]}, "test_2": {"not.c": ["-O1"]}}
-coverage_expectations = {
+coverage_expectations: dict[str, dict[str, int]] = {
     # There is no object coverage expectation. This entry is to add "f" to the
     # routines to consolidate.
-    "f": None,
+    "f": {},
 }
 
 # SCOs are the same for each project: not.gli
