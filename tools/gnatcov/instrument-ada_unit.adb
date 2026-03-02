@@ -11232,7 +11232,7 @@ package body Instrument.Ada_Unit is
 
       Context : constant Analysis_Context := Create_Context;
       Mapping : constant Config_Pragmas_Mapping :=
-        Import_From_Project (Context, Project.Project);
+        Import_From_Project (Project.Project);
 
       --  Then, turn this mapping into a JSON description
 
