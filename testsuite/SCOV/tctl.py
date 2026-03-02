@@ -2,7 +2,9 @@
 TestCase Control abstraction.
 """
 
-from SUITE.gprutils import gprcov_for
+from collections.abc import Iterable
+
+from SUITE.gprutils import GPRswitches, gprcov_for
 
 
 class CovControl:
@@ -35,17 +37,17 @@ class CovControl:
 
     def __init__(
         self,
-        deps=(),
-        units_in=None,
-        ulist_in=None,
-        units_out=None,
-        ulist_out=None,
-        xreports=None,
-        gprsw=None,
-        covoptions="",
-        instroptions="same",
-        dump_trigger=None,
-        auto_units=False,
+        deps: Iterable[str] = (),
+        units_in: Iterable[str] | None = None,
+        ulist_in: Iterable[str] | None = None,
+        units_out: Iterable[str] | None = None,
+        ulist_out: Iterable[str] | None = None,
+        xreports: list[str] | None = None,
+        gprsw: GPRswitches | None = None,
+        covoptions: list[str] | str = "",
+        instroptions: list[str] | str = "same",
+        dump_trigger: str | None = None,
+        auto_units: bool = False,
     ):
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
@@ -101,27 +103,27 @@ class CovControl:
         # the target and runtime.
         self.dump_trigger = dump_trigger
 
-    def unexpected(self, source):
+    def unexpected(self, source: str) -> bool:
         return self.xreports is not None and source not in self.xreports
 
-    def expected(self, source):
+    def expected(self, source: str) -> bool:
         return not self.unexpected(source)
 
-    def requires_gpr(self):
+    def requires_gpr(self) -> bool:
         """
         Whether honoring this control object implictly requires the use of a
         project file.
         """
         return (
-            self.deps
-            or self.gprsw
+            bool(self.deps)
+            or self.gprsw is not None
             or self.units_in is not None
             or self.units_out is not None
             or self.ulist_in is not None
             or self.ulist_out is not None
         )
 
-    def gpr(self, units_from_test_driver):
+    def gpr(self, units_from_test_driver: Iterable[str]) -> str:
         """
         The GPR Coverage package corresponding to our lists of attribute
         contents, as a multiline string.
@@ -143,7 +145,7 @@ class _Category:
     relevant for a testcase execution.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
 
