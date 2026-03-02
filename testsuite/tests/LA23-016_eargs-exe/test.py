@@ -13,7 +13,7 @@ exe = exepath_to("p")
 # both work and produce the same result.
 
 
-def run_check(slug, args):
+def run_check(slug: str, args: list[str]) -> None:
     rlog = slug + ".rlog"
     trace = slug + ".trace"
     xrun(["-o", trace] + args, out=rlog)
@@ -23,7 +23,7 @@ def run_check(slug, args):
     )
 
 
-def cov_check(slug):
+def cov_check(slug: str) -> None:
     clog = slug + ".clog"
     trace = slug + ".trace"
     rep = slug + ".rep"

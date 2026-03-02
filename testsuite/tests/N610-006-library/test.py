@@ -24,7 +24,7 @@ xcov_args = build_and_run(
 )
 
 
-def trycov(verbose, annotate):
+def trycov(verbose: bool, annotate: str) -> None:
     # last argument of xcov_args it the trace_file name
     # Note that coverage collection is on the library, not on
     # the test project given to build_and_run

@@ -23,7 +23,11 @@ xcov_args_no_trace = xcov_args[:-1]
 trace_file = xcov_args[-1]
 
 
-def check_output(output_file, expected_content, regexp=False):
+def check_output(
+    output_file: str,
+    expected_content: str,
+    regexp: bool = False,
+) -> None:
     """
     Check that the content of the "output_file" text file matches
     "expected_content". Check for equality if "regexp" is False and consider
@@ -47,17 +51,21 @@ def check_output(output_file, expected_content, regexp=False):
 
 
 def run_and_check(
-    args, output_file, expected_content, regexp=False, success_expected=True
-):
+    args: list[str],
+    output_file: str,
+    expected_content: str,
+    regexp: bool = False,
+    success_expected: bool = True,
+) -> None:
     """
     Run gnatcov with the given arguments.
 
-    :param str output_file: Name of the temporary file to store the content of
+    :param output_file: Name of the temporary file to store the content of
         gnatcov's standard output.
-    :param str expected_content: See the corresponding argument in "check".
-    :param bool regexp: See the corresponding argument in "check".
-    :param bool success_expected: If true, the test fails if gnatcov exits with
-        an error code. If false, the test fails if gnatcov exits with the zero
+    :param expected_content: See the corresponding argument in "check".
+    :param regexp: See the corresponding argument in "check".
+    :param success_expected: If true, the test fails if gnatcov exits with an
+        error code. If false, the test fails if gnatcov exits with the zero
         status code.
     """
     p = xcov(args, out=output_file, register_failure=success_expected)

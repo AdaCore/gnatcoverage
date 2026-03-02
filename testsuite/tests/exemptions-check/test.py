@@ -17,7 +17,7 @@ xcov(["map-routines", "--scos=obj/hello.ali", "obj/hello.o"], "out")
 
 dif = diff("../expected", "out")
 thistest.fail_if(
-    dif, "out != expected on exemption pragma placement rules:\n" + dif
+    bool(dif), "out != expected on exemption pragma placement rules:\n" + dif
 )
 
 thistest.result()

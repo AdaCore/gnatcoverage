@@ -67,7 +67,7 @@ manual_files = [
 ]
 
 
-def get_gprsw():
+def get_gprsw() -> GPRswitches:
     """
     Generate a project file in the current directory and return the GPRswitches
     instance.

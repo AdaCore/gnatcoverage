@@ -33,7 +33,7 @@ base_coverage = [
 ]
 
 
-def check(ali_spec):
+def check(ali_spec: list[str]) -> None:
     xcov(base_coverage + ali_spec)
     this_report = contents_of("p.adb.xcov")
 

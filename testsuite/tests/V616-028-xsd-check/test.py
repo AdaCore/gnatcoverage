@@ -15,7 +15,7 @@ from SUITE.tutils import gprfor, thistest
 Wdir("tmp_")
 
 
-def check_xml(xsd_file, xml_file):
+def check_xml(xsd_file: str, xml_file: str) -> None:
     xsd_doc = etree.parse(xsd_file)
     xsd = etree.XMLSchema(xsd_doc)
     xml = etree.parse(xml_file)
@@ -31,15 +31,15 @@ def check_xml(xsd_file, xml_file):
 
 
 # The XML Schema is generated in the output directory with the XML report
-def xsd_file(output_dir):
+def xsd_file(output_dir: str) -> str:
     return os.path.join(output_dir, "gnatcov-xml-report.xsd")
 
 
-def xml_file(output_dir):
+def xml_file(output_dir: str) -> str:
     return os.path.join(output_dir, "index.xml")
 
 
-def build_run_coverage_and_check(covlevel):
+def build_run_coverage_and_check(covlevel: str) -> None:
     build_run_and_coverage(
         gprsw=GPRswitches(
             root_project=gprfor(srcdirs=[".."], mains=["test.adb"])

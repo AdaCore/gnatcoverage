@@ -3,12 +3,18 @@ Check that warnings about projects not contributing to the selection of units
 of interest are emitted when expected.
 """
 
+from collections.abc import Iterable
+import dataclasses
 import os.path
 import glob
 
 from e3.fs import mkdir
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.gprutils import GPRswitches, gprcov_for
 from SUITE.cutils import Wdir, contents_of
@@ -18,7 +24,8 @@ from SUITE.tutils import gprfor
 tmp = Wdir("tmp_")
 
 
-class ProjectConfig(object):
+@dataclasses.dataclass(frozen=True)
+class ProjectConfig:
     """Helper to generate a project file.
 
     Instances hold information about the units of interest information that the
@@ -26,11 +33,15 @@ class ProjectConfig(object):
     mains) is determined during the generation (see the generate method below).
     """
 
-    def __init__(self, units_in=None, units_out=None):
-        self.units_in = units_in
-        self.units_out = units_out
+    units_in: list[str] | None = None
+    units_out: list[str] | None = None
 
-    def generate(self, name, deps=(), mains=()):
+    def generate(
+        self,
+        name: str,
+        deps: Iterable[str] = (),
+        mains: Iterable[str] = (),
+    ) -> str:
         return gprfor(
             prjid=name,
             mains=mains,
@@ -42,30 +53,29 @@ class ProjectConfig(object):
 
 
 def run_test(
-    label,
-    slug,
-    main,
-    helper,
-    recursive,
-    projects=None,
-    units=None,
-    projects_warned=None,
-    expected_cov_list=None,
-):
+    label: str,
+    slug: str,
+    main: ProjectConfig,
+    helper: ProjectConfig,
+    recursive: bool,
+    projects: list[str] | None = None,
+    units: list[str] | None = None,
+    projects_warned: list[str] | None = None,
+    expected_cov_list: list[CovReport] | None = None,
+) -> None:
     """
     Produce a coverage report for the given parameters and check the emitted
     warnings.
 
-    :param str label: Label for this test.
-    :param str slug: Unique short string for this test (used to create
+    :param label: Label for this test.
+    :param slug: Unique short string for this test (used to create
         directories).
-    :param ProjectConfig main: Configuration for the "main" project.
-    :param ProjectConfig helper: Configuration for the "helper" project.
-    :param bool recursive: Whether to not pass --no-subprojects.
-    :param list[str] | None projects: List of projects to pass with --projects.
-    :param list[str] | None units: List of units to pass with --units.
-    :param list[str] | None projects_warned: List of projects for which we
-        expected warnings.
+    :param main: Configuration for the "main" project.
+    :param helper: Configuration for the "helper" project.
+    :param recursive: Whether to not pass --no-subprojects.
+    :param projects: List of projects to pass with --projects.
+    :param units: List of units to pass with --units.
+    :param projects_warned: List of projects for which we expected warnings.
     :param expected_cov: List of expected coverage reports.
     """
     projects = projects or []
@@ -119,7 +129,7 @@ def run_test(
         contents_of(log_file).strip(),
     )
 
-    expected_cov = {}
+    expected_cov: CovReport = {}
     if expected_cov_list:
         for c in expected_cov_list:
             expected_cov.update(c)

@@ -22,7 +22,7 @@ xcov_args = build_and_run(
 )
 
 
-def run_checks(name, report_title, prefix):
+def run_checks(name: str, report_title: str | None, prefix: str) -> None:
     html_dir = "{}-html".format(name)
 
     args = list(xcov_args)
@@ -33,7 +33,7 @@ def run_checks(name, report_title, prefix):
 
     xcov(args + ["-ahtml", "--output-dir={}".format(html_dir)])
 
-    def do_match(title, dirname, filename):
+    def do_match(title: str, dirname: str, filename: str) -> None:
         path = os.path.join(dirname, filename)
         text = "<title>{}</title>".format(title)
         thistest.fail_if(

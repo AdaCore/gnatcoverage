@@ -1,6 +1,7 @@
 from binascii import crc32
 import os.path
 import re
+from typing import Iterable
 
 from e3.os.fs import unixpath
 
@@ -31,14 +32,14 @@ LOG_OPEN_RE = re.compile(
 )
 
 
-def list_to_text(items):
+def list_to_text(items: Iterable[str]) -> str:
     return (
         "".join("  - {}\n".format(item) for item in items)
         or "  <empty list>\n"
     )
 
 
-def check_same_files(expected, found):
+def check_same_files(expected: Iterable[str], found: Iterable[str]) -> None:
     expected = {unixpath(path) for path in expected}
     found = {unixpath(path) for path in found}
     thistest.fail_if(
@@ -48,7 +49,7 @@ def check_same_files(expected, found):
     )
 
 
-def check_logging(log_file, expected_files):
+def check_logging(log_file: str, expected_files: Iterable[str]) -> None:
     """
     Check that `log_file` contains correct checksums for all `expected_files`,
     and only for them.
@@ -58,7 +59,7 @@ def check_logging(log_file, expected_files):
     expected_files = {os.path.join(base, path) for path in expected_files}
 
     checksums = {}
-    gnatcov_cwd = None
+    gnatcov_cwd: str | None = None
 
     # First, get GNATcov's CWD and all the CRC32 checksums from the verbose
     # logging.
@@ -70,6 +71,7 @@ def check_logging(log_file, expected_files):
             m = LOG_OPEN_RE.match(line)
             if not m:
                 continue
+            assert gnatcov_cwd
 
             thistest.stop_if(
                 not gnatcov_cwd,

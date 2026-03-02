@@ -12,9 +12,10 @@ from SUITE.control import env
 from SUITE.cutils import Wdir
 from SCOV.minicheck import check_xcov_reports
 from SUITE.integrated_instr_utils import (
-    build_run_and_coverage,
-    LinkMain,
     CompileSource,
+    LinkMain,
+    Workflow,
+    build_run_and_coverage,
 )
 from SUITE.tutils import thistest
 
@@ -53,7 +54,7 @@ expected_report = {
 
 # Initialize the workflows
 sources = [os.path.abspath(filename) for filename in copy_map.values()]
-wfs = []
+wfs: list[Workflow] = []
 objects = []
 for source in sources:
     c = CompileSource(source=source)

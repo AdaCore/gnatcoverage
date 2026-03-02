@@ -22,7 +22,7 @@ from SUITE.tutils import (
 )
 
 
-def indexes(string, substr):
+def indexes(string: bytes, substr: bytes) -> list[int]:
     """
     Return the list of all indexes in "string" at which the given substring can
     be found.
@@ -56,15 +56,15 @@ for main, tracefile in zip(mains, tracefiles):
 # Corrupt the trace for main_b. Look for the second trace header and truncate
 # the file in the middle of a trace entry. We go through this to get an error
 # that is consistent across runs.
-with open(tracefiles[1], "rb") as f:
-    data = f.read()
+with open(tracefiles[1], "rb") as fr:
+    data = fr.read()
 header_indexes = indexes(data, b"#QEMU-Traces")
 header_size = 20  # See Qemu_Traces.Trace_Header
-with open(tracefiles[1], "wb") as f:
-    f.write(data[: header_indexes[1] + header_size + 5])
+with open(tracefiles[1], "wb") as fw:
+    fw.write(data[: header_indexes[1] + header_size + 5])
 
 
-def gnatcov_coverage(keep_reading_traces):
+def gnatcov_coverage(keep_reading_traces: bool) -> None:
     log_file = "coverage-{}.log".format(
         "krt" if keep_reading_traces else "default"
     )

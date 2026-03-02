@@ -148,11 +148,11 @@ test_database = {
 }
 
 
-def run_test(platform, insns):
+def run_test(platform: str, insns: list[tuple[bool, str]]) -> None:
     asm_src = os.path.abspath("foo-{}.s".format(platform))
     Wdir("tmp_")
 
-    def build_material(name, padding_insn=None):
+    def build_material(name: str, padding_insn: str | None = None) -> str:
         tmp = Wdir("build-{}".format(name))
 
         asm_code = contents_of(asm_src).format(padding=padding_insn or "")

@@ -19,23 +19,23 @@ from SUITE.tutils import gprfor, srctracename_for, xcov
 tmp = Wdir("tmp_")
 
 
-def main(i):
+def main(i: int) -> str:
     return "main{}".format(i)
 
 
-def sid(i):
+def sid(i: int) -> str:
     return "i{}.sid".format(i)
 
 
-def ckpt(i):
+def ckpt(i: int) -> str:
     return "c{}.ckpt".format(i)
 
 
-def trace(i):
+def trace(i: int) -> str:
     return srctracename_for("main{}".format(i))
 
 
-def check_error(argv, log_name, expected_error):
+def check_error(argv: list[str], log_name: str, expected_error: str) -> None:
     p = xcov(argv, out=log_name, register_failure=False)
     actual_error = contents_of(log_name).strip()
     thistest.fail_if(p.status == 0, "gnatcov was expected to fail, it did not")

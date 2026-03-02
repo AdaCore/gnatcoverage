@@ -20,7 +20,7 @@ gnat_names = {line.strip() for line in lines_of("gnat.txt")}
 # Check that gnatcov knows about all pragmas from gnat_util
 missing_names = "\n".join(sorted(gnat_names - gnatcov_names))
 thistest.fail_if(
-    missing_names,
+    bool(missing_names),
     "gnatcov does not know about the following pragmas:\n" + missing_names,
 )
 

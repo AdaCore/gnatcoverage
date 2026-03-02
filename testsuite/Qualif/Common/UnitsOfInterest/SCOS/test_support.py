@@ -11,7 +11,7 @@ import re
 import os
 
 
-def _run_and_cov(pgm, level, sco_args):
+def _run_and_cov(pgm: str, level: str, sco_args: list[str]) -> None:
     """
     Execute gnatcov run then gnatcov coverage for the provided
     program `pgm`, expected to be the base name of without extension
@@ -41,7 +41,7 @@ def _run_and_cov(pgm, level, sco_args):
     xcov(["coverage"] + cov_args)
 
 
-def _tryone(sco_args, odir):
+def _tryone(sco_args: list[str], odir: str) -> None:
     """
     Exercise one execution and analysis of the test_ab program
     for stmt+mcdc with the provided `sco_args`, switching to a
@@ -81,7 +81,7 @@ def _tryone(sco_args, odir):
     wsd.to_homedir()
 
 
-def check(test_ali, mon_ali):
+def check(test_ali: str, mon_ali: str) -> None:
     """
     Exercise a sequence of run/coverage commands, providing
     SCOs held in the given ali files (`test_ali` for the test driver

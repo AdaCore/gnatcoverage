@@ -10,7 +10,7 @@ from SUITE.tutils import xcov, contents_of
 tmp = Wdir("tmp_")
 
 
-def check_one(arg_name, invalid_line):
+def check_one(arg_name: str, invalid_line: bool) -> None:
     """
     Run gnatcov add-annotation to generate an annotation for main.adb, with
     either a line or a column set to 0 in the value passed to arg_name, and

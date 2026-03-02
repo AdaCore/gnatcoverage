@@ -24,7 +24,7 @@ xcov_args = build_and_run(
 trace_file = xcov_args[-1]
 
 
-def check_output(output_file, expected_content):
+def check_output(output_file: str, expected_content: str) -> None:
     """
     Check that the content of the "output_file" text file matches
     "expected_content".
@@ -36,7 +36,11 @@ def check_output(output_file, expected_content):
     )
 
 
-def run_and_check(args, output_file, expected_content):
+def run_and_check(
+    args: list[str],
+    output_file: str,
+    expected_content: str,
+) -> None:
     """
     Run gnatcov with the given command line arguments "args", latch the output
     in "output_file" and check that this output matches the provided

@@ -13,7 +13,7 @@ from SUITE.tutils import gprfor, thistest
 wd = Wdir("tmp_")
 
 gpr = gprfor(["main.adb"], srcdirs="..")
-xcov_args = build_run_and_coverage(
+build_run_and_coverage(
     gprsw=GPRswitches(root_project=gpr),
     covlevel="stmt+decision",
     mains=["main"],

@@ -48,7 +48,7 @@ trace_file = xcov_args[-1]
 # binary trace mode, and with -P only in other modes.
 
 
-def try_coverage(xcov_args, use_project):
+def try_coverage(xcov_args: list[str], use_project: bool) -> None:
     thistest.log(f"== try_coverage(use_project={use_project})")
     rm(pkg_ads_report_path)
 
@@ -57,7 +57,8 @@ def try_coverage(xcov_args, use_project):
     p = xcov(xcov_args)
 
     thistest.fail_if(
-        p.out, '"gnatcov coverage" output is not empty:\n--\n{}'.format(p.out)
+        bool(p.out),
+        '"gnatcov coverage" output is not empty:\n--\n{}'.format(p.out),
     )
     thistest.fail_if(
         not os.path.isfile(pkg_ads_report_path),

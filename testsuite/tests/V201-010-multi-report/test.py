@@ -15,7 +15,7 @@ tmp = Wdir("tmp_")
 
 gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 
-xcov_args = build_run_and_coverage(
+build_run_and_coverage(
     gprsw=GPRswitches(root_project=gpr),
     extra_coverage_args=["--annotate=report,xcov,dhtml", "--annotate=xml"],
     covlevel="stmt",

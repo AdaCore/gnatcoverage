@@ -55,7 +55,7 @@ report_symbols = sorted(
 )
 
 
-def fmt_list(items):
+def fmt_list(items: list[str]) -> str:
     return "\n".join("   " + line for line in items)
 
 

@@ -28,12 +28,12 @@ for project in ["mylib", "harness"]:
     mkdir(os.path.join("obj", project, f"{project}-gnatcov-instr"))
 
 
-def pattern_for_log(log, pattern):
+def pattern_for_log(log: str, pattern: str) -> str:
     prefix = re.escape(f"[GNATCOV.{log}]")
     return f"\\s*{prefix} {pattern}$"
 
 
-class Filter(OutputRefiner):
+class Filter(OutputRefiner[str]):
     """Output refiner to restrict the set of log lines considered in this test.
 
     We do not want to update this test each time someone adds new debug logging
@@ -58,7 +58,7 @@ class Filter(OutputRefiner):
     ]
     regexp = re.compile("|".join(f"(?:{p})" for p in patterns))
 
-    def refine(self, output):
+    def refine(self, output: str) -> str:
         return "".join(
             line
             for line in output.splitlines(True)
@@ -66,7 +66,7 @@ class Filter(OutputRefiner):
         )
 
 
-class HashRefiner(OutputRefiner):
+class HashRefiner(OutputRefiner[str]):
     """Output refiner to hide hashes from the instrumented files.
 
     Actual hashes are not portable as they vary depending on the absolute path
@@ -75,11 +75,11 @@ class HashRefiner(OutputRefiner):
 
     hash_re = re.compile("z([0-9a-f]{8})")
 
-    def __init__(self):
-        self.map = {}
+    def __init__(self) -> None:
+        self.map: dict[str, str] = {}
 
-    def repl(self, match):
-        hash_value = match.group(0)
+    def repl(self, m: re.Match) -> str:
+        hash_value = m.group(0)
         try:
             return self.map[hash_value]
         except KeyError:
@@ -87,11 +87,11 @@ class HashRefiner(OutputRefiner):
             self.map[hash_value] = result
             return result
 
-    def refine(self, output):
+    def refine(self, output: str) -> str:
         return self.hash_re.sub(self.repl, output)
 
 
-class SortByFiles(OutputRefiner):
+class SortByFiles(OutputRefiner[str]):
     """Output refiner to sort lines by instrumented source file.
 
     The order in which "gnatcov instrument" processes units is not specified,
@@ -99,17 +99,17 @@ class SortByFiles(OutputRefiner):
     baselines.
     """
 
-    def refine(self, output):
-        result = []
+    def refine(self, output: str) -> str:
+        result: list[str] = []
 
         # When processing a section that contains logs for a list of source
         # files ("Coverage instrumentation" or "Main instrumentation"),
         # "by_file" maps seen filenames to the corresponding list of log lines
         # while "current_file" designates the last file seen for that section.
-        by_file = None
-        current_file = None
+        by_file: dict[str, list[str]] | None = None
+        current_file: str | None = None
 
-        def flush_files():
+        def flush_files() -> None:
             """Append all log lines for files seen so far to result."""
             if by_file is None:
                 return
@@ -147,6 +147,7 @@ class SortByFiles(OutputRefiner):
                     assert current_file not in by_file
                     by_file[current_file] = [line]
                 else:
+                    assert current_file
                     by_file[current_file].append(line)
         flush_files()
 

@@ -11,7 +11,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
 
-def check_log(command, log_file):
+def check_log(command: str, log_file: str) -> None:
     thistest.fail_if_no_match(
         what=f"Missing warning about default level for command {command}",
         regexp=r"warning: Coverage level not specified on the command line or"

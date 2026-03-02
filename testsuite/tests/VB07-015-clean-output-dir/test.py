@@ -24,7 +24,7 @@ expected_cov = {
 possible_output_dirs = ["obj", os.path.join("obj", "xcov")]
 
 
-def check_one(units, output_dir, xcov_args):
+def check_one(units: list[str], output_dir: str, xcov_args: list[str]) -> None:
     """
     Run gnatcov coverage with the specified xcov_args and check that we only
     get a coverage report for units in output_dir. Also check that all

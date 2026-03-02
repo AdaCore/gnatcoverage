@@ -12,7 +12,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-def check(label, scos):
+def check(label: str, scos: list[str] | None) -> None:
     """
     Check that --annotate=dhtml produces something, using -P or --scos.
     """

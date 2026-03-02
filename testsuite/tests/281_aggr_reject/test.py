@@ -10,7 +10,11 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import contents_of
 
 
-def check_cmd(cmd, extra_args=None, trace_mode=None):
+def check_cmd(
+    cmd: str,
+    extra_args: list[str] | None = None,
+    trace_mode: str | None = None,
+) -> None:
     """
     Check that the gnatcov command cmd properly rejects the aggregate project
     aggr.gpr, emitting the EXPECTED_ERR_MSG error message.

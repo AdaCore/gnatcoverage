@@ -21,7 +21,7 @@ class W:
     sco_num: str
     col_range: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"!!! foo.c:5:{self.col}:"
             f" unexpected SCO overlapping with SCO {self.sco_num}:"
@@ -30,7 +30,11 @@ class W:
         )
 
 
-def run_variant(label, col_ranges, expected_warnings):
+def run_variant(
+    label: str,
+    col_ranges: list[tuple[int, int]],
+    expected_warnings: list[W],
+) -> None:
     """
     Generate C code that will generate SCOS for the column number ranges in
     ``col_ranges``, instrument it and check that gnatcov emits the given

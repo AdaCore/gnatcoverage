@@ -12,10 +12,6 @@ Wdir("tmp_")
 # option was not used. We exercise various combinations of option selections.
 critical_opts = ("-g", "-fdump-scos", "-fpreserve-control-flow")
 
-# We need full control over the compilation options here, so disconnect
-# all the default ones
-_cargs = {"scovcargs": False, "suitecargs": False}
-
 gprtemplate = """
 project %(name)s is
   for Source_Dirs use ("../src");
@@ -29,7 +25,7 @@ end %(name)s;
 """
 
 
-def trywith(thisid, thisopts):
+def trywith(thisid: str, thisopts: list[str]) -> None:
     gprname = thisid + ".gpr"
     with open(gprname, "w") as gpr:
         gpr.write(
@@ -40,7 +36,11 @@ def trywith(thisid, thisopts):
             }
         )
 
-    gprbuild(gprname, gargs=["test_assert.adb"], **_cargs)
+    # We need full control over the compilation options here, so disconnect all
+    # the default ones
+    gprbuild(
+        gprname, gargs=["test_assert.adb"], scovcargs=False, suitecargs=False
+    )
     xrun(exepath_to("test_assert"))
     out = thisid + ".out"
     ali = "obj/checks.ali"

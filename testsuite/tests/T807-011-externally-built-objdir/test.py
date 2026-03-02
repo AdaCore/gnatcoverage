@@ -61,7 +61,7 @@ rm(sid_pattern)
 xcov_instrument(gprsw=tests_gprsw, covlevel="stmt+decision")
 sids = ls(sid_pattern)
 thistest.fail_if(
-    sids,
+    bool(sids),
     '"gnatcov instrument" wrongly re-created SID files: {}'.format(
         sorted(sids)
     ),

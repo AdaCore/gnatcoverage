@@ -19,18 +19,18 @@ real target board, producing a some trace that needs to be converted to a
 format gnatcov can process.
 """
 
-import os
 import optparse
+import sys
 
 from e3.os.process import Run
 
 
 class Runner:
-    def __init__(self):
+    def __init__(self) -> None:
         self.parse_command_line()
         self.run()
 
-    def parse_command_line(self):
+    def parse_command_line(self) -> None:
         """Parse this script's command line."""
 
         op = optparse.OptionParser()
@@ -54,7 +54,7 @@ class Runner:
         op.add_option("-o", dest="ofile", default=None)
         self.options, self.args = op.parse_args()
 
-    def run_command_line(self):
+    def run_command_line(self) -> list[str]:
         """Compute a list of command line arguments to pass to
         gnatcov run from what we have received."""
 
@@ -80,12 +80,12 @@ class Runner:
 
         return args
 
-    def run(self):
+    def run(self) -> None:
         print("============== GNATCOV RUN ===================")
 
         if not self.args:
             print("gnatcov: missing EXE for run")
-            os.exit(1)
+            sys.exit(1)
 
         Run(["gnatcov", "run"] + self.run_command_line() + self.args)
 

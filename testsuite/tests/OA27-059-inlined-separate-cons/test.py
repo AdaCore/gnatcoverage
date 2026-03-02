@@ -23,35 +23,35 @@ from SUITE.tutils import tracename_for, xcov
 wd = Wdir("tmp_")
 
 
-class Testcase(object):
-    def __init__(self, name, objdir):
+class Testcase:
+    def __init__(self, name: str, objdir: str):
         self.name = name
         self._objdir = objdir
 
     @property
-    def project_file(self):
+    def project_file(self) -> str:
         return os.path.join("..", "{}.gpr".format(self.name))
 
     @property
-    def main(self):
+    def main(self) -> str:
         return "main_{}".format(self.name)
 
-    def obj_dir(self, *args):
+    def obj_dir(self, *args: str) -> str:
         return os.path.join("..", self._objdir, *args)
 
-    def exe_dir(self, *args):
+    def exe_dir(self, *args: str) -> str:
         return os.path.join("..", "bin", *args)
 
     @property
-    def tracename(self):
+    def tracename(self) -> str:
         return tracename_for("main_{}".format(self.name))
 
     @property
-    def checkpoint(self):
+    def checkpoint(self) -> str:
         return "{}.ckpt".format(self.name)
 
 
-def clean_output_directory():
+def clean_output_directory() -> None:
     if os.path.exists("output"):
         shutil.rmtree("output")
     os.mkdir("output")

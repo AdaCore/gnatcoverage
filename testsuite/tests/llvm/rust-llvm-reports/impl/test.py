@@ -9,7 +9,7 @@ from SUITE.cutils import Wdir, multi_range
 
 _wd = Wdir("tmp_")
 
-incomplete = {}
+incomplete: set[int] = set()
 
 uncovered = multi_range((32, 34))
 

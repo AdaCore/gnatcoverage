@@ -11,7 +11,7 @@ from SUITE.tutils import gprbuild, gprfor
 from SUITE.gprutils import GPRswitches
 
 
-def gen_prj():
+def gen_prj() -> GPRswitches:
     return GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.cpp"]))
 
 

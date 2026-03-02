@@ -93,7 +93,7 @@ for case in (
 
     xcov_warned = contents_of("log.err").startswith("warning: executable file")
 
-    def expected_repr(expected):
+    def expected_repr(expected: bool) -> str:
         return "expected" if expected else "unexpected"
 
     thistest.fail_if(

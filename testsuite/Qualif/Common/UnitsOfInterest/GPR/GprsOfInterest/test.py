@@ -43,7 +43,7 @@ cov_cmdline = build_and_run(
 trace = cov_cmdline[-1]
 
 
-def check(options, xunits):
+def check(options: list[str], xunits: list[str]) -> None:
     """
     Check that running gnatcov coverage with the provided list of
     `options` for project selection yields `xunits` as the set of
@@ -85,11 +85,11 @@ def check(options, xunits):
 
     # Primary check, from the list of units reported by --dump-units-to
 
-    xunits = set(xunits)
+    xunits_set = set(xunits)
     runits = set(lines_of(ofile))
 
     thistest.fail_if(
-        runits != xunits,
+        runits != xunits_set,
         "for options '{}', reported list of units not as expected:\n"
         "expected: {}\n"
         "obtained: {}".format(" ".join(options), xunits, runits),
@@ -109,7 +109,7 @@ def check(options, xunits):
     }
 
     thistest.fail_if(
-        runits != xunits,
+        runits != xunits_set,
         "for options '{}', list of units from reports not as expected:\n"
         "expected: {}\n"
         "obtained: {}".format(" ".join(options), xunits, runits),

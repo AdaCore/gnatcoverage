@@ -11,7 +11,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-def make_lib_gpr(name, srcdirs, deps):
+def make_lib_gpr(name: str, srcdirs: list[str], deps: list[str] | None) -> str:
     return gprfor(
         mains=[],
         prjid=name,
@@ -22,7 +22,7 @@ def make_lib_gpr(name, srcdirs, deps):
     )
 
 
-def check_one(with_units):
+def check_one(with_units: bool) -> None:
     """
     Do a build, run, coverage, and report-check workflow, ensuring we get the
     expected warnings and coverage results.
@@ -35,8 +35,8 @@ def check_one(with_units):
     suffix = "units" if with_units else "no_units"
     tmp = Wdir("tmp_" + suffix)
 
-    make_lib_gpr("lib1", "../src-lib1", ["lib2"])
-    make_lib_gpr("lib2", "../src-lib1/src-lib2", None)
+    make_lib_gpr("lib1", ["../src-lib1"], ["lib2"])
+    make_lib_gpr("lib2", ["../src-lib1/src-lib2"], None)
 
     p = gprfor(
         mains=["main.adb"],

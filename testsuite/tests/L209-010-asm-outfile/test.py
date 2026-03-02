@@ -25,7 +25,7 @@ gprbuild(project=gprfor(pgm + ".adb", srcdirs="../src"))
 xrun(exepath_to(pgm))
 
 
-def check_output(spec):
+def check_output(spec: dict[str, str]) -> None:
     fmt = spec["fmt"]
     level = spec["level"]
     key = spec["key"]

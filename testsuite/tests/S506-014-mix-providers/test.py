@@ -19,7 +19,12 @@ tmp = Wdir("tmp_")
 prj = gprfor(srcdirs=[".."], mains=["main.adb"])
 
 
-def check(tc_name, coverage_args, expected_results, expect_failure):
+def check(
+    tc_name: str,
+    coverage_args: list[str],
+    expected_results: str,
+    expect_failure: bool,
+) -> None:
     p = xcov(
         ["coverage", "-P", prj, "-axcov", "-cstmt"] + coverage_args,
         out=f"{tc_name}.log",

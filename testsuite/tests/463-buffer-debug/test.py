@@ -35,9 +35,9 @@ HARNESS_FILE = gprfor(
 )
 
 
-def generate_buffer_list(bufs: list[str]):
-    items = []
-    decls = []
+def generate_buffer_list(bufs: list[str]) -> None:
+    items: list[str] = []
+    decls: list[str] = []
     for buf in bufs:
         new_id = f"G{len(items)}"
         items.append(f"{new_id}'Access")

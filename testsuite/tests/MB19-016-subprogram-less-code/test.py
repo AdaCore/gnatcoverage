@@ -22,9 +22,17 @@ from SUITE.tutils import (
 rm("tmp_", recursive=True)
 tmp_ = Wdir("tmp_")
 
-# We are producing object coverage reports and need fine control over the
-# compilation options here
-_cargs = {"scovcargs": False, "suitecargs": False}
+
+def gprbuild_wrapper(proj: str, gargs: str = "") -> None:
+    gprbuild(
+        proj,
+        gargs=gargs,
+        # We are producing object coverage reports and need fine control over
+        # the compilation options here.
+        scovcargs=False,
+        suitecargs=False,
+    )
+
 
 # First stage: compile the C source code to assembly. We want no debug
 # information at this stage.
@@ -36,7 +44,7 @@ gpr_stage1 = gprfor(
     main_cargs="-g0 -save-temps",
     langs=("C",),
 )
-gprbuild(gpr_stage1, gargs="-c", **_cargs)
+gprbuild_wrapper(gpr_stage1, gargs="-c")
 
 # Second stage: assemble to object code with debug information relative to the
 # assembly.
@@ -48,7 +56,7 @@ gpr_stage2 = gprfor(
     main_cargs="-g",
     langs=("Asm",),
 )
-gprbuild(gpr_stage2, **_cargs)
+gprbuild_wrapper(gpr_stage2)
 
 gnatcov_flags = ["-P", gpr_stage2, "--level=branch"]
 

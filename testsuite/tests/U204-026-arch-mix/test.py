@@ -21,7 +21,7 @@ env = Env()
 tmp = Wdir("tmp_")
 
 
-def gen_project(name):
+def gen_project(name: str) -> tuple[str, str]:
     """
     Generate in the current directory a project file with the given name for
     this testcases' sources. Return its filename as well as its object/exec
@@ -38,7 +38,7 @@ def gen_project(name):
     return (p, obj_dir)
 
 
-def check_reports(xcov_dir):
+def check_reports(xcov_dir: str) -> None:
     """
     Check that the "*.xcov" coverage reports in the given directory have the
     expected content. This assumes coverage data from the execution of both
@@ -79,7 +79,7 @@ for name, gen_dir_name in [
     thistest.log(f"== 1. {name} ==")
 
     # Generate a dedicated project for this
-    p, obj_dir = gen_project(name)
+    proj, obj_dir = gen_project(name)
 
     instr_dir = os.path.join(obj_dir, f"{name}-gnatcov-instr")
     mkdir(obj_dir)
@@ -92,7 +92,7 @@ for name, gen_dir_name in [
 
     # Build and run the instrumented program, collecting source traces
     traces = []
-    gprbuild(p, trace_mode="src")
+    gprbuild(proj, trace_mode="src")
     for main in ["main_1", "main_2"]:
         out_file = f"{name}-{main}-out.txt"
         run_cov_program(
@@ -104,7 +104,7 @@ for name, gen_dir_name in [
         traces.append(trace_file)
 
     # Finally, generate and check the coverage report from these traces
-    xcov(cov_args + ["-P", p] + traces)
+    xcov(cov_args + ["-P", proj] + traces)
     check_reports(obj_dir)
 
 

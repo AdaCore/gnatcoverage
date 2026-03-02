@@ -11,7 +11,7 @@ from SUITE.tutils import gprfor
 wd = Wdir()
 
 
-def try_one_gpr(gpr, no_such):
+def try_one_gpr(gpr: str, no_such: str | None) -> None:
     label = os.path.basename(os.getcwd())
     dump = "xcov.out"
 

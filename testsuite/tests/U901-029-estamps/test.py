@@ -3,14 +3,14 @@ Check that the command execution and trace creation dates
 advertised in reports look reasonable.
 """
 
+import datetime
+import re
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
-
-import re
-from datetime import date
 
 tmp = Wdir("tmp_")
 
@@ -22,7 +22,7 @@ gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 
 report = "report"
 
-xcov_args = build_run_and_coverage(
+build_run_and_coverage(
     gprsw=GPRswitches(root_project=gpr),
     extra_coverage_args=["--annotate=report", "-o", report],
     covlevel="stmt",
@@ -43,7 +43,7 @@ xcov_args = build_run_and_coverage(
 #
 # Fetch the date components and check:
 
-today = date.today().isoformat()
+today = datetime.date.today().isoformat()
 
 report = contents_of(report)
 
@@ -59,9 +59,10 @@ for pattern in (
         not m, "couldn't find a match for pattern '%s' in report" % pattern
     )
 
-    thistest.fail_if(
-        m.group("date") != today,
-        "date found (%s) doesn't match today (%s)" % (m.group("date"), today),
-    )
+    if m is not None:
+        date = m.group("date")
+        thistest.fail_if(
+            date != today, f"date found ({date}) doesn't match today ({today})"
+        )
 
 thistest.result()

@@ -25,8 +25,8 @@ build_run_and_coverage(
 
 # Override ALI/SID files with invalid content, so that attempts to load them
 # result in errors.
-for f in ["obj/main.sid", "obj/main.ali"]:
-    with open(f, "w") as f:
+for filename in ["obj/main.sid", "obj/main.ali"]:
+    with open(filename, "w") as f:
         f.write("INVALID FILE\n")
 
 # Use the checkpoint to produce a report. Since there is no trace file to
@@ -48,7 +48,8 @@ xcov(
 )
 log_content = contents_of(log)
 thistest.fail_if(
-    log_content, "Output of gnatcov not empty:\n{}".format(indent(log_content))
+    bool(log_content),
+    "Output of gnatcov not empty:\n{}".format(indent(log_content)),
 )
 
 thistest.result()

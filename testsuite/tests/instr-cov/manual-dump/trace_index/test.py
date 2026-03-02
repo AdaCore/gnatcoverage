@@ -21,7 +21,7 @@ expected_cov = [
 ]
 
 
-def check_trace(cov_args, traces, index):
+def check_trace(cov_args: list[str], traces: list[str], index: int) -> None:
     """
     Create a coverage report from cov_args and traces[index], in the
     report_{index} directory, and check the report against expected_cov,

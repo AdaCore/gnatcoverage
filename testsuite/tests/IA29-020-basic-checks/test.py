@@ -22,7 +22,7 @@ xrun(exepath_to("test_engines"))
 line = ":       return E.P < Stable_P and then E.T < Stable_T;"
 
 
-def src_cov(cov_level, annotate_level, line_coverage):
+def src_cov(cov_level: str, annotate_level: str, line_coverage: str) -> None:
     try:
         xcov(
             [
@@ -44,7 +44,7 @@ def src_cov(cov_level, annotate_level, line_coverage):
         pass
 
 
-def obj_cov(cov_level, annotate_level, line_coverage):
+def obj_cov(cov_level: str, annotate_level: str, line_coverage: str) -> None:
     symbol = target_info().to_platform_specific_symbol("engines__stable")
     xcov(
         [

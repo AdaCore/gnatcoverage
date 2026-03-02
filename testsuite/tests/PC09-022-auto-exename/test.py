@@ -3,10 +3,13 @@ Test that "gnatcov run" properly auto-detects the name of the executable from a
 project file, or that it properly reports when there is not one single main.
 """
 
+from __future__ import annotations
+
 from collections import OrderedDict
 import os
 import os.path
 import re
+from typing import Iterable
 
 from SUITE.context import thistest
 from SUITE.cutils import FatalError, Wdir, contents_of, indent
@@ -16,50 +19,39 @@ from SUITE.tutils import gprbuild, gprfor, xrun
 wd = Wdir("tmp_")
 
 
-class Project(object):
+class Project:
     def __init__(
         self,
-        projects,
-        name,
-        srcdir,
-        mains=(),
-        deps=(),
-        build=True,
-        should_succeed=True,
+        projects: dict[str, Project],
+        name: str,
+        srcdir: str,
+        mains: Iterable[str] = (),
+        build: bool = True,
+        should_succeed: bool = True,
     ):
         self.projects = projects
         self.name = name
         self.srcdir = srcdir
         self.mains = list(mains)
-        self.deps = deps
         self.build = build
         self.should_succeed = should_succeed
 
         self.objdir = "obj-{}".format(self.name)
         self.exedir = "exe-{}".format(self.name)
 
-        self.prj_file = None
+        self.prj_file = ""
 
     @property
-    def dep_projects(self):
+    def all_mains(self) -> set[str]:
         """
-        Return the list of all projects "self" depends on.
-        """
-        return [self.projects[d] for d in self.deps]
-
-    @property
-    def all_mains(self):
-        """
-        Return the set of mains for this projects and all its dependencies'.
+        Return the set of mains for this projects.
         """
         result = set()
         for main in self.mains:
             result.add(main.split(".")[0])
-        for p in self.dep_projects:
-            result.update(p.all_mains)
         return result
 
-    def prepare(self):
+    def prepare(self) -> None:
         print("Preparing {}...".format(self.name))
         self.prj_file = gprfor(
             mains=self.mains,
@@ -68,7 +60,6 @@ class Project(object):
             objdir=self.objdir,
             exedir=self.exedir,
             langs=["Ada"],
-            deps=self.deps,
         )
         if self.build:
             gprbuild(self.prj_file)
@@ -79,7 +70,7 @@ class Project(object):
             if not os.path.isdir(dirname):
                 os.mkdir(dirname)
 
-    def run(self):
+    def run(self) -> None:
         print("")
         print("== Running {} ==".format(self.name))
 
@@ -133,7 +124,7 @@ class Project(object):
             )
 
 
-project_files = OrderedDict()
+project_files: dict[str, Project] = OrderedDict()
 for p in (
     # Test that the most regular case (one project, one main) succeeds
     Project(

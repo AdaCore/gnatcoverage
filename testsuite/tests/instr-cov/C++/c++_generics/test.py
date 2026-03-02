@@ -17,7 +17,7 @@ MAIN_FLOAT = "main_float.cpp"
 MAIN_NONE = "main_none.cpp"
 
 
-def build_and_run_with_main(main):
+def build_and_run_with_main(main: str) -> None:
     build_run_and_coverage(
         gprsw=GPRswitches(
             root_project=gprfor(

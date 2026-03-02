@@ -29,12 +29,12 @@ gprbuild(gpr)
 libsym = target_info().to_platform_specific_symbol("lib__adjust")
 
 
-def address_range_for(symname, binfile):
+def address_range_for(symname: str, binfile: str) -> str:
     m = re.search(
         pattern=r"(?P<address_range>\S*-\S*) symbol for %s" % symname,
         string=xcov(["dump-symbols", binfile]).out,
     )
-
+    assert m
     return m.group("address_range")
 
 
@@ -53,7 +53,7 @@ xrun(exepath_to("p2"))
 # complete.
 
 
-def check(pgmlist):
+def check(pgmlist: list[str]) -> None:
     covnote = "!" if len(pgmlist) == 1 else "+"
 
     out = xcov(

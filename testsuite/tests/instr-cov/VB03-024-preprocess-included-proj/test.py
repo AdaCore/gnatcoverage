@@ -10,7 +10,7 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-def create_lib_gpr(name, deps=None):
+def create_lib_gpr(name: str, deps: list[str] | None = None) -> str:
     """
     Create a gpr file for the library.
 

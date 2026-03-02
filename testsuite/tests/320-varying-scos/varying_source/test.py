@@ -16,7 +16,7 @@ tmp = Wdir("tmp_")
 root_project = gprfor(srcdirs=["."], langs=["ada"], mains=["main.adb"])
 
 
-def generate_checkpoint(source_body, ckpt_name):
+def generate_checkpoint(source_body: str, ckpt_name: str) -> None:
 
     with open("main.adb", "w+") as f:
         f.write(

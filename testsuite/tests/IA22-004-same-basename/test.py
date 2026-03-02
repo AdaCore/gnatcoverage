@@ -36,7 +36,7 @@ formats = [
 # Windows or Unix paths depending on the host ...
 
 
-def hostify(path):
+def hostify(path: str) -> str:
     return (
         "C:" + path.replace("/", "\\")
         if thistest.env.build.os.name == "windows"

@@ -11,7 +11,7 @@ _wd = Wdir("tmp_")
 
 incomplete = {21}
 
-uncovered = set()
+uncovered: set[int] = set()
 
 expected_report = {
     "closures.rs.xcov": {

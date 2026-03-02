@@ -9,23 +9,23 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor, xcov
 
 
-def xml_src_summary(filename):
+def xml_src_summary(filename: str) -> str:
     """
     Read the given XML source file coverage report and extract a summary of
     the quoted lines it contains.
     """
-    result = []
+    result: list[str] = []
 
-    def append(level, tag, content=None):
+    def append(level: int, tag: str, content: str | None = None) -> None:
         prefix = "  " * level + tag
         result.append(
             f"{prefix}: {ascii(content)}" if content is not None else prefix
         )
 
-    def element_nodes(parent):
+    def element_nodes(parent: minidom.Element) -> list[minidom.Element]:
         return [n for n in parent.childNodes if isinstance(n, minidom.Element)]
 
-    def process_src_mapping(n):
+    def process_src_mapping(n: minidom.Element) -> None:
         assert n.tagName == "src_mapping"
         append(0, "src_mapping")
         for c in element_nodes(n):
@@ -43,7 +43,7 @@ def xml_src_summary(filename):
                         f"unexpected src_mapping child element: {c.tagName}"
                     )
 
-    def process_src(n, level):
+    def process_src(n: minidom.Element, level: int) -> None:
         assert n.tagName == "src"
         append(level, "src")
         for c in element_nodes(n):
@@ -59,7 +59,7 @@ def xml_src_summary(filename):
                         f"unexpected src child element: {c.tagName}"
                     )
 
-    def process_statement(n, level):
+    def process_statement(n: minidom.Element, level: int) -> None:
         append(level, "statement", n.getAttribute("text"))
         for c in element_nodes(n):
             match c.tagName:
@@ -70,7 +70,7 @@ def xml_src_summary(filename):
                         f"unexpected statement child element: {c.tagName}"
                     )
 
-    def process_decision(n, level):
+    def process_decision(n: minidom.Element, level: int) -> None:
         append(level, "decision", n.getAttribute("text"))
         for c in element_nodes(n):
             match c.tagName:
@@ -83,7 +83,7 @@ def xml_src_summary(filename):
                         f"unexpected decision child element: {c.tagName}"
                     )
 
-    def process_condition(n, level):
+    def process_condition(n: minidom.Element, level: int) -> None:
         append(level, "condition", n.getAttribute("text"))
         for c in element_nodes(n):
             match c.tagName:
@@ -102,7 +102,7 @@ def xml_src_summary(filename):
     return "\n".join(result)
 
 
-def check_xml_srclines(filename, expected_summary):
+def check_xml_srclines(filename: str, expected_summary: str) -> None:
     """
     Read "filename" using xml_src_summary and check that it yields the given
     expected summary.
@@ -119,10 +119,10 @@ def check_xml_srclines(filename, expected_summary):
 
 
 def create_summary(
-    name,
-    full_content,
-    truncated_content,
-):
+    name: str,
+    full_content: str,
+    truncated_content: str,
+) -> str:
     """
     Create a XML source file summary compatible with xml_src_summary for one of
     this testcase's source file.
@@ -191,7 +191,7 @@ def check_report(
     expected_warnings: list[str],
     latin1_summary: str,
     utf8_summary: str,
-):
+) -> None:
     """
     Check XML report production.
 

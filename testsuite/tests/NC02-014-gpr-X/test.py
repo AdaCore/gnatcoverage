@@ -28,7 +28,7 @@ extra = """
 report_types = ["f", "g"]
 
 
-def output_dir(what):
+def output_dir(what: str) -> str:
     return "output-{}".format(what)
 
 
@@ -48,7 +48,7 @@ base_args = build_and_run(
 # Now perform analysis variants
 
 
-def trycov(this_report, where):
+def trycov(this_report: str, where: str) -> None:
     # Clear output directories, to notice what is created that should not
     for what in report_types:
         d = output_dir(what)

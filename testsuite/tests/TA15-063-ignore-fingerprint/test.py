@@ -16,10 +16,10 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
 
-def check_empty(filename):
+def check_empty(filename: str) -> None:
     content = contents_of(filename)
     thistest.fail_if(
-        content,
+        bool(content),
         f'Output of "gnatcov coverage" not empty ({filename}):\n\n{content}',
     )
 

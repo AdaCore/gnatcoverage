@@ -14,7 +14,11 @@ This regression test reproduces both bugs.
 
 import os
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches, gprcov_for
@@ -27,7 +31,7 @@ tmp = Wdir("tmp_")
 GNATCOV_CTX_RESET_LIMIT = 50
 
 
-def gen_project():
+def gen_project() -> tuple[str, CovReport]:
     """
     Generate a project capable of reproducing the bug.
     We need to create exactly 50 sources to instrument for coverage (the limit

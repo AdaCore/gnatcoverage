@@ -3,16 +3,23 @@ Test that the coverage indices generated along the xcov and report format
 reports contains the correct information.
 """
 
+import glob
+from typing import Sequence
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor, xcov, srctracename_for
 from SUITE.gprutils import GPRswitches
 
-import glob
 
-
-def create_lib_gpr(name, srcdir, objdir, deps=None, extra=""):
+def create_lib_gpr(
+    name: str,
+    srcdir: str,
+    objdir: str,
+    deps: Sequence[str] | None = None,
+    extra: str = "",
+) -> str:
     """
     Create a gpr file for the library.
 
@@ -67,7 +74,7 @@ bar_gpr = create_lib_gpr("bar", "../src-root/src-foo/src-bar", "obj-bar")
 gprsw = GPRswitches(root_project=src_gpr)
 
 
-def check_indices(metrics, statsdir, refdir=""):
+def check_indices(metrics: list[str], statsdir: str, refdir: str = "") -> None:
     """
     Check that the index file corresponding to each coverage metric in
     "metrics" contains the expected statistics.

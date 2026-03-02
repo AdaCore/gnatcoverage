@@ -13,7 +13,7 @@ _wd = Wdir("tmp_")
 
 incomplete = {36, 48, 50}
 
-uncovered = set()  # foo
+uncovered: set[int] = set()  # foo
 
 covered = (
     multi_range(

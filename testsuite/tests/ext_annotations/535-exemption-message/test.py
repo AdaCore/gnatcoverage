@@ -21,7 +21,7 @@ from SUITE.tutils import (
 
 def check_exemption_justification(
     report_dir: str, exempted_region: Exempt_Region
-):
+) -> None:
     """
     Check that we can locate a .xcov file in report_dir for the annotated file
     in exempted_region, and that it contains the expected justification message

@@ -2,6 +2,8 @@
 Check that gnatcov works fine on projects using non-standard naming schemes.
 """
 
+from typing import Callable
+
 from e3.fs import cp
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -14,11 +16,8 @@ from SUITE.gprutils import GPRswitches
 spec_suffix = ".1.ada"
 body_suffix = ".2.ada"
 
-for casing, converter in [
-    ("lowercase", str.lower),
-    ("uppercase", str.upper),
-    ("mixedcase", str),
-]:
+
+def check(casing: str, converter: Callable[[str], str]) -> None:
     tmp = Wdir(f"tmp_{casing}")
 
     pkg_spec = converter("Pkg") + spec_suffix
@@ -66,5 +65,10 @@ for casing, converter in [
     )
 
     tmp.to_homedir()
+
+
+check("lowercase", str.lower)
+check("uppercase", str.upper)
+check("mixedcase", str)
 
 thistest.result()

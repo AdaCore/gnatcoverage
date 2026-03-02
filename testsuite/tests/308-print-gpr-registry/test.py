@@ -8,6 +8,7 @@ of attributes).
 """
 
 import json
+from typing import IO
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -17,7 +18,7 @@ from SUITE.tutils import xcov
 tmp = Wdir("tmp_")
 
 
-def summarize_json(f):
+def summarize_json(f: IO[str]) -> str:
     result = []
     doc = json.load(f)
     for pkg in doc["packages"]:
@@ -27,7 +28,7 @@ def summarize_json(f):
     return "\n".join(result)
 
 
-def summarize_text(f):
+def summarize_text(f: IO[str]) -> str:
     result = []
     for line in f:
         line = line.strip()

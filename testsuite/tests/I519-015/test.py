@@ -53,22 +53,23 @@ m = re.search("(>|v): .* (bclr|bge|blt|bnl)", contents_of("test_min1.out"))
 
 thistest.fail_if(not m, "couldn't find expected partially covered branch")
 
-dir1 = m.group(1)
-insn1 = m.group(2)
+if m is not None:
+    dir1 = m.group(1)
+    insn1 = m.group(2)
 
-# Seek the other partial branch coverage for the second test exercising only
-# the other side of the 'if' stmt.
-alt_sign = {">": "v", "v": ">"}
+    # Seek the other partial branch coverage for the second test exercising
+    # only the other side of the 'if' stmt.
+    alt_sign = {">": "v", "v": ">"}
 
-xrun(exepath_to("test_min2"))
-xcov(
-    "coverage --level=branch --annotate=asm --routines=@../func.list "
-    + tracename_for("test_min2"),
-    out="test_min2.out",
-)
-thistest.fail_if(
-    not match(alt_sign[dir1] + ": .* " + insn1, "test_min2.out"),
-    "couldn't find alternate branch coverage",
-)
+    xrun(exepath_to("test_min2"))
+    xcov(
+        "coverage --level=branch --annotate=asm --routines=@../func.list "
+        + tracename_for("test_min2"),
+        out="test_min2.out",
+    )
+    thistest.fail_if(
+        not match(alt_sign[dir1] + ": .* " + insn1, "test_min2.out"),
+        "couldn't find alternate branch coverage",
+    )
 
 thistest.result()

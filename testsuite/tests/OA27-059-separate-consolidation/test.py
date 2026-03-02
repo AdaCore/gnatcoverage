@@ -25,27 +25,27 @@ for obj_dir in ("bin", "obj1", "obj2"):
 wd = Wdir("tmp_")
 
 
-class Testcase(object):
-    def __init__(self, name, objdir):
+class Testcase:
+    def __init__(self, name: str, objdir: str):
         self.name = name
         self._objdir = objdir
 
     @property
-    def project_file(self):
+    def project_file(self) -> str:
         return os.path.join("..", "{}.gpr".format(self.name))
 
     @property
-    def main(self):
+    def main(self) -> str:
         return "main_{}".format(self.name)
 
-    def obj_dir(self, *args):
+    def obj_dir(self, *args: str) -> str:
         return os.path.join("..", self._objdir, *args)
 
-    def exe_dir(self, *args):
+    def exe_dir(self, *args: str) -> str:
         return os.path.join("..", "bin", *args)
 
 
-def clean_objdir():
+def clean_objdir() -> None:
     if os.path.exists("output"):
         shutil.rmtree("output")
     os.mkdir("output")
@@ -58,7 +58,9 @@ test2 = Testcase("test2", "obj2")
 testcases = [test1, test2]
 
 
-def build_and_run_tests(ignored_source_files=None):
+def build_and_run_tests(
+    ignored_source_files: list[str] | None = None,
+) -> list[str]:
     """
     Build the test material: program and traces.
     """
@@ -114,7 +116,7 @@ else:
 # the expected coverage data.
 clean_objdir()
 xcov_args = build_and_run_tests(["pkg_under_test-pkg_test.adb"])
-p = checked_xcov(xcov_args, "cons-2.log")
+checked_xcov(xcov_args, "cons-2.log")
 check_xcov_reports(
     "output",
     {

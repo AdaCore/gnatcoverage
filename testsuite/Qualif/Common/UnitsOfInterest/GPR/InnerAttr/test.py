@@ -8,7 +8,7 @@ from SUITE.gprutils import gprcov_for
 wd = Wdir()
 
 
-def check(subdir, opspkg, xreports):
+def check(subdir: str, opspkg: str, xreports: list[str]) -> None:
     wd.to_subdir(subdir)
 
     ops_gpr = gprfor(mains=[], prjid="ops", srcdirs="../src/ops", extra=opspkg)

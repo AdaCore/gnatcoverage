@@ -29,27 +29,27 @@ for f in [
     sync_tree(os.path.join("..", f), f)
 
 
-class Testcase(object):
-    def __init__(self, name, objdir):
+class Testcase:
+    def __init__(self, name: str, objdir: str):
         self.name = name
         self._objdir = objdir
 
     @property
-    def project_file(self):
+    def project_file(self) -> str:
         return f"{self.name}.gpr"
 
     @property
-    def main(self):
+    def main(self) -> str:
         return f"main_{self.name}"
 
-    def obj_dir(self, *args):
+    def obj_dir(self, *args: str) -> str:
         return os.path.join(self._objdir, *args)
 
-    def exe_dir(self, *args):
+    def exe_dir(self, *args: str) -> str:
         return os.path.join("bin", *args)
 
 
-def clean_output_directory():
+def clean_output_directory() -> None:
     rm("output")
     mkdir("output")
 
@@ -87,7 +87,7 @@ else:
 # the conflicting symbols between test1 and test2, and succeeds to create a
 # report with the expected coverage data.
 clean_output_directory()
-p = checked_xcov(xcov_args + ["--output-dir=output"] + trace_files, "cons.log")
+checked_xcov(xcov_args + ["--output-dir=output"] + trace_files, "cons.log")
 check_xcov_reports(
     "output",
     {

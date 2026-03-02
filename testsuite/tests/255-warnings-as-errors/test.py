@@ -14,7 +14,9 @@ from SUITE.gprutils import GPRswitches
 tmp = Wdir("tmp_")
 
 
-def check(slug, project, warning, extra_args):
+def check(
+    slug: str, project: str, warning: str, extra_args: list[str]
+) -> None:
     """
     Check that "gnatcov instrument" on the given project yields the expected
     warning, and that it exits with an error when --warnings-as-errors is

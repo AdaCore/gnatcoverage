@@ -38,7 +38,7 @@ if thistest.options.trace_mode == "src":
     expected_reports["monitor.ads.xcov"] = {"+": {2}}
 
 
-def tryseq(label, scoargs):
+def tryseq(label: str, scoargs: list[str]) -> None:
     thistest.log("== {} ==".format(label))
     xcov(coverage_base_args + scoargs)
     check_xcov_reports(".", expected_reports, discard_empty=False)

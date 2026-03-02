@@ -7,6 +7,8 @@ This can happen with macro expansions mixing user-code and systems-header code
 markers, with a special flag for the code that comes from system headers.
 """
 
+from typing import Iterator
+
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -17,7 +19,7 @@ from SUITE.gprutils import GPRswitches
 print(thistest.options)
 
 
-def iter_versions():
+def iter_versions() -> Iterator[str | None]:
     """Iterator on C versions supported by the current C toolchain."""
     tags = thistest.options.tags
     yield None

@@ -30,7 +30,7 @@ rt_path_dir = os.path.join(rt_install_dir, "share", "gpr")
 env.add_search_path("GPR_PROJECT_PATH", rt_path_dir)
 
 
-def xsetup(install_name, args):
+def xsetup(install_name: str, args: list[str]) -> None:
     """
     "xcov" wrapper to run "gnatcov setup".
 

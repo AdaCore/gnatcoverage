@@ -17,7 +17,7 @@ from SUITE.gprutils import GPRswitches
 tmp = Wdir()
 
 
-def warning_re_for(filename, sloc):
+def warning_re_for(filename: str, sloc: str) -> str:
     """
     Return a regexp for the warning expected for the given file name and source
     location.
@@ -31,7 +31,7 @@ def warning_re_for(filename, sloc):
     ).format(filename=re.escape(filename), sloc=re.escape(sloc))
 
 
-def do_one_level(level):
+def do_one_level(level: str) -> None:
     tmp.to_subdir(f"tmp_{level}")
     thistest.log(f"===== {level} =====")
 

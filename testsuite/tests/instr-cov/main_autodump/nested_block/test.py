@@ -52,7 +52,7 @@ expected_results = {
 }
 
 
-def do_one_main(main_name):
+def do_one_main(main_name: str) -> None:
     """
     create a project, instrument build and compute coverage reports for the
     given main, from the expected results dictionnary defined above.

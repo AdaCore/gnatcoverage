@@ -34,7 +34,11 @@ xcov_args = build_and_run(
 # or remove in all circumstances.
 
 
-def trycov(sco_units, with_project, expected_reports):
+def trycov(
+    sco_units: list[str],
+    with_project: bool,
+    expected_reports: list[str],
+) -> None:
     rm("*.xcov", recursive=False)
 
     src_trace = thistest.options.trace_mode == "src"

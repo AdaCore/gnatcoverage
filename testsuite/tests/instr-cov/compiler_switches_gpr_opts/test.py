@@ -18,8 +18,8 @@ tmp = Wdir("tmp_")
 xcov_args = ["instrument", "--level=stmt", "--dump-trigger=main-end"]
 
 
-def check_lang(lang, file_ext):
-    def gprfor_wrapper(prjid, compiler_extra):
+def check_lang(lang: str, file_ext: str) -> None:
+    def gprfor_wrapper(prjid: str, compiler_extra: str) -> str:
         return gprfor(
             prjid=prjid,
             srcdirs=[f"../src-{lang}"],

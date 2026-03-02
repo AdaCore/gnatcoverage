@@ -22,13 +22,15 @@ xcov_args_mcdc = build_and_run(
 )
 
 
-def run_and_check(args, output_file, expected_file):
+def run_and_check(
+    args: list[str], output_file: str, expected_file: str
+) -> None:
     """
     Run gnatcov with the given arguments.
 
-    :param str output_file: Name of the temporary file to store the content of
+    :param output_file: Name of the temporary file to store the content of
         gnatcov's standard output.
-    :param str expected_file: File containing text we expected to find in the
+    :param expected_file: File containing text we expected to find in the
         coverage report.
     """
     xcov(args, out=output_file)

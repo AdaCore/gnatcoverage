@@ -15,7 +15,7 @@ from SUITE.tutils import gprfor, tracename_for
 tmp = Wdir("tmp_")
 
 
-def xcov_list():
+def xcov_list() -> set[str]:
     """
     Return the list of *.xcov files in the "obj" subdirectory.
     """
@@ -24,7 +24,7 @@ def xcov_list():
     }
 
 
-def clean_xcov():
+def clean_xcov() -> None:
     """
     Remove all *.xcov files in the "obj" subdirectory.
     """

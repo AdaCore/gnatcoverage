@@ -62,7 +62,7 @@ class Source:
     # Source file contents, derived from the filename
     contents: str = dataclasses.field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Each source file must have a unique filename
         assert self.filename not in all_sources, str(self.filename)
         all_sources[self.filename] = self
@@ -166,7 +166,7 @@ class Project:
         """List of filenames for GPR mains."""
         return [s.filename for s in self.sources if s.is_main]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Each project must have a unique name
         assert self.name not in all_projects, str(self.name)
         all_projects[self.name] = self
@@ -211,7 +211,7 @@ class Test:
     # missing SIDs/ALIs for them.
     missing_unit_info: set[str] = dataclasses.field(default_factory=set)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.root_project.mains:
             assert self.expected_xcov is not None
         else:
@@ -480,7 +480,7 @@ tests = [
 ]
 
 
-def check_same_sets(label, expected, actual):
+def check_same_sets(label: str, expected: set[str], actual: set[str]) -> None:
     """
     Make the test fail if ``expected`` and ``actual`` do not contain equivalent
     sets.
@@ -490,7 +490,7 @@ def check_same_sets(label, expected, actual):
         ("Spurious", actual - expected),
     ]:
         thistest.fail_if(
-            items,
+            bool(items),
             f"{status} {label}:\n"
             + "\n".join(f"  {f}" for f in sorted(items)),
         )
@@ -551,6 +551,7 @@ for t in tests:
         )
 
         # Check that we have the expected xcov reports
+        assert t.expected_xcov is not None
         check_same_sets(
             "XCOV reports",
             t.expected_xcov,

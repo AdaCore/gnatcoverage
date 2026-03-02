@@ -26,8 +26,14 @@ trace_basename = os.path.basename(trace)
 gprbuild(gprfor(mains=[unit], srcdirs=[".."]))
 
 
-def check_eargs(output, eargs, exe, protect_eargs=False):
+def check_eargs(
+    output: str,
+    eargs: str,
+    exe: str,
+    protect_eargs: bool = False,
+) -> None:
     m = re.search("exec: .*gnatemu.*", output)
+    assert m
     e = m.group(0)
     if protect_eargs:
         eargs = " ".join([f"'{arg}'" for arg in eargs.split(" ")])
@@ -42,7 +48,12 @@ def check_eargs(output, eargs, exe, protect_eargs=False):
     )
 
 
-def gnatcovrun(extra, exe, register_failure=False, eargs=None):
+def gnatcovrun(
+    extra: str,
+    exe: str,
+    register_failure: bool = False,
+    eargs: str | None = None,
+) -> str:
     outfile = "gnatcov.out"
     xrun(
         "-v %(extra)s %(exe)s %(eargs)s"
@@ -57,7 +68,7 @@ def gnatcovrun(extra, exe, register_failure=False, eargs=None):
     return contents_of(outfile)
 
 
-def gnatemulator(args, exe):
+def gnatemulator(args: str, exe: str) -> str:
     outfile = "gnatemu.out"
     Run(
         to_list(

@@ -35,7 +35,7 @@ xcov_args = build_and_run(
 # part of the untested unit with or without an additional --exec.
 
 
-def trycov(exec_args):
+def trycov(exec_args: list[str]) -> None:
     p = xcov(xcov_args + exec_args)
     thistest.fail_if(
         not re.search(r"double.adb:\d+:\d+: statement not executed", p.out),

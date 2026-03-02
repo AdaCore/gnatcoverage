@@ -10,7 +10,11 @@ import os
 from e3.fs import cp
 
 from SCOV.instr import xcov_instrument
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.control import env
 from SUITE.cutils import Wdir
@@ -46,7 +50,7 @@ env.add_search_path(
 )
 
 
-def check(label, name, expected_xcov):
+def check(label: str, name: str, expected_xcov: CovReport) -> None:
     """
     Copy the "name" project from the test directory to the current directory
     and run it through the instrument/build/run/coverage steps. Check that the

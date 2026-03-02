@@ -13,6 +13,7 @@ libopcodes is properly used, and that symbolization works as expected.
 
 from collections import OrderedDict
 import os.path
+from typing import Sequence
 
 from e3.diff import diff
 
@@ -26,16 +27,22 @@ from SUITE.tutils import gprbuild, gprfor, xcov
 # testcases.
 
 
-class Testcase(object):
-    def __init__(self, test_dir, discriminant, cargs=(), asm_spec=""):
+class Testcase:
+    def __init__(
+        self,
+        test_dir: str,
+        discriminant: str,
+        cargs: Sequence[str] = (),
+        asm_spec: str = "",
+    ):
         self.test_dir = test_dir
         self.discriminant = discriminant
         self.cargs = cargs
         self.asm_spec = asm_spec
 
-        self.spec_file = None
+        self.spec_file = ""
 
-    def prepare(self):
+    def prepare(self) -> None:
         if self.asm_spec:
             self.spec_file = os.path.abspath("{}.spec".format(self.test_dir))
             with open(self.spec_file, "w") as f:
@@ -69,12 +76,12 @@ for tc in (
     testcases[tc.test_dir] = tc
 
 
-def with_ext(name, ext):
+def with_ext(name: str, ext: str) -> str:
     """Return the given name suffixed by an extension."""
     return "{}{}{}".format(name, os.path.extsep, ext)
 
 
-def is_asm(filename):
+def is_asm(filename: str) -> bool:
     """Return if the given filename is an assembly source."""
     return os.path.splitext(filename)[-1] == ".s"
 
@@ -90,14 +97,14 @@ for test_dir, tc in testcases.items():
     path = os.path.join(tmp.homedir, test_dir)
     tmp_sub = Wdir(test_dir)
 
-    testcases = sorted(filter(is_asm, os.listdir(path)))
+    filtered_testcases = sorted(filter(is_asm, os.listdir(path)))
 
     # Prepare object file from assembly sources.
-    project = gprfor(testcases, srcdirs=path, main_cargs=tc.cargs)
+    project = gprfor(filtered_testcases, srcdirs=path, main_cargs=tc.cargs)
     gprbuild(project, gargs=["-c"])
 
     # And then iterate on each testcase to run it.
-    for testcase in testcases:
+    for testcase in filtered_testcases:
         compile_unit = os.path.splitext(testcase)[0]
         objfile = os.path.join("obj", with_ext(compile_unit, "o"))
 
@@ -117,7 +124,7 @@ for test_dir, tc in testcases.items():
         else:
             thistest.log("No difference")
         thistest.fail_if(
-            disaconv_diff,
+            bool(disaconv_diff),
             "{}/{}: disassemblies are not the same".format(test_dir, testcase),
         )
 

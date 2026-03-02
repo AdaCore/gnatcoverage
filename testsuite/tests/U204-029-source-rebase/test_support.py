@@ -1,9 +1,14 @@
 import os
 import shutil
+from typing import Iterable
 
 from e3.fs import cp, mkdir
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.cutils import Wdir, contents_of, empty
 from SUITE.context import thistest
 from SUITE.gprutils import GPRswitches
@@ -11,8 +16,12 @@ from SUITE.tutils import gprfor, xcov
 
 
 def out_of_source_checkpoint(
-    variant_name, main, units, origin_src_dir, suppress_src_dir
-):
+    variant_name: str,
+    main: str,
+    units: list[str],
+    origin_src_dir: str,
+    suppress_src_dir: bool,
+) -> tuple[str, str]:
     """
     Create a checkpoint with a copy of the sources in origin_src_dir, using
     main as the main program and units as the list of units of interest.
@@ -45,13 +54,13 @@ def out_of_source_checkpoint(
 
 
 def consolidate_and_check(
-    variant_basename,
-    expected_xcov_results,
-    expect_failure,
-    checkpoints,
-    rebase_opts,
-    output_dir_name,
-):
+    variant_basename: str,
+    expected_xcov_results: CovReport,
+    expect_failure: bool,
+    checkpoints: Iterable[str],
+    rebase_opts: list[str],
+    output_dir_name: str,
+) -> None:
     """
     Consolidate the given set of checkpoints and create xcov reports.
     The xcov reports are checked against expected_xcov_results, and if
@@ -86,15 +95,15 @@ def consolidate_and_check(
 
 
 def run_variant(
-    variant_basename,
-    mains_list,
-    units_lists,
-    origin_src_dir,
-    expected_xcov_results,
-    rebase_dir=None,
-    expect_failure=False,
-    suppress_src_dir=False,
-):
+    variant_basename: str,
+    mains_list: list[str],
+    units_lists: list[list[str]],
+    origin_src_dir: str,
+    expected_xcov_results: CovReport,
+    rebase_dir: str | None = None,
+    expect_failure: bool = False,
+    suppress_src_dir: bool = False,
+) -> None:
     """
     Create a set of checkpoints using, for checkpoint i, the sources in
     origin_src_dir, the main in mains_list[i] and the units in units_lists[i].

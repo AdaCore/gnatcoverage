@@ -13,7 +13,7 @@ from SUITE.tutils import gprfor, xcov
 wd = Wdir("tmp_")
 
 
-def create_checkpoint(name, covlevel):
+def create_checkpoint(name: str, covlevel: str) -> str:
     gpr_exe_dir = "exe-{}".format(name)
     gpr_obj_dir = "obj-{}".format(name)
     prj_file = gprfor(
@@ -38,7 +38,7 @@ def create_checkpoint(name, covlevel):
     return ckpt
 
 
-def clean_output_directory():
+def clean_output_directory() -> None:
     if os.path.exists("output"):
         shutil.rmtree("output")
     os.mkdir("output")

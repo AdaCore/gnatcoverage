@@ -43,9 +43,7 @@ def trycov(cases: list[str], xnocov: list[str]) -> None:
 
     def tracename_wrapper(pgmname: str) -> str:
         if thistest.options.trace_mode == "src":
-            result = srctracename_for(pgmname)
-            assert result
-            return result
+            return srctracename_for(pgmname)
         else:
             return tracename_for(pgmname)
 

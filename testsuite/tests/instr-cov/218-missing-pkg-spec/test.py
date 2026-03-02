@@ -45,7 +45,7 @@ for line in lines_of(filename):
 
 missing_warnings = expected_warnings - actual_warnings
 thistest.fail_if(
-    missing_warnings,
+    bool(missing_warnings),
     'expected "gnatcov instrument" warnings are missing:\n'
     + "\n".join(sorted(missing_warnings)),
 )

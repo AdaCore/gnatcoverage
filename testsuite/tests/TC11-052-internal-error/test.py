@@ -12,7 +12,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
 
-def check(args, trigger, info):
+def check(args: list[str], trigger: str, info: str) -> None:
     # Run gnatcov with the given arguments and trigger
     out = f"{trigger}.log"
     env = dict(os.environ)

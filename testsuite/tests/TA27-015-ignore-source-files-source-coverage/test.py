@@ -33,7 +33,11 @@ expected_res_dict = {
 }
 
 
-def check(report_name, args, expected_files):
+def check(
+    report_name: str,
+    args: list[str],
+    expected_files: list[str],
+) -> None:
     """
     Run gnatcov coverage with the given set of arguments in xcov mode,
     and store the results in directory 'report_name'. Check that a report is

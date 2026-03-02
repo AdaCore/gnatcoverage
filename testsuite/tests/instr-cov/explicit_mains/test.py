@@ -15,7 +15,7 @@ from SUITE.tutils import gprfor, srctracename_for
 from SUITE.gprutils import GPRswitches
 
 
-def create_gprsw(mains, with_asm=False):
+def create_gprsw(mains: list[str], with_asm: bool = False) -> GPRswitches:
     """
     Generate the test project in the current directory (must be the temporary
     directory) and return the corresponding GPRswitches instance.
@@ -68,7 +68,7 @@ wd = Wdir("tmp_errors")
 gprsw = create_gprsw(mains=[], with_asm=True)
 
 
-def check_error(label, mains, expected_error_msg):
+def check_error(label: str, mains: list[str], expected_error_msg: str) -> None:
     """
     Run a test variant to check an error case.
 
@@ -114,8 +114,11 @@ wd.to_homedir()
 
 
 def check_gen_traces(
-    label, gpr_mains, xcov_mains, program_for_expected_traces
-):
+    label: str,
+    gpr_mains: list[str],
+    xcov_mains: list[str],
+    program_for_expected_traces: list[str],
+) -> None:
     """
     Run a test variant to check mains with coverage buffer dumps.
 

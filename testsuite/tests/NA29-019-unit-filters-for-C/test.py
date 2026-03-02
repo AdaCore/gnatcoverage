@@ -25,7 +25,7 @@ from SUITE.tutils import gprfor, xcov
 Wdir("tmp_")
 
 
-def gengpr(attributes, prjname):
+def gengpr(attributes: list[str], prjname: str) -> str:
     return gprfor(
         mains=["test_abs.c"],
         prjid=prjname,
@@ -56,7 +56,7 @@ xcov_args = build_and_run(
 # directory to each attempt. Expect reports for the functional unit(s) only.
 
 
-def trycov(attributes, outdir):
+def trycov(attributes: list[str], outdir: str) -> None:
     # Create dedicated dir and analyse with the specific attributes:
     mkdir(outdir)
     gprname = gengpr(attributes=attributes, prjname=outdir)
@@ -66,7 +66,7 @@ def trycov(attributes, outdir):
     # a report which looks correct for the functional unit:
     harness_reports = ls("%s/test*.xcov" % outdir)
     thistest.fail_if(
-        harness_reports,
+        bool(harness_reports),
         "unexpected coverage reports for harness units: %s"
         % str(harness_reports),
     )
@@ -80,7 +80,7 @@ def trycov(attributes, outdir):
     # We expect to find a mix of coverage notes in each expected
     # report:
 
-    def check_report(r):
+    def check_report(r: str) -> None:
         contents = contents_of(r)
 
         for note in ("+", "-", "."):

@@ -31,14 +31,14 @@ warning_exceprt = (
 )
 
 
-def check_warning_absent(logfile):
+def check_warning_absent(logfile: str) -> None:
     thistest.fail_if(
         warning_exceprt in contents_of(logfile),
         "unexpected warning in {}".format(logfile),
     )
 
 
-def check_warning_present(logfile):
+def check_warning_present(logfile: str) -> None:
     thistest.fail_if(
         warning_exceprt not in contents_of(logfile),
         "missing warning in {}".format(logfile),

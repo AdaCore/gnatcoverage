@@ -12,8 +12,8 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 
 
-class TestDriver(object):
-    def __init__(self, test_dir, exename):
+class TestDriver:
+    def __init__(self, test_dir: str, exename: str):
         self.test_dir = test_dir
         self.exename = exename
 

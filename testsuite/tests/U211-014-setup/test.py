@@ -11,12 +11,19 @@ Also note that, due to the testsuite infrastructure, we cannot test the
 project in the toolchain prefix, as the testsuite is not allowed to modify it.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 import os.path
-from typing import List, Dict, Set
+
+from e3.os.process import Run
 
 from SCOV.instr import xcov_instrument
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.control import env
 from SUITE.cutils import Wdir, contents_of
@@ -41,8 +48,6 @@ rt_path_dir = os.path.join(rt_install_dir, "share", "gpr")
 # Make this install available to GPR tools
 env.add_search_path("GPR_PROJECT_PATH", rt_path_dir)
 
-ExpectedCov = Dict[str, Dict[str, Set[int]]]
-
 
 @dataclass
 class PrjConfig:
@@ -52,12 +57,12 @@ class PrjConfig:
 
     project_file: str
     objdir: str
-    expected_cov: ExpectedCov
+    expected_cov: CovReport
 
     @classmethod
     def create(
-        cls, tag: str, langs: List[str], main: str, expected_cov: ExpectedCov
-    ):
+        cls, tag: str, langs: list[str], main: str, expected_cov: CovReport
+    ) -> PrjConfig:
         objdir = f"obj-{tag}"
         return cls(
             project_file=gprfor(
@@ -72,7 +77,7 @@ class PrjConfig:
         )
 
     @property
-    def gprsw(self):
+    def gprsw(self) -> GPRswitches:
         return GPRswitches(root_project=self.project_file)
 
 
@@ -102,7 +107,12 @@ mixed_prj = PrjConfig.create(
 )
 
 
-def xsetup(args, out, register_failure=True, auto_config_args=True):
+def xsetup(
+    args: list[str],
+    out: str,
+    register_failure: bool = True,
+    auto_config_args: bool = True,
+) -> Run:
     """
     "xcov" wrapper to run "gnatcov setup".
 
@@ -125,13 +135,13 @@ def xsetup(args, out, register_failure=True, auto_config_args=True):
 
 
 def check_full(
-    label,
-    setup_args,
-    prj_config,
-    runtime_project=rt_prj,
-    dump_channel="auto",
-    auto_config_args=True,
-):
+    label: str,
+    setup_args: list[str],
+    prj_config: PrjConfig,
+    runtime_project: str = rt_prj,
+    dump_channel: str = "auto",
+    auto_config_args: bool = True,
+) -> None:
     """
     Run "gnatcov setup" with the arguments (setup_args), then compute code
     coverage and check the report for the given project (prj_config).

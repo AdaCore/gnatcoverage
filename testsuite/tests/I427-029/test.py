@@ -47,18 +47,18 @@ variants = ["mm", "mp", "pm", "pp"]
 
 
 class Vtest:
-    def __init__(self, basename, variant):
+    def __init__(self, basename: str, variant: str):
         self.basename = basename
         self.variant = variant
 
-    def filename(self, suffix=""):
+    def filename(self, suffix: str = "") -> str:
         """
         Return the name to use for a file related to this variant, suffixed
         with SUFFIX.
         """
         return self.basename + "_" + self.variant + suffix
 
-    def tag(self):
+    def tag(self) -> str:
         """Return a trace tag to associate with this test variant."""
         return "%s, %s variant" % (self.basename, self.variant)
 

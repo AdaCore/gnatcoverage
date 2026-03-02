@@ -22,7 +22,7 @@ build_run_and_coverage(
 
 report_package_a = contents_of("obj/package_a.ads.xcov")
 thistest.fail_if(
-    re.search(string=report_package_a, pattern=r"-:"),
+    re.search(string=report_package_a, pattern=r"-:") is not None,
     "unexpected uncovered code",
 )
 

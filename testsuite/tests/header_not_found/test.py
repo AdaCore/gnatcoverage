@@ -6,15 +6,20 @@ the version of the header that is in the ultimate extending project.
 
 import os
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.gprutils import GPRswitches
 from SUITE.cutils import Wdir
 from SUITE.tutils import thistest
 
+
 Wdir("tmp_")
 
 
-def process(gpr_dir, expected_cov):
+def process(gpr_dir: str, expected_cov: CovReport) -> None:
     gpr_obj_dir = os.path.join(gpr_dir, "obj")
     build_run_and_coverage(
         gprsw=GPRswitches(root_project=os.path.join(gpr_dir, "prj.gpr")),

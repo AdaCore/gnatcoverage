@@ -36,7 +36,7 @@ gprinstall(mylib_gpr, f"--prefix={install_dir}")
 main_gpr = gprfor(
     mains=["main.c"], srcdirs=os.path.join("..", "main"), deps=["mylib"]
 )
-xcov_args = build_run_and_coverage(
+build_run_and_coverage(
     gprsw=GPRswitches(root_project=main_gpr),
     covlevel="stmt",
     mains=["main"],

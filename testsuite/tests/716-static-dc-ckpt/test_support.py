@@ -1,9 +1,17 @@
+from __future__ import annotations
+
+import abc
 from enum import Enum
 import os
 import os.path
 import shutil
+from typing import ClassVar
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
@@ -22,7 +30,7 @@ class PkgType(Enum):
     DT = "dynamic_true"
     DF = "dynamic_false"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -34,24 +42,27 @@ class CheckpointBuilder:
     project that lives in a src-* folder next to this file.
     """
 
-    _SRC_DIR = None
     _MAIN = "main"
 
-    EXPECT_EMPTY = {}
-    EXPECT_VIOLATION = {}
+    EXPECT_EMPTY: ClassVar[CovReport] = {}
+    EXPECT_VIOLATION: ClassVar[CovReport] = {}
 
-    def __init__(self, cov_level):
+    def __init__(self, cov_level: str):
         self.cov_level = cov_level
 
         # Instantiate the right source directory
         self._copy_src_dir()
 
-    def _copy_src_dir(self):
+    @abc.abstractproperty
+    def src_dir(self) -> str:
+        pass
+
+    def _copy_src_dir(self) -> None:
         """
         Copy the test-case's directory (which is proper to the checkpoint
         class) into the test's current dir
         """
-        src_src = self._SRC_DIR
+        src_src = self.src_dir
         src_dst = os.path.abspath("src")
         if os.path.exists(src_dst):
             shutil.rmtree(src_dst)
@@ -60,7 +71,12 @@ class CheckpointBuilder:
         )
         shutil.copytree(full_src_src, src_dst)
 
-    def make_checkpoint(self, name, xvars, deps=None):
+    def make_checkpoint(
+        self,
+        name: str,
+        xvars: list[tuple[str, str]],
+        deps: list[str] | None = None,
+    ) -> str:
         """
         Function in charge of compiling the project with a given combination
         of PkgTypes for each condition, and creating a checkpoint from the
@@ -98,50 +114,60 @@ class CheckpointBuilder:
 
 
 class SimpleConditionCheckpointBuilder(CheckpointBuilder):
-    _SRC_DIR = "src-simple"
 
     EXPECT_EMPTY = {"greet.adb.xcov": {}, "greet.ads.xcov": {}}
     EXPECT_VIOLATION = {"greet.adb.xcov": {"!": {9}}, "greet.ads.xcov": {}}
 
-    def new(self, dec_type):
+    @property
+    def src_dir(self) -> str:
+        return "src-simple"
+
+    def new(self, dec_type: PkgType) -> str:
         return self.make_checkpoint(
-            str(dec_type), xvars=[("DECISION_TYPE", dec_type)]
+            str(dec_type), xvars=[("DECISION_TYPE", str(dec_type))]
         )
 
 
 class IfStmtCheckpointBuilder(CheckpointBuilder):
-    _SRC_DIR = "src-if-stmt"
-
-    EXPECT_EMPTY_STMT_COVERED = {"greet.adb.xcov": {}, "greet.ads.xcov": {}}
-    EXPECT_EMPTY_STMT_NOT_COVERED = {
+    EXPECT_EMPTY_STMT_COVERED: ClassVar[CovReport] = {
+        "greet.adb.xcov": {},
+        "greet.ads.xcov": {},
+    }
+    EXPECT_EMPTY_STMT_NOT_COVERED: ClassVar[CovReport] = {
         "greet.adb.xcov": {"-": {9}},
         "greet.ads.xcov": {},
     }
-    EXPECT_VIOLATION_STMT_COVERED = {
+    EXPECT_VIOLATION_STMT_COVERED: ClassVar[CovReport] = {
         "greet.adb.xcov": {"!": {8}},
         "greet.ads.xcov": {},
     }
-    EXPECT_VIOLATION_STMT_NOT_COVERED = {
+    EXPECT_VIOLATION_STMT_NOT_COVERED: ClassVar[CovReport] = {
         "greet.adb.xcov": {"!": {8}, "-": {9}},
         "greet.ads.xcov": {},
     }
 
-    def new(self, dec_type):
+    @property
+    def src_dir(self) -> str:
+        return "src-if-stmt"
+
+    def new(self, dec_type: PkgType) -> str:
         return self.make_checkpoint(
-            str(dec_type), xvars=[("DECISION_TYPE", dec_type)]
+            str(dec_type), xvars=[("DECISION_TYPE", str(dec_type))]
         )
 
 
 class DoubleConditionCheckpointBuilder(CheckpointBuilder):
-    _SRC_DIR = "src-double"
-
     EXPECT_EMPTY = {"greet.adb.xcov": {}, "greet.ads.xcov": {}}
     EXPECT_VIOLATION = {"greet.adb.xcov": {"!": {11}}, "greet.ads.xcov": {}}
 
-    def new(self, type1, type2):
+    @property
+    def src_dir(self) -> str:
+        return "src-double"
+
+    def new(self, type1: PkgType, type2: PkgType) -> str:
         name = f"{type1}_{type2}"
         return self.make_checkpoint(
-            name, xvars=[("DEC1", type1), ("DEC2", type2)]
+            name, xvars=[("DEC1", str(type1)), ("DEC2", str(type2))]
         )
 
 
@@ -151,7 +177,7 @@ class TestCaseRunner:
     through the xcov report
     """
 
-    def __init__(self, cov_level):
+    def __init__(self, cov_level: str):
         self.base_cov_args = [
             "coverage",
             "--annotate=xcov",
@@ -159,8 +185,12 @@ class TestCaseRunner:
         ]
 
     def run_test_case(
-        self, name: str, checkpoints, expected_report, verbose=True
-    ):
+        self,
+        name: str,
+        checkpoints: list[str],
+        expected_report: CovReport,
+        verbose: bool = True,
+    ) -> None:
         thistest.log(f"Test Case {name}")
         slug_name = name.lower().replace(" ", "_")
 

@@ -19,7 +19,7 @@ gprsw = GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."]))
 mkdir("obj")
 
 
-def do_instr(label, args):
+def do_instr(label: str, args: list[str]) -> str:
     thistest.log(f"== {label} ==")
     output_file = f"{label}.txt"
     p = xcov_instrument(

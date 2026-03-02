@@ -17,7 +17,12 @@ from SUITE.tutils import xcov
 tmp = Wdir()
 
 
-def error_case(tc_id, args, expected_out, expect_failure):
+def error_case(
+    tc_id: str,
+    args: list[str],
+    expected_out: str,
+    expect_failure: bool,
+) -> None:
     """
     Run gnatcov setup with the given args, and check that the output matches
     expected_out. Additionally, check the return status of the setup command,

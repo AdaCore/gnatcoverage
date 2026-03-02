@@ -14,8 +14,8 @@ sfiles_for = {
 }
 
 
-def do_for(target):
-    def to_object(sfile):
+def do_for(target: str) -> None:
+    def to_object(sfile: str) -> str:
         ofile = sfile.replace(".s", ".o")
         Run([target + "-gcc", "-c", "../" + sfile, "-o", ofile])
         return ofile
@@ -28,7 +28,7 @@ def do_for(target):
     xcov(["scan-objects"] + ofiles, out=out_actual, tolerate_messages=".")
 
     thistest.fail_if(
-        diff(out_actual, out_expected),
+        bool(diff(out_actual, out_expected)),
         "%s != %s, using explicit list" % (out_actual, out_expected),
     )
 
@@ -39,7 +39,7 @@ def do_for(target):
     )
 
     thistest.fail_if(
-        diff(out_actual, out_expected),
+        bool(diff(out_actual, out_expected)),
         "%s != %s, using list file argument" % (out_actual, out_expected),
     )
 

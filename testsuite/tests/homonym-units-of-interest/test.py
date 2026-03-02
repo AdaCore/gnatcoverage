@@ -54,7 +54,7 @@ end Coverage;
 wd.to_homedir()
 
 
-def check_report(prj_ignore, prj_of_interest):
+def check_report(prj_ignore: str, prj_of_interest: str) -> None:
     """
     Check that the report is correct when the homonym source file (pkg.c) is
     ignored in prj_ignore and of interest in prj_of_interest.

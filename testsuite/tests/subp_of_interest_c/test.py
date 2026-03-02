@@ -16,7 +16,7 @@ from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")
 
-cov_args = build_run_and_coverage(
+build_run_and_coverage(
     gprsw=GPRswitches(
         gprfor(srcdirs=os.path.join("..", "src"), mains=["main.c"])
     ),

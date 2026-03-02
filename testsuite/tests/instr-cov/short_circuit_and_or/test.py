@@ -17,7 +17,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-def check_results():
+def check_results() -> None:
     check_xcov_reports(
         "obj",
         {

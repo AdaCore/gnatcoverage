@@ -3,13 +3,16 @@ Check that GNATcoverage does not process externally built projects, unless
 --externally-built-projects is passed.
 """
 
+from __future__ import annotations
+
 import os.path
 import shutil
 
+from e3.os.process import Run
 from e3.fs import cp
 
 from SCOV.instr import xcov_instrument
-from SCOV.minicheck import build_and_run, check_xcov_reports
+from SCOV.minicheck import CovReport, build_and_run, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.control import env
 from SUITE.cutils import Wdir, contents_of
@@ -30,8 +33,12 @@ dump_triggers = (
 
 
 def check_coverage(
-    project, externally_built, expected_cov, trace_file, register_failure=True
-):
+    project: str,
+    externally_built: bool,
+    expected_cov: CovReport,
+    trace_file: str,
+    register_failure: bool = True,
+) -> tuple[Run, str]:
     """
     Create a coverage report for project from trace_file,
     requesting coverage for externally-built projects based on
@@ -64,13 +71,13 @@ def check_coverage(
         args.append("--externally-built-projects")
     p = xcov(args, out=gnatcov_log, register_failure=register_failure)
 
-    if not register_failure:
-        return p, gnatcov_log
+    if register_failure:
+        check_xcov_reports(output_dir, expected_cov)
 
-    check_xcov_reports(output_dir, expected_cov)
+    return p, gnatcov_log
 
 
-def check_one(dump_trigger, lib_prj):
+def check_one(dump_trigger: str, lib_prj: str) -> None:
     """
     Build and run the main project, inspecting externally built projects,
     then check all four combinations of project/--externally-built-projects
@@ -101,7 +108,7 @@ def check_one(dump_trigger, lib_prj):
         extra_coverage_args=["-axcov"],
         gpr_obj_dir=obj_main,
         gpr_exe_dir=obj_main,
-        gprsw_for_coverage=False,
+        gprsw_for_coverage=None,
         dump_trigger=dump_trigger,
         manual_prj_name="main",
     )
@@ -121,7 +128,7 @@ def check_one(dump_trigger, lib_prj):
     p, log_filename = check_coverage(
         project=installed_mylib_gpr,
         externally_built=False,
-        expected_cov=None,
+        expected_cov={},
         trace_file=trace_file,
         register_failure=False,
     )
@@ -141,7 +148,7 @@ def check_one(dump_trigger, lib_prj):
     )
 
     # It should not complain with --externally-built-projects
-    p = check_coverage(
+    check_coverage(
         project="mylib.gpr",
         externally_built=True,
         trace_file=trace_file,

@@ -3,6 +3,8 @@ Check that gnatcov produces valid code when the code needs to be preprocessed
 with the right preprocessor configuration.
 """
 
+from typing import Callable
+
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -11,13 +13,13 @@ from SUITE.tutils import gprbuild, gprfor
 
 
 def run_variant(
-    variant_name,
-    extra_instr_cppargs,
-    extra_gprbuild_cargs,
-    tolerate_instrument_messages=None,
-    pred=lambda: True,
-    skip_build=False,
-):
+    variant_name: str,
+    extra_instr_cppargs: list[str],
+    extra_gprbuild_cargs: list[str],
+    tolerate_instrument_messages: str | None = None,
+    pred: Callable[[], bool] = lambda: True,
+    skip_build: bool = False,
+) -> None:
     """
     Build and run the project with the given arguments, and check the predicate
     holds.
