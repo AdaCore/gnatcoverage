@@ -56,7 +56,7 @@ check_xcov_reports(
 )
 
 # Re-run the instrumenter on the main, to check that it does not re-create a
-# SID file for the opslib externall built project.
+# SID file for the opslib externally built project.
 rm(sid_pattern)
 xcov_instrument(gprsw=tests_gprsw, covlevel="stmt+decision")
 sids = ls(sid_pattern)
