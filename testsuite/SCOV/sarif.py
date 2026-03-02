@@ -13,7 +13,7 @@ def check_sarif_report(baseline_filename: str, actual_filename: str) -> None:
     Check that some actual SARIF report matches the corresponding baseline.
     """
 
-    def refine(v):
+    def refine(v: object) -> None:
         match v:
             case dict():
                 if "uri" in v:
