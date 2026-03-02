@@ -66,7 +66,7 @@ def xcov_instrument(
     covlevel: str | None,
     quiet: bool = True,
     extra_args: list[str] | None = None,
-    dump_trigger: str | list[str] = "auto",
+    dump_trigger: str | list[str] | None = "auto",
     dump_channel: str | None = "auto",
     gpr_obj_dir: str | None = None,
     runtime_project: str | None = None,
