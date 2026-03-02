@@ -1,10 +1,10 @@
 """
-Dummy XCOV reports checker.
+Minimal XCOV reports checker.
 
-This is a temporary module to help testcases to check coverage analysis
-reports. Ideally, we should use the regular SCOV circuitry for that but that's
-not possible at the moment for manual report production schemes (for instance
-for specific checkpoints usage testcases).
+This is a simple module to help testcases to check coverage analysis reports.
+Ideally, we should use the regular SCOV circuitry for that but that's not
+possible at the moment for manual report production schemes (for instance for
+specific checkpoints usage testcases).
 """
 
 import collections
