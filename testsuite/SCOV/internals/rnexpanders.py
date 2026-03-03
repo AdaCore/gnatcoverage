@@ -11,49 +11,10 @@ from typing import override, ClassVar
 
 from SUITE.context import thistest
 from .cnotes import (
-    xBlock0,
-    xBlock1,
-    sNoCov,
-    sPartCov,
-    sNotCoverable,
-    dfAlways,
-    dtAlways,
-    dNotCoverable,
-    dfNoCov,
-    dtNoCov,
-    dNoCov,
-    dPartCov,
-    efNoCov,
-    etNoCov,
-    eNoCov,
-    ePartCov,
-    cPartCov,
-    aNoCov,
-    atNoCov,
-    acPartCov,
-    fNoCov,
-    cNoCov,
-    fUndetCov,
-    cUndetCov,
-    gNoCov,
-    gUndetCov,
+    NK,
     Enote,
     KnoteDict,
     erNoteKinds,
-    sUndetCov,
-    dUndetCov,
-    eUndetCov,
-    xBlock2,
-    XsNoCov,
-    XsPartCov,
-    XsNotCoverable,
-    XsUndetCov,
-    XotNoCov,
-    XofNoCov,
-    XoPartCov,
-    XoNoCov,
-    XcPartCov,
-    dBlock,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -94,7 +55,10 @@ from .tfiles import Tfile, Tline
 # 2 DECISION violations.                  <- mapped to an internal "contents
 #                                         <- block" representation.
 
-type ReNotes = dict[str, int]
+type ReNotes = dict[str, NK]
+"""
+Simple dict type to map diagnostic regexes to Note Kinds
+"""
 
 
 @dataclass(frozen=True)
@@ -346,7 +310,7 @@ class Nblock(Rblock):
 
         return self.re_end
 
-    def nkind_for(self, rline: str) -> int | None:
+    def nkind_for(self, rline: str) -> NK | None:
         assert self.re_notes is not None
         for key in self.re_notes:
             if re.match(key, rline):
@@ -507,7 +471,7 @@ class DCRchapter(Nchapter):
             self,
             re_start=re_start,
             re_end=r"(\d+) region[s]* with disabled coverage\.$",
-            re_notes={".*": dBlock},
+            re_notes={".*": NK.dBlock},
         )
 
     @override
@@ -665,8 +629,8 @@ class RblockSet:
         # Violation sections
 
         stmt_notes = {
-            "statement not executed": sNoCov,
-            "multiple statements on line": sPartCov,
+            "statement not executed": NK.sNoCov,
+            "multiple statements on line": NK.sPartCov,
         }
 
         self.noteblocks.append(
@@ -674,21 +638,21 @@ class RblockSet:
         )
 
         dc_notes = {
-            "decision outcome FALSE never": dfNoCov,
-            "decision outcome TRUE never": dtNoCov,
-            "decision never evaluated": dNoCov,
-            "decision not exercised in both directions": dPartCov,
+            "decision outcome FALSE never": NK.dfNoCov,
+            "decision outcome TRUE never": NK.dtNoCov,
+            "decision never evaluated": NK.dNoCov,
+            "decision not exercised in both directions": NK.dPartCov,
         }
         self.noteblocks.append(
             VIOsection(re_start="DECISION COVERAGE", re_notes=dc_notes)
         )
 
         mcdc_notes = {
-            "decision outcome FALSE never": efNoCov,
-            "decision outcome TRUE never": etNoCov,
-            "decision never evaluated": eNoCov,
-            "decision not exercised in both directions": ePartCov,
-            "condition has no independent influence pair": cPartCov,
+            "decision outcome FALSE never": NK.efNoCov,
+            "decision outcome TRUE never": NK.etNoCov,
+            "decision never evaluated": NK.eNoCov,
+            "decision not exercised in both directions": NK.ePartCov,
+            "condition has no independent influence pair": NK.cPartCov,
         }
         self.noteblocks.append(
             VIOsection(re_start="UC_MCDC COVERAGE", re_notes=mcdc_notes)
@@ -700,8 +664,8 @@ class RblockSet:
         # Assertion coverage
 
         atc_notes = {
-            "contract expression outcome TRUE never": atNoCov,
-            "contract expression never evaluated": aNoCov,
+            "contract expression outcome TRUE never": NK.atNoCov,
+            "contract expression never evaluated": NK.aNoCov,
         }
         self.noteblocks.append(
             VIOsection(re_start="ATC COVERAGE", re_notes=atc_notes)
@@ -709,22 +673,22 @@ class RblockSet:
 
         atcc_notes = {
             "condition was never evaluated during an evaluation of the "
-            "decision to True": acPartCov
+            "decision to True": NK.acPartCov
         }
         self.noteblocks.append(
             VIOsection(re_start="ATCC COVERAGE", re_notes=atcc_notes)
         )
 
         fun_call_notes = {
-            "function not executed": fNoCov,
-            "call not executed": cNoCov,
+            "function not executed": NK.fNoCov,
+            "call not executed": NK.cNoCov,
         }
         self.noteblocks.append(
             VIOsection(re_start="FUN_CALL COVERAGE", re_notes=fun_call_notes)
         )
 
         gexpr_notes = {
-            "guarded_expr not executed": gNoCov,
+            "guarded_expr not executed": NK.gNoCov,
         }
         self.noteblocks.append(
             VIOsection(re_start="GEXPR COVERAGE", re_notes=gexpr_notes)
@@ -733,10 +697,10 @@ class RblockSet:
         # Non coverable items
 
         nc_notes = {
-            "statement has no object code": sNotCoverable,
-            "decision is always TRUE": dtAlways,
-            "decision is always FALSE": dfAlways,
-            "decision has no object code": dNotCoverable,
+            "statement has no object code": NK.sNotCoverable,
+            "decision is always TRUE": NK.dtAlways,
+            "decision is always FALSE": NK.dfAlways,
+            "decision has no object code": NK.dNotCoverable,
         }
         self.noteblocks.append(
             NCIchapter(re_start="NON COVERABLE ITEMS", re_notes=nc_notes)
@@ -745,13 +709,14 @@ class RblockSet:
         # Undetermined coverage items
 
         ni_notes = {
-            "statement was not instrumented": sUndetCov,
-            "decision was not instrumented for decision coverage": dUndetCov,
-            "decision was not instrumented for MCDC": eUndetCov,
-            "decision was not instrumented for UC_MCDC": eUndetCov,
-            "function was not instrumented": fUndetCov,
-            "call was not instrumented": cUndetCov,
-            "guarded_expr was not instrumented": gUndetCov,
+            "statement was not instrumented": NK.sUndetCov,
+            "decision was not instrumented for decision"
+            " coverage": NK.dUndetCov,
+            "decision was not instrumented for MCDC": NK.eUndetCov,
+            "decision was not instrumented for UC_MCDC": NK.eUndetCov,
+            "function was not instrumented": NK.fUndetCov,
+            "call was not instrumented": NK.cUndetCov,
+            "guarded_expr was not instrumented": NK.gUndetCov,
         }
 
         self.noteblocks.append(
@@ -763,24 +728,24 @@ class RblockSet:
         # Exempted regions
 
         xr_notes = {
-            "0 exempted violation": xBlock0,
-            r"[1-9]\d* exempted violation": xBlock1,
+            "0 exempted violation": NK.xBlock0,
+            r"[1-9]\d* exempted violation": NK.xBlock1,
             r"\d+ exempted violations?; [1-9]\d+ exempted undetermined "
-            r"coverage items?": xBlock2,
+            r"coverage items?": NK.xBlock2,
         }
 
         # Exempted violations
 
         Xr_notes = {
-            "statement not executed": XsNoCov,
-            "multiple statements on line": XsPartCov,
-            "statement has no object code": XsNotCoverable,
-            "statement was not instrumented": XsUndetCov,
-            "decision outcome FALSE never": XofNoCov,
-            "decision outcome TRUE never": XotNoCov,
-            "decision outcome never evaluated": XoNoCov,
-            "decision not exercised in both directions": XoPartCov,
-            "condition has no independent influence pair": XcPartCov,
+            "statement not executed": NK.XsNoCov,
+            "multiple statements on line": NK.XsPartCov,
+            "statement has no object code": NK.XsNotCoverable,
+            "statement was not instrumented": NK.XsUndetCov,
+            "decision outcome FALSE never": NK.XofNoCov,
+            "decision outcome TRUE never": NK.XotNoCov,
+            "decision outcome never evaluated": NK.XoNoCov,
+            "decision not exercised in both directions": NK.XoPartCov,
+            "condition has no independent influence pair": NK.XcPartCov,
         }
 
         self.noteblocks.append(

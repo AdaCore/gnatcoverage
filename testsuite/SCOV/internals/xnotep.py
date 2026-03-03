@@ -16,70 +16,13 @@ import re
 from typing import final
 
 from .cnotes import (
+    NK,
     Block,
+    NKSubstDict,
     Xnote,
     block_p,
     transparent_p,
-    cPartCov,
-    dNoCov,
-    dNotCoverable,
-    dPartCov,
-    dfAlways,
-    dfNoCov,
-    dtAlways,
-    dtNoCov,
-    ePartCov,
-    eNoCov,
-    efNoCov,
-    etNoCov,
-    lFullCov,
-    lNoCode,
-    lNoCov,
-    lNotCoverable,
-    lPartCov,
-    lx0,
-    lx1,
-    lx2,
-    lx,
-    oNoCov,
-    oPartCov,
-    ofNoCov,
-    otNoCov,
-    r0,
-    r0c,
-    sNoCov,
-    sNotCoverable,
-    sPartCov,
-    xBlock0,
-    xBlock1,
-    xBlock2,
     xNoteKinds,
-    lUndetCov,
-    sUndetCov,
-    dUndetCov,
-    eUndetCov,
-    lDisCov,
-    XsNoCov,
-    XsPartCov,
-    XsNotCoverable,
-    XsUndetCov,
-    XotNoCov,
-    XofNoCov,
-    XoPartCov,
-    XoNoCov,
-    XcPartCov,
-    Xr0,
-    Xr0c,
-    aNoCov,
-    atNoCov,
-    acPartCov,
-    fNoCov,
-    cNoCov,
-    fUndetCov,
-    cUndetCov,
-    gNoCov,
-    gUndetCov,
-    dBlock,
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from, Stag
@@ -95,7 +38,7 @@ from SUITE.cutils import FatalError
 class XnoteFactory:
     @abstractmethod
     def instanciate_over(
-        self, tline: Tline, block: Block | None, kind: int
+        self, tline: Tline, block: Block | None, kind: NK
     ) -> Xnote | None:
         pass
 
@@ -115,7 +58,7 @@ class _XnoteP_block(XnoteFactory):
         self.lastni: Xnote | None = None
 
     def instanciate_over(
-        self, tline: Tline, block: Block | None, kind: int
+        self, tline: Tline, block: Block | None, kind: NK
     ) -> Xnote | None:
         # We create a single instance the first time around, then expand the
         # section over subsequence matches.
@@ -146,7 +89,7 @@ class _XnoteP_line(XnoteFactory):
         self.notep = notep
 
     def instanciate_over(
-        self, tline: Tline, block: Block | None, kind: int
+        self, tline: Tline, block: Block | None, kind: NK
     ) -> Xnote:
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
         thisni.register_match(Line(tline.lno))
@@ -204,7 +147,7 @@ class _XnoteP_segment(XnoteFactory):
         return segend
 
     def instanciate_over(
-        self, tline: Tline, block: Block | None, kind: int
+        self, tline: Tline, block: Block | None, kind: NK
     ) -> Xnote | None:
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
 
@@ -258,71 +201,68 @@ class _XnoteP_segment(XnoteFactory):
         return thisni
 
 
-type KindSubstDict = dict[int, int | None]
-
-
 class XnoteP:
     NK_for = {
-        "l-": lNoCov,
-        "l!": lPartCov,
-        "l+": lFullCov,
-        "l.": lNoCode,
-        "l0": lNotCoverable,
-        "l?": lUndetCov,
-        "lD": lDisCov,
-        "l#": lx0,
-        "l*": lx1,
-        "l@": lx2,
-        "l=": lx,
-        "s-": sNoCov,
-        "s!": sPartCov,
-        "s0": sNotCoverable,
-        "s?": sUndetCov,
-        "dT*": dtAlways,
-        "dF*": dfAlways,
-        "d0": dNotCoverable,
-        "dT-": dtNoCov,
-        "dF-": dfNoCov,
-        "d!": dPartCov,
-        "d-": dNoCov,
-        "d?": dUndetCov,
-        "eT-": etNoCov,
-        "eF-": efNoCov,
-        "e!": ePartCov,
-        "e-": eNoCov,
-        "e?": eUndetCov,
-        "oT-": otNoCov,
-        "oF-": ofNoCov,
-        "o!": oPartCov,
-        "o-": oNoCov,
-        "c!": cPartCov,
-        "a-": aNoCov,
-        "aT-": atNoCov,
-        "ac!": acPartCov,
-        "f-": fNoCov,
-        "c-": cNoCov,
-        "f?": fUndetCov,
-        "c?": cUndetCov,
-        "g-": gNoCov,
-        "g?": gUndetCov,
-        "x0": xBlock0,
-        "x+": xBlock1,
-        "x?": xBlock2,
-        "0": r0,
-        "0c": r0c,
-        "dB": dBlock,
+        "l-": NK.lNoCov,
+        "l!": NK.lPartCov,
+        "l+": NK.lFullCov,
+        "l.": NK.lNoCode,
+        "l0": NK.lNotCoverable,
+        "l?": NK.lUndetCov,
+        "lD": NK.lDisCov,
+        "l#": NK.lx0,
+        "l*": NK.lx1,
+        "l@": NK.lx2,
+        "l=": NK.lx,
+        "s-": NK.sNoCov,
+        "s!": NK.sPartCov,
+        "s0": NK.sNotCoverable,
+        "s?": NK.sUndetCov,
+        "dT*": NK.dtAlways,
+        "dF*": NK.dfAlways,
+        "d0": NK.dNotCoverable,
+        "dT-": NK.dtNoCov,
+        "dF-": NK.dfNoCov,
+        "d!": NK.dPartCov,
+        "d-": NK.dNoCov,
+        "d?": NK.dUndetCov,
+        "eT-": NK.etNoCov,
+        "eF-": NK.efNoCov,
+        "e!": NK.ePartCov,
+        "e-": NK.eNoCov,
+        "e?": NK.eUndetCov,
+        "oT-": NK.otNoCov,
+        "oF-": NK.ofNoCov,
+        "o!": NK.oPartCov,
+        "o-": NK.oNoCov,
+        "c!": NK.cPartCov,
+        "a-": NK.aNoCov,
+        "aT-": NK.atNoCov,
+        "ac!": NK.acPartCov,
+        "f-": NK.fNoCov,
+        "c-": NK.cNoCov,
+        "f?": NK.fUndetCov,
+        "c?": NK.cUndetCov,
+        "g-": NK.gNoCov,
+        "g?": NK.gUndetCov,
+        "x0": NK.xBlock0,
+        "x+": NK.xBlock1,
+        "x?": NK.xBlock2,
+        "0": NK.r0,
+        "0c": NK.r0c,
+        "dB": NK.dBlock,
         # Exempted notes
-        "Xs-": XsNoCov,
-        "Xs!": XsPartCov,
-        "Xs0": XsNotCoverable,
-        "Xs?": XsUndetCov,
-        "XoT-": XotNoCov,
-        "XoF-": XofNoCov,
-        "Xo!": XoPartCov,
-        "Xo-": XoNoCov,
-        "Xc!": XcPartCov,
-        "X0": Xr0,
-        "X0c": Xr0c,
+        "Xs-": NK.XsNoCov,
+        "Xs!": NK.XsPartCov,
+        "Xs0": NK.XsNotCoverable,
+        "Xs?": NK.XsUndetCov,
+        "XoT-": NK.XotNoCov,
+        "XoF-": NK.XofNoCov,
+        "Xo!": NK.XoPartCov,
+        "Xo-": NK.XoNoCov,
+        "Xc!": NK.XcPartCov,
+        "X0": NK.Xr0,
+        "X0c": NK.Xr0c,
     }
 
     # The notes prefixed with 'X' correspond to the type of violations we
@@ -396,7 +336,7 @@ class XnoteP:
         self,
         tline: Tline,
         block: Block | None,
-        srules: KindSubstDict | None,
+        srules: NKSubstDict | None,
     ) -> Xnote | None:
         kind = (
             srules[self.kind] if srules and self.kind in srules else self.kind

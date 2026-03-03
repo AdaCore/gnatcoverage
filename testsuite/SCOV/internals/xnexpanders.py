@@ -14,28 +14,16 @@ from SUITE.context import thistest
 from SUITE.control import language_info_or_error, LangInfo
 from SUITE.cutils import FatalError, lines_of
 from .cnotes import (
+    NK,
     Block,
     KnoteDict,
-    dNoCov,
-    dPartCov,
-    dfNoCov,
-    dtNoCov,
-    eNoCov,
-    ePartCov,
-    efNoCov,
-    etNoCov,
-    lPartCov,
-    oNoCov,
-    oPartCov,
-    ofNoCov,
-    otNoCov,
-    sNoCov,
+    NKSubstDict,
     xlNoteKinds,
     xrNoteKinds,
     Xnote,
 )
 from .tfiles import Tfile, Tline
-from .xnotep import XnoteP, KindSubstDict
+from .xnotep import XnoteP
 
 # We refer to the expressed user expectations as SCOV data, and parse it
 # according to the following grammar:
@@ -403,7 +391,7 @@ class LineCX:
         self,
         tline: Tline,
         block: Block | None,
-        srules: KindSubstDict | None,
+        srules: NKSubstDict | None,
     ) -> list[Xnote | None]:
         return [self.lnp.instanciate_over(tline, block, srules)]
 
@@ -411,7 +399,7 @@ class LineCX:
         self,
         tline: Tline,
         block: Block | None,
-        srules: KindSubstDict | None,
+        srules: NKSubstDict | None,
     ) -> list[Xnote | None]:
         return [
             rnp.instanciate_over(tline, block, srules)
@@ -436,7 +424,7 @@ class UnitCX:
         self.xrdict = KnoteDict[Xnote](xrNoteKinds)
 
         self.current_block: Block | None = None
-        self.current_srules: KindSubstDict | None = {}
+        self.current_srules: NKSubstDict | None = {}
 
         assert sref.spath
         self.tfile = Tfile(filename=sref.spath, process=self.process_tline)
@@ -455,7 +443,7 @@ class UnitCX:
         lx: LineCX,
         tline: Tline,
         block: Block | None,
-        srules: KindSubstDict | None,
+        srules: NKSubstDict | None,
     ) -> None:
         for ln in lx.instanciate_lnotes_over(tline, block, srules):
             if ln:
@@ -481,26 +469,26 @@ class UnitCX:
     # hints are provided as :<subst-key>,<subst-key>,...: at the end of line
     # anchors, with the following possible values for each <subst-key>:
 
-    subst_tuples_for: dict[str, KindSubstDict] = {
+    subst_tuples_for: dict[str, NKSubstDict] = {
         # o/d: Outcome expectations for line are to produce "decision"
         # expectations, for instance on
         #
         #     if A and then B then  -- # eval :o/d:
         "o/d": {
-            otNoCov: dtNoCov,
-            ofNoCov: dfNoCov,
-            oPartCov: dPartCov,
-            oNoCov: dNoCov,
+            NK.otNoCov: NK.dtNoCov,
+            NK.ofNoCov: NK.dfNoCov,
+            NK.oPartCov: NK.dPartCov,
+            NK.oNoCov: NK.dNoCov,
         },
         # o/e: Outcome expectations for line are to produce "expression"
         # expectations, for instance on
         #
         #    return Value (A and then B); -- # eval :o/e:
         "o/e": {
-            otNoCov: etNoCov,
-            ofNoCov: efNoCov,
-            oPartCov: ePartCov,
-            oNoCov: eNoCov,
+            NK.otNoCov: NK.etNoCov,
+            NK.ofNoCov: NK.efNoCov,
+            NK.oPartCov: NK.ePartCov,
+            NK.oNoCov: NK.eNoCov,
         },
         # o/0: outcome expectations for line are to be ignored, for
         # contexts where the evaluated expression is not actually a
@@ -508,11 +496,11 @@ class UnitCX:
         #
         #    pragma Precondition (not X); -- # eval :o/0:
         "o/0": {
-            otNoCov: None,
-            ofNoCov: None,
-            oPartCov: None,
-            oNoCov: None,
-            lPartCov: None,
+            NK.otNoCov: None,
+            NK.ofNoCov: None,
+            NK.oPartCov: None,
+            NK.oNoCov: None,
+            NK.lPartCov: None,
         },
         # s/e: Statement uncovered expectations for line are to be
         # matched as expression never evaluated, for contexts where
@@ -520,7 +508,7 @@ class UnitCX:
         # for instance on
         #
         #    pragma Precondition (A and then B); -- # eval :s/e:
-        "s/e": {sNoCov: eNoCov},
+        "s/e": {NK.sNoCov: NK.eNoCov},
         # eval on the line are in expression or decision context
         "e": {},
         "d": {},

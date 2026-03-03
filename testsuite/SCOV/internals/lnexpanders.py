@@ -11,19 +11,10 @@ import re
 from e3.fs import ls
 
 from .cnotes import (
+    NK,
     KnoteDict,
     Enote,
     elNoteKinds,
-    lNoCode,
-    lFullCov,
-    lPartCov,
-    lNoCov,
-    lNotCoverable,
-    lUndetCov,
-    lDisCov,
-    lx0,
-    lx1,
-    lx2,
 )
 from .segments import Line
 from .tfiles import Tfile, Tline
@@ -31,16 +22,16 @@ from .tfiles import Tfile, Tline
 
 class LnotesExpander:
     NK_for = {
-        ".": lNoCode,
-        "0": lNotCoverable,
-        "?": lUndetCov,
-        "D": lDisCov,
-        "+": lFullCov,
-        "-": lNoCov,
-        "!": lPartCov,
-        "#": lx0,
-        "*": lx1,
-        "@": lx2,
+        ".": NK.lNoCode,
+        "0": NK.lNotCoverable,
+        "?": NK.lUndetCov,
+        "D": NK.lDisCov,
+        "+": NK.lFullCov,
+        "-": NK.lNoCov,
+        "!": NK.lPartCov,
+        "#": NK.lx0,
+        "*": NK.lx1,
+        "@": NK.lx2,
     }
 
     def process_tline(self, tline: Tline) -> None:
@@ -63,6 +54,6 @@ class LnotesExpander:
         # xcov --annotate=xcov produces a set of .xcov annotated unit sources,
         # each featuring a synthetic note per line.
 
-        self.elnotes: dict[str, KnoteDict] = {}
+        self.elnotes: dict[str, KnoteDict[Enote]] = {}
         for dotxcov in ls(dotxcov_pattern):
             self.listing_to_enotes(dotxcov)

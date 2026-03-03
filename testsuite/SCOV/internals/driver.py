@@ -17,13 +17,17 @@ Consolidation tests are supported by passing multiple drivers and using an
 external text file to gather the expectations.
 """
 
-__all__ = ["SCOV_helper"]
+from __future__ import annotations
 
+__all__ = ["SCOV_helper"]
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Iterable
-from typing import Any, override, Self
+from collections.abc import Collection, Iterable, Sequence
+from typing import override, Self, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from SCOV.tc import TestCase
 
 import os
 
@@ -59,9 +63,9 @@ from SUITE.tutils import (
 )
 from SUITE.cargo_utils import cargo_for
 
-from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
-from .cnotes import Xr0, Xr0c
 from .cnotes import (
+    NK,
+    NKDischargeDict,
     Block,
     Xnote,
     Enote,
@@ -69,8 +73,6 @@ from .cnotes import (
     elNoteKinds,
     erNoteKinds,
     rAntiKinds,
-)
-from .cnotes import (
     xNoteKinds,
     sNoteKinds,
     dNoteKinds,
@@ -80,9 +82,12 @@ from .cnotes import (
     atcNoteKinds,
     aNoteKinds,
     fNoteKinds,
+    XsNoteKinds,
+    XoNoteKinds,
+    XcNoteKinds,
 )
-from .cnotes import XsNoteKinds, XoNoteKinds, XcNoteKinds
 from .cnotes import strict_p, deviation_p, anti_p, positive_p
+from .stags import Stag
 
 from .xnexpanders import XnotesExpander
 from .lnexpanders import LnotesExpander
@@ -266,10 +271,10 @@ class _Xchecker:
     def __init__(
         self,
         report: str,
-        xdict: dict[int, list[Xnote]],
-        rxp: list[int],
-        edict: dict[int, list[Enote]],
-        ren: list[int],
+        xdict: KnoteDict[Xnote],
+        rxp: Sequence[NK],
+        edict: KnoteDict[Enote],
+        ren: Sequence[NK],
     ):
         # Our point is to assess what relevant expectations of XDICT are
         # satisfied from relevant emitted notes in EDICT. The relevance
@@ -300,12 +305,23 @@ class _Xchecker:
         # The emitted note needs to designate a sloc range within the
         # expected sloc range and separation tags, when any is expected,
         # must match.
-        return en.segment.within(xn.segment) and (
-            (not xn.stag and not en.stag)
-            or (xn.stag and en.stag and en.stag.match(xn.stag))
-        )
 
-    def try_sat_over(self, ekind: int, xn: Xnote) -> None:
+        if (
+            en.segment is None
+            or xn.segment is None
+            or not en.segment.within(xn.segment)
+        ):
+            return False
+
+        match (en.stag, xn.stag):
+            case (None, None):
+                return True
+            case (Stag() as en_stag, Stag() as xn_stag):
+                return en_stag.match(xn_stag)
+            case _:
+                return False
+
+    def try_sat_over(self, ekind: NK, xn: Xnote) -> None:
         # See if expected note XN is satisfied by one of the emitted notes of
         # kind EKIND which was not used to satisfy a prior expectation. Store
         # to sat dictionary accordingly.
@@ -375,7 +391,7 @@ class _Xchecker:
     def register_unsat(self, xn: Xnote) -> None:
         self.unsat[xn.block].append(xn)
 
-    def process_xkind(self, xkind: int, ekinds: list[int]) -> None:
+    def process_xkind(self, xkind: NK, ekinds: Iterable[NK]) -> None:
         # Process expected notes of kind XKIND looking for candidate
         # dischargers in emitted noted of kinds EKINDS.
 
@@ -395,7 +411,7 @@ class _Xchecker:
         for block in self.unsat:
             self.process_unsat(block)
 
-    def process_ekind(self, ekind: int) -> None:
+    def process_ekind(self, ekind: NK) -> None:
         # Process emitted notes of kind EKIND, after we're done processing
         # all the relevant expected notes.
 
@@ -410,7 +426,7 @@ class _Xchecker:
             ):
                 self.register_failure("Unexpected %s" % en.image())
 
-    def run(self, discharge_kdict: dict[int, list[int]]) -> None:
+    def run(self, discharge_kdict: NKDischargeDict) -> None:
         thistest.log("\n~~ processing " + self.report + " ~~\n")
 
         # For each kind in RELEVANT_XNOTE_KINDS, process discharges of
@@ -461,8 +477,8 @@ class SCOV_helper(ABC):
 
     def __init__(
         self,
-        testcase: Any,
-        drivers: list[str],
+        testcase: TestCase,
+        drivers: Collection[str],
         xfile: str,
         xcovlevel: str,
         covctl: CovControl,
@@ -534,8 +550,8 @@ class SCOV_helper(ABC):
             ctl_tags=thistest.options.tags,
             ctl_cons=[thistest.options.consolidate],
         )
-        self.xlnotes = xnotes.xlnotes
-        self.xrnotes = xnotes.xrnotes
+        self.xlnotes: dict[str, KnoteDict[Xnote]] = xnotes.xlnotes
+        self.xrnotes: dict[str, KnoteDict[Xnote]] = xnotes.xrnotes
         self.abspaths = xnotes.abspaths
 
         # Even though we remember them here, we won't be looking at the
@@ -679,7 +695,7 @@ class SCOV_helper(ABC):
         return self.adir_for(self.rbdir(attribute))
 
     def gen_one_xcov_report(
-        self, trace: str, report_format: str, options: list[str] | str = ""
+        self, trace: str, report_format: str, options: Iterable[str] | str = ""
     ) -> None:
         """
         Helper for gen_xcov_reports, to produce one specific report for a
@@ -949,12 +965,12 @@ class SCOV_helper(ABC):
 
         # =report outputs, stricter_level micro relaxations first:
 
-        r_discharge_kdict = (
+        r_discharge_kdict: NKDischargeDict = (
             {
                 # Let an emitted xBlock1 discharge an xBlock0 expectation, as
                 # an extra exempted violations are most likely irrelevant for
                 # the category.
-                xBlock0: [xBlock0, xBlock1]
+                NK.xBlock0: [NK.xBlock0, NK.xBlock1]
             }
             if stricter_level
             else {}
@@ -965,24 +981,24 @@ class SCOV_helper(ABC):
 
         r_discharge_kdict.update(
             {
-                r0: r_ern_for[relevance_cat],
-                r0c: r_ern_for[relevance_cat],
-                Xr0: r_ern_for[relevance_cat],
-                Xr0c: r_ern_for[relevance_cat],
+                NK.r0: r_ern_for[relevance_cat],
+                NK.r0c: r_ern_for[relevance_cat],
+                NK.Xr0: r_ern_for[relevance_cat],
+                NK.Xr0c: r_ern_for[relevance_cat],
             }
         )
 
         # =xcov outputs, stricter_level micro relaxations only:
 
-        l_discharge_kdict = (
+        l_discharge_kdict: NKDischargeDict = (
             {
                 # an emitted l! discharge an expected l+, when the l! is most
                 # likely caused by irrelevant violations for the category
-                lFullCov: [lFullCov, lPartCov],
+                NK.lFullCov: [NK.lFullCov, NK.lPartCov],
                 # an emitted lx1 discharge an lx0 expectation, when the extra
                 # exempted violations are most likely caused by the level extra
                 # strictness, hence irrelevant for the category
-                lx0: [lx0, lx1],
+                NK.lx0: [NK.lx0, NK.lx1],
             }
             if stricter_level
             else {}
@@ -1009,8 +1025,8 @@ class SCOV_helper(ABC):
         self,
         source: str,
         relevance_cat: _Category,
-        r_discharge_kdict: Any,
-        l_discharge_kdict: Any,
+        r_discharge_kdict: NKDischargeDict,
+        l_discharge_kdict: NKDischargeDict,
     ) -> None:
         """Process expectations for a particular SOURCE, comparing
         expected coverage marks against what is found in the xcov reports
@@ -1049,9 +1065,10 @@ class SCOV_helper(ABC):
             tc_r_ern_for += gNoteKinds
 
         strans = self.report_translation_for(source)
+
         _Xchecker(
             report="test.rep",
-            xdict=self.xrnotes.get(source),
+            xdict=self.xrnotes[source],
             rxp=tc_r_rxp_for,
             edict=self.ernotes.get(strans, KnoteDict(erNoteKinds)),
             ren=tc_r_ern_for,
@@ -1063,9 +1080,10 @@ class SCOV_helper(ABC):
             return
 
         strans = self.xcov_translation_for(source)
+
         _Xchecker(
             report=strans + ".xcov",
-            xdict=self.xlnotes.get(source),
+            xdict=self.xlnotes[source],
             rxp=r_lxp_for[relevance_cat],
             edict=self.elnotes.get(strans, KnoteDict(elNoteKinds)),
             ren=r_eln_for[relevance_cat],
@@ -1120,6 +1138,7 @@ class SCOV_helper(ABC):
 
         wdbase = levels[1][0]
 
+        # ??? TODO: I don't understand where these fields come from
         if self.assert_lvl:
             wdbase += self.assert_lvl
 
@@ -1539,8 +1558,8 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
 
     def __init__(
         self,
-        testcase: Any,
-        drivers: list[str],
+        testcase: TestCase,
+        drivers: Collection[str],
         xfile: str,
         xcovlevel: str,
         covctl: CovControl,
@@ -1711,8 +1730,8 @@ class SCOV_helper_rust(SCOV_helper):
 
     def __init__(
         self,
-        testcase: Any,
-        drivers: list[str],
+        testcase: TestCase,
+        drivers: Collection[str],
         xfile: str,
         xcovlevel: str,
         covctl: CovControl,
