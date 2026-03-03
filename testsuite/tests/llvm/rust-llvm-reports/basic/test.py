@@ -5,9 +5,9 @@ a non covered case, and a decision not instrumented because of its too
 many conditions.
 """
 
+from SCOV.llvmutils import check_llvm_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, multi_range
-from SUITE.llvmutils import check_llvm_reports
 
 _wd = Wdir("tmp_")
 

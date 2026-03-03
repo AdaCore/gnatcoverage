@@ -8,9 +8,9 @@ profdata file.
 This is an LLVM issue, see https://github.com/llvm/llvm-project/pull/91600
 """
 
+from SCOV.llvmutils import check_llvm_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, multi_range
-from SUITE.llvmutils import check_llvm_reports
 
 _wd = Wdir("tmp_")
 
