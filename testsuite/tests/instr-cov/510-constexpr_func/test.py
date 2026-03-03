@@ -14,7 +14,7 @@ TestCase(
 
 thistest.fail_if_not_equal(
     what="Unexpected 'gnatcov instrument' message",
-    expected="??? test_main.cpp:4:1: gnatcov limitation: cannot"
+    expected="??? test_main.cpp:2:1: gnatcov limitation: cannot"
     " instrument constexpr function, it will be reported as undetermined"
     " coverage",
     actual=contents_of("s_main/xinstr.out").strip(),
