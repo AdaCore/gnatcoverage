@@ -163,19 +163,27 @@ class WdirControl:
     # directory first, then point the runs for each criterion there. This is
     # for the TestCase implementation to decide.
 
-    def __init__(self, wdbase: str, bdbase: str, subdirhint: str):
-        # WDBASE is the base prefix to use for testcase Working directory.
-        # BDBASE is the base prefix to use for testcase Binary directory.
-        # Fallback to WDBASE when not provided.
+    wdbase: str
+    """
+    Base prefix to use for testcase Working directory.
+    """
 
-        # REUSE_BIN indicates when we should reuse binaries from BDBASE, when
-        # it was provided explicitly. Account for an extra SUBDIRHINT in both
-        # bases.
+    bdbase: str
+    """
+    Base prefix to use for testcase Binary directory. Fallback to WDBASE when
+    not provided.
+    """
 
+    reuse_bin: bool
+    """
+    Indicates when we should reuse binaries from BDBASE, when it was provided
+    explicitly. Account for an extra SUBDIRHINT in both bases.
+    """
+
+    def __init__(self, wdbase: str, bdbase: str | None, subdirhint: str):
         self.wdbase = wdbase + subdirhint
-
         self.reuse_bin = bdbase is not None
-        self.bdbase = (bdbase + subdirhint) if self.reuse_bin else self.wdbase
+        self.bdbase = (bdbase if bdbase is not None else wdbase) + subdirhint
 
 
 # ======================================
@@ -476,7 +484,7 @@ class SCOV_helper(ABC):
         drivers: Collection[str],
         xfile: str,
         xcovlevel: str,
-        covctl: CovControl,
+        covctl: CovControl | None,
         wdctl: WdirControl,
     ):
         # The TESTCASE object that delegates the hard work to us :-)
@@ -847,7 +855,13 @@ class SCOV_helper(ABC):
         )
 
     def check_unexpected_reports(self) -> None:
-        """Check that we don't have unexpected reports or notes."""
+        """
+        If a CovControl with expected reports is provided, check that we don't
+        have unexpected reports or notes.
+        """
+
+        if self.covctl is None or self.covctl.xreports is None:
+            return
 
         for s in self.ernotes:
             thistest.fail_if(
@@ -875,8 +889,7 @@ class SCOV_helper(ABC):
 
         self.ernotes = RnotesExpander("test.rep").ernotes
 
-        if self.covctl and self.covctl.xreports is not None:
-            self.check_unexpected_reports()
+        self.check_unexpected_reports()
 
         # When nothing of possible interest shows up for a unit, xcov
         # generates nothing at all. Create dummy reports here to prevent
@@ -1115,32 +1128,6 @@ class SCOV_helper(ABC):
     def to_homedir(self) -> None:
         """Switch to this test's homedir."""
         cd(self.homedir)
-
-    def wdbase_for(self, covlevel: str) -> str:
-        """
-        Compute a short base prefix for the working directory that will
-        contain the output of coverage analysis for level covlevel.
-
-        Uses the first letter of the highest level ('s' for "stmt" or 'u' for
-        "stmt+uc_mcdc") and the full name of the assertion level if assertion
-        coverage is enabled. If function and call coverage is needed, append
-        "fc".
-        """
-        levels = covlevel.split("+")
-
-        if len(levels) == 1:
-            return "s_"
-
-        wdbase = levels[1][0]
-
-        # ??? TODO: I don't understand where these fields come from
-        if self.assert_lvl:
-            wdbase += self.assert_lvl
-
-        if self.fun_call_lvl:
-            wdbase += "fc"
-
-        return wdbase + "_"
 
     def xcovlevel_for(self, wdname: str) -> str:
         """
