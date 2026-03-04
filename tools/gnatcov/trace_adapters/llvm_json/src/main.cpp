@@ -157,10 +157,9 @@ dump_coverage_for_source_file (const coverage::CoverageMapping &coverage,
 json::Object
 dump_coverage (const coverage::CoverageMapping &coverage)
 {
-  json::Array file_coverages
-    = dump_array (coverage.getUniqueSourceFiles (), [&] (StringRef filename) {
-        return dump_coverage_for_source_file (coverage, filename);
-      });
+  json::Array file_coverages = dump_array (
+    coverage.getUniqueSourceFiles (), [&] (StringRef filename)
+      { return dump_coverage_for_source_file (coverage, filename); });
 
   return json::Object ({ { "data", std::move (file_coverages) } });
 }

@@ -1,12 +1,11 @@
-class C
-{
-public:
-  int
-  get_zero ()
-  {
-    return 0;
-  }
-};
+class C{
+
+  public :
+
+    int get_zero (){ return 0;
+}
+}
+;
 
 int
 main ()

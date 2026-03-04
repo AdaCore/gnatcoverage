@@ -16,8 +16,8 @@ tryme (bool aa, bool bb, bool skip)
   }
 
   // A lambda function in a for statement
-  int i = 0;                // # other
-  for (; i++ < 1;)          // # other
+  int i = 0;       // # other
+  for (; i++ < 1;) // # other
     [] (int aa, int bb) {   // # other
       if (aa > 0 && bb > 0) // # eval :o/d:
         return true;        // # lambda_true
