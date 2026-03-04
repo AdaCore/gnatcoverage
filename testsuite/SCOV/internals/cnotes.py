@@ -486,7 +486,7 @@ class Cnote:
     """Some precise coverage note, either expected or reported."""
 
     # Kind of note, line segment and report section id
-    kind: NK | None
+    kind: NK
     segment: Section | None = None
 
     # An expected note for one segment will be discharged by an emitted
@@ -541,8 +541,6 @@ class Xnote(Cnote):
 
     def satisfied(self) -> bool:
         """Tell whether this [anti-]expectation is satisfied at this point."""
-        assert self.kind is not None
-
         if anti_p(self.kind):
             return self.discharger is None
         else:
@@ -554,7 +552,7 @@ class Enote(Cnote):
 
     def __init__(
         self,
-        kind: NK | None,
+        kind: NK,
         segment: Section,
         source: str,
         stag: Stag | None = None,
@@ -574,8 +572,6 @@ class KnoteDict[Note: Cnote](dict[NK, list[Note]]):
         self.update((key, []) for key in possible_keys)
 
     def register(self, note: Note) -> None:
-        assert note.kind is not None
-
         self[note.kind].append(note)
 
 

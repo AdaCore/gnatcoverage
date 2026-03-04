@@ -17,7 +17,7 @@ from .cnotes import (
     erNoteKinds,
 )
 from .segments import Sloc, Sloc_from_match
-from .stags import Stag_from
+from .stags import Stag_from, Stag
 from .tfiles import Tfile, Tline
 
 
@@ -235,16 +235,12 @@ class Nblock(Rblock):
         if not dline:
             return None
 
-        # Otherwise, we construct the Enote object incrementally, as we need
-        # to sort out the note kind and separation tag from the diagnostic
-        # text
+        # Start making the enote object without actually building it, since we
+        # don't have its kind yet.
 
-        enote = Enote(
-            segment=dline.sloc.section,
-            source=dline.sloc.filename,
-            kind=None,
-            stag=None,
-        )
+        enote_segment = dline.sloc.section
+        enote_source = dline.sloc.filename
+        enote_stag: Stag | None = None
 
         # Fetch and remove a possible separation tag from the diagnostic
         # text. Removal is useful to facilitate matching of other parts, hence
@@ -252,7 +248,8 @@ class Nblock(Rblock):
 
         def __stag_replacement_for(m: re.Match[str]) -> str:
             # Side effect on caller here
-            enote.stag = Stag_from(m.group(1), True)
+            nonlocal enote_stag
+            enote_stag = Stag_from(m.group(1), True)
             return ""
 
         this_diag = re.sub(
@@ -263,9 +260,20 @@ class Nblock(Rblock):
 
         # Then determine the note kind from the remaining contents
 
-        enote.kind = self.nkind_for(this_diag)
+        enote_kind = self.nkind_for(this_diag)
 
-        return self.check_enote(this_diag, enote)
+        self.check_enote_kind(rline, enote_kind)
+
+        return (
+            Enote(
+                kind=enote_kind,
+                segment=enote_segment,
+                source=enote_source,
+                stag=enote_stag,
+            )
+            if enote_kind is not None
+            else None
+        )
 
     def report_unexpected_enote(self, rline: str) -> None:
         thistest.failed(
@@ -274,12 +282,9 @@ class Nblock(Rblock):
             % (self.name, rline.rstrip("\n"))
         )
 
-    def check_enote(self, rline: str, enote: Enote) -> Enote | None:
-        if enote.kind is None:
+    def check_enote_kind(self, rline: str, kind: NK | None) -> None:
+        if kind is None:
             self.report_unexpected_enote(rline)
-            return None
-        else:
-            return enote
 
     def try_parse(self, rline: str) -> Enote | None:
         enote = self.try_parse_enote(rline)
@@ -364,7 +369,7 @@ class OERsection(Nsection):
         )
 
     @override
-    def nkind_for(self, rline: str) -> None:
+    def nkind_for(self, rline: str) -> NK | None:
         # Messages in this section are always unexpected and should trigger
         # test failure. Just tell we don't know how to bind them on any sort
         # of expected note kind, and let the generic engine do the rest.
@@ -450,17 +455,15 @@ class XREchapter(Nchapter):
         return p
 
     @override
-    def check_enote(self, rline: str, enote: Enote) -> Enote | None:
-        if enote.kind is None:
-            self.report_unexpected_enote(rline)
+    def check_enote_kind(self, rline: str, kind: NK | None) -> None:
+        super().check_enote_kind(rline, kind)
+        if kind is None:
             return None
 
         # Check if the note is that of an exempted violation in the region. If
         # so, increment the exempted violations counter.
-        if enote.kind in self.exempted_notes.values():
+        if kind in self.exempted_notes.values():
             self.ecount_exempted += 1
-
-        return enote
 
 
 class DCRchapter(Nchapter):

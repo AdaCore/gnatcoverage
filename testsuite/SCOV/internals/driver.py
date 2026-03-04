@@ -350,8 +350,6 @@ class _Xchecker:
         # By definition, unsatisfied weak expectations are ok and report
         # anti-expectations are expected to be unmatched
 
-        assert xn.kind is not None
-
         if xn.weak or anti_p(xn.kind):
             return
 
@@ -380,7 +378,6 @@ class _Xchecker:
         dsat_p = False
         if block:
             for n in self.sat[block]:
-                assert n.kind is not None
                 dsat_p |= deviation_p(n.kind)
                 psat_p |= positive_p(n.kind)
 
@@ -421,9 +418,7 @@ class _Xchecker:
         enotes = self.edict[ekind]
 
         for en in enotes:
-            if not en.discharges or (
-                en.discharges.kind is not None and anti_p(en.discharges.kind)
-            ):
+            if not en.discharges or anti_p(en.discharges.kind):
                 self.register_failure("Unexpected %s" % en.image())
 
     def run(self, discharge_kdict: NKDischargeDict) -> None:
