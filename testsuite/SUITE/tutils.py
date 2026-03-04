@@ -22,7 +22,7 @@ from typing import IO, TYPE_CHECKING
 
 from e3.fs import cp
 from e3.os.fs import touch, unixpath, which
-from e3.os.process import PIPE, Run, STDOUT
+from e3.os.process import DEVNULL, PIPE, Run, STDOUT
 
 
 # Expose a few other items as a test util facilities as well
@@ -181,6 +181,35 @@ def run_and_log(
     run_processes.append(ProcessResult(p, cmds, time.time() - start))
 
     return p
+
+
+def get_process_output(
+    p: Run, out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+) -> str:
+    """
+    Return the output of the given process, if possible.
+
+    :param p: Process to analyse.
+    :param out: `output` argument passed to `Run` when running this process.
+    """
+
+    class Constants:
+        DEVNULL = DEVNULL
+        PIPE = PIPE
+
+    match out:
+        case str(filename):
+            return contents_of(filename)
+        case Path() as path:
+            return contents_of(str(path))
+        case Constants.PIPE | IO():
+            return "<output redirected to in-memory file>"
+        case Constants.DEVNULL:
+            return "<output redirected to devnull>"
+        case None:
+            return "<output not captured>"
+        case _:
+            raise AssertionError(f"invalid out: {out!r}")
 
 
 def effective_trace_mode(override_trace_mode: str | None) -> str:
@@ -370,7 +399,7 @@ def gprbuild(
     largs: Iterable[str] | None = None,
     trace_mode: str | None = None,
     runtime_project: str | None = None,
-    out: str = "gprbuild.out",
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = "gprbuild.out",
     register_failure: bool = True,
     auto_config_args: bool = True,
 ) -> Run:
@@ -448,7 +477,11 @@ def gprbuild(
     )
     if register_failure:
         thistest.stop_if(
-            p.status != 0, FatalError("gprbuild exit in error", out)
+            p.status != 0,
+            FatalError(
+                "gprbuild exit in error",
+                outstr=get_process_output(p, out),
+            ),
         )
     return p
 
@@ -928,7 +961,7 @@ def xcov_suite_args(
 def cmdrun(
     cmd: Iterable[str],
     for_pgm: bool,
-    inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = None,
+    inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = PIPE,
     out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
     err: (
         STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
@@ -973,33 +1006,28 @@ def cmdrun(
     # Check for FatalError conditions. Minimize the situations where we look
     # into the program's output as this is a central spot.
 
-    outfile = out if isinstance(out, str) else None
-
     if expect_non_zero_code:
         if p.status == 0:
             thistest.stop(
                 FatalError(
                     '"%s"' % " ".join(cmd) + ": expected non-zero exit code",
-                    outfile=outfile,
+                    outstr=get_process_output(p, out),
                 )
             )
     elif register_failure and p.status != 0:
-        output = contents_of(outfile) if outfile else p.out
         thistest.stop(
             FatalError(
                 '"%s"' % " ".join(cmd) + " exit in error",
-                outfile=outfile,
-                outstr=output,
+                outstr=get_process_output(p, out),
             )
         )
 
     if register_failure and for_pgm and thistest.options.target:
-        output = contents_of(outfile) if outfile else p.out
+        output = get_process_output(p, out)
         thistest.stop_if(
             unhandled_exception_in(output),
             FatalError(
                 '"%s"' % " ".join(cmd) + " raised an unhandled exception",
-                outfile=outfile,
                 outstr=output,
             ),
         )
@@ -1096,7 +1124,7 @@ def xcov(
     # Do not check warnings when running the testsuite in binary traces mode,
     # as it would require modifying / adapting too many tests.
     if register_failure and thistest.options.trace_mode == "src":
-        output = contents_of(out) if isinstance(out, str) else p.out
+        output = get_process_output(p, out)
 
         # Check for unexpected messages. Beware that the "warning:"
         # indication at least is not necessarily at the beginning of
@@ -1140,7 +1168,7 @@ def xcov(
 
 def xrun(
     args: Iterable[str],
-    out: str | None = None,
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
     auto_config_args: bool = True,
@@ -1188,7 +1216,7 @@ def xrun(
     return xcov(
         ["run"] + runargs,
         inp=nulinput,
-        out=out or PIPE,
+        out=out,
         env=env,
         register_failure=register_failure,
         auto_config_args=auto_config_args,
@@ -1199,7 +1227,7 @@ def xrun(
 
 def run_cov_program(
     executable: str,
-    out: str | None = None,
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
     env: dict[str, str] | None = None,
     exec_args: Iterable[str] | None = None,
     register_failure: bool = True,
@@ -1476,7 +1504,7 @@ def xcov_annotate(
     annot_out_file: str,
     annot_in_files: list[str] | None = None,
     extra_args: list[str] | None = None,
-    out: str | None = None,
+    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
     auto_config_args: bool = True,

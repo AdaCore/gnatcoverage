@@ -70,7 +70,9 @@ def xcov_instrument(
     dump_channel: str | None = "auto",
     gpr_obj_dir: str | None = None,
     runtime_project: str | None = None,
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = None,
+    out: (
+        DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
+    ) = "instrument.log",
     err: (
         STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
     ) = STDOUT,
@@ -190,7 +192,6 @@ def xcov_instrument(
             for mre in ["object directory.*not found", re_tolerate_messages]
         )
 
-    out = "instrument.log" if out is None else out
     result = xcov(
         args,
         out=out,
