@@ -35,25 +35,7 @@ from SUITE.control import BUILDER
 
 from SUITE import dutils
 
-from SCOV.internals.cnotes import (
-    r0,
-    r0c,
-    xBlock0,
-    sNoCov,
-    sPartCov,
-    dtNoCov,
-    dfNoCov,
-    dPartCov,
-    dNoCov,
-    etNoCov,
-    efNoCov,
-    ePartCov,
-    eNoCov,
-    cPartCov,
-    XsNoCov,
-    Xr0c,
-    xBlock1,
-)
+from SCOV.internals.cnotes import NK
 from SUITE.cutils import FatalError, lines_of
 from REST import rest
 
@@ -260,21 +242,21 @@ class colid(object):
 
 column_for = {
     # When counting notes, map note kinds to table columns
-    r0: colid.nov,
-    r0c: colid.igv,
-    xBlock0: colid.nov,
-    sNoCov: colid.scv,
-    sPartCov: colid.scv,
-    dtNoCov: colid.dcv,
-    dfNoCov: colid.dcv,
-    dPartCov: colid.dcv,
-    dNoCov: colid.dcv,
-    etNoCov: colid.mcv,
-    efNoCov: colid.mcv,
-    ePartCov: colid.mcv,
-    eNoCov: colid.mcv,
-    cPartCov: colid.mcv,
-    xBlock1: colid.xbv,
+    NK.r0: colid.nov,
+    NK.r0c: colid.igv,
+    NK.xBlock0: colid.nov,
+    NK.sNoCov: colid.scv,
+    NK.sPartCov: colid.scv,
+    NK.dtNoCov: colid.dcv,
+    NK.dfNoCov: colid.dcv,
+    NK.dPartCov: colid.dcv,
+    NK.dNoCov: colid.dcv,
+    NK.etNoCov: colid.mcv,
+    NK.efNoCov: colid.mcv,
+    NK.ePartCov: colid.mcv,
+    NK.eNoCov: colid.mcv,
+    NK.cPartCov: colid.mcv,
+    NK.xBlock1: colid.xbv,
     # When checking status, map text passed by toplevel driver
     # to column.
     "PASS": colid.passed,
@@ -908,7 +890,7 @@ class QDreport(object):
             for src in qde.xrnotes
             for notelist in qde.xrnotes[src].values()
             for note in notelist
-            if note.kind not in range(XsNoCov, Xr0c + 1)
+            if note.kind not in range(NK.XsNoCov, NK.Xr0c + 1)
         ]
 
         return this_tcdata
