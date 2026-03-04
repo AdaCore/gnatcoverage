@@ -6,6 +6,7 @@ workflow:
 variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
+   CLANG_FORMAT_DATE: 20260303
    GNATFORMAT_DATE: 20251204
 
 include:
@@ -248,8 +249,8 @@ pre-commit:
     - *basic_setup
 
     # Install the clang-format executable and make it available
-    - anod install libclang -Qstable
-    - eval `anod printenv libclang -Qstable`
+    - anod install libclang -Qdate=$CLANG_FORMAT_DATE
+    - eval `anod printenv libclang -Qdate=$CLANG_FORMAT_DATE`
 
 static-analysis:
   variables:

@@ -818,10 +818,11 @@ clang_getDeclName (CXCursor C)
 {
   if (clang_isDeclaration (C.kind))
     {
-      auto getFunctionDeclName = [] (const FunctionDecl *FD) {
-        const DeclarationName FunctionName = FD->getNameInfo ().getName ();
-        return createDup (FunctionName.getAsString ().c_str ());
-      };
+      auto getFunctionDeclName = [] (const FunctionDecl *FD)
+        {
+          const DeclarationName FunctionName = FD->getNameInfo ().getName ();
+          return createDup (FunctionName.getAsString ().c_str ());
+        };
 
       const Decl *D = getCursorDecl (C);
 
@@ -890,10 +891,12 @@ clang_getCalleeName (CXCursor C)
           if (!D)
             return createEmpty ();
 
-          auto getFunctionDeclName = [] (const FunctionDecl *FD) {
-            const DeclarationName FunctionName = FD->getNameInfo ().getName ();
-            return createDup (FunctionName.getAsString ().c_str ());
-          };
+          auto getFunctionDeclName = [] (const FunctionDecl *FD)
+            {
+              const DeclarationName FunctionName
+                = FD->getNameInfo ().getName ();
+              return createDup (FunctionName.getAsString ().c_str ());
+            };
 
           switch (D->getKind ())
             {
