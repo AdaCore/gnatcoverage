@@ -11230,7 +11230,6 @@ package body Instrument.Ada_Unit is
       --  First, compute the configuration pragmas mapping for all sources in
       --  the loaded project.
 
-      Context : constant Analysis_Context := Create_Context;
       Mapping : constant Config_Pragmas_Mapping :=
         Import_From_Project (Project.Project);
 
