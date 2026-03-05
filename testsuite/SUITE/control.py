@@ -204,7 +204,7 @@ class BUILDER:
     @staticmethod
     def RUN_CONFIG_SEQUENCE(
         toplev_options: argparse.Namespace,
-        toolchain_discriminant: str,
+        toolchain_discriminant: str | None,
     ) -> None:
         """Arrange to generate the SUITE_CONFIG configuration file"""
 
