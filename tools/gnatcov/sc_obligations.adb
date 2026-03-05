@@ -2445,8 +2445,7 @@ package body SC_Obligations is
             then CU_Vector.Last_Index + 1
             else CU_Map.Element (CP_CU.Main_Source));
 
-         type CU_Info_Access is access all CU_Info;
-         Real_CU : CU_Info_Access;
+         Real_CU : access CU_Info;
          --  Pointer to the update CU_Info in CU_Vector. This is a new entry
          --  into CU_Vector if Is_New_CU, otherwise an existing one.
 
@@ -2466,7 +2465,7 @@ package body SC_Obligations is
 
          --  Then, retrieve the newly created (or existing) CU
 
-         Real_CU := CU_Info_Access (CU_Vector.Reference (Real_CU_Id).Element);
+         Real_CU := CU_Vector.Reference (Real_CU_Id).Element;
 
          --  Check if the unit has new SCOs
 
