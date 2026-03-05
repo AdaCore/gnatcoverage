@@ -1,11 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Various helpers used through the whole package."""
+
+from __future__ import annotations
+
+import dataclasses
 
 import SCOV.expgen.syntax as syntax
 
 
-def check_tag(tag):
+def check_tag(tag: syntax.Tag) -> None:
     """Assert whether the given `tag` is valid, or not."""
     if tag.name == "eval":
         assert tag.context in (
@@ -18,7 +20,7 @@ def check_tag(tag):
         assert tag.context is None
 
 
-def format_tag(tag):
+def format_tag(tag: syntax.Tag) -> str:
     """Serialize the given `tag`."""
     if tag.name == "eval":
         return "# {}-{} {}".format(tag.name, tag.operand, tag.context)
@@ -26,15 +28,23 @@ def format_tag(tag):
         return "# {}".format(tag.name)
 
 
-def contains_tag(node):
+def contains_tag(node: object) -> bool:
     """Return if the given `node` tree contains a tagged node."""
-    return not isinstance(node, (str, bool, int)) and (
-        isinstance(node, syntax.TaggedNode)
-        or any(contains_tag(subnode) for subnode in node)
-    )
+    if isinstance(node, (str, bool, int)):
+        return False
+
+    if isinstance(node, syntax.TaggedNode):
+        return True
+
+    if dataclasses.is_dataclass(node) and not isinstance(node, type):
+        return any(
+            contains_tag(subnode) for subnode in dataclasses.astuple(node)
+        )
+
+    return False
 
 
-def is_expr(node):
+def is_expr(node: object) -> bool:
     """Return whether `node` is an expression."""
     return isinstance(
         node,
@@ -54,30 +64,17 @@ def is_expr(node):
     )
 
 
-def make_type_set(types):
-    """Return a list of types without doubles."""
-
-    result_ids = set()
-
-    def add_if_new(type_):
-        id_ = id(type_)
-        if id_ not in result_ids:
-            result_ids.add(id_)
-            return True
-        else:
-            return False
-
-    return [type_ for type_ in types if add_if_new(type_)]
-
-
-def is_topology_equal(topo1, topo2):
+def is_topology_equal(topo1: syntax.Expr, topo2: syntax.Expr) -> bool:
     """Return whether two topologies are equal."""
     if type(topo1) is not type(topo2):
         return False
     elif isinstance(topo1, (syntax.And, syntax.Not, syntax.Or)):
         return all(
             is_topology_equal(sub_topo1, sub_topo2)
-            for sub_topo1, sub_topo2 in zip(topo1, topo2)
+            for sub_topo1, sub_topo2 in zip(
+                dataclasses.astuple(topo1),
+                dataclasses.astuple(topo2),
+            )
         )
     else:
         # typo1 and typo2 are placeholders

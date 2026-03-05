@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """
 Code is generated depending on information extracted from test drivers. This
 module provides various helpers to parse them.
 """
+
+from __future__ import annotations
+
+from typing import NoReturn
 
 import SCOV.expgen.syntax as syntax
 import SCOV.expgen.topology as topology
@@ -11,7 +13,12 @@ import SCOV.expgen.topology as topology
 from SCOV.expgen.generator.errors import DriverError, BadTopologyError
 
 
-def parse_topology(topo_dir, driver, line_no, tokens):
+def parse_topology(
+    topo_dir: str,
+    driver: str,
+    line_no: int | None,
+    tokens: list[str],
+) -> syntax.Expr:
     """
     Parse a topology, which look like an Ada boolean expression with '_' for
     operand placeholders (and a space between each token). For instance:
@@ -26,14 +33,14 @@ def parse_topology(topo_dir, driver, line_no, tokens):
     #       | "(" not ")"
     #       | "_"
 
-    def error(message):
+    def error(message: str) -> NoReturn:
         raise BadTopologyError(topo_dir, driver, line_no, message)
 
-    def check_eof(i):
+    def check_eof(i: int) -> None:
         if i >= len(tokens):
             raise error("unexpected end of line")
 
-    def parse_or(i):
+    def parse_or(i: int) -> tuple[syntax.Expr, int]:
         check_eof(i)
         left, i = parse_and(i)
         while i < len(tokens):
@@ -46,7 +53,7 @@ def parse_topology(topo_dir, driver, line_no, tokens):
             left = syntax.And(left, right)
         return left, i
 
-    def parse_and(i):
+    def parse_and(i: int) -> tuple[syntax.Expr, int]:
         check_eof(i)
         left, i = parse_not(i)
         while i < len(tokens):
@@ -59,7 +66,7 @@ def parse_topology(topo_dir, driver, line_no, tokens):
             left = syntax.And(left, right)
         return left, i
 
-    def parse_not(i):
+    def parse_not(i: int) -> tuple[syntax.Expr, int]:
         check_eof(i)
         if tokens[i] == "not":
             expr, i = parse_not(i + 1)
@@ -91,7 +98,12 @@ def parse_topology(topo_dir, driver, line_no, tokens):
     return topo
 
 
-def parse_truth(topo_dir, driver, line_no, c):
+def parse_truth(
+    topo_dir: str,
+    driver: str,
+    line_no: int | None,
+    c: str,
+) -> bool:
     """
     Parse a truth character ('F' or 'T') and return the corresponding truth
     value, or raise an error.
@@ -106,12 +118,16 @@ def parse_truth(topo_dir, driver, line_no, c):
         )
 
 
-def parse_driver(topo_dir, driver, truth_vectors):
+def parse_driver(
+    topo_dir: str,
+    driver: str,
+    truth_vectors: set[tuple[bool, ...]],
+) -> syntax.Expr:
     """
     Parse the `driver` test driver Ada source. Return the topology in it and
     fill the `truth_vectors` with run procedure calls found in it.
     """
-    drv_topo = None
+    drv_topo: syntax.Expr | None = None
 
     for line_no, line in enumerate(open(driver, "r"), 1):
         # Parse a topology declaration
@@ -156,4 +172,5 @@ def parse_driver(topo_dir, driver, truth_vectors):
             )
             truth_vectors.add(operands_truth + (expected_truth,))
 
+    assert drv_topo is not None
     return drv_topo

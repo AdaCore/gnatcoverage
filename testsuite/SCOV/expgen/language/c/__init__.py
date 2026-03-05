@@ -1,8 +1,14 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 
+from collections.abc import Iterable
+import contextlib
+from typing import IO
+import types
+
+import SCOV.expgen.language as language
+import SCOV.expgen.operand as operand
 import SCOV.expgen.syntax as syntax
 import SCOV.expgen.utils as utils
-import SCOV.expgen.language as language
 
 
 # Serialization of relational operators
@@ -22,38 +28,42 @@ BUILTIN_TYPES = {
 }
 
 
-class HeaderGuard(object):
+class HeaderGuard(contextlib.AbstractContextManager[None]):
     """Output C header guards on entry and exit."""
 
-    def __init__(self, language, module_name):
+    def __init__(self, language: language.Language, module_name: str):
         self.language = language
         self.module_name = module_name
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.language.write("#ifndef {}_H".format(self.module_name.upper()))
         self.language.newline()
         self.language.write("#define {}_H".format(self.module_name.upper()))
         self.language.newline()
 
-    def __exit__(self, exctype, value, traceback):
+    def __exit__(
+        self,
+        exctype: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: types.TracebackType | None,
+    ) -> None:
         self.language.write("#endif")
         self.language.newline()
 
 
 class Language(language.Language):
-    NAME = "C"
-    INDENT = 2
 
+    NAME = "C"
     RUN_MODULE = "run_body"
 
     #
     # Filename generators
     #
 
-    def get_specification_filename(self, module_name):
+    def get_specification_filename(self, module_name: str) -> str:
         return "{}.h".format(module_name)
 
-    def get_implementation_filename(self, module_name):
+    def get_implementation_filename(self, module_name: str) -> str:
         return "{}.c".format(module_name)
 
     #
@@ -61,8 +71,11 @@ class Language(language.Language):
     #
 
     def serialize_run_module_implementation(
-        self, stream, operand_kinds, truth_vectors
-    ):
+        self,
+        stream: IO[str],
+        operand_kinds: list[operand.Operand],
+        truth_vectors: set[tuple[bool, ...]],
+    ) -> None:
         self.set_stream(stream)
 
         self.add_include(self.SUPPORT_MODULE)
@@ -90,7 +103,7 @@ class Language(language.Language):
                         )
                     ],
                 )
-                self.handle(
+                self.handle_expr(
                     syntax.Call(
                         syntax.VariableUsage(self.ASSERT_PROC_NAME),
                         [
@@ -107,16 +120,23 @@ class Language(language.Language):
             self.write("}")
             self.newline()
 
-    def serialize_specification_types(self, stream, types):
+    def serialize_specification_types(
+        self,
+        stream: IO[str],
+        types: Iterable[syntax.Type],
+    ) -> None:
         self.set_stream(stream)
         with HeaderGuard(self, self.TYPES_MODULE):
             for type_decl in types:
                 if not isinstance(type_decl, syntax.BuiltinType):
-                    self.handle(type_decl, declaration=True)
+                    self.handle_type(type_decl, declaration=True)
 
     def serialize_specification_program(
-        self, stream, program, formal_names, formal_types
-    ):
+        self,
+        stream: IO[str],
+        formal_names: list[str],
+        formal_types: list[syntax.Type],
+    ) -> None:
         self.set_stream(stream)
         with HeaderGuard(self, self.COMPUTING_MODULE):
             self.add_include(self.TYPES_MODULE)
@@ -131,8 +151,13 @@ class Language(language.Language):
             )
 
     def serialize_implementation(
-        self, stream, program, formal_names, formal_types, one_operand_per_line
-    ):
+        self,
+        stream: IO[str],
+        program: syntax.Program,
+        formal_names: list[str],
+        formal_types: list[syntax.Type],
+        one_operand_per_line: bool,
+    ) -> None:
         self.set_stream(stream)
 
         self.one_operand_per_line = one_operand_per_line
@@ -151,7 +176,7 @@ class Language(language.Language):
         )
         self.write("{")
         self.newline()
-        self.handle(program)
+        self.handle_program(program)
         self.write("}")
         self.newline()
 
@@ -159,13 +184,18 @@ class Language(language.Language):
     # Various helpers
     #
 
-    def add_include(self, module_name):
+    def add_include(self, module_name: str) -> None:
         self.write('#include "{}.h"'.format(module_name))
         self.newline()
 
     def add_subprogram_signature(
-        self, name, return_type, formal_names, formal_types, declaration
-    ):
+        self,
+        name: str,
+        return_type: syntax.Type | None,
+        formal_names: list[str],
+        formal_types: list[syntax.Type],
+        declaration: bool,
+    ) -> None:
         """Add a subprogram signature to the output.
 
         If `return_type` is None, the subprogram is considered as a procedure.
@@ -175,7 +205,7 @@ class Language(language.Language):
         if declaration:
             self.write("extern ")
         if return_type:
-            self.handle(return_type)
+            self.handle_type(return_type)
         else:
             self.write("void")
         self.newline()
@@ -185,7 +215,7 @@ class Language(language.Language):
         for i, (name, type_) in enumerate(zip(formal_names, formal_types)):
             if i > 0:
                 self.write(", ")
-            self.handle(type_)
+            self.handle_type(type_)
             self.write(" {}".format(name))
         if len(formal_names) == 0:
             self.write("void")
@@ -195,13 +225,18 @@ class Language(language.Language):
             self.write(";")
         self.newline()
 
-    def handle_parent(self, expr):
+    def handle_parent(self, expr: syntax.Expr) -> None:
         self.write("(")
         with self.indent():
-            self.handle(expr)
+            self.handle_expr(expr)
         self.write(")")
 
-    def helper_binop(self, op, left, right):
+    def helper_binop(
+        self,
+        op: str,
+        left: syntax.Expr,
+        right: syntax.Expr,
+    ) -> None:
         self.handle_composite_expr(left)
         if self.one_operand_per_line and utils.contains_tag(left):
             self.newline()
@@ -210,32 +245,44 @@ class Language(language.Language):
         self.write("{} ".format(op))
         self.handle_composite_expr(right)
 
-    def format_comment(self, string):
+    def format_comment(self, string: str) -> str:
         return "// {}".format(string)
 
-    def handle_program(self, program, declaration=False):
+    def handle_program(
+        self,
+        program: syntax.Program,
+        declaration: bool = False,
+    ) -> None:
         with self.indent(self.INDENT):
             for name, type_ in program.local_vars:
-                self.handle(type_)
+                self.handle_type(type_)
                 self.write(" {};".format(name))
                 self.newline()
 
             for stmt in program.statements:
-                self.handle(stmt)
+                self.handle_stmt(stmt)
 
     #
     # Serialization for types
     #
 
-    def handle_builtin_type(self, builtin_type, declaration=False):
+    def handle_builtin_type(
+        self,
+        builtin_type: syntax.BuiltinType,
+        declaration: bool,
+    ) -> None:
         if declaration:
             raise ValueError(
                 "Cannot output a type declaration for a builtin type"
             )
         else:
-            self.write(BUILTIN_TYPES[builtin_type.name])
+            self.write(BUILTIN_TYPES[builtin_type.ref])
 
-    def handle_record_type(self, record_type, declaration=False):
+    def handle_record_type(
+        self,
+        record_type: syntax.RecordType,
+        declaration: bool,
+    ) -> None:
         if declaration:
             self.write("struct {}".format(record_type.name))
             self.newline()
@@ -243,14 +290,14 @@ class Language(language.Language):
             self.newline()
             with self.indent(self.INDENT):
                 for member in record_type.members:
-                    self.handle(member)
+                    self.handle_member_decl(member)
             self.write("};")
             self.newline()
         else:
             self.write("struct {}".format(record_type.name))
 
-    def handle_member_decl(self, member_decl):
-        self.handle(member_decl.type)
+    def handle_member_decl(self, member_decl: syntax.MemberDecl) -> None:
+        self.handle_type(member_decl.type_)
         self.write(" {};".format(member_decl.name))
         self.newline()
 
@@ -258,34 +305,34 @@ class Language(language.Language):
     # Serialization for expressions
     #
 
-    def handle_variable_usage(self, var):
+    def handle_variable_usage(self, var: syntax.VariableUsage) -> None:
         self.write("{}".format(var.name))
 
-    def handle_litteral_integer(self, integer):
+    def handle_litteral_integer(self, integer: syntax.LitteralInteger) -> None:
         self.write("{}".format(integer.value))
 
-    def handle_litteral_boolean(self, boolean):
+    def handle_litteral_boolean(self, boolean: syntax.LitteralBoolean) -> None:
         self.write("{}".format({True: 1, False: 0}[boolean.value]))
 
-    def handle_litteral_record(self, record):
+    def handle_litteral_record(self, record: syntax.LitteralRecord) -> None:
         self.write("(")
-        self.handle(record.type)
+        self.handle_type(record.type_)
         self.write(") {")
         for i, member in enumerate(record.members):
             if i > 0:
                 self.write(", ")
-            self.handle(member)
+            self.handle_expr(member)
         self.write("}")
 
-    def handle_comparison(self, comp):
+    def handle_comparison(self, comp: syntax.Comparison) -> None:
         self.helper_binop(REL_OP[comp.operator], comp.left, comp.right)
 
-    def handle_call(self, expr):
+    def handle_call(self, expr: syntax.Call) -> None:
         self.handle_composite_expr(expr.function)
         self.write("(")
         with self.indent():
             for i, arg in enumerate(expr.arguments):
-                self.handle(arg)
+                self.handle_expr(arg)
                 if i + 1 < len(expr.arguments):
                     self.write(",")
                     self.newline()
@@ -295,17 +342,17 @@ class Language(language.Language):
     # Serialization for topology expressions
     #
 
-    def handle_and_expr(self, expr):
+    def handle_and_expr(self, expr: syntax.And) -> None:
         self.helper_binop("&&", expr.left, expr.right)
 
-    def handle_or_expr(self, expr):
+    def handle_or_expr(self, expr: syntax.Or) -> None:
         self.helper_binop("||", expr.left, expr.right)
 
-    def handle_not_expr(self, expr):
+    def handle_not_expr(self, expr: syntax.Not) -> None:
         self.write("!")
         self.handle_composite_expr(expr.expr)
 
-    def handle_composite_expr(self, expr):
+    def handle_composite_expr(self, expr: syntax.Expr) -> None:
         is_composite = isinstance(
             expr,
             (
@@ -318,7 +365,7 @@ class Language(language.Language):
         if is_composite:
             self.write("(")
         with self.indent():
-            self.handle(expr)
+            self.handle_expr(expr)
         if is_composite:
             self.write(")")
 
@@ -326,17 +373,17 @@ class Language(language.Language):
     # Serialization for statements
     #
 
-    def handle_if_stmt(self, stmt):
+    def handle_if_stmt(self, stmt: syntax.If) -> None:
         self.write("if (")
         with self.indent():
-            self.handle(stmt.condition)
+            self.handle_expr(stmt.condition)
         self.write(")")
         self.newline()
 
         self.write("{")
         self.newline()
         with self.indent(self.INDENT):
-            self.handle(stmt.true_stmt)
+            self.handle_stmt(stmt.true_stmt)
         self.write("}")
         self.newline()
 
@@ -345,34 +392,34 @@ class Language(language.Language):
         self.write("{")
         self.newline()
         with self.indent(self.INDENT):
-            self.handle(stmt.false_stmt)
+            self.handle_stmt(stmt.false_stmt)
         self.write("}")
         self.newline()
 
-    def handle_while_stmt(self, stmt):
+    def handle_while_stmt(self, stmt: syntax.While) -> None:
         self.write("while (")
         with self.indent():
-            self.handle(stmt.condition)
+            self.handle_expr(stmt.condition)
         self.write(")")
         self.newline()
 
         self.write("{")
         self.newline()
         with self.indent(self.INDENT):
-            self.handle(stmt.stmt)
+            self.handle_stmt(stmt.stmt)
         self.write("}")
         self.newline()
 
-    def handle_return_stmt(self, stmt):
+    def handle_return_stmt(self, stmt: syntax.Return) -> None:
         self.write("return ")
         with self.indent():
-            self.handle(stmt.expr)
+            self.handle_expr(stmt.expr)
         self.write(";")
         self.newline()
 
-    def handle_assign(self, stmt):
-        self.handle(stmt.variable)
+    def handle_assign_stmt(self, stmt: syntax.Assign) -> None:
+        self.handle_expr(stmt.variable)
         self.write(" = ")
-        self.handle(stmt.expr)
+        self.handle_expr(stmt.expr)
         self.write(";")
         self.newline()
