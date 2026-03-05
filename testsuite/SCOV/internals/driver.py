@@ -556,6 +556,14 @@ class SCOV_helper(ABC):
         purposes"""
         pass
 
+    @abstractmethod
+    def run(self) -> Self:
+        """Main driver procedure, which is responsible for generating the
+        environment, building the test and checking the coverage result against
+        the expected SCOs.
+        """
+        pass
+
     def programs(self) -> list[str]:
         """List of base binary file names for the test drivers we are
         given to exercise.
@@ -575,14 +583,6 @@ class SCOV_helper(ABC):
     def singletest(self) -> bool:
         """Whether SELF instantiates a single test."""
         return len(self.drivers) == 1
-
-    @abstractmethod
-    def run(self) -> Self:
-        """Main driver procedure, which is responsible for generating the
-        environment, building the test and checking the coverage result against
-        the expected SCOs.
-        """
-        pass
 
     # -------------------------
     # -- working directories --
@@ -1146,57 +1146,62 @@ class SCOV_helper(ABC):
 
         return res
 
+    @abstractmethod
     def coverage_sco_options(self) -> list[str]:
         """The list of options to pass to gnatcov coverage to convey
         SCOs to be discharged for the test at hand."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def mode_tracename_for(self, pgm: str) -> str:
         """Name of the trace file for the given program name.
 
         Due to specificities of the source trace files in native contexts, this
         method should be called only once the trace file has been created."""
-        raise NotImplementedError
+        pass
 
 
 class SCOV_helper_gpr(SCOV_helper):
     """Helper class for GPR-based tests."""
 
     @property
-    @override
     def gprmode(self) -> bool:
         return bool(thistest.options.gprmode) or (
             self.covctl is not None and self.covctl.requires_gpr()
         )
 
+    @abstractmethod
     def mode_build(self) -> None:
         """For a single test (not consolidation), build the program to run
         out of the test sources.
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def mode_execute(self, main: str) -> str:
         """Execute the program designated by MAIN, arranging to produce an
         execution trace. Return the name of a file containing the execution
         output.
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def mode_scofile_for(self, source: str) -> str:
         """The _base_ file name of a file that would contain SCOs for the
         provide source file name. This is used as a candidate file name to
         be searched in a set of possible object directories for the current
         test.
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def mode_scofiles_switch(self) -> str:
         """The command line switch to pass to convey the name of a file
         containing SCOs, expected to support the '@' response file syntax
         as well. This would be passed to gnatcov coverage when units of
         interest are not to be conveyed by way of project files.
         """
-        raise NotImplementedError
+        pass
 
     @override
     def run(self) -> Self:
@@ -1344,7 +1349,6 @@ class SCOV_helper_gpr(SCOV_helper):
     # --------------------------
     # -- coverage_sco_options --
     # --------------------------
-    @override
     def coverage_sco_options(self) -> list[str]:
         """The list of options to pass to gnatcov coverage to convey
         SCOs to be discharged for the test at hand."""
@@ -1451,7 +1455,6 @@ class SCOV_helper_bin_traces(SCOV_helper_gpr):
     # conveyed through ALI files at analysis time, either when consolidating
     # from traces or when producing intermediate coverage checkpoints.
 
-    @override
     def mode_build(self) -> None:
         gprbuild(
             self.gpr,
@@ -1459,7 +1462,6 @@ class SCOV_helper_bin_traces(SCOV_helper_gpr):
             gargs=self.common_build_gargs(),
         )
 
-    @override
     def mode_execute(self, main: str) -> str:
         out_file = "xrun_{}.out".format(main)
 
@@ -1483,7 +1485,6 @@ class SCOV_helper_bin_traces(SCOV_helper_gpr):
 
         return out_file
 
-    @override
     def mode_scofile_for(self, source: str) -> str:
 
         lang_info = language_info_or_error(source)
@@ -1491,11 +1492,9 @@ class SCOV_helper_bin_traces(SCOV_helper_gpr):
 
         return lang_info.scofile_for(os.path.basename(source))
 
-    @override
     def mode_scofiles_switch(self) -> str:
         return "--scos"
 
-    @override
     def mode_tracename_for(self, pgm: str) -> str:
         return tracename_for(pgm)
 
@@ -1560,7 +1559,6 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
         # mode from the instrumentation options
         self.use_manual_dump = self.dump_trigger == "manual"
 
-    @override
     def mode_build(self) -> None:
         # If we have a request for specific options, honor that. Otherwise,
         # use the already computed project file for this test:
@@ -1649,7 +1647,6 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
             self.gpr_obj_dir, self.gpr_exe_dir, [exename_for(self.main())]
         )
 
-    @override
     def mode_execute(self, main: str) -> str:
         register_failure = not self.testcase.expect_failures
 
@@ -1678,7 +1675,6 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
 
         return out_file
 
-    @override
     def mode_scofile_for(self, source: str) -> str:
 
         lang_info = language_info(source)
@@ -1686,11 +1682,9 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
 
         return lang_info.sidfile_for(os.path.basename(source))
 
-    @override
     def mode_scofiles_switch(self) -> str:
         return "--sid"
 
-    @override
     def mode_tracename_for(self, pgm: str) -> str:
         return srctracename_for(
             pgm, manual=self.use_manual_dump, manual_prj_name="gen"
@@ -1736,12 +1730,10 @@ class SCOV_helper_rust(SCOV_helper):
         )
 
     @property
-    @override
     def gprmode(self) -> bool:
         # No GPR mode for Rust
         return False
 
-    @override
     def coverage_sco_options(self) -> list[str]:
         return ["--exec", self.get_executable()]
 
@@ -1825,6 +1817,5 @@ class SCOV_helper_rust(SCOV_helper):
             exename_for(no_ext(self.drivers[0])),
         )
 
-    @override
     def mode_tracename_for(self, _pgm: str) -> str:
         return self.PROFRAW_FILE
