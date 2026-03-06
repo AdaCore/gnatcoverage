@@ -21,14 +21,13 @@ with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Interfaces;
 
-with GNAT.OS_Lib;
-
-with Coverage;     use Coverage;
-with Hex_Images;   use Hex_Images;
-with Outputs;      use Outputs;
+with Coverage;       use Coverage;
+with Files_Handling; use Files_Handling;
+with Hex_Images;     use Hex_Images;
+with Outputs;        use Outputs;
 with Support_Files;
-with Traces_Disa;  use Traces_Disa;
-with Traces_Files; use Traces_Files;
+with Traces_Disa;    use Traces_Disa;
+with Traces_Files;   use Traces_Files;
 
 package body Annotations.Xml is
 
@@ -426,21 +425,10 @@ package body Annotations.Xml is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer) is
-      Success : Boolean;
    begin
       --  Copy the XML Schema to the output directory
 
-      GNAT.OS_Lib.Copy_File
-        (Name     => XSD_Filename,
-         Pathname => Get_Output_Dir,
-         Success  => Success,
-         Mode     => GNAT.OS_Lib.Overwrite);
-      if not Success then
-         Fatal_Error
-           ("Error while copying "
-            & XSD_Filename
-            & " to the output directory");
-      end if;
+      Copy_File (From => XSD_Filename, To => Get_Output_Dir);
 
       Create_Output_File (Pp.Files (Dest_Index), Index_File_Name);
 
