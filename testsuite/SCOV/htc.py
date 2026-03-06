@@ -9,10 +9,12 @@ The aim is to verify that the testsuite detects mismatch between tests
 expectations and actual coverage results.
 """
 
+from __future__ import annotations
+
 import re
 
 from SCOV.tc import TestCase
-from SCOV.tctl import CAT
+from SCOV.tctl import CAT, _Category, CovControl
 from SUITE.cutils import contents_of
 from SUITE.tutils import thistest
 
@@ -22,11 +24,11 @@ class HarnessDiagnostic:
     A testcase "error" text reported or expected in the HarnessTestCase output.
     """
 
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.text = text
         self.nmatches = 0
 
-    def match(self, reported):
+    def match(self, reported: HarnessDiagnostic) -> bool:
         """
         Return if self (an expected diagnostic) matches the given reported one.
         """
@@ -35,7 +37,11 @@ class HarnessDiagnostic:
 
 class HarnessTestCase(TestCase):
     def __init__(
-        self, expected_diags, extradrivers="", extracargs="", category=CAT.auto
+        self,
+        expected_diags: list[HarnessDiagnostic],
+        extradrivers: str = "",
+        extracargs: str = "",
+        category: _Category | None = CAT.auto,
     ):
         TestCase.__init__(self, extradrivers, extracargs, category)
 
@@ -44,13 +50,19 @@ class HarnessTestCase(TestCase):
 
         self.expected_diags = expected_diags
 
-    def __count_match_on(self, reported, expected):
+    def __count_match_on(
+        self,
+        reported: HarnessDiagnostic,
+        expected: HarnessDiagnostic,
+    ) -> None:
         reported.nmatches += 1
         expected.nmatches += 1
         thistest.n_failed -= 1
 
-    def run(self):
-        TestCase.run(self)
+    def run(
+        self, covcontrol: CovControl | None = None, subdirhint: str = ""
+    ) -> None:
+        super().run(covcontrol, subdirhint)
 
         thistest.flush()
 
