@@ -30,7 +30,7 @@ include:
       - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
 
   # Run gnatsas on GNATcoverage sources
-  - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@~latest
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@topic/move-ci-to-generic-anod-ci
     inputs:
       anod-spec: gnatcov-gnatsas-check
       cache-paths:
