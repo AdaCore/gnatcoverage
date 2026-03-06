@@ -214,10 +214,10 @@ Switches for ``gnattest`` in framework generation mode
 
   .. index:: --RTS (gnattest)
 
-:switch:`--RTS={rts-path}`
-  Specifies the default location of the runtime library. For restricted
-  profiles, ``gnattest`` takes into account the run-time limitations when
-  generating the harness.
+:switch:`--RTS={rts-name}`
+  Specifies the name of the runtime library the harness should use.
+  For restricted profiles, ``gnattest`` takes into account the run-time
+  limitations when generating the harness.
 
 
   .. index:: --additional-tests (gnattest)
