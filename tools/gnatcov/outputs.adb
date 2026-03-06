@@ -20,6 +20,7 @@ with Ada.Characters.Handling;
 with Ada.Command_Line;          use Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
+with Ada.IO_Exceptions;
 
 with GNAT.Exception_Actions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -94,7 +95,8 @@ package body Outputs is
    procedure Clean_Dir
      (Dir           : String;
       Pattern       : String;
-      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set)
+      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set;
+      Keep_Going    : Boolean := False)
    is
       use Ada.Directories;
 
@@ -135,7 +137,18 @@ package body Outputs is
       --  Do the deletion
 
       for Name of To_Delete loop
-         Delete_File (+Name);
+         begin
+            Delete_File (+Name);
+         exception
+            when
+              Exc : Ada.IO_Exceptions.Use_Error | Ada.IO_Exceptions.Name_Error
+            =>
+               if Keep_Going then
+                  Outputs.Error_From_Errno_And_Exc (Exc);
+               else
+                  Outputs.Fatal_Error_From_Errno_And_Exc (Exc);
+               end if;
+         end;
       end loop;
    end Clean_Dir;
 
@@ -170,6 +183,29 @@ package body Outputs is
         (Switches.Arg_Parser, False, True, Switches.Args.Command);
       raise Xcov_Exit_Exc;
    end Fatal_Error_With_Usage;
+
+   ------------------------------
+   -- Error_From_Errno_And_Exc --
+   ------------------------------
+
+   procedure Error_From_Errno_And_Exc (Exc : Exception_Occurrence) is
+      Errno_Msg    : constant String := Errno_Message;
+      Errno_Suffix : constant String :=
+        (if Errno_Msg = "" then "" else ": " & Errno_Msg);
+      Exc_Msg      : constant String := Exception_Message (Exc);
+   begin
+      Outputs.Error (Exc_Msg & Errno_Suffix);
+   end Error_From_Errno_And_Exc;
+
+   ------------------------------------
+   -- Fatal_Error_From_Errno_And_Exc --
+   ------------------------------------
+
+   procedure Fatal_Error_From_Errno_And_Exc (Exc : Exception_Occurrence) is
+   begin
+      Error_From_Errno_And_Exc (Exc);
+      raise Xcov_Exit_Exc;
+   end Fatal_Error_From_Errno_And_Exc;
 
    ---------------------
    --  Get_Output_Dir --

@@ -1516,7 +1516,6 @@ begin
            SID_Filename (LU_Info, In_Library_Dir => False);
          Lib_SID : constant String :=
            SID_Filename (LU_Info, In_Library_Dir => True);
-         Success : Boolean;
       begin
          if not LU_Info.All_Externally_Built
            and then Lib_SID /= ""
@@ -1534,18 +1533,7 @@ begin
                   Outputs.Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
             end;
 
-            GNAT.OS_Lib.Copy_File
-              (Name     => Obj_SID,
-               Pathname => Lib_SID,
-               Success  => Success,
-               Mode     => GNAT.OS_Lib.Overwrite);
-            if not Success then
-               Outputs.Fatal_Error
-                 ("Error while copying "
-                  & Obj_SID
-                  & " to the library directory: "
-                  & Lib_SID);
-            end if;
+            Copy_File (From => Obj_SID, To => Lib_SID);
          end if;
       end;
    end loop;
@@ -1790,6 +1778,6 @@ exception
    when
      Binary_Files.Error | Ada.IO_Exceptions.Name_Error | Outputs.Xcov_Exit_Exc
    =>
-      Clean_Objdirs;
+      Clean_Objdirs (Keep_Going => True);
       raise;
 end Instrument.Projects;

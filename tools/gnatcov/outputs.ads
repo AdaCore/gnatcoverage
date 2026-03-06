@@ -57,6 +57,12 @@ package Outputs is
    with No_Return;
    --  Same as Fatal_Error, but print the command-line usage before terminating
 
+   procedure Error_From_Errno_And_Exc (Exc : Exception_Occurrence);
+   --  Error wrapper to include information from errno and Exc
+
+   procedure Fatal_Error_From_Errno_And_Exc (Exc : Exception_Occurrence);
+   --  Like ``Error_From_Errno_And_Exc``, but for a fatal error
+
    procedure Normal_Exit
    with No_Return;
    --  Cause Xcov to terminate with the success exit code. Since this shortcuts
@@ -184,10 +190,15 @@ package Outputs is
    procedure Clean_Dir
      (Dir           : String;
       Pattern       : String;
-      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set);
+      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set;
+      Keep_Going    : Boolean := False);
    --  Remove all the files in Dir for which the base name matches Pattern, but
    --  whose the full name is not contained in Ignored_Files. An empty string
    --  for Pattern will match every file.
+   --
+   --  If Keep_Going if true, deletion errors are not fatal. This is necessary
+   --  when performing the cleaning precisely because a fatal error has already
+   --  occurred, and we are cleaning up object directories following it.
 
 private
 
