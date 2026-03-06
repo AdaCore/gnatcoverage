@@ -1129,7 +1129,8 @@ class SCOV_helper(ABC):
         """Switch to this test's homedir."""
         cd(self.homedir)
 
-    def xcovlevel_for(self, wdname: str) -> str:
+    @staticmethod
+    def xcovlevel_for(wdname: str) -> str:
         """
         Compute the source coverage level from the working directory prefix
         by matching the first letter of the highest coverage level plus the
