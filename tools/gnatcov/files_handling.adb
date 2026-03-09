@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.OS_Lib;
+with Outputs; use Outputs;
 
 package body Files_Handling is
 
@@ -25,8 +25,6 @@ package body Files_Handling is
    -----------------------
 
    function Executable_Suffix return String is
-      use GNAT.OS_Lib;
-
       Value : String_Access := Get_Executable_Suffix;
    begin
       return Result : constant String := Value.all do
@@ -53,5 +51,33 @@ package body Files_Handling is
    begin
       return +(+File.Full_Name);
    end Full_Name;
+
+   ---------------
+   -- Copy_File --
+   ---------------
+
+   procedure Copy_File
+     (From, To : String;
+      Mode     : Copy_Mode := Overwrite;
+      Preserve : Attribute := Full)
+   is
+      Success : Boolean;
+   begin
+      GNAT.OS_Lib.Copy_File
+        (Name     => From,
+         Pathname => To,
+         Success  => Success,
+         Mode     => Mode,
+         Preserve => Preserve);
+      if not Success then
+         Fatal_Error
+           ("Error while copying "
+            & From
+            & " to "
+            & To
+            & ": "
+            & Errno_Message);
+      end if;
+   end Copy_File;
 
 end Files_Handling;

@@ -24,7 +24,7 @@ with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;
 with Project;           use Project;
 
-procedure Instrument.Clean_Objdirs is
+procedure Instrument.Clean_Objdirs (Keep_Going : Boolean := False) is
 
    procedure Clean_Subdir (Project : GPR2.Project.View.Object);
    --  Callback for Project.Iterate_Projects. If Project is not externally
@@ -114,20 +114,34 @@ procedure Instrument.Clean_Objdirs is
          return;
       end if;
 
-      Delete_Tree (Directory => Output_Dir);
+      begin
+         Delete_Tree (Directory => Output_Dir);
+      exception
+         when Exc : Use_Error | Name_Error =>
+            if Keep_Going then
+               Outputs.Error_From_Errno_And_Exc (Exc);
+            else
+               Outputs.Fatal_Error_From_Errno_And_Exc (Exc);
+            end if;
+      end;
 
       --  Remove the SID files if any
 
       if Project.Kind in GPR2.With_Object_Dir_Kind
         and then Project.Object_Directory.Exists
       then
-         Clean_Dir (Project.Object_Directory.String_Value, Pattern => "*.sid");
+         Clean_Dir
+           (Project.Object_Directory.String_Value,
+            Pattern    => "*.sid",
+            Keep_Going => Keep_Going);
       end if;
       if Project.Kind in GPR2.Library_Kind
         and then Project.Library_Directory.Exists
       then
          Clean_Dir
-           (Project.Library_Directory.String_Value, Pattern => "*.sid");
+           (Project.Library_Directory.String_Value,
+            Pattern    => "*.sid",
+            Keep_Going => Keep_Going);
       end if;
 
       Clean_Objdirs_Trace.Decrease_Indent;

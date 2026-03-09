@@ -25,8 +25,6 @@ with Ada.Text_IO;     use Ada.Text_IO;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with GNAT.OS_Lib;
-
 with Files_Handling;          use Files_Handling;
 with Files_Table;             use Files_Table;
 with Instrument.C;            use Instrument.C;
@@ -1145,7 +1143,6 @@ begin
                        "instr_"
                        & Filename_Slug (+Orig_Source.Full_Name)
                        & ".a");
-                  Success       : Boolean;
                begin
                   if not Instr_Objects.Is_Empty then
                      declare
@@ -1170,12 +1167,9 @@ begin
                         --  newly created library file, packaging both the
                         --  instrumented source and its coverage buffer.
 
-                        GNAT.OS_Lib.Copy_File
-                          (Packaged_Name,
-                           +Assembly_Command.Target.Full_Name,
-                           Success,
-                           Mode     => GNAT.OS_Lib.Overwrite,
-                           Preserve => GNAT.OS_Lib.Full);
+                        Copy_File
+                          (From => Packaged_Name,
+                           To   => +Assembly_Command.Target.Full_Name);
                      end;
                   end if;
                end;

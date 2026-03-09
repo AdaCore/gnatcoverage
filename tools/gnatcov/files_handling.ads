@@ -21,6 +21,7 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
+with GNAT.OS_Lib;  use GNAT.OS_Lib;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Strings; use Strings;
@@ -71,5 +72,12 @@ package Files_Handling is
         Element_Type => Unbounded_String,
         "<"          => GNATCOLL.VFS."<",
         "="          => Ada.Strings.Unbounded."=");
+
+   procedure Copy_File
+     (From, To : String;
+      Mode     : Copy_Mode := Overwrite;
+      Preserve : Attribute := Full);
+   --  Wrapper around GNAT.OS_Lib.Copy_File, which turns errors into fatal
+   --  errors.
 
 end Files_Handling;

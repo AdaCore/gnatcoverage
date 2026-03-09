@@ -24,7 +24,6 @@ with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Ada.Unchecked_Deallocation;
 
-with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Interfaces.C; use Interfaces.C;
@@ -33,6 +32,7 @@ with Annotations.Xml; use Annotations.Xml;
 with Command_Line;    use Command_Line;
 with Coverage;        use Coverage;
 with Coverage.Source; use Coverage.Source;
+with Files_Handling;  use Files_Handling;
 with Outputs;         use Outputs;
 with Paths;
 with Support_Files;
@@ -336,7 +336,6 @@ package body Annotations.Cobertura is
 
    overriding
    procedure Pretty_Print_Start (Pp : in out Cobertura_Pretty_Printer) is
-      Success   : Boolean;
       Timestamp : constant String :=
         Ada.Strings.Fixed.Trim
           (long_long'Image (To_Unix_Time_64 (Pp.Context.Timestamp)),
@@ -344,17 +343,7 @@ package body Annotations.Cobertura is
    begin
       --  Copy the DTD Schema to the output directory
 
-      GNAT.OS_Lib.Copy_File
-        (Name     => DTD_Filename,
-         Pathname => Get_Output_Dir,
-         Success  => Success,
-         Mode     => GNAT.OS_Lib.Overwrite);
-      if not Success then
-         Fatal_Error
-           ("Error while copying "
-            & DTD_Filename
-            & " to the output directory");
-      end if;
+      Copy_File (From => DTD_Filename, To => Get_Output_Dir);
 
       Create_Output_File (Pp.Report_File, +Pp.Report_Filename);
 

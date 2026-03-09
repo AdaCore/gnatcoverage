@@ -16,5 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-procedure Instrument.Clean_Objdirs;
---  Delete instrumentation output directories
+procedure Instrument.Clean_Objdirs (Keep_Going : Boolean := False);
+--  Delete instrumentation output directories.
+--
+--  If Keep_Going if true, deletion errors are not fatal. This is necessary
+--  when performing the cleaning precisely because a fatal error has already
+--  occurred, and we are cleaning up object directories following it.

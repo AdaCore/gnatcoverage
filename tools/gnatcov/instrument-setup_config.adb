@@ -198,7 +198,6 @@ package body Instrument.Setup_Config is
                  GNAT.OS_Lib.Normalize_Pathname (Compiler_Fullname.all);
                Actual_CD_Basename     : constant String :=
                  Ada.Directories.Simple_Name (Actual_Compiler_Driver);
-               Success                : Boolean;
                Matched                : Boolean := True;
                Compiler_Identifier    : Unbounded_String;
             begin
@@ -251,22 +250,13 @@ package body Instrument.Setup_Config is
                            Output_Dir      => Output_Dir));
                   end;
 
-                  GNAT.OS_Lib.Copy_File
-                    (Name     =>
+                  Copy_File
+                    (From =>
                        Support_Files.Libexec_Dir
                        / ("compiler_wrappers-"
                           & (+Compiler_Identifier)
                           & Exec_Suffix),
-                     Pathname => Output_Dir / (+Compiler_Driver),
-                     Success  => Success,
-                     Mode     => GNAT.OS_Lib.Overwrite,
-                     Preserve => GNAT.OS_Lib.Full);
-                  if not Success then
-                     Outputs.Fatal_Error
-                       ("Could not generate a compiler wrapper in the given"
-                        & " directory "
-                        & Output_Dir);
-                  end if;
+                     To   => Output_Dir / (+Compiler_Driver));
                else
                   Outputs.Fatal_Error
                     ("Unsupported compiler driver: " & Actual_CD_Basename);
