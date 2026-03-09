@@ -4,7 +4,6 @@ Check that GNATcoverage does not process externally built projects, unless
 """
 
 import os.path
-import re
 import shutil
 
 from e3.fs import cp
@@ -13,7 +12,7 @@ from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.control import env
-from SUITE.cutils import Wdir, contents_of, indent
+from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, gprinstall, xcov
 
@@ -132,23 +131,13 @@ def check_one(dump_trigger, lib_prj):
         " project",
     )
     coverage_log = contents_of(log_filename).strip()
-    expected_log = re.compile(
-        # Regexp to accommodate output differences between the various
-        # supported platforms.
-        "[^\n]*gnatcov[^\n]*: {}".format(
-            re.escape(
-                "Root project is marked as externally built, while externally"
-                " built projects are ignored by default. Consider using"
-                " --externally-built-projects."
-            )
-        )
+    expected_log = (
+        "gnatcov: Root project is marked as externally built, while externally"
+        " built projects are ignored by default. Consider using"
+        " --externally-built-projects."
     )
-    thistest.fail_if(
-        not expected_log.match(coverage_log),
-        'Unexpected output for "gnatcov coverage". Expected:\n'
-        "{}\n"
-        "but got:\n"
-        "{}".format(indent(expected_log.pattern), indent(coverage_log)),
+    thistest.fail_if_not_equal(
+        'output for "gnatcov coverage"', expected_log, coverage_log
     )
 
     # It should not complain with --externally-built-projects

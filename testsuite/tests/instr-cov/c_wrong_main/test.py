@@ -25,7 +25,7 @@ p = xcov_instrument(
 thistest.fail_if_not_equal("gnatcov instrument status code", 1, p.status)
 thistest.fail_if_no_match(
     "gnatcov instrument output",
-    ".*gnatcov.*: Could not find main function in main.c",
+    "gnatcov: Could not find main function in main.c",
     contents_of("instrument.log").strip(),
 )
 

@@ -55,15 +55,15 @@ def run_and_check(args, output_file, expected_content):
 run_and_check(
     ["coverage", "--level=stmt", "--units=main", trace_file],
     "missing_project.txt",
-    ".*gnatcov.*: --units requires -P",
+    "gnatcov: --units requires -P",
 )
 
 # Check the error message when not attempting to provide any SCOs
 run_and_check(
     ["coverage", "--level=stmt", trace_file],
     "missing_scos.txt",
-    ".*gnatcov.*: Please specify SCOs on the command line, specifying Units "
-    "in project or using \\[--units and -P\\]\\|--scos\\|--sid\\..*",
+    "gnatcov: Please specify SCOs on the command line, specifying Units in"
+    " project or using \\[--units and -P\\]\\|--scos\\|--sid\\..*",
 )
 
 thistest.result()

@@ -25,7 +25,7 @@ thistest.fail_if_no_match(
     'error: project file "does_not_exist\\.gpr" not found\n'
     "The following directories have been searched:\n"
     "(\n|.)*\n"
-    ".*gnatcov.*: Could not load the project file, aborting.\n$",
+    "gnatcov: Could not load the project file, aborting.\n$",
     contents_of("gnatcov-run.err"),
 )
 

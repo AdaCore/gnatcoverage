@@ -36,8 +36,7 @@ def check_cmd(cmd, extra_args=None, trace_mode=None):
     )
     thistest.fail_if_no_match(
         f"unexpected or empty 'gnatcov {cmd}' error message",
-        regexp=r".*gnatcov(.exe)?:"
-        r" non-library aggregate projects are not supported",
+        regexp=r"gnatcov: non-library aggregate projects are not supported",
         actual=contents_of(log).strip(),
     )
 
