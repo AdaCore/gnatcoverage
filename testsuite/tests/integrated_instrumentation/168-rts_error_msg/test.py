@@ -32,7 +32,7 @@ thistest.fail_if_no_match(
         'error: project file "no_such_gnatcov_rts\\.gpr" not found\n'
         "The following directories have been searched:\n"
         "(\n|.)*\n"
-        ".*gnatcov.*: Could not load the coverage runtime project"
+        "gnatcov: Could not load the coverage runtime project"
         " no_such_gnatcov_rts$"
     ),
     actual=contents_of(integration_log).strip(),

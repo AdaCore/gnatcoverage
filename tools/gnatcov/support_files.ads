@@ -42,7 +42,7 @@ package Support_Files is
 
    Gnatcov_Command_Name : String :=
      (if Value (Command_Name_Envvar, "") = ""
-      then Command_Name
+      then Base_Name (Command_Name)
       else Value (Command_Name_Envvar));
 
    Gnatcov_Exec : constant GNAT.OS_Lib.String_Access :=

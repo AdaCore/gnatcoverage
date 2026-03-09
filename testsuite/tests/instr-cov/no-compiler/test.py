@@ -48,9 +48,9 @@ p = xcov_instrument(
     register_failure=False,
 )
 thistest.fail_if_not_equal("'gnatcov instrument' exit code", 1, p.status)
-thistest.fail_if_no_match(
+thistest.fail_if_not_equal(
     "'gnatcov instrument' output",
-    ".*gnatcov.*: could not find a compiler for C",
+    "gnatcov: could not find a compiler for C",
     contents_of(output).strip(),
 )
 
@@ -69,9 +69,9 @@ p = xcov_instrument(
     register_failure=False,
 )
 thistest.fail_if_not_equal("'gnatcov instrument' exit code", 1, p.status)
-thistest.fail_if_no_match(
+thistest.fail_if_not_equal(
     "'gnatcov instrument' output",
-    ".*gnatcov.*: could not find a compiler for C",
+    "gnatcov: could not find a compiler for C",
     contents_of(output).strip(),
 )
 

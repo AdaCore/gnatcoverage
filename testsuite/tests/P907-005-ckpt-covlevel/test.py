@@ -72,8 +72,8 @@ p = xcov(
 thistest.fail_if(
     p.status == 0
     or not re.match(
-        r".*gnatcov.*: incompatible coverage level: .*test_add.*ckpt was"
-        r' produced with "stmt" but we expect at least "stmt\+decision"',
+        r"gnatcov: incompatible coverage level: .*test_add.*ckpt was produced"
+        r' with "stmt" but we expect at least "stmt\+decision"',
         contents_of("cons-stmt-decision.log").strip(),
     ),
     "gnatcov did not complain about inconsistent coverage criteria across"

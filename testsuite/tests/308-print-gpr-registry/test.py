@@ -92,7 +92,7 @@ p = xcov(
 thistest.fail_if_not_equal("gnatcov exit code", 1, p.status)
 thistest.fail_if_no_match(
     "Output of " + " ".join(args),
-    "^.*gnatcov.*: Bad GPR registry format: invalid$",
+    "^gnatcov: Bad GPR registry format: invalid$",
     contents_of("invalid.txt").strip(),
 )
 

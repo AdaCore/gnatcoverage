@@ -52,15 +52,15 @@ def check_one(arg_name, invalid_line):
     thistest.fail_if(p.status == 0, "zero return status not expected")
 
     expected_err = (
-        r".*gnatcov(\.exe)?: "
+        "gnatcov: "
         + ("Line" if invalid_line else "Column")
-        + f" number in argument to --{arg_name} should not be 0"
+        + f" number in argument to --{arg_name} should not be 0\n"
     )
 
-    thistest.fail_if_no_match(
-        what="wrong 'gnatcov add-annotation' error message",
-        regexp=expected_err,
-        actual=contents_of(log_filename),
+    thistest.fail_if_not_equal(
+        "'gnatcov add-annotation' error message",
+        expected_err,
+        contents_of(log_filename),
     )
 
 

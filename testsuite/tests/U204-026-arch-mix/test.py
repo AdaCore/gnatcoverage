@@ -163,7 +163,7 @@ else:
     req_bits = "64-bit"
 thistest.fail_if_no_match(
     "'gnatcov coverage' output",
-    f".*gnatcov.*: .*{ckpt} was created with {ckpt_bits} traces whereas the"
+    f"gnatcov: .*{ckpt} was created with {ckpt_bits} traces whereas the"
     f" selected target requires {req_bits} traces",
     contents_of("3-coverage-out.txt"),
 )
