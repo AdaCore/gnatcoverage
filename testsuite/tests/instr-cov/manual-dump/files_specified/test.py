@@ -147,7 +147,7 @@ for label, dump_trigger, files, error in [
         "instr_wrong_file",
         "manual",
         "unknown",
-        r".*gnatcov(\.exe)?: File unknown does not exist",
+        "gnatcov: File unknown does not exist\n",
     ),
     (
         # Check that gnatcov exits with an error when passing
@@ -155,8 +155,7 @@ for label, dump_trigger, files, error in [
         "instr_wrong_trigger",
         "atexit",
         "../main.adb",
-        r".*gnatcov(\.exe)?: --manual-dump-files requires"
-        " --dump-trigger=manual",
+        "gnatcov: --manual-dump-files requires --dump-trigger=manual\n",
     ),
 ]:
     instr_out = f"{label}.out"
@@ -172,7 +171,7 @@ for label, dump_trigger, files, error in [
         out=instr_out,
         register_failure=False,
     )
-    thistest.fail_if_no_match(
+    thistest.fail_if_not_equal(
         "missing error in gnatcov instrument output",
         error,
         contents_of(instr_out),

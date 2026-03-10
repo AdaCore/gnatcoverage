@@ -38,8 +38,7 @@ if p.status != 0:
         "Unexpected error message from 'gnatcov coverage'.\n"
         "*** Ensure the trace format version was properly bumped if you made a"
         " breaking change in the trace format ***\n",
-        regexp=r".*gnatcov(\.exe)?: ../reference.srctrace:"
-        r" unsupported format version",
+        regexp=r"gnatcov: ../reference.srctrace: unsupported format version",
         actual=contents_of(coverage_log),
     )
 

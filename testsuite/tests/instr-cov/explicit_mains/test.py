@@ -4,7 +4,6 @@ line works as expected.
 """
 
 import glob
-import re
 
 from e3.fs import mkdir
 
@@ -89,9 +88,9 @@ def check_error(label, mains, expected_error_msg):
         register_failure=False,
     )
     thistest.fail_if_not_equal("gnatcov instrument status code", 1, p.status)
-    thistest.fail_if_no_match(
+    thistest.fail_if_not_equal(
         "gnatcov instrument output",
-        f".*gnatcov.*: {re.escape(expected_error_msg)}",
+        f"gnatcov: {expected_error_msg}",
         contents_of(log_file).strip(),
     )
 

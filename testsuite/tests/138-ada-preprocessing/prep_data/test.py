@@ -45,10 +45,9 @@ for t in [
     ReportTestcase("undef_is_false", {"+": {10, 14}}),
     InstrErrorTestcase(
         "no_undef_is_false",
-        ".*gnatcov.*: instrumentation failed for .*pkg\\.adb"
-        "\n.*gnatcov.*: please make sure the original project can be"
-        " compiled"
-        '\n.*gnatcov.*: pkg\\.adb:7:5: unknown symbol "X"',
+        "gnatcov: instrumentation failed for .*pkg\\.adb"
+        "\ngnatcov: please make sure the original project can be compiled"
+        '\ngnatcov: pkg\\.adb:7:5: unknown symbol "X"',
     ),
     ReportTestcase("default_config", {"+": {7}}),
     ReportTestcase("file_config", {"+": {7}}),

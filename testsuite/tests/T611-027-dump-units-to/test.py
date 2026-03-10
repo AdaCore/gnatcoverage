@@ -74,7 +74,7 @@ def run_and_check(
 run_and_check(
     ["coverage", "-cinsn", "-aasm", trace_file, "-P", p, "--dump-units-to=-"],
     "objcov.txt",
-    ".*gnatcov.*: --dump-units-to works in source coverage only",
+    "gnatcov: --dump-units-to works in source coverage only",
     regexp=True,
     success_expected=False,
 )

@@ -120,8 +120,8 @@ check(
         src_trace,
         bin_trace,
     ],
-    expected_results=r".*gnatcov(\.exe)?: Mixing source traces and binary"
-    r" traces is not supported\. Please only use a single kind of traces\.",
+    expected_results=r"gnatcov: Mixing source traces and binary traces is not"
+    r" supported\. Please only use a single kind of traces\.",
     expect_failure=True,
 )
 
@@ -174,8 +174,8 @@ check(
 check(
     "mixed_checkpoint",
     coverage_args=["-Csrc.ckpt", "-Cbin.ckpt"],
-    expected_results=r".*gnatcov(\.exe)?: Mixing source traces and binary"
-    r" traces is not supported\. Please only use a single kind of traces\.",
+    expected_results=r"gnatcov: Mixing source traces and binary traces is not"
+    r" supported\. Please only use a single kind of traces\.",
     expect_failure=True,
 )
 

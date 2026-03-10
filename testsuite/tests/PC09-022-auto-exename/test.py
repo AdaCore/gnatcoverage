@@ -89,13 +89,13 @@ class Project(object):
         if len(all_mains) != 1:
             print("Not exactly one main: should fail")
             error_msg_re = (
-                r".*gnatcov.*: Please specify an executable to run \(EXE\)"
-                r" on the command line.*"
+                r"gnatcov: Please specify an executable to run \(EXE\) on the"
+                r" command line.*"
             )
         elif not self.build:
             main = all_mains.pop()
             print("Not built: should fail")
-            error_msg_re = ".*gnatcov.*: .*{}.*: File not found".format(
+            error_msg_re = "gnatcov: .*{}.*: File not found".format(
                 re.escape(main)
             )
         else:
