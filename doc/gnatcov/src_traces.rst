@@ -907,9 +907,7 @@ The section :ref:`examples_src_traces` illustrates such a use case.
 Instrumentation of a multi-languages project
 ============================================
 
-The |gcp| instrumentation mode supports Ada, C and C++ (beta). Ada and C units
-are instrumented by default, however since C++ support is still under
-development, it is disabled by default.
+The |gcp| instrumentation mode supports Ada, C and C++.
 
 To change the set of languages to be instrumented, pass the
 :cmd-option:`--restricted-to-languages` option to |gcvins|. For instance, to

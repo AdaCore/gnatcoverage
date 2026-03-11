@@ -19,7 +19,7 @@ from e3.fs import ls
 from SCOV.internals.driver import SCOV_helper
 from SCOV.internals.cnotes import xNoteKinds
 from SCOV.internals.tfiles import Tfile
-from SUITE.tutils import XCOV, thistest, frame
+from SUITE.tutils import thistest, frame
 
 
 # What the whole report checker should do
@@ -179,7 +179,7 @@ class ReportChecker:
         verNumber = Piece(pattern="Tool version:", pre=runStamp)
 
         cmdLine1 = Piece(pattern="Command line:", pre=verNumber)
-        cmdLine2 = Piece(pattern="^([^ ].*)?%s coverage" % XCOV, pre=cmdLine1)
+        cmdLine2 = Piece(pattern="^gnatcov coverage", pre=cmdLine1)
         # Note: we do not want to match " processed: ..."  lines for trace
         # files from checkpoints, which have the particularity of starting
         # with a space. So we need to match:
