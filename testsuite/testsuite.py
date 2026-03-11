@@ -7,14 +7,21 @@ Run the GNATcoverage testsuite
 See ./testsuite.py -h for more help
 """
 
+from __future__ import annotations
+
+import argparse
+from collections.abc import Iterable, Sequence
+import dataclasses
+import itertools
 import logging
-import time
 import os
 import re
 import shutil
 import sys
-import itertools
+import time
+from typing import Any, IO
 
+import e3.collection.dag
 from e3.fs import mkdir, rm, cp
 from e3.os.fs import which, unixpath
 from e3.os.process import Run, quote_arg
@@ -23,7 +30,11 @@ from e3.testsuite.control import AdaCoreLegacyTestControlCreator
 from e3.testsuite.driver import TestDriver
 from e3.testsuite.driver.classic import TestAbortWithError
 from e3.testsuite.result import Log, TestResult, TestStatus
-from e3.testsuite.testcase_finder import ParsedTest, TestFinder
+from e3.testsuite.testcase_finder import (
+    ParsedTest,
+    TestFinder,
+    TestFinderResult,
+)
 
 import SUITE.cutils as cutils
 
@@ -94,19 +105,26 @@ compensate the slowdown that Valgrind incurs.
 # A dictionary of information of interest for each qualification level:
 
 
-class QlevelInfo(object):
-    def __init__(self, levelid, subtrees, xcovlevel):
-        self.levelid = levelid  # string identifier
+@dataclasses.dataclass(frozen=True)
+class QlevelInfo:
+    levelid: str
+    """
+    String identifier.
+    """
 
-        # regexp of directory subtrees: testdirs that match this
-        # hold qualification tests for this level
-        self.subtrees = subtrees
+    subtrees: str
+    """
+    Regexp of directory subtrees: testdirs that match this hold qualification
+    tests for this level.
+    """
 
-        # --level argument to pass to xcov when running such tests when in
-        # qualification mode
-        self.xcovlevel = xcovlevel
+    xcovlevel: str
+    """
+    --level argument to pass to xcov when running such tests when in
+    qualification mode.
+    """
 
-    def hosts(self, test_dir):
+    def hosts(self, test_dir: str) -> bool:
         """
         Whether the subtrees covered by this Qlevel encompass the
         provided test directory, which may be relative to a testsuite
@@ -115,7 +133,9 @@ class QlevelInfo(object):
 
         # Expect filtering subtrees using forward slashes, so make
         # sure the provided test_dir is amenable so such patterns.
-        return re.search(pattern=self.subtrees, string=unixpath(test_dir))
+        return (
+            re.search(pattern=self.subtrees, string=unixpath(test_dir))
+        ) is not None
 
 
 RE_QCOMMON = "(Common|Appendix)"
@@ -125,7 +145,7 @@ RE_QLANG = "(%s)" % "|".join(QLANGUAGES)
 # that should apply for coverage criteria RE_CRIT.
 
 
-def RE_SUBTREE(re_crit):
+def RE_SUBTREE(re_crit: str) -> str:
     return "%(root)s/((%(common)s)|(%(lang)s/(%(crit)s)))" % {
         "root": QROOTDIR,
         "common": RE_QCOMMON,
@@ -272,7 +292,12 @@ QLEVEL_INFO = {
 #   option.
 
 
-def maybe_exec(log, binfile, args=None, edir=None):
+def maybe_exec(
+    log: Log[str],
+    binfile: str,
+    args: Sequence[str | None] | None = None,
+    edir: str | None = None,
+) -> Run:
     """
     Execute the provided BINFILE program file, if any.
 
@@ -288,10 +313,6 @@ def maybe_exec(log, binfile, args=None, edir=None):
 
     Return the process object.
     """
-
-    if not binfile:
-        return
-
     to_run = (
         [sys.executable, binfile] if binfile.endswith(".py") else [binfile]
     )
@@ -315,7 +336,13 @@ class TestPyRunner:
 
     filename = "test.py"
 
-    def __init__(self, driver, result, test_prefix, working_prefix):
+    def __init__(
+        self,
+        driver: TestDriver,
+        result: TestResult,
+        test_prefix: str,
+        working_prefix: str,
+    ):
         """
         Common test driver initialization.
 
@@ -348,17 +375,17 @@ class TestPyRunner:
     # Shortcuts to build paths, similar to
     # TestDriver.test_dir/TestDriver.working_dir.
 
-    def test_dir(self, *args):
+    def test_dir(self, *args: str) -> str:
         return os.path.join(self.test_prefix, *args)
 
-    def working_dir(self, *args):
+    def working_dir(self, *args: str) -> str:
         return os.path.join(self.working_prefix, *args)
 
     # ---------------------------
     # -- Testcase output files --
     # ---------------------------
 
-    def outf(self):
+    def outf(self) -> str:
         """
         Name of the file where outputs of the provided test object should go.
 
@@ -367,24 +394,24 @@ class TestPyRunner:
         """
         return self.test_dir(self.filename + ".out")
 
-    def logf(self):
+    def logf(self) -> str:
         """
         Similar to outfile, for the file where logs of the commands executed by
         the provided test object should go.
         """
         return self.test_dir(self.filename + ".log")
 
-    def errf(self):
+    def errf(self) -> str:
         """
         Similar to outf, for the file where diffs of the provided test object
         should go.
         """
         return self.test_dir(self.filename + ".err")
 
-    def qdaf(self):
+    def qdaf(self) -> str:
         return qdaf_in(self.test_dir())
 
-    def ctxf(self):
+    def ctxf(self) -> str:
         """
         The file containing a SUITE_context describing the testcase run (the
         file is in pickle format).
@@ -395,7 +422,7 @@ class TestPyRunner:
     # -- Testscase specific discriminants --
     # --------------------------------------
 
-    def discriminants(self):
+    def discriminants(self) -> list[str]:
         """
         List of discriminants for this particular test. Might include
         LANG_<lang> if path to test contains /<lang>/ for any of the languages
@@ -409,14 +436,14 @@ class TestPyRunner:
 
         return discs
 
-    def lang(self):
+    def lang(self) -> str | None:
         """The language specific subtree SELF pertains to."""
         for lang in control.KNOWN_LANGUAGES:
             if "/{}/".format(lang) in self.unix_test_dir:
                 return lang
         return None
 
-    def lookup_extra_opt(self):
+    def lookup_extra_opt(self) -> list[str]:
         """Look for all "extra.opt" files that apply to this testcase.
 
         The result is in bottom up order (deepest files in the tree first).
@@ -443,7 +470,7 @@ class TestPyRunner:
 
         return result
 
-    def parse_opt(self):
+    def parse_opt(self) -> AdaCoreLegacyTestControlCreator:
         """
         Parse the local test.opt + possible extra.opt uptree in accordance with
         the testsuite discriminants + the test specific discriminants, if any.
@@ -474,8 +501,9 @@ class TestPyRunner:
             opt_filename=control_opt,
         )
 
-    def set_up(self):
+    def set_up(self) -> None:
         mopt = self.env.main_options
+        assert mopt is not None
 
         # Setup test execution related files. Clear them upfront to prevent
         # accumulation across executions and bogus reuse of old contents if
@@ -625,6 +653,7 @@ class TestPyRunner:
 
         # Compute the testcase timeout, whose default vary depending on whether
         # we use Valgrind.
+        assert self.test_control.opt_results
         timeout = int(self.test_control.opt_results["RLIMIT"])
         if mopt.enable_valgrind:
             timeout = VALGRIND_TIMEOUT_FACTOR * timeout
@@ -643,7 +672,12 @@ class TestPyRunner:
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
 
-    def maybe_exec(self, binfile, args=None, edir=None):
+    def maybe_exec(
+        self,
+        binfile: str | None,
+        args: list[str | None] | None = None,
+        edir: str | None = None,
+    ) -> None:
         """
         Shortcut for the global maybe_exec. Log the result in
         ``self.result.log`` and abort the testcase on failure.
@@ -654,8 +688,9 @@ class TestPyRunner:
         if maybe_exec(self.result.log, binfile, args, edir).status != 0:
             raise TestAbortWithError("Altrun hook failed ({})".format(binfile))
 
-    def run(self):
+    def run(self) -> None:
         mopt = self.env.main_options
+        assert mopt is not None
 
         self.maybe_exec(
             mopt.pre_testcase, args=[mopt.altrun], edir=self.test_dir()
@@ -692,8 +727,9 @@ class TestPyRunner:
             with open(self.outf()) as f:
                 self.result.log = Log(f.read())
 
-    def tear_down(self):
+    def tear_down(self) -> None:
         args = self.env.main_options
+        assert args is not None
 
         # Execute a post-testcase action if requested so, before the test
         # artifacts might be cleared by a post-run cleanup:
@@ -712,7 +748,7 @@ class TestPyRunner:
         if args.qualif_level:
             self.latch_status()
 
-    def analyze(self):
+    def analyze(self) -> None:
         if self.test_py_failed:
             self.push_failure(
                 "test.py exitted with status code {}".format(
@@ -724,18 +760,18 @@ class TestPyRunner:
         else:
             self.push_failure("Missing PASSED tag in output file")
 
-    def run_test(self, previous_values, slot):
+    def run_test(self, previous_values: object, slot: int) -> None:
         """Run the testcase, analyze its result and push the result."""
         try:
             self.test_control = self.test_control_creator.create(self.driver)
         except ValueError as exc:
-            return self.push_error(
-                "Error while interpreting control: {}".format(exc)
-            )
+            self.push_error("Error while interpreting control: {}".format(exc))
+            return
 
         # If test control tells us to skip the test, stop right here
         if self.test_control.skip:
-            return self.push_skip(self.test_control.message)
+            self.push_skip(self.test_control.message)
+            return
 
         try:
             self.set_up()
@@ -746,7 +782,7 @@ class TestPyRunner:
             self.push_error(str(exc))
             return
 
-    def push_success(self):
+    def push_success(self) -> None:
         """Set status to consider that the test passed."""
         # Given that we skip execution right after the test control evaluation,
         # there should be no way to call push_success in this case.
@@ -758,7 +794,7 @@ class TestPyRunner:
             self.result.set_status(TestStatus.PASS)
         self.driver.push_result(self.result)
 
-    def push_skip(self, message):
+    def push_skip(self, message: str | None) -> None:
         """
         Consider that we skipped the test, set status accordingly.
 
@@ -767,7 +803,7 @@ class TestPyRunner:
         self.result.set_status(TestStatus.SKIP, message)
         self.driver.push_result(self.result)
 
-    def push_error(self, message):
+    def push_error(self, message: str | None) -> None:
         """
         Set status to consider that something went wrong during test execution.
 
@@ -776,7 +812,7 @@ class TestPyRunner:
         self.result.set_status(TestStatus.ERROR, message)
         self.driver.push_result(self.result)
 
-    def push_failure(self, message):
+    def push_failure(self, message: str | None) -> None:
         """
         Consider that the test failed and set status according to test control.
 
@@ -791,10 +827,10 @@ class TestPyRunner:
         self.result.set_status(status, message)
         self.driver.push_result(self.result)
 
-    def stdf(self):
+    def stdf(self) -> str:
         return stdf_in(self.test_dir())
 
-    def latch_status(self):
+    def latch_status(self) -> None:
         r = self.result
         pdump_to(
             self.stdf(),
@@ -806,10 +842,10 @@ class TestPyRunner:
             ),
         )
 
-    def latched_status(self):
+    def latched_status(self) -> Any:
         return pload_from(self.stdf())
 
-    def _handle_info_for(self, path):
+    def _handle_info_for(self, path: str) -> str:
         """Return a string describing file handle information related to
         the provided PATH, such as the output of the "handle" sysinternal
         on Windows."""
@@ -838,7 +874,7 @@ class TestPyRunner:
 
         return Run([handle_path, "/AcceptEULA", "-a", "-u", path]).out
 
-    def do_post_run_cleanups(self, ts_options):
+    def do_post_run_cleanups(self, ts_options: argparse.Namespace) -> None:
         """Cleanup temporary artifacts from the testcase directory.
         Append removal failure info to the test error log. TS_OPTIONS
         are the testsuite command line options."""
@@ -859,7 +895,11 @@ class TestPyRunner:
         # may hold file or directory names (to be removed entirely):
         cleanup_q = []
 
-        def cleanup_on_match(subdirs, prefixes, parent):
+        def cleanup_on_match(
+            subdirs: list[str],
+            prefixes: list[str],
+            parent: str,
+        ) -> None:
             """
             Helper for the filesystem walking code below, to facilitate the
             processing of subdirectories. Queue for removal the subdirectories
@@ -942,7 +982,7 @@ class TestPyDriver(TestDriver):
     Test driver that runs "test.py" scripts.
     """
 
-    def add_test(self, dag):
+    def add_test(self, dag: e3.collection.dag.DAG) -> None:
         self.runner = TestPyRunner(
             self, self.result, self.test_dir(), self.working_dir()
         )
@@ -954,7 +994,7 @@ class GroupPyDriver(TestDriver):
     Test driver that runs "group.py" scripts.
     """
 
-    def add_test(self, dag):
+    def add_test(self, dag: e3.collection.dag.DAG) -> None:
         # Generator of unique indexes for generated testcases
         indexes = itertools.count(1)
 
@@ -972,7 +1012,12 @@ class GroupPyDriver(TestDriver):
             if "test.py" in filenames:
                 self.add_test_py_run(dag, dirpath, next(indexes))
 
-    def add_test_py_run(self, dag, test_dir, index):
+    def add_test_py_run(
+        self,
+        dag: e3.collection.dag.DAG,
+        test_dir: str,
+        index: int,
+    ) -> None:
         # Create a dedicated name for this generated test, with the same rules
         # as for regular tests.
         test_rel_dir = os.path.relpath(test_dir, self.test_dir())
@@ -993,12 +1038,21 @@ class GroupPyDriver(TestDriver):
 
 
 class GNATcovTestFinder(TestFinder):
-    def probe(self, testsuite, dirpath, dirnames, filenames):
+    def probe(
+        self,
+        testsuite: e3.testsuite.TestsuiteCore,
+        dirpath: str,
+        dirnames: list[str],
+        filenames: list[str],
+    ) -> TestFinderResult:
         # If we are running in qualification mode, punt if this test
         # is not within the subtrees attached to the requested level.
+        assert testsuite.main.args is not None
         qlevel = testsuite.main.args.qualif_level
         if qlevel and not QLEVEL_INFO[qlevel].hosts(dirpath):
             return None
+
+        driver_cls: type[TestDriver]
 
         # If directory contains a "test.py" file *and* not a ".generated"
         # one, this this is a regular testcase.
@@ -1012,15 +1066,14 @@ class GNATcovTestFinder(TestFinder):
 
         # Otherwise, there is no testcase
         else:
-            driver_cls = None
+            return None
 
-        if driver_cls:
-            return ParsedTest(
-                test_name=testsuite.test_name(dirpath),
-                driver_cls=driver_cls,
-                test_env={"testsuite_root_dir": testsuite.root_dir},
-                test_dir=dirpath,
-            )
+        return ParsedTest(
+            test_name=testsuite.test_name(dirpath),
+            driver_cls=driver_cls,
+            test_env={"testsuite_root_dir": testsuite.root_dir},
+            test_dir=dirpath,
+        )
 
 
 # ===============
@@ -1032,10 +1085,10 @@ class TestSuite(e3.testsuite.Testsuite):
     enable_cross_support = True
 
     @property
-    def test_finders(self):
+    def test_finders(self) -> list[TestFinder]:
         return [GNATcovTestFinder()]
 
-    def test_name(self, test_dir):
+    def test_name(self, test_dir: str) -> str:
         # Start with a relative directory name from the tests subdirectory
         result = os.path.relpath(test_dir, self.test_dir)
 
@@ -1058,7 +1111,7 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- GAIA file facilities --
     # --------------------------
 
-    def _push_log(self, textlist, filename):
+    def _push_log(self, textlist: Iterable[str], filename: str) -> None:
         """Append the list of lines in TEXTLIST to the GAIA log FILENAME."""
 
         # If there's nothing to push, return. Empty lists can show up here,
@@ -1069,39 +1122,40 @@ class TestSuite(e3.testsuite.Testsuite):
             with open(os.path.join(self.output_dir, filename), mode="a") as fd:
                 fd.write("\n".join(textlist) + "\n")
 
-    def _push_comments(self, textlist):
+    def _push_comments(self, textlist: list[str]) -> None:
         self._push_log(textlist=textlist, filename="comment")
         self._comment_lines.extend(textlist)
 
-    def _push_results(self, textlist):
+    def _push_results(self, textlist: list[str]) -> None:
         self._push_log(textlist=textlist, filename="results")
 
-    def _push_altrun(self, textlist):
+    def _push_altrun(self, textlist: list[str]) -> None:
         self._push_log(textlist=textlist, filename="altrun")
 
-    def _discriminants_log(self):
+    def _discriminants_log(self) -> str:
         return os.path.join(self.output_dir, "discs")
 
-    def write_comment_file(self, f):
+    def write_comment_file(self, f: IO[str]) -> None:
         f.write("\n".join(self._comment_lines) + "\n")
 
     # -------------------------------
     # -- STR production facilities --
     # -------------------------------
 
-    def _init_strbox(self):
+    def _init_strbox(self) -> None:
         """Initialize the directory where the STR production artifacts
         will be dropped."""
         self.strbox_dir = os.path.join(self.root_dir, QSTRBOX_DIR)
         mkdir(self.strbox_dir)
 
-    def _dump_ctxdata(self):
+    def _dump_ctxdata(self) -> None:
         """Dump the testsuite context data file for use by the STR report
         producers."""
+        args = self.ts_args
 
-        if self.main.args.other_tool_info:
+        if args.other_tool_info:
             (toolname, version_info) = Run(
-                [sys.executable, self.main.args.other_tool_info], timeout=20
+                [sys.executable, args.other_tool_info], timeout=20
             ).out.split("##")
 
             other_tool_info = TOOL_info(exename=toolname, ver=version_info)
@@ -1115,7 +1169,7 @@ class TestSuite(e3.testsuite.Testsuite):
                 host=host_string_from(self.env.host),
                 treeref=treeref_at("."),
                 cmdline=" ".join(sys.argv),
-                options=OPT_info_from(options=self.main.args),
+                options=OPT_info_from(options=args),
                 gnatpro=TOOL_info(self.tool("gcc")),
                 gnatemu=TOOL_info(self.tool("gnatemu")),
                 gnatcov=TOOL_info("gnatcov"),
@@ -1127,21 +1181,24 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- Common facilities --
     # -----------------------
 
-    def tool(self, name):
+    @property
+    def ts_args(self) -> argparse.Namespace:
+        assert self.main.args
+        return self.main.args
+
+    def tool(self, name: str) -> str:
         """Return tool name prefixed by target when in cross env.
 
-        :param name: the tool name
-        :type name: str
-        :return: the final tool name
-        :rtype: str
+        :param name: The tool name.
+        :return: The final tool name.
         """
         if self.env.is_cross:
             return self.env.target.triplet + "-" + name
         else:
             return name
 
-    def _build_libsupport(self):
-        args = self.main.args
+    def _build_libsupport(self) -> None:
+        args = self.ts_args
 
         libsup_vars = []
 
@@ -1184,12 +1241,12 @@ class TestSuite(e3.testsuite.Testsuite):
             )
 
     @property
-    def bsp_dir(self):
+    def bsp_dir(self) -> str:
         return os.path.join(os.getcwd(), "bsp_support")
 
     @property
-    def cpu_name(self):
-        rts = self.main.args.RTS
+    def cpu_name(self) -> str:
+        rts = self.ts_args.RTS
         cpu_name = rts.split("-")[-1]
 
         exit_if(
@@ -1199,18 +1256,20 @@ class TestSuite(e3.testsuite.Testsuite):
         return cpu_name
 
     @property
-    def c_bsp_project(self):
-        return os.path.join(self.bsp_dir, control.bsp_project(self.cpu_name))
+    def c_bsp_project(self) -> str:
+        bsp_project = control.bsp_project(self.cpu_name)
+        assert bsp_project
+        return os.path.join(self.bsp_dir, bsp_project)
 
     @property
-    def c_bsp_rts_project(self):
+    def c_bsp_rts_project(self) -> str:
         return "gnatcov_rts_bsp"
 
     @property
-    def c_bsp_info(self):
+    def c_bsp_info(self) -> str:
         return os.path.join(self.bsp_dir, "bsp.json")
 
-    def _build_c_bsp_support(self):
+    def _build_c_bsp_support(self) -> None:
         """
         Build the C BSP for the target, to run integrated instrumentation tests
         for cross targets.
@@ -1233,6 +1292,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # Find the C BSP in the gcc toolchain installation directory
         gcc = control.driver_for_lang(config, "C")
         exit_if(not gcc, "Could not locate gcc executable")
+        assert gcc
 
         bsp_original_location = os.path.join(
             os.path.dirname(gcc),
@@ -1298,7 +1358,7 @@ class TestSuite(e3.testsuite.Testsuite):
             "LD_LIBRARY_PATH", os.path.join(self.bsp_dir, "share", "lib")
         )
 
-    def set_up(self):
+    def set_up(self) -> None:
         """
         Prepare the testsuite run: compute and dump discriminants, run
         gprconfig and build the support library for the whole series of tests
@@ -1307,7 +1367,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # First, perform a couple of validity checks on command-line arguments
         # and compute bits of internal state for later use from them.
 
-        args = self.main.args
+        args = self.ts_args
 
         # Enforce a default -gnat<version> for Ada, so each test can expect an
         # explicit setting to filter on. Expect an explicit one if we're
@@ -1393,12 +1453,12 @@ class TestSuite(e3.testsuite.Testsuite):
         # e3.testsuite forces the writing of the "comment" file at the end of
         # the testsuite run, but here we compute its content step by step. This
         # list will keep track of the lines to write.
-        self._comment_lines = []
+        self._comment_lines: list[str] = []
 
         # Initialize the GAIA log files. We need to do that before setting up
         # the altrun hooks, as their execution may dump output logs.
-        for f in ("comment", "results", "discs", "altrun"):
-            open(os.path.join(self.output_dir, f), "w").close()
+        for filename in ("comment", "results", "discs", "altrun"):
+            open(os.path.join(self.output_dir, filename), "w").close()
 
         # Add current directory in PYTHONPATH, allowing Python testcase scripts
         # to find the SUITE and SCOV packages:
@@ -1424,7 +1484,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # STR generation shell script can find and reuse it. Use a simplified
         # format and location for this purpose (text, at toplevel).
 
-        if self.main.args.qualif_level:
+        if args.qualif_level:
             self._init_strbox()
             self._dump_ctxdata()
 
@@ -1452,7 +1512,7 @@ class TestSuite(e3.testsuite.Testsuite):
         )
 
         BUILDER.RUN_CONFIG_SEQUENCE(
-            toplev_options=self.main.args,
+            toplev_options=args,
             toolchain_discriminant=toolchain_discriminant,
         )
 
@@ -1464,11 +1524,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # integrated instrumentation tests.
 
         self.env.pass_bsp_args = False
-        if (
-            self.env.is_cross
-            and self.main.args.RTS
-            and self.cpu_name in control.BSP_MAP
-        ):
+        if self.env.is_cross and args.RTS and self.cpu_name in control.BSP_MAP:
             self._build_c_bsp_support()
             self.env.pass_bsp_args = True
             self.env.c_bsp_project = self.c_bsp_project
@@ -1481,36 +1537,36 @@ class TestSuite(e3.testsuite.Testsuite):
         # TODO: re-implement this feature
         self.n_consecutive_failures = 0
 
-        self.maybe_exec(binfile=self.main.args.pre_testsuite, edir="...")
+        self.maybe_exec(binfile=args.pre_testsuite, edir="...")
 
         # Make testsuite options and the discriminants file available from
         # testcases.
         self.env.main_options = args
         self.env.discr_file = self._discriminants_log()
 
-    def tear_down(self):
-        self.maybe_exec(binfile=self.main.args.post_testsuite, edir="...")
+    def tear_down(self) -> None:
+        self.maybe_exec(binfile=self.ts_args.post_testsuite, edir="...")
 
     # -----------------------------------
     # -- Early comments about this run --
     # -----------------------------------
 
-    def _options_comment(self):
+    def _options_comment(self) -> str:
         return "Testsuite options:\n" + " ".join(
             quote_arg(arg) for arg in sys.argv[1:]
         )
 
-    def _versions_comment(self):
+    def _versions_comment(self) -> str:
         all_versions = [
             version("gnatcov") + ", " + version(self.tool("gnatls"))
         ]
 
-        if self.main.args.target:
+        if self.ts_args.target:
             all_versions.append(version(self.tool("gnatemu"), nlines=2))
 
         return "\n".join(["Running versions:"] + all_versions) + "\n"
 
-    def _early_comments(self):
+    def _early_comments(self) -> list[str]:
         return [
             "\n\n".join([self._options_comment(), self._versions_comment()])
         ]
@@ -1519,7 +1575,7 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- Discriminant computations --
     # -------------------------------
 
-    def _discriminants(self):
+    def _discriminants(self) -> list[str]:
         """Full set of discriminants that apply to this test"""
 
         return (
@@ -1533,7 +1589,7 @@ class TestSuite(e3.testsuite.Testsuite):
             + self._rust_toolchain_discriminants()
         )
 
-    def _base_discriminants(self):
+    def _base_discriminants(self) -> list[str]:
         # List of toolchain discriminants for which we don't want to run
         # C++ tests, due to lack of compatibility with modern hosts.
         unsupported_cpp_toolchains = ["7.1.2", "5.04a1"]
@@ -1552,29 +1608,27 @@ class TestSuite(e3.testsuite.Testsuite):
 
         # Add a discriminant to track the current trace mode
         result.append(
-            "src-traces"
-            if self.main.args.trace_mode == "src"
-            else "bin-traces"
+            "src-traces" if self.ts_args.trace_mode == "src" else "bin-traces"
         )
 
-        if self.main.args.spark_tests:
+        if self.ts_args.spark_tests:
             result.append("spark-tests")
 
-        if self.main.args.all_warnings:
+        if self.ts_args.all_warnings:
             result.append("all-warnings")
 
-        if self.main.args.block:
+        if self.ts_args.block:
             result.append("block")
 
-        if self.main.args.community:
+        if self.ts_args.community:
             result.append("community")
 
-        if self.main.args.instrument_ghost:
+        if self.ts_args.instrument_ghost:
             result.append("instrument-ghost")
 
         return result
 
-    def _board_discriminants(self):
+    def _board_discriminants(self) -> list[str]:
         """
         Compute a list of string discriminants that convey a request to run for
         a particular target board.
@@ -1586,14 +1640,14 @@ class TestSuite(e3.testsuite.Testsuite):
         # board was requested are good enough:
 
         boardname = (
-            self.main.args.board
-            if self.main.args.board
+            self.ts_args.board
+            if self.ts_args.board
             else self.env.target.machine if self.env.target.machine else None
         )
 
         return ["board", boardname] if boardname else []
 
-    def _cargs_discriminants(self):
+    def _cargs_discriminants(self) -> list[str]:
         """
         Compute a list of discriminants (string) for each switch passed in all
         the --cargs command-line option(s).  The format of each discriminant
@@ -1608,7 +1662,7 @@ class TestSuite(e3.testsuite.Testsuite):
 
         allopts = " ".join(
             [
-                getattr(self.main.args, attr)
+                getattr(self.ts_args, attr)
                 for attr in (
                     cargs_attr_for(lang)
                     for lang in [None] + control.KNOWN_LANGUAGES
@@ -1617,7 +1671,7 @@ class TestSuite(e3.testsuite.Testsuite):
         )
         return ["CARGS_%s" % arg.lstrip("-") for arg in allopts.split()]
 
-    def _qualif_level_discriminants(self):
+    def _qualif_level_discriminants(self) -> list[str]:
         """
         List of single discriminant (string) denoting our current qualification
         mode, if any. This is ['XXX'] when invoked with --qualif-level=XXX, []
@@ -1626,21 +1680,19 @@ class TestSuite(e3.testsuite.Testsuite):
 
         return (
             []
-            if not self.main.args.qualif_level
-            else [self.main.args.qualif_level.upper()]
+            if not self.ts_args.qualif_level
+            else [self.ts_args.qualif_level.upper()]
         )
 
-    def _rts_discriminants(self):
+    def _rts_discriminants(self) -> list[str]:
         """
         Compute a list of discriminant strings that reflect the kind of runtime
         support library in use, as conveyed by the --RTS command-line
         option.
         """
-        return _runtime_info(
-            self.main.args.RTS, self.env.target.platform
-        ).discrs
+        return _runtime_info(self.ts_args.RTS, self.env.target.platform).discrs
 
-    def _toolchain_discriminants(self):
+    def _toolchain_discriminants(self) -> list[str]:
         """
         Compute the discriminant that reflects the version of the
         particular toolchain in use.
@@ -1654,7 +1706,7 @@ class TestSuite(e3.testsuite.Testsuite):
 
         return [m.group(1)] if m else []
 
-    def _gnatcov_discriminants(self):
+    def _gnatcov_discriminants(self) -> list[str]:
         """
         Compute the discriminant that reflects the version of the
         particular gnatcov in use.
@@ -1667,7 +1719,7 @@ class TestSuite(e3.testsuite.Testsuite):
             else []
         )
 
-    def _rust_toolchain_discriminants(self):
+    def _rust_toolchain_discriminants(self) -> list[str]:
         """
         Compute the discriminant that reflects the presence of a rust
         toolchain.
@@ -1691,7 +1743,7 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- Command-line options --
     # --------------------------
 
-    def add_options(self, parser):
+    def add_options(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--post-run-cleanups",
             dest="do_post_run_cleanups",
@@ -1740,7 +1792,7 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- __resolve_paths --
     # ---------------------
 
-    def _resolve_paths(self):
+    def _resolve_paths(self) -> None:
         """
         For options containing path values expressed possibly as relative from
         where the testsuite was launched, resolve to absolute paths.
@@ -1760,16 +1812,16 @@ class TestSuite(e3.testsuite.Testsuite):
         )
 
         for attr in attributes_to_resolve:
-            current_value = getattr(self.main.args, attr)
+            current_value = getattr(self.ts_args, attr)
             if current_value is not None:
-                setattr(self.main.args, attr, os.path.abspath(current_value))
+                setattr(self.ts_args, attr, os.path.abspath(current_value))
 
         # Then deal with compilation flags: turn -opt=possibly-relative-path
         # into -opt=absolute-path for relevant options.
 
         prefixes_to_resolve = ["-gnatec="]
 
-        def resolve(carg):
+        def resolve(carg: str) -> str:
             """
             CARG is one of the requested compilation flags. If it is meant to
             designate a file with a possibly relative path (e.g. -gnatec=),
@@ -1789,15 +1841,20 @@ class TestSuite(e3.testsuite.Testsuite):
 
         for lang in [None] + control.KNOWN_LANGUAGES:
             cargs_attr = cargs_attr_for(lang)
-            current_cargs = getattr(self.main.args, cargs_attr).split()
+            current_cargs = getattr(self.ts_args, cargs_attr).split()
             new_cargs = [resolve(carg) for carg in current_cargs]
-            setattr(self.main.args, cargs_attr, " ".join(new_cargs))
+            setattr(self.ts_args, cargs_attr, " ".join(new_cargs))
 
     # -----------------------------
     # -- altrun hooks & friends --
     # -----------------------------
 
-    def maybe_exec(self, binfile, args=None, edir=None):
+    def maybe_exec(
+        self,
+        binfile: str | None,
+        args: list[str | None] | None = None,
+        edir: str | None = None,
+    ) -> None:
         """
         Shortcut for the global maybe_exec. Log the result in the altrun log
         file, and abort the testsuite on failure.
@@ -1813,7 +1870,7 @@ class TestSuite(e3.testsuite.Testsuite):
             "Altrun hook failed ({}):\n{}".format(binfile, p.out),
         )
 
-    def _bin_for(self, base, indir=None):
+    def _bin_for(self, base: str, indir: str | None = None) -> str | None:
         """For a provided BASE filename (directory path allowed), return
         the name of the file can be used as an executable program on the
         current host. This includes python scripts as well as binary
@@ -1834,7 +1891,7 @@ class TestSuite(e3.testsuite.Testsuite):
         )
         candidates = [candidate_exe, base + ".py"]
 
-        def relative_for(p):
+        def relative_for(p: str) -> str:
             return p if indir is None else os.path.join(indir, p)
 
         programs = [p for p in candidates if os.path.exists(relative_for(p))]
@@ -1846,14 +1903,14 @@ class TestSuite(e3.testsuite.Testsuite):
         )
         return programs[0] if programs else None
 
-    def _setup_altrun_hooks(self):
+    def _setup_altrun_hooks(self) -> None:
         """Finalize the altrun/<subdir> for this run, if any, and install the
         pre/post hooks available from there."""
 
-        if not self.main.args.altrun:
+        if not self.ts_args.altrun:
             return
 
-        ctldir = self.main.args.altrun
+        ctldir = self.ts_args.altrun
 
         # Run the altrun subdir setup code, if any, then check each possible
         # hook of interest. Switch to the local directory for the setup step,
@@ -1863,7 +1920,11 @@ class TestSuite(e3.testsuite.Testsuite):
             binfile=self._bin_for("setup", indir=ctldir), edir=ctldir
         )
 
-        def install_altrun_for(p0, p1=None, binbase=None):
+        def install_altrun_for(
+            p0: str,
+            p1: str | None,
+            binbase: str,
+        ) -> None:
             """Establish an implicit value for the --P0_P1 command line option
             if we find a matching binary program in the altrun subdir we are
             processing. BINBASE provides the binary base name to use."""
@@ -1875,12 +1936,12 @@ class TestSuite(e3.testsuite.Testsuite):
 
             attr = altrun_attr_for(p0, p1)
             exit_if(
-                getattr(self.main.args, attr),
+                getattr(self.ts_args, attr),
                 "%s altrun conflicts with explicit --%s" % (binfile, attr),
             )
 
             self._push_altrun(["hooking %s to %s" % (attr, binfile)])
-            setattr(self.main.args, attr, binfile)
+            setattr(self.ts_args, attr, binfile)
 
         # For the toplevel testsuite driver hooks, map on binaries
         # matching the command line option names:
