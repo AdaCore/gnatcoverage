@@ -339,9 +339,100 @@ package body SS_Annotations is
    is
       File            : Virtual_File;
       Matches         : Match_Result_Vec;
-      Justification   : Unbounded_String;
-      Kind            : Any_Annotation_Kind;
       New_Annotations : ALI_Annotation_Maps.Map;
+
+      procedure Process (Match : Match_Result; Kind : Any_Annotation_Kind);
+      --  Insert to New_Annotations an annotation of the given kind for a match
+      --  result, or emit a warning if it must be discarded.
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Match : Match_Result; Kind : Any_Annotation_Kind) is
+         use ALI_Annotation_Maps;
+
+         Justification : constant Unbounded_String :=
+           TOML_Utils.Get_Or_Null (Match.Annotation, "justification");
+
+         Annot : constant ALI_Annotation :=
+           (Kind    => Kind,
+            Message => new String'(+Justification),
+            others  => <>);
+
+         Sloc           : constant Slocs.Source_Location :=
+           To_Sloc
+             ((if Kind = Exempt_On
+               then Match.Location.Start_Sloc
+               else Match.Location.End_Sloc),
+              FI);
+         Cur            : Cursor := Get_Annotation (Sloc);
+         Existing_Annot : ALI_Annotation;
+      begin
+         if Kind = Exempt_On and then Justification = Null_Unbounded_String
+         then
+            Warn
+              (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
+               & ": Missing or empty justification for external exemption"
+               & " annotation """
+               & (+Match.Identifier)
+               & """");
+            return;
+         end if;
+
+         --  Check if the new annotations don't already contain an annotation
+         --  for this sloc.
+
+         if not Has_Element (Cur) then
+            Cur := New_Annotations.Find (Sloc);
+         end if;
+         if Has_Element (Cur) then
+            Existing_Annot := Element (Cur);
+
+            --  Do not warn if the annotation is of the same kind and
+            --  identical message, as this could simply be a case of
+            --  external annotations passed both during
+            --  instrumentation and coverage report computation.
+            --
+            --  Do not check the message for Exmept_Off, as messages are
+            --  irrelevant for them.
+
+            if Existing_Annot.Kind /= Annot.Kind
+              or else
+                (Kind = Exempt_On
+                 and then Existing_Annot.Message.all /= Annot.Message.all)
+            then
+               Warn
+                 (Slocs.Image (Sloc)
+                  & ": Conflicting annotations for this line, ignoring the"
+                  & " external annotation """
+                  & (+Match.Identifier)
+                  & """");
+            end if;
+            return;
+         end if;
+
+         if Kind = Exempt_On and then Filter then
+            declare
+               SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
+            begin
+               if SCO /= No_SCO_Id then
+                  Warn
+                    ("Exemption annotation at "
+                     & Slocs.Image (Sloc)
+                     & " intersects a coverage obligation ("
+                     & Image (SCO, True)
+                     & "), ignoring it");
+                  return;
+               end if;
+            end;
+         end if;
+
+         New_Annotations.Insert (Sloc, Annot);
+      end Process;
+
+      --  Start of processing for Import_External_Exemptions
+
    begin
       --  Exit early if there are no external annotations.
       --  Validate them if needed.
@@ -362,125 +453,27 @@ package body SS_Annotations is
       --  Process each match result
 
       for Match of Matches loop
-         Kind := Annotation_Kind (Match.Annotation);
+         if Match.Success then
+            case Annotation_Kind (Match.Annotation) is
+               when Exempt_On     =>
+                  Process (Match, Exempt_On);
 
-         if not Match.Success then
-            Report_Failed (Match);
+               when Exempt_Off    =>
+                  Process (Match, Exempt_Off);
+
+               when Exempt_Region =>
+
+                  --  Exempt_Region will insert an Exempt_On / Exempt_Off
+                  --  couple of annotations.
+
+                  Process (Match, Exempt_On);
+                  Process (Match, Exempt_Off);
+
+               when others        =>
+                  null;
+            end case;
          else
-            --  Exempt_Region will insert an Exempt_On / Exempt_Off couple of
-            --  annotations.
-
-            if Kind in Exempt_Region | Exempt_On then
-               Justification :=
-                 TOML_Utils.Get_Or_Null (Match.Annotation, "justification");
-               if Justification = Null_Unbounded_String then
-                  Warn
-                    (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
-                     & ": Missing or empty justification for external"
-                     & " exemption annotation """
-                     & (+Match.Identifier)
-                     & """");
-               else
-                  declare
-                     use ALI_Annotation_Maps;
-                     Annot : constant ALI_Annotation :=
-                       (Kind    => Exempt_On,
-                        Message => new String'(+Justification),
-                        others  => <>);
-
-                     Sloc           : constant Slocs.Source_Location :=
-                       To_Sloc (Match.Location.Start_Sloc, FI);
-                     Cur            : Cursor := Get_Annotation (Sloc);
-                     Existing_Annot : ALI_Annotation;
-                  begin
-                     if not Has_Element (Cur) then
-                        Cur := New_Annotations.Find (Sloc);
-                     end if;
-
-                     if Has_Element (Cur) then
-                        Existing_Annot := Element (Cur);
-
-                        --  Do not warn if the annotation is of the same
-                        --  kind and identical message, as this could simply
-                        --  be a case of external annotations passed both
-                        --  during instrumentation and coverage report
-                        --  computation.
-
-                        if Existing_Annot.Kind /= Annot.Kind
-                          or else
-                            Existing_Annot.Message.all /= Annot.Message.all
-                        then
-                           Warn
-                             (Slocs.Image (Sloc)
-                              & ": Conflicting annotations for this line,"
-                              & " ignoring the external annotation """
-                              & (+Match.Identifier)
-                              & """");
-                        end if;
-                     else
-                        if Filter then
-                           declare
-                              SCO : constant SCO_Id :=
-                                Sloc_Intersects_SCO (Sloc);
-                           begin
-                              if SCO /= No_SCO_Id then
-                                 Warn
-                                   ("Exemption annotation at "
-                                    & Slocs.Image (Sloc)
-                                    & " intersects a coverage obligation ("
-                                    & Image (SCO, True)
-                                    & "), ignoring it");
-                              else
-                                 New_Annotations.Insert (Sloc, Annot);
-                              end if;
-                           end;
-                        else
-                           New_Annotations.Insert (Sloc, Annot);
-                        end if;
-                     end if;
-                  end;
-               end if;
-            end if;
-
-            if Kind in Exempt_Region | Exempt_Off then
-               declare
-                  use ALI_Annotation_Maps;
-                  Annot : constant ALI_Annotation :=
-                    (Kind    => Exempt_Off,
-                     Message => new String'(+Justification),
-                     others  => <>);
-
-                  Sloc           : constant Slocs.Source_Location :=
-                    To_Sloc (Match.Location.End_Sloc, FI);
-                  Cur            : Cursor := Get_Annotation (Sloc);
-                  Existing_Annot : ALI_Annotation;
-               begin
-                  --  Also check if the new annotations don't already contain
-                  --  an annotation for this sloc.
-
-                  if not Has_Element (Cur) then
-                     Cur := New_Annotations.Find (Sloc);
-                  end if;
-
-                  if Has_Element (Cur) then
-                     Existing_Annot := Element (Cur);
-
-                     --  Same for Exempt_Off, except the message isn't
-                     --  relevant here.
-
-                     if Existing_Annot.Kind /= Annot.Kind then
-                        Warn
-                          (Slocs.Image (Sloc)
-                           & ": Conflicting annotations for this line,"
-                           & " ignoring the external annotation """
-                           & (+Match.Identifier)
-                           & """");
-                     end if;
-                  else
-                     New_Annotations.Insert (Sloc, Annot);
-                  end if;
-               end;
-            end if;
+            Report_Failed (Match);
          end if;
       end loop;
       Set_Annotations (New_Annotations);
