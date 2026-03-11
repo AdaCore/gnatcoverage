@@ -1,44 +1,43 @@
-# -*- coding: utf-8 -*-
-
 """Expose contexts suitable for decisions."""
 
+from __future__ import annotations
+
+import abc
+from typing import ClassVar
 
 import SCOV.expgen.syntax as syntax
 
 
-class Context(object):
+class Context:
     """
     Generate a program structure suitable to run the test. Generation needs a
     decision expression.
     """
 
-    # Subclasses must override this to `ast.TagTypes.(DECISION or EXPRESSION)`.
-    TAG_CONTEXT = None
+    TAG_CONTEXT: ClassVar[syntax.TagTypes]
 
-    def get_program(self, decision_expr):
-        raise NotImplementedError()
+    @abc.abstractmethod
+    def get_program(self, decision_expr: syntax.Expr) -> syntax.Program:
+        pass
 
 
 class LanguageSpecific(Context):
-    """Language-specific context, shortcuts the AST with text substitution.
-
-    The name of the language the context is specific to must be set in the
-    `LANGUAGE` attribute.
-
-    Subclasses have to override the `FORMAT` attribute with a list of strings.
-    In order to let the engine insert the decision expression, at least one
-    line should contain the "{decision_expr}" placeholder.
+    """
+    Language-specific context, shortcuts the AST with text substitution.
     """
 
-    LANGUAGE = None
-    TAG_CONTEXT = None
-    FORMAT = None
+    LANGUAGE: ClassVar[str]
+    """
+    Return the name of the language this context is specific to.
+    """
 
-    def __init__(self):
-        super(LanguageSpecific, self).__init__()
-        self.language = self.LANGUAGE
+    FORMAT: ClassVar[list[str]]
+    """
+    Return a list of strings in which to insert the decision expression
+    (``{decision_expr}`` placeholder).
+    """
 
-    def get_program(self, decision_expr):
+    def get_program(self, decision_expr: syntax.Expr) -> syntax.Program:
         return syntax.Program(
             [], [syntax.XContext(self.LANGUAGE, self.FORMAT, decision_expr)]
         )
@@ -60,7 +59,7 @@ class Call(Context):
 
     TAG_CONTEXT = syntax.TagTypes.EXPRESSION
 
-    def get_program(self, param):
+    def get_program(self, param: syntax.Expr) -> syntax.Program:
         temp_name = "result"
         temp_usage = syntax.VariableUsage(temp_name)
 
@@ -86,17 +85,17 @@ class If(Context):
 
     TAG_CONTEXT = syntax.TagTypes.DECISION
 
-    def get_program(self, condition):
+    def get_program(self, condition: syntax.Expr) -> syntax.Program:
         return syntax.Program(
             [],  # No local variable
             [
                 syntax.If(
                     condition,
-                    syntax.TaggedNode(
+                    syntax.TaggedStmt(
                         ON_TRUE_TAG,
                         syntax.Return(syntax.LitteralBoolean(True)),
                     ),
-                    syntax.TaggedNode(
+                    syntax.TaggedStmt(
                         ON_FALSE_TAG,
                         syntax.Return(syntax.LitteralBoolean(False)),
                     ),
@@ -113,18 +112,18 @@ class While(Context):
 
     TAG_CONTEXT = syntax.TagTypes.DECISION
 
-    def get_program(self, condition):
+    def get_program(self, condition: syntax.Expr) -> syntax.Program:
         return syntax.Program(
             [],  # No local variable
             [
                 syntax.While(
                     condition,
-                    syntax.TaggedNode(
+                    syntax.TaggedStmt(
                         ON_TRUE_TAG,
                         syntax.Return(syntax.LitteralBoolean(True)),
                     ),
                 ),
-                syntax.TaggedNode(
+                syntax.TaggedStmt(
                     ON_FALSE_TAG, syntax.Return(syntax.LitteralBoolean(False))
                 ),
             ],
@@ -134,7 +133,7 @@ class While(Context):
 class Return(Context):
     TAG_CONTEXT = syntax.TagTypes.EXPRESSION
 
-    def get_program(self, condition):
+    def get_program(self, condition: syntax.Expr) -> syntax.Program:
         return syntax.Program(
             [],
             [

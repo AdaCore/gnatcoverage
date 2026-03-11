@@ -1,16 +1,19 @@
-# -*- coding: utf-8 -*-
-
 """Generation engine, that makes choice on what to generate."""
+
+from __future__ import annotations
 
 import os
 import os.path
 import textwrap
 
 
+import SCOV.expgen.context as context
+import SCOV.expgen.language as language
 import SCOV.expgen.language.ada
 import SCOV.expgen.generator.composition as composition
 import SCOV.expgen.generator.parsing as parsing
 import SCOV.expgen.generator.utils as generator_utils
+import SCOV.expgen.operand as operand
 import SCOV.expgen.topology as topology
 import SCOV.expgen.utils as utils
 
@@ -26,7 +29,7 @@ ada = SCOV.expgen.language.ada.Language()
 one_operand_per_line = True
 
 
-def run(group_py):
+def run(group_py: str) -> None:
     """
     Run generation in the directory containing "group_py", catch any exception
     if any, display them and exit accordingly.
@@ -43,7 +46,7 @@ def run(group_py):
         sys.exit(1)
 
 
-def generate_all(env):
+def generate_all(env: generator_utils.Environment) -> None:
     """Generate code for all topology directories in the current directory."""
     # Each directory contains drivers for a given topology.
     for topo_dir in os.listdir("."):
@@ -53,10 +56,10 @@ def generate_all(env):
             generate_topology(topo_dir, env)
 
 
-def generate_topology(topo_dir, env):
+def generate_topology(topo_dir: str, env: generator_utils.Environment) -> None:
     """Generate code inside the `topo_dir` directory."""
-    topo = None
-    truth_vectors = set()
+    topo: topology.Topology | None = None
+    truth_vectors: set[tuple[bool, ...]] = set()
 
     # Look at all drivers to collect the truth vectors involved. Extract the
     # topology used and check that each driver use the same one.
@@ -97,7 +100,12 @@ def generate_topology(topo_dir, env):
             generate_language(env, topo, truth_vectors, lang)
 
 
-def generate_language(env, topo, truth_vectors, lang):
+def generate_language(
+    env: generator_utils.Environment,
+    topo: topology.Topology,
+    truth_vectors: set[tuple[bool, ...]],
+    lang: language.Language,
+) -> None:
     """Generate code for a given topology inside for the given language."""
     # First get a list of operand kinds and contexts that can be used with
     # `lang`.
@@ -145,7 +153,14 @@ def generate_language(env, topo, truth_vectors, lang):
                 generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds)
 
 
-def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
+def generate_ctx_op(
+    env: generator_utils.Environment,
+    topo: topology.Topology,
+    truth_vectors: set[tuple[bool, ...]],
+    lang: language.Language,
+    ctx: context.Context,
+    op_kinds: list[operand.Operand],
+) -> None:
     formal_names = ["X{}".format(i + 1) for i in range(topo.arity)]
     operands = [
         op_kind.get_operand(name)
@@ -156,10 +171,10 @@ def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
     decision = topo.instanciate(operands, formal_names, ctx)
     program = ctx.get_program(decision)
 
-    # Generate the needed type declarations in the TYPES module.
-    used_types = utils.make_type_set(
-        sum((tuple(op_kind.used_types) for op_kind in op_kinds), ())
-    )
+    # Generate the needed type declarations in the TYPES module
+    used_types = set()
+    for k in op_kinds:
+        used_types.update(k.used_types)
 
     with env.get_dir("src"):
         # First generate types needed by operands.
@@ -187,7 +202,7 @@ def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
             lang.get_specification_filename(lang.COMPUTING_MODULE), "w"
         ) as comp_fp:
             lang.serialize_specification_program(
-                comp_fp, program, formal_names, formal_types
+                comp_fp, formal_names, formal_types
             )
 
         with open(
@@ -196,7 +211,7 @@ def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
             # Prepend the "computing" module implementation with some comments
             # documenting the operands usage and the target of the context.
 
-            def get_doc(instance):
+            def get_doc(instance: object) -> list[str]:
                 text = type(instance).__doc__ or "<no documentation>"
                 text = " ".join(text.split())
                 return textwrap.wrap(text, 72)

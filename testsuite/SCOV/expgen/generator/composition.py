@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """Set of composition elements."""
 
+from __future__ import annotations
 
 import SCOV.expgen.syntax as syntax
 import SCOV.expgen.context as context
