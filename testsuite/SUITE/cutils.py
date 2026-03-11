@@ -5,6 +5,9 @@ toplevel suite driver. In particular, they don't depend on the current
 "thistest" instance.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 import os.path
 import re
 import shutil
@@ -18,7 +21,7 @@ from e3.os.process import Run
 from e3.testsuite.driver.diff import OutputRefiner
 
 
-def unhandled_exception_in(log):
+def unhandled_exception_in(log: str) -> bool:
     """
     Whether the provided execution log contains an indication
     of a unhandled exception occurrence.
@@ -26,17 +29,19 @@ def unhandled_exception_in(log):
 
     # Account for patterns emitted by either a regular runtime or
     # our custom last_chance_handlers.
-    return re.search(
-        pattern=(
-            r"(!!! EXCEPTION RAISED !!!"
-            r"|"
-            r"raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)"
-        ),
-        string=log,
+    return bool(
+        re.search(
+            pattern=(
+                r"(!!! EXCEPTION RAISED !!!"
+                r"|"
+                r"raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)"
+            ),
+            string=log,
+        )
     )
 
 
-def strip_prefix(prefix, string):
+def strip_prefix(prefix: str, string: str) -> str:
     """
     If STRING starts with PREFIX, return STRING without the PREFIX part.
     Return the string unchanged otherwise.
@@ -44,41 +49,41 @@ def strip_prefix(prefix, string):
     return string[len(prefix) :] if string.startswith(prefix) else string
 
 
-def no_ext(filename):
+def no_ext(filename: str) -> str:
     """Return the filename with the extension stripped away."""
     return os.path.splitext(filename)[0]
 
 
-def ext(filename):
+def ext(filename: str) -> str:
     """Return the filename extension"""
     return os.path.splitext(filename)[1]
 
 
-def exists(filename):
+def exists(filename: str) -> bool:
     """Return true if the filename exists"""
     return os.path.exists(filename)
 
 
-def contents_of(filename):
+def contents_of(filename: str) -> str:
     """Return contents of file FILENAME"""
     with open(filename) as fd:
         return fd.read()
 
 
-def lines_of(filename):
+def lines_of(filename: str) -> list[str]:
     """Return contents of file FILENAME as a list of lines without the
     newline termination character."""
     with open(filename) as fd:
         return fd.read().splitlines()
 
 
-def set_from(filename):
+def set_from(filename: str) -> set[str]:
     """Return contents of file FILENAME as a set of words."""
     with open(filename) as fd:
         return set(fd.read().split())
 
 
-def to_list(blob):
+def to_list(blob: Iterable[str] | str | None) -> list[str]:
     """
     Turn input BLOB into a list if it isn't already. Handle None and whitespace
     separated strings. Return empty list otherwise.
@@ -90,7 +95,7 @@ def to_list(blob):
     )
 
 
-def indent(blob, indent="  "):
+def indent(blob: list[str] | str, indent: str = "  ") -> str:
     """
     Prefix each line in BLOB's with INDENT. BLOB can be either a single string
     or a list of strings. The result is a single string anyway.
@@ -99,7 +104,7 @@ def indent(blob, indent="  "):
     return "\n".join("{}{}".format(indent, line) for line in lines)
 
 
-def indent_after_first_line(blob, prefix="  "):
+def indent_after_first_line(blob: list[str] | str, prefix: str = "  ") -> str:
     """Like "indent", but do not change the first line."""
     lines = list(blob) if isinstance(blob, list) else blob.splitlines()
     if len(lines) < 2:
@@ -108,7 +113,7 @@ def indent_after_first_line(blob, prefix="  "):
         return "\n".join(lines[0:1] + indent(lines[1:], prefix).splitlines())
 
 
-def text_to_file(text, filename="tmp.list"):
+def text_to_file(text: str, filename: str = "tmp.list") -> str:
     """
     Write TEXT to file FILENAME. Overwrite current contents. Return FILENAME.
     """
@@ -117,7 +122,7 @@ def text_to_file(text, filename="tmp.list"):
     return filename
 
 
-def list_to_file(lines, filename="tmp.list"):
+def list_to_file(lines: Iterable[str], filename: str = "tmp.list") -> str:
     """
     Write list LINES to file FILENAME, one item per line. Typical use is to
     generate response files. Return FILENAME.
@@ -125,7 +130,7 @@ def list_to_file(lines, filename="tmp.list"):
     return text_to_file("\n".join(lines) + "\n", filename)
 
 
-def list_to_tmp(lines, dirname=None):
+def list_to_tmp(lines: Iterable[str], dirname: str | None = None) -> str:
     """
     Write list LINES to a temporary file in DIRNAME (or the current directory),
     one item per line. Return the temporary file name, chosen not to conflict
@@ -142,28 +147,30 @@ def list_to_tmp(lines, dirname=None):
     )
 
 
-def match(pattern, filename, flags=0):
+def match(
+    pattern: str | re.Pattern[str], filename: str, flags: int = 0
+) -> bool:
     """Whether regular expression PATTERN could be found in FILENAME"""
     return re.search(pattern, contents_of(filename), flags) is not None
 
 
-def re_filter(strings, pattern=""):
+def re_filter(strings: list[str], pattern: str = "") -> list[str]:
     """Compute the list of entries in STRINGS that match the PATTERN regexp."""
     return [t for t in strings if re.search(pattern, t)]
 
 
-def clear(f):
+def clear(f: str) -> None:
     """Remove file F if it exists"""
     if os.path.exists(f):
         os.remove(f)
 
 
-def empty(f):
+def empty(f: str) -> bool:
     """True iif file F is empty, assumed to exist"""
     return os.stat(f).st_size == 0
 
 
-def version(tool, nlines=1):
+def version(tool: str, nlines: int = 1) -> str:
     """
     Return version information as reported by the execution of TOOL --version,
     expected on the first NLINES of output. If TOOL is not available from PATH,
@@ -182,7 +189,7 @@ def version(tool, nlines=1):
     # copyright notice is typically found there as well. Our heuristic
     # here is to strip everything past the first comma.
 
-    def version_on_line(text):
+    def version_on_line(text: str) -> str:
         cprpos = text.find(",")
         return text[0:cprpos] if cprpos != -1 else text
 
@@ -200,7 +207,7 @@ def version(tool, nlines=1):
     return version_info
 
 
-def ndirs_in(path):
+def ndirs_in(path: str) -> int:
     """Return the number of directory name components in PATH."""
     # Count how many times we can split PATH with os.path until reaching an
     # empty head. This lets os.path deal with the separator recognition
@@ -211,7 +218,7 @@ def ndirs_in(path):
     return nsplits
 
 
-def output_of(cmd, dirname=None):
+def output_of(cmd: str, dirname: str | None = None) -> str:
     """
     Execute CMD and return it's output, switching to DIRNAME before if not
     None, and switching back to the original cwd as needed.
@@ -229,7 +236,7 @@ class Wdir:
     Simple helper to handle working directories.
     """
 
-    def __init__(self, subdir=None):
+    def __init__(self, subdir: str | None = None):
         """
         If `subdir` is passed, create a subdirectory with this name and move
         there.
@@ -238,7 +245,7 @@ class Wdir:
         if subdir:
             self.to_subdir(subdir)
 
-    def to_subdir(self, dirname):
+    def to_subdir(self, dirname: str) -> None:
         """
         Change the current directory to `dirname`, relative to `self`'s home
         directory. Create it if needed, after first removing it.
@@ -249,7 +256,7 @@ class Wdir:
         mkdir(dirname)
         cd(dirname)
 
-    def to_homedir(self):
+    def to_homedir(self) -> None:
         """
         Change the current directory to `self`'s home directory.
         """
@@ -259,18 +266,23 @@ class Wdir:
 class FatalError(Exception):
     """Exception to raise when processing has to stop."""
 
-    def __init__(self, comment, outfile=None, outstr=None):
+    def __init__(
+        self,
+        comment: str,
+        outfile: str | None = None,
+        outstr: str | None = None,
+    ):
         if outfile is not None:
             comment += ". Output was:\n" + contents_of(outfile)
         elif outstr is not None:
             comment += ". Output was:\n" + outstr
         self.comment = comment
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.comment
 
 
-def exit_if(t, comment):
+def exit_if(t: object, comment: str) -> None:
     """
     If `t` is true, print `comment` on the standard error stream and exit with
     error status code.
@@ -280,7 +292,10 @@ def exit_if(t, comment):
         exit(1)
 
 
-def multi_range(*args, minus=None):
+def multi_range(
+    *args: tuple[int, int] | int,
+    minus: list[tuple[int, int] | int] | None = None,
+) -> set[int]:
     """
     Utility function for easily creating sets of numbers from inclusive ranges
     or simple numbers.
@@ -296,15 +311,15 @@ def multi_range(*args, minus=None):
     """
     result = set()
     for arg in args:
-        if type(arg) is int:
+        if isinstance(arg, int):
             result |= {arg}
         else:
-            (start, end) = arg
+            start, end = arg
             result |= set(range(start, end + 1))
 
     minus = minus or []
     for arg in minus:
-        if type(arg) is int:
+        if isinstance(arg, int):
             result ^= {arg}
         else:
             (start, end) = arg
@@ -329,7 +344,7 @@ class FilePathRefiner(OutputRefiner[str]):
 
     @override
     def refine(self, output: str) -> str:
-        def _replace_tag(pat: re.Match[str]):
+        def _replace_tag(pat: re.Match[str]) -> str:
             filename = pat.group("filename")
             path = os.path.abspath(os.path.join(self.src_dir, filename))
             return path
@@ -372,11 +387,11 @@ class Base64TraceRefiner(OutputRefiner[str]):
 
 
 class Identifier:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
 
-def copy_to_dir(orig_dir, target_dir, filename):
+def copy_to_dir(orig_dir: str, target_dir: str, filename: str) -> None:
     """
     Copy filename from orig_dir to target_dir.
     """

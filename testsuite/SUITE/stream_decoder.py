@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 import struct
+from typing import IO
 
 
-def swap_bytes(number, size):
+def swap_bytes(number: int, size: int) -> int:
     """Swap bytes in ``number``, assumed to be ``size``-bytes large."""
     result = 0
     for _ in range(size):
@@ -11,7 +15,7 @@ def swap_bytes(number, size):
     return result
 
 
-class ByteStreamDecoder(object):
+class ByteStreamDecoder:
     """
     Debug helper to analyze the process of decoding a binary stream.
     """
@@ -19,24 +23,29 @@ class ByteStreamDecoder(object):
     BYTES_PER_LINE = 16
     INDENT = "  "
 
-    def __init__(self, stream, enabled=False, max_indent=0):
+    def __init__(
+        self,
+        stream: IO[bytes],
+        enabled: bool = False,
+        max_indent: int = 0,
+    ):
         """
-        :param file stream: Byte stream to read.
-        :param bool enable: If true, enable decoding traces
-        :param int max_indent: Amount of columns to reserve in logs so that
-            the indentation due to label_context does not shift ASCII dumps.
+        :param stream: Byte stream to read.
+        :param enable: If true, enable decoding traces
+        :param max_indent: Amount of columns to reserve in logs so that the
+            indentation due to label_context does not shift ASCII dumps.
         """
         self.stream = stream
         self.enabled = enabled
-        self.label_stack = []
+        self.label_stack: list[str] = []
         self.offset = 0
         self.max_indent = max_indent
 
     @property
-    def _indent_prefix(self):
+    def _indent_prefix(self) -> str:
         return self.INDENT * len(self.label_stack)
 
-    def _print(self, message, *args, **kwargs):
+    def _print(self, message: str, *args: object, **kwargs: object) -> None:
         if not self.enabled:
             return
         if args or kwargs:
@@ -44,7 +53,7 @@ class ByteStreamDecoder(object):
         print("{}{}".format(self._indent_prefix, message))
 
     @contextmanager
-    def label_context(self, label):
+    def label_context(self, label: str) -> Iterator[None]:
         """
         Context manager to put a label on everything that is read while this
         context manager is active.
@@ -56,12 +65,11 @@ class ByteStreamDecoder(object):
         yield
         self.label_stack.pop()
 
-    def read(self, size):
+    def read(self, size: int) -> bytes:
         """
         Read bytes from this file.
 
-        :param int size: Number of bytes to read.
-        :rtype: str
+        :param size: Number of bytes to read.
         """
         byte_str = self.stream.read(size)
         if self.enabled:
@@ -96,17 +104,16 @@ class ByteStreamDecoder(object):
         return byte_str
 
 
-class Struct(object):
+class Struct:
     """
     Wrapper for struct.Struct to work with ByteStreamDecoder.
     """
 
-    def __init__(self, label, *fields):
+    def __init__(self, label: str, *fields: tuple[str, str]):
         """
-        :param str label: Name of this struct.
+        :param label: Name of this struct.
         :param fields: List of couples (label, format) for the fields of this
             structure.
-        :type fields: list[(str, str)]
         """
         self.label = label
         self.le_fields = [
@@ -116,18 +123,24 @@ class Struct(object):
             (name, struct.Struct(">" + fmt)) for name, fmt in fields
         ]
 
-    def _fields(self, big_endian=False):
+    def _fields(
+        self,
+        big_endian: bool = False,
+    ) -> list[tuple[str, struct.Struct]]:
         return self.be_fields if big_endian else self.le_fields
 
-    def read(self, fp, big_endian=False):
+    def read(
+        self,
+        fp: ByteStreamDecoder,
+        big_endian: bool = False,
+    ) -> dict[str, tuple[int | bytes, ...] | int | bytes] | None:
         """
         Read bytes from ``fp`` and decode these bytes according to the format
         of this structure.
 
-        :param ByteStreamDecoder fp: Stream from which to read and decode this
-            structure.
-        :param bool big_endian: Whether to decode structure fields as big
-            endian (consider little endian by default).
+        :param fp: Stream from which to read and decode this structure.
+        :param big_endian: Whether to decode structure fields as big endian
+            (consider little endian by default).
         """
         with fp.label_context(self.label):
             result = {}
@@ -137,32 +150,36 @@ class Struct(object):
                     assert (not buf and i == 0) or len(buf) == structure.size
                     if not buf:
                         return None
-                    field = structure.unpack(buf)
-                    if len(field) == 1:
-                        field = field[0]
-                    result[name] = field
+                    fields = structure.unpack(buf)
+                    result[name] = fields[0] if len(fields) == 1 else fields
             return result
 
-    def write(self, fp, field_values, big_endian=False):
+    def write(
+        self,
+        fp: IO[bytes],
+        field_values: dict[str, int | bytes] | Iterable[int | bytes],
+        big_endian: bool = False,
+    ) -> None:
         fields = self._fields(big_endian)
+        values: tuple[int | bytes, ...]
 
         if isinstance(field_values, dict):
             dict_field_values = field_values
-            field_values = [dict_field_values.pop(name) for name, _ in fields]
+            values = tuple(dict_field_values.pop(name) for name, _ in fields)
             unknown_fields = sorted(dict_field_values)
             if unknown_fields:
                 raise ValueError(
                     "Unknown fields: {}".format(" ".join(unknown_fields))
                 )
+        else:
+            values = tuple(field_values)
 
-        if len(field_values) != len(fields):
+        if len(values) != len(fields):
             raise ValueError(
-                "{} fields expected, got {}".format(
-                    len(fields), len(field_values)
-                )
+                "{} fields expected, got {}".format(len(fields), len(values))
             )
 
-        for value, (_, structure) in zip(field_values, fields):
+        for value, (_, structure) in zip(values, fields):
             pack_args = value if isinstance(value, tuple) else (value,)
             fp.write(structure.pack(*pack_args))
 

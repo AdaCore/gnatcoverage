@@ -5,9 +5,9 @@ decisions.
 Specifically, it checks that the last operand was successfully instrumented.
 """
 
+from SCOV.llvmutils import check_llvm_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, multi_range
-from SUITE.llvmutils import check_llvm_reports
 
 _wd = Wdir("tmp_")
 

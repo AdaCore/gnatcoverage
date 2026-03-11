@@ -5,10 +5,15 @@ This module exposes utility functions to dump and reload persistent data, in
 either pickle or JSON format.
 """
 
+from __future__ import annotations
+
 import json
 import re
 import pickle
 import time
+from typing import Any
+
+import e3.platform
 
 from SUITE.cutils import contents_of
 
@@ -18,12 +23,12 @@ from SUITE.cutils import contents_of
 #
 
 
-def pdump_to(filename, o):
+def pdump_to(filename: str, o: object) -> None:
     with open(filename, "wb") as f:
         pickle.dump(o, f)
 
 
-def pload_from(filename):
+def pload_from(filename: str) -> Any:
     with open(filename, "rb") as f:
         return pickle.load(f)
 
@@ -33,17 +38,17 @@ def pload_from(filename):
 #
 
 
-def jdump_to(filename, o):
+def jdump_to(filename: str, o: object) -> None:
     with open(filename, "w") as f:
         json.dump(o, f)
 
 
-def jload_from(filename):
+def jload_from(filename: str) -> Any:
     with open(filename, "r") as f:
         return json.load(f)
 
 
-def host_string_from(host):
+def host_string_from(host: e3.platform.Platform) -> str:
     """
     Return a textual version of the relevant info in HOST, a Env().host kind of
     object.
@@ -64,7 +69,7 @@ def host_string_from(host):
     return " ".join((os_name, os_version)).strip()
 
 
-def time_string_from(stamp):
+def time_string_from(stamp: time.struct_time) -> str:
     """
     Return a textual version of the timestamp in STAMP, a time.localtime() kind
     of object.

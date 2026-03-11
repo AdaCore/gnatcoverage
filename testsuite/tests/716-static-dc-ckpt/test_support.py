@@ -55,7 +55,9 @@ class CheckpointBuilder:
         src_dst = os.path.abspath("src")
         if os.path.exists(src_dst):
             shutil.rmtree(src_dst)
-        full_src_src = os.path.abspath(os.path.join(__file__, "..", src_src))
+        full_src_src = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "common", src_src)
+        )
         shutil.copytree(full_src_src, src_dst)
 
     def make_checkpoint(self, name, xvars, deps=None):

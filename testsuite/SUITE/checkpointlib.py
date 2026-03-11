@@ -5,10 +5,11 @@ Checkpoint/SID files loading library.
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 import dataclasses
 import enum
 import struct
-from typing import Callable, ClassVar, TypeVar
+from typing import ClassVar, TypeVar
 
 from SUITE.stream_decoder import ByteStreamDecoder
 
@@ -107,12 +108,12 @@ def read_tree(
     read_element: Callable[[ByteStreamDecoder, str], CollectionElement],
     label: str,
 ) -> int:
-    def read_children():
+    def read_children() -> None:
         count = read_i32(fp, "count")
         for _ in range(count):
             read_subtree()
 
-    def read_subtree():
+    def read_subtree() -> None:
         read_element(fp, "element")
         read_children()
 
