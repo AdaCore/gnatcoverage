@@ -225,6 +225,8 @@ package body Coverage_Options is
         (Decision, MCDC, UC_MCDC);
 
       Combinaison : Levels_Type := (Stmt => True, others => False);
+
+      --  Start of processing for Add_Source_Coverage_Level_Combinations
    begin
 
       --  Add "stmt" only. Combine it alone with "callfunc", and then with all
@@ -252,6 +254,10 @@ package body Coverage_Options is
 
       end loop;
    end Add_Source_Coverage_Level_Combinaisons;
+
+   -----------------------------
+   -- Annotation_Kind_Options --
+   -----------------------------
 
    function Annotation_Kind_Options return String is
       use SC_Obligations;

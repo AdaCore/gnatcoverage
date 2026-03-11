@@ -226,6 +226,10 @@ package body SS_Annotations is
       return Unknown;
    end Annotation_Kind;
 
+   ---------------------
+   -- Annotation_Kind --
+   ---------------------
+
    function Annotation_Kind (Str : String) return Any_Annotation_Kind is
    begin
       return Any_Annotation_Kind'Value (Str);
@@ -1147,6 +1151,10 @@ package body SS_Annotations is
       Write_Entries (Ext_Annotation_DB, Output_File);
    end Add_Annotation;
 
+   -----------------------
+   -- Delete_Annotation --
+   -----------------------
+
    procedure Delete_Annotation (Args : Command_Line.Parser.Parsed_Arguments) is
       Output_File : Virtual_File;
       Identifier  : Unbounded_String;
@@ -1196,6 +1204,10 @@ package body SS_Annotations is
       Delete_Entry (Ext_Annotation_DB, Identifier);
       Write_Entries (Ext_Annotation_DB, Output_File);
    end Delete_Annotation;
+
+   ----------------------
+   -- Show_Annotations --
+   ----------------------
 
    procedure Show_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
       Purpose_Filter : Unbounded_String;
@@ -1388,6 +1400,10 @@ package body SS_Annotations is
       Iterate_Entries (Ext_Annotation_DB, Validate_Annotation'Access);
    end Validate_Annotations;
 
+   -------------------------
+   -- Validate_Annotation --
+   -------------------------
+
    procedure Validate_Annotation
      (Identifier : Unbounded_String; Entr : Entry_View)
    is
@@ -1407,6 +1423,7 @@ package body SS_Annotations is
             & """ has no annotations, it will be ignored.");
          return;
       end if;
+
       --  Check each annotation associated with the entry
 
       for I in 1 .. Entr.Annotations.Length loop
