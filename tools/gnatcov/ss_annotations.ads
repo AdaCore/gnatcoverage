@@ -35,7 +35,7 @@ package SS_Annotations is
    --  Trace for external annotation handling
 
    Ext_Annotation_DB : Stable_Sloc.Entry_DB;
-   --  Database of external annotations entries.
+   --  Database of external annotations entries
 
    --  Stable_Sloc sloc type to our sloc type utilities
 
@@ -70,13 +70,14 @@ package SS_Annotations is
    procedure Import_External_Exemptions
      (FI : Source_File_Index; Filter : Boolean := False);
    --  Search for external exemptions in FI, from the annotations loaded in
-   --  Ext_Annotation_DB.
+   --  Ext_Annotation_DB and add them to gnatcov's internal tables (see
+   --  SC_Obligations.Set_Annotations).
    --
-   --  If Filter is True, reject annotations that lie within a statement SCO.
+   --  If Filter is True, ignore annotations that lie within a statement SCO.
 
    function Get_Buffer_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
-   --  Get the buffer annotations relevant to instrumentation for Filename.
+   --  Get the buffer annotations relevant to instrumentation for Filename
 
    function Get_Disabled_Cov_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
