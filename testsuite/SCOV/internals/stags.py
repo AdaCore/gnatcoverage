@@ -14,8 +14,13 @@ We have two kinds of separation tags:
   triggered by the use of "gnatcov coverage -S routines"
 """
 
+from __future__ import annotations
+from abc import abstractmethod
+from dataclasses import dataclass, field
+from typing import Self
+
 import SUITE.control
-from .segments import Sloc_from
+from .segments import Sloc, Sloc_or_error
 
 
 # Cache some values we need repeatedly
@@ -23,43 +28,25 @@ from .segments import Sloc_from
 TARGET_INFO = SUITE.control.target_info()
 
 
+@dataclass(frozen=True)
 class Stag:
     """Abstract separation tag."""
 
-    def __init__(self, text):
-        self.text = text
+    text: str
 
-    def match(self, other):
+    def match(self, other: object) -> bool:
         return (
-            False
-            if self.__class__ != other.__class__
-            else self.match_akin(other)
+            isinstance(other, Stag)
+            and self.__class__ == other.__class__
+            and self.match_akin(other)
         )
 
-
-def Stag_from(text, from_report):
-    stag = Itag(text)
-    if stag.components[0] is None:
-        # Symbol names from report come from the binary file, so there is no
-        # special processing for them.  Symbol names from expected notes
-        # however need platform-specific transformations to match symbols from
-        # binary files.
-        if not from_report:
-            text = TARGET_INFO.to_platform_specific_symbol(text)
-        stag = Rtag(text)
-    return stag
+    @abstractmethod
+    def match_akin(self, other: Self) -> bool:
+        pass
 
 
-class Rtag(Stag):
-    """Routine separation tag. Text is routine name."""
-
-    def __init__(self, text):
-        Stag.__init__(self, text)
-
-    def match_akin(self, other):
-        return self.text == other.text
-
-
+@dataclass(frozen=True)
 class Itag(Stag):
     """
     Instance separation tag. Text is something like "sloc1[sloc2[sloc3]]" where
@@ -67,13 +54,15 @@ class Itag(Stag):
     indicate instantiation nestings.
     """
 
-    def __init__(self, text):
-        Stag.__init__(self, text)
-        self.components = [
-            Sloc_from(part) for part in text.rstrip("]").split("[")
-        ]
+    components: list[Sloc] = field(init=False, default_factory=list)
 
-    def __all_components_match(self, other):
+    def __post_init__(self) -> None:
+        # use __setattr__ because frozen is set
+        self.components.extend(
+            [Sloc_or_error(part) for part in self.text.rstrip("]").split("[")],
+        )
+
+    def __all_components_match(self, other: Self) -> bool:
         # Check whether any component pair is found not to match:
 
         for c1, c2 in zip(self.components, other.components):
@@ -85,7 +74,28 @@ class Itag(Stag):
 
         return True
 
-    def match_akin(self, other):
+    def match_akin(self, other: Self) -> bool:
         return len(self.components) == len(
             other.components
         ) and self.__all_components_match(other)
+
+
+@dataclass(frozen=True)
+class Rtag(Stag):
+    """Routine separation tag. Text is routine name."""
+
+    def match_akin(self, other: Self) -> bool:
+        return self.text == other.text
+
+
+def Stag_from(text: str, from_report: bool) -> Stag:
+    stag = Itag(text)
+    if stag.components[0] is None:
+        # Symbol names from report come from the binary file, so there is no
+        # special processing for them.  Symbol names from expected notes
+        # however need platform-specific transformations to match symbols from
+        # binary files.
+        if not from_report:
+            text = TARGET_INFO.to_platform_specific_symbol(text)
+        stag = Rtag(text)
+    return stag

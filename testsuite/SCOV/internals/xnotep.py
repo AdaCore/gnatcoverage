@@ -9,75 +9,24 @@ expressions are matched.
 This depends on the thittest instance.
 """
 
+from __future__ import annotations
+
+from abc import abstractmethod
 import re
+from typing import final
 
 from .cnotes import (
+    NK,
+    Block,
+    NKSubstDict,
     Xnote,
     block_p,
     transparent_p,
-    cPartCov,
-    dNoCov,
-    dNotCoverable,
-    dPartCov,
-    dfAlways,
-    dfNoCov,
-    dtAlways,
-    dtNoCov,
-    ePartCov,
-    eNoCov,
-    efNoCov,
-    etNoCov,
-    lFullCov,
-    lNoCode,
-    lNoCov,
-    lNotCoverable,
-    lPartCov,
-    lx0,
-    lx1,
-    lx2,
-    lx,
-    oNoCov,
-    oPartCov,
-    ofNoCov,
-    otNoCov,
-    r0,
-    r0c,
-    sNoCov,
-    sNotCoverable,
-    sPartCov,
-    xBlock0,
-    xBlock1,
-    xBlock2,
     xNoteKinds,
-    lUndetCov,
-    sUndetCov,
-    dUndetCov,
-    eUndetCov,
-    lDisCov,
-    XsNoCov,
-    XsPartCov,
-    XsNotCoverable,
-    XsUndetCov,
-    XotNoCov,
-    XofNoCov,
-    XoPartCov,
-    XoNoCov,
-    XcPartCov,
-    Xr0,
-    Xr0c,
-    aNoCov,
-    atNoCov,
-    acPartCov,
-    fNoCov,
-    cNoCov,
-    fUndetCov,
-    cUndetCov,
-    gNoCov,
-    gUndetCov,
-    dBlock,
 )
 from .segments import Line, Section, Segment
-from .stags import Stag_from
+from .stags import Stag_from, Stag
+from .tfiles import Tline
 from SUITE.context import thistest
 from SUITE.cutils import FatalError
 
@@ -86,24 +35,37 @@ from SUITE.cutils import FatalError
 # line. We introduce specialized note factories for this purpose:
 
 
-class _XnoteP_block:
+class XnoteFactory:
+    @abstractmethod
+    def instanciate_over(
+        self, tline: Tline, block: Block | None, kind: NK
+    ) -> Xnote | None:
+        pass
+
+
+@final
+class _XnoteP_block(XnoteFactory):
     """
     Block notes are relevant for a general section. Even though the block is
     matched line by line, we need to materialize a single note for the whole
     block.
     """
 
-    def __init__(self, notep):
+    def __init__(self, notep: XnoteP):
         self.notep = notep
 
         # The last note instance we returned
-        self.lastni = None
+        self.lastni: Xnote | None = None
 
-    def instanciate_over(self, tline, block, kind):
+    def instanciate_over(
+        self, tline: Tline, block: Block | None, kind: NK
+    ) -> Xnote | None:
         # We create a single instance the first time around, then expand the
         # section over subsequence matches.
         if self.lastni:
             thisni = None
+            # ??? TODO: Get rid of assert
+            assert self.lastni.segment is not None
             self.lastni.segment.sp1.lineno = tline.lno
 
         else:
@@ -117,29 +79,33 @@ class _XnoteP_block:
         return thisni
 
 
-class _XnoteP_line:
+@final
+class _XnoteP_line(XnoteFactory):
     """
     !block notes without a specific segment text are relevant to entire lines.
     """
 
-    def __init__(self, notep):
+    def __init__(self, notep: XnoteP):
         self.notep = notep
 
-    def instanciate_over(self, tline, block, kind):
+    def instanciate_over(
+        self, tline: Tline, block: Block | None, kind: NK
+    ) -> Xnote:
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
         thisni.register_match(Line(tline.lno))
 
         return thisni
 
 
-class _XnoteP_segment:
+@final
+class _XnoteP_segment(XnoteFactory):
     """
     !block notes with a specific segment subtext are relevant to that segment:
     we'll expect a reported note to designate a point within that subtext (most
     often, the beginning of it).
     """
 
-    def __init__(self, notep, stext):
+    def __init__(self, notep: XnoteP, stext: str):
         self.notep = notep
         self.stext = stext
 
@@ -147,7 +113,7 @@ class _XnoteP_segment:
     # subtext of the form "(bla*)" designates the entire operand, outer parens
     # included.
 
-    def __extended_segend_for(self, tline, bm):
+    def __extended_segend_for(self, tline: Tline, bm: re.Match[str]) -> int:
         """
         Compute the extended segment end for a provided BM (base match) object,
         xmatching the base specified subtext in TLINE, opening paren included
@@ -180,7 +146,9 @@ class _XnoteP_segment:
 
         return segend
 
-    def instanciate_over(self, tline, block, kind):
+    def instanciate_over(
+        self, tline: Tline, block: Block | None, kind: NK
+    ) -> Xnote | None:
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
 
         # Register matches for Segments corresponding to all the instances of
@@ -235,66 +203,66 @@ class _XnoteP_segment:
 
 class XnoteP:
     NK_for = {
-        "l-": lNoCov,
-        "l!": lPartCov,
-        "l+": lFullCov,
-        "l.": lNoCode,
-        "l0": lNotCoverable,
-        "l?": lUndetCov,
-        "lD": lDisCov,
-        "l#": lx0,
-        "l*": lx1,
-        "l@": lx2,
-        "l=": lx,
-        "s-": sNoCov,
-        "s!": sPartCov,
-        "s0": sNotCoverable,
-        "s?": sUndetCov,
-        "dT*": dtAlways,
-        "dF*": dfAlways,
-        "d0": dNotCoverable,
-        "dT-": dtNoCov,
-        "dF-": dfNoCov,
-        "d!": dPartCov,
-        "d-": dNoCov,
-        "d?": dUndetCov,
-        "eT-": etNoCov,
-        "eF-": efNoCov,
-        "e!": ePartCov,
-        "e-": eNoCov,
-        "e?": eUndetCov,
-        "oT-": otNoCov,
-        "oF-": ofNoCov,
-        "o!": oPartCov,
-        "o-": oNoCov,
-        "c!": cPartCov,
-        "a-": aNoCov,
-        "aT-": atNoCov,
-        "ac!": acPartCov,
-        "f-": fNoCov,
-        "c-": cNoCov,
-        "f?": fUndetCov,
-        "c?": cUndetCov,
-        "g-": gNoCov,
-        "g?": gUndetCov,
-        "x0": xBlock0,
-        "x+": xBlock1,
-        "x?": xBlock2,
-        "0": r0,
-        "0c": r0c,
-        "dB": dBlock,
+        "l-": NK.lNoCov,
+        "l!": NK.lPartCov,
+        "l+": NK.lFullCov,
+        "l.": NK.lNoCode,
+        "l0": NK.lNotCoverable,
+        "l?": NK.lUndetCov,
+        "lD": NK.lDisCov,
+        "l#": NK.lx0,
+        "l*": NK.lx1,
+        "l@": NK.lx2,
+        "l=": NK.lx,
+        "s-": NK.sNoCov,
+        "s!": NK.sPartCov,
+        "s0": NK.sNotCoverable,
+        "s?": NK.sUndetCov,
+        "dT*": NK.dtAlways,
+        "dF*": NK.dfAlways,
+        "d0": NK.dNotCoverable,
+        "dT-": NK.dtNoCov,
+        "dF-": NK.dfNoCov,
+        "d!": NK.dPartCov,
+        "d-": NK.dNoCov,
+        "d?": NK.dUndetCov,
+        "eT-": NK.etNoCov,
+        "eF-": NK.efNoCov,
+        "e!": NK.ePartCov,
+        "e-": NK.eNoCov,
+        "e?": NK.eUndetCov,
+        "oT-": NK.otNoCov,
+        "oF-": NK.ofNoCov,
+        "o!": NK.oPartCov,
+        "o-": NK.oNoCov,
+        "c!": NK.cPartCov,
+        "a-": NK.aNoCov,
+        "aT-": NK.atNoCov,
+        "ac!": NK.acPartCov,
+        "f-": NK.fNoCov,
+        "c-": NK.cNoCov,
+        "f?": NK.fUndetCov,
+        "c?": NK.cUndetCov,
+        "g-": NK.gNoCov,
+        "g?": NK.gUndetCov,
+        "x0": NK.xBlock0,
+        "x+": NK.xBlock1,
+        "x?": NK.xBlock2,
+        "0": NK.r0,
+        "0c": NK.r0c,
+        "dB": NK.dBlock,
         # Exempted notes
-        "Xs-": XsNoCov,
-        "Xs!": XsPartCov,
-        "Xs0": XsNotCoverable,
-        "Xs?": XsUndetCov,
-        "XoT-": XotNoCov,
-        "XoF-": XofNoCov,
-        "Xo!": XoPartCov,
-        "Xo-": XoNoCov,
-        "Xc!": XcPartCov,
-        "X0": Xr0,
-        "X0c": Xr0c,
+        "Xs-": NK.XsNoCov,
+        "Xs!": NK.XsPartCov,
+        "Xs0": NK.XsNotCoverable,
+        "Xs?": NK.XsUndetCov,
+        "XoT-": NK.XotNoCov,
+        "XoF-": NK.XofNoCov,
+        "Xo!": NK.XoPartCov,
+        "Xo-": NK.XoNoCov,
+        "Xc!": NK.XcPartCov,
+        "X0": NK.Xr0,
+        "X0c": NK.Xr0c,
     }
 
     # The notes prefixed with 'X' correspond to the type of violations we
@@ -303,7 +271,12 @@ class XnoteP:
     # coverage. Therefore we use the 'o' notes to express this lack of
     # information.
 
-    def __init__(self, text, stext=None, stag=None):
+    def __init__(
+        self,
+        text: str,
+        stext: str | None = None,
+        stag: Stag | str | None = None,
+    ):
         # WEAK conveys whether it is ok (not triggering test failure) for
         # expectations produced by this pattern not to be discharged by an
         # emitted note.
@@ -343,25 +316,28 @@ class XnoteP:
         # discharge expectations produced from this pattern. Initially, at this
         # __init__ point, this is set with the stag text found.
 
-        self.stag = stag
+        self.stag: Stag | str | None = stag
 
         # Setup our instanciation factory now, which lets us perform the
         # required test only once:
 
-        self.factory = (
-            _XnoteP_block(notep=self)
-            if block_p(self.kind)
-            else (
-                _XnoteP_line(notep=self)
-                if not self.stext
-                else _XnoteP_segment(notep=self, stext=stext)
-            )
-        )
+        if block_p(self.kind):
+            self.factory: XnoteFactory = _XnoteP_block(notep=self)
+        elif not self.stext:
+            self.factory = _XnoteP_line(notep=self)
+        else:
+            self.factory = _XnoteP_segment(notep=self, stext=self.stext)
 
-    def instantiate_stag(self):
+    def instantiate_stag(self) -> None:
+        assert isinstance(self.stag, str)
         self.stag = Stag_from(self.stag, False)
 
-    def instanciate_over(self, tline, block, srules):
+    def instanciate_over(
+        self,
+        tline: Tline,
+        block: Block | None,
+        srules: NKSubstDict | None,
+    ) -> Xnote | None:
         kind = (
             srules[self.kind] if srules and self.kind in srules else self.kind
         )
