@@ -36,4 +36,24 @@ repos:
         args: ["--no-project"]
         language: system
         files: "^tools/gnatcov/.*\\.ad(b|s)$"
-
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        files: \.py$
+        exclude: |
+          (?x)^(
+            doc/.+|
+            qualification/.+|
+            tools/.+|
+            testsuite/nexus_info\.py|
+            testsuite/altrun/.+|
+            testsuite/REST/.+|
+            testsuite/STR/.+|
+            testsuite/SUITE/tgen\.py
+          )$
+        additional_dependencies:
+          - types-PyYAML
+          - types-setuptools
+          - e3-testsuite
+        name: mypy-1.14.1
