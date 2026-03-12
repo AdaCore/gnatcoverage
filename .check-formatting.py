@@ -184,7 +184,7 @@ class Checker:
                             f.write("\n")
 
     @classmethod
-    def main(cls, argv: list[str] | None = None):
+    def main(cls, argv: list[str] | None = None) -> int:
         args = args_parser.parse_args(argv)
         checker = cls(
             autofix=args.autofix,
