@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+
 class GenerationError(Exception):
-    def __init__(self, context, message):
+    def __init__(self, context: str, message: str):
         super(GenerationError, self).__init__(
             "{}: {}".format(context, message)
         )
@@ -8,7 +11,13 @@ class GenerationError(Exception):
 
 
 class DriverError(GenerationError):
-    def __init__(self, topo_dir, test_driver, line_no, message):
+    def __init__(
+        self,
+        topo_dir: str,
+        test_driver: str,
+        line_no: int | None,
+        message: str,
+    ):
         super(DriverError, self).__init__(
             "{}/{}{}".format(
                 topo_dir,
@@ -22,7 +31,13 @@ class DriverError(GenerationError):
 
 
 class BadTopologyError(DriverError):
-    def __init__(self, topo_dir, test_driver, line_no, message):
+    def __init__(
+        self,
+        topo_dir: str,
+        test_driver: str,
+        line_no: int | None,
+        message: str,
+    ):
         super(BadTopologyError, self).__init__(
             topo_dir, test_driver, line_no, "Bad topology: {}".format(message)
         )

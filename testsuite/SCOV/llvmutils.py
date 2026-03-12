@@ -9,8 +9,11 @@ from SUITE.tutils import xcov
 
 
 def check_llvm_reports(
-    json_file, expected_report, cov_level="stmt", path_prefix=".."
-):
+    json_file: str,
+    expected_report: dict[str, dict[str, set[int]]],
+    cov_level: str = "stmt",
+    path_prefix: str = "..",
+) -> None:
     """
     Check that GNATcov produces the right report when given a JSON file
     generated with the LLVM trace adapter.

@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """C-specific contexts"""
+
+from __future__ import annotations
 
 import SCOV.expgen.syntax as syntax
 import SCOV.expgen.context as context

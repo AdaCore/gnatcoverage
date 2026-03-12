@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Expose the topology definition and instanciation engine.
 
@@ -11,42 +9,57 @@ Once a topology is defined, it can be instanciated to a full decision
 expression: to do so, placeholders are replaced by "operand" expressions.
 """
 
+from __future__ import annotations
+
+import dataclasses
+
+import SCOV.expgen.context as context
 import SCOV.expgen.syntax as syntax
 
 
-class OperandPlaceholder(object):
+@dataclasses.dataclass(frozen=True)
+class OperandPlaceholder(syntax.Expr):
     """Placeholder to be put in expressions to specify a topology."""
 
     pass
 
 
-class Topology(object):
+class Topology:
     """
     Decision expression pattern that can be instanciated to fill the pattern
     with actual operands.
     """
 
-    def __init__(self, expression):
+    def __init__(self, expression: syntax.Expr):
         """Create a new topology using `expression` as its pattern."""
         self.expression = expression
         self.arity = self.get_arity(expression)
 
-    def get_arity(self, expression):
+    def get_arity(self, expression: syntax.Expr) -> int:
         """Return the number of operand placeholders in the given
         expression."""
         if isinstance(expression, OperandPlaceholder):
             return 1
         else:
-            return sum(self.get_arity(sub_expr) for sub_expr in expression)
+            result = 0
+            for value in expression.iter_subexprs():
+                if isinstance(expression, syntax.Expr):
+                    result += self.get_arity(value)
+            return result
 
-    def instanciate(self, operands, formal_names, context):
+    def instanciate(
+        self,
+        operands: list[syntax.Expr],
+        formal_names: list[str],
+        context: context.Context,
+    ) -> syntax.Expr:
         """
         Instanciate the expression pattern tree replacing the placeholders with
         the given expressions, which are tagged with the given `formal_names`
         and with the given `context` (tags depend on the context).
         """
 
-        def helper(expression, i):
+        def helper(expression: syntax.Expr, i: int) -> tuple[syntax.Expr, int]:
             """
             Likewise, helper to process sub-expressions in a recursive fashion.
             `i` is the first operand to replace. Return the instanciated
@@ -56,7 +69,7 @@ class Topology(object):
             # If we find a placeholder, return the next operand after tagging
             # it.
             if isinstance(expression, OperandPlaceholder):
-                result = syntax.TaggedNode(
+                result = syntax.TaggedExpr(
                     syntax.Tag("eval", formal_names[i], context.TAG_CONTEXT),
                     operands[i],
                 )
@@ -65,12 +78,12 @@ class Topology(object):
             # Otherwise, first instanciate sub-expressions of the given
             # expression pattern.
             sub_expressions = []
-            for sub_expr in expression:
+            for sub_expr in expression.iter_subexprs():
                 instance, next_operand = helper(sub_expr, i)
                 i = next_operand
                 sub_expressions.append(instance)
 
-            # And then return the instanciated expression.
+            # And then return the instanciated expression
             ExprKind = type(expression)
             return ExprKind(*sub_expressions), i
 
@@ -85,10 +98,10 @@ class Topology(object):
 
         return expr
 
-    def evaluate(self, operands):
+    def evaluate(self, operands: list[bool]) -> bool:
         """Evaluate the boolean expression using the given `operands`."""
 
-        def helper(expression, i):
+        def helper(expression: syntax.Expr, i: int) -> tuple[bool, int]:
             """
             Likewise, helper to process sub-expressions in a recursive fashion.
             `i` is the first `operand` to use. Return the result of the given
@@ -127,10 +140,10 @@ class Topology(object):
 
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         placeholders = list(reversed("ABCDEFGHIJ"))
 
-        def helper(expr):
+        def helper(expr: syntax.Expr) -> str:
             if isinstance(expr, OperandPlaceholder):
                 return placeholders.pop()
             elif isinstance(expr, syntax.And):
@@ -142,6 +155,7 @@ class Topology(object):
                     helper(expr.left), helper(expr.right)
                 )
             else:
+                assert isinstance(expr, syntax.Not)
                 return "not {}".format(helper(expr.expr))
 
         return helper(self.expression)

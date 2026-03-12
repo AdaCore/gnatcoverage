@@ -1,11 +1,14 @@
-import os
-from collections import namedtuple
+from __future__ import annotations
 
-from SUITE.cutils import contents_of
+from collections.abc import Iterable
+import dataclasses
+import os
+
+from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gpr_emulator_package
 
 
-def gprdep_for(reldir, wd):
+def gprdep_for(reldir: str, wd: Wdir) -> str:
     """
     Quick facility to help tests exercising GPR trees, in a setup like:
 
@@ -49,12 +52,18 @@ def gprdep_for(reldir, wd):
     return gprdep
 
 
-Csw = namedtuple("Csw", "cmd switches")
+@dataclasses.dataclass(frozen=True)
+class Csw:
+    cmd: list[str]
+    switches: list[str]
 
 
-def __gprattr(attrname, value, aslist):
+def __gprattr(
+    attrname: str,
+    value: str | Iterable[str] | None,
+    aslist: bool,
+) -> str:
     """
-
     One project attribute definition string, for an attribute named ATTRNAME,
     with the provided attribute VALUE, to be set as an attribute list-value or
     not according to ASLIST. The definition string degrades into a mere comment
@@ -63,16 +72,21 @@ def __gprattr(attrname, value, aslist):
     if value is None:
         return "-- empty %s" % attrname
 
-    elif aslist:
+    elif not aslist and isinstance(value, str):
+        return 'for %s use "%s";' % (attrname, value)
+
+    else:
         return "for %s use (%s);" % (
             attrname,
             ",".join('"%s"' % v for v in value),
         )
-    else:
-        return 'for %s use "%s";' % (attrname, value)
 
 
-def __gpr_uattr(value, for_list, to_exclude):
+def __gpr_uattr(
+    value: str | Iterable[str] | None,
+    for_list: bool,
+    to_exclude: bool,
+) -> str:
     """
     One attribute definition string, for a unit set kind of attribute, one of
     (Units, Units_List, Excluded_Units, Excluded_Units_List). The FOR_LIST
@@ -91,8 +105,12 @@ def __gpr_uattr(value, for_list, to_exclude):
 
 
 def gprcov_for(
-    units_in=None, ulist_in=None, units_out=None, ulist_out=None, switches=()
-):
+    units_in: Iterable[str] | None = None,
+    ulist_in: Iterable[str] | None = None,
+    units_out: Iterable[str] | None = None,
+    ulist_out: Iterable[str] | None = None,
+    switches: Iterable[Csw] = (),
+) -> str:
     """
     Compute and return the text of a Coverage GPR package from:
 
@@ -151,30 +169,30 @@ class GPRswitches:
 
     def __init__(
         self,
-        root_project,
-        projects=None,
-        units=None,
+        root_project: str,
+        projects: Iterable[str] | None = None,
+        units: Iterable[str] | None = None,
         no_subprojects: bool = False,
         externally_built_projects: bool = False,
         relocate_build_tree: str | None = None,
-        root_dir=None,
-        xvars=None,
-        subdirs=None,
+        root_dir: str | None = None,
+        xvars: list[tuple[str, str]] | None = None,
+        subdirs: str | None = None,
     ):
         """
-        :param str root_project: Root project to consider (-P argument).
-        :param list[str] projects: Optional list of projects for units of
-           interest (--project argument).
-        :param list[str] units: Optional list of names of units of interest
-           (--units argument).
-        :param bool no_subprojects: Whether to process only projects specified
+        :param root_project: Root project to consider (-P argument).
+        :param projects: Optional list of projects for units of interest
+            (--project argument).
+        :param units: Optional list of names of units of interest (--units
+            argument).
+        :param no_subprojects: Whether to process only projects specified
             through -P/--projects (--no-subprojects option). Otherwise, process
             closures of project dependencies.
-        :param bool externally_built_projects: Whether to process externally
-            built projects (--externally-built-projects).
-        :param list[(str,str)] xvars: Optional list of (varname, value) tuples
-            for scenario variables (--X arguments).
-        :param str subdirs: Optional --subdirs argument.
+        :param externally_built_projects: Whether to process externally built
+            projects (--externally-built-projects).
+        :param xvars: Optional list of (varname, value) tuples for scenario
+            variables (--X arguments).
+        :param subdirs: Optional --subdirs argument.
         """
         self.root_project = root_project
         self.projects = projects or []
@@ -196,7 +214,7 @@ class GPRswitches:
             return self.relocate_build_tree
 
     @property
-    def build_switches(self):
+    def build_switches(self) -> list[str]:
         """
         Switches that would be valid for gprbuild as well and which
         should be used in coordination, as a list of strings.
@@ -232,7 +250,7 @@ class GPRswitches:
         return switches
 
     @property
-    def cov_switches(self):
+    def cov_switches(self) -> list[str]:
         """
         The switches for gnatcov commands, as a list of strings.
         """

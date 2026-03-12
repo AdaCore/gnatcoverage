@@ -17,7 +17,7 @@ Wdir("tmp_")
 # (expectedly built with -m32) with the coverage buffer unit (unexpectedly
 # built with default settings: -m64), which the linker rejected.
 
-comp_wf = CompileSource(source="../pkg.c", compiler_switches="-m32")
+comp_wf = CompileSource(source="../pkg.c", compiler_switches=["-m32"])
 env = setup_integration(files_of_interest=["../pkg.c"])
 comp_wf.build(env=env)
 

@@ -1,19 +1,11 @@
-from pathlib import Path
-import sys
-
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 
-# Add the path of test utils to import it
-sys.path.append(
-    str(Path(__file__).absolute().parent.parent.joinpath("common").resolve())
-)
-
-from test_utils import (
+from test_support import (
     SimpleConditionCheckpointBuilder,
+    PkgType as PT,
     TestCaseRunner,
 )
-from test_utils import PkgType as PT
 
 wd = Wdir("tmp_")
 

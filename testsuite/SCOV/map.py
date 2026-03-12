@@ -4,6 +4,8 @@ This module exposes the MapChecker class, helper to compile a set of sources
 and check clean output of xcov map-routines on a list of alis and objects.
 """
 
+from __future__ import annotations
+
 import os
 import re
 
@@ -22,7 +24,12 @@ from SUITE.tutils import (
 
 class MapChecker:
     def __init__(
-        self, sources, options="", execs=None, alis=None, ensure_dcscos=True
+        self,
+        sources: list[str] | str,
+        options: str = "",
+        execs: list[str] | None = None,
+        alis: list[str] | None = None,
+        ensure_dcscos: bool = True,
     ):
         self.sources = to_list(sources)
         self.options = options
@@ -44,7 +51,7 @@ class MapChecker:
                 for source in self.sources
             ]
 
-    def run(self):
+    def run(self) -> None:
         tmp = Wdir("tmp_")
 
         # Compile all the sources.  This method will not work if there are
@@ -81,7 +88,7 @@ class MapChecker:
 
         thistest.log("\n".join(maperrors))
         thistest.fail_if(
-            maperrors,
+            bool(maperrors),
             "expect no map-routines error for %s" % ", ".join(self.sources),
         )
 

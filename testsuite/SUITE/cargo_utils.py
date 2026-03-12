@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 from SUITE.cutils import no_ext

@@ -8,10 +8,10 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tracelib import (
     TraceEntry,
     TraceFile,
-    TraceOp,
+    TraceHeader,
     TraceKind,
+    TraceOp,
     create_exec_infos,
-    create_trace_header,
 )
 from SUITE.tutils import (
     do,
@@ -47,11 +47,11 @@ EM_X86_64 = 62
 bits = 64
 pc_size = bits // 8
 tf = TraceFile(
-    first_header=create_trace_header(
+    first_header=TraceHeader(
         TraceKind.Info, pc_size, big_endian=False, machine=EM_X86_64
     ),
     infos=create_exec_infos(main),
-    second_header=create_trace_header(
+    second_header=TraceHeader(
         TraceKind.Flat, pc_size, big_endian=False, machine=EM_X86_64
     ),
     entries=[
@@ -75,7 +75,7 @@ xcov(
 actual_report = contents_of("coverage.log").splitlines()
 
 
-def fmt(offset):
+def fmt(offset: int) -> str:
     return hex(f_addr + offset)[2:].rjust(16, "0")
 
 
@@ -104,8 +104,8 @@ f !: {fmt(0)}-{fmt(0x20)}
   2 partially covered
   0 not executed
 """
-with open("expected.txt", "w") as f:
-    f.write(expected_report)
+with open("expected.txt", "w") as bf:
+    bf.write(expected_report)
 
 thistest.fail_if_diff(
     baseline_file="expected.txt",

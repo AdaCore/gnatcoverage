@@ -7,6 +7,10 @@ and test status management facilities.
 It also exposes a few global variables of general use (env, TEST_DIR, etc)
 """
 
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
 from dataclasses import dataclass
 import json
 import logging
@@ -14,6 +18,7 @@ import os
 import re
 import sys
 import time
+from typing import NoReturn
 
 from e3.diff import diff
 from e3.fs import rm
@@ -50,7 +55,7 @@ ROOT_DIR = os.getcwd()
 # Internal helper to dispatch information to test.py.err/log/out
 
 
-class _ReportOutput(object):
+class _ReportOutput:
     """
     A class that allows us to write some text to a report file, while
     bufferizing part of it until we know whether this part should also be
@@ -70,7 +75,7 @@ class _ReportOutput(object):
             standard output at the next flush.
     """
 
-    def __init__(self, report_file):
+    def __init__(self, report_file: str):
         """Constructor.
 
         PARAMETERS
@@ -82,31 +87,30 @@ class _ReportOutput(object):
         self.output = ""
         self.print_diff = False
 
-    def enable_diffs(self):
+    def enable_diffs(self) -> None:
         """
         Turn printing of the output buffer on.  The printing will be done at
         the next flush.
         """
         self.print_diff = True
 
-    def log(self, text, end_of_line=True):
+    def log(self, text: str, end_of_line: bool = True) -> None:
         """
         Write the given text in the output file.  This also adds the text to
         the output buffer.
 
-        PARAMETERS
-          text:   The text to be logged.
-          end_of_line: If True, then append a '\n' character at the end
-                  of text. This affects both the report file and the output
-                  buffer. The idea is to emulate the "print" statement
-                  which adds this '\n' by default too.
+        :param text: The text to be logged.
+        :param end_of_line: If True, then append a '\n' character at the end of
+            text. This affects both the report file and the output buffer. The
+            idea is to emulate the "print" statement which adds this '\n' by
+            default too.
         """
         if end_of_line:
             text += "\n"
         self.output += text
         self.report_fd.write(text)
 
-    def flush(self):
+    def flush(self) -> None:
         """
         Reset the output buffer (printing its content on standard output first
         if print_diff is True).  Reset print_diff to False as well.
@@ -117,12 +121,12 @@ class _ReportOutput(object):
         self.print_diff = False
         self.report_fd.flush()
 
-    def close(self):
+    def close(self) -> None:
         """Close the file descriptor for our report file."""
         self.report_fd.close()
 
 
-class Test(object):
+class Test:
     """Test class:
 
     Offer test command line and status management facilities.
@@ -144,7 +148,7 @@ class Test(object):
     no failure was registered.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the instance: switch to the test subdirectory, parse command
         line options, reset the failures counter and precompute gprbuild
@@ -161,7 +165,9 @@ class Test(object):
         # just fine (join("/foo", "/foo/bar") yields "/foo/bar").
 
         testsuite_py_dir = ROOT_DIR
-        test_py_dir = os.path.dirname(sys.modules["__main__"].__file__)
+        main_file = sys.modules["__main__"].__file__
+        assert main_file
+        test_py_dir = os.path.dirname(main_file)
 
         self.homedir = os.path.join(testsuite_py_dir, test_py_dir)
         self.reldir = os.path.relpath(self.homedir, start=testsuite_py_dir)
@@ -196,7 +202,7 @@ class Test(object):
         # environment variable.
         os.environ["GNATCOV_NO_NATIVE_WARNING"] = "1"
 
-    def cleanup(self, project, options):
+    def cleanup(self, project: str, options: list[str]) -> None:
         """Cleanup possible remnants of previous builds."""
         Run([GPRCLEAN, "-P%s" % project] + options)
         rm("*.xcov")
@@ -204,30 +210,35 @@ class Test(object):
 
     # Test status management
 
-    def log(self, text: str, new_line: bool = True):
+    def log(self, text: str, new_line: bool = True) -> None:
         """Calls self.report.log."""
         self.report.log(text, new_line)
 
-    def flush(self):
+    def flush(self) -> None:
         """Calls self.report.flush."""
         self.report.flush()
 
-    def comment(self, text):
+    def comment(self, text: str) -> None:
         """Output a TEXT comment."""
         self.log("  - %s." % indent_after_first_line(text, "    "))
 
-    def failed(self, comment="assertion failed"):
+    def failed(self, comment: str = "assertion failed") -> None:
         """Register a check failure."""
         self.log("  * %s" % indent_after_first_line(comment, "    "))
         self.report.enable_diffs()
         self.n_failed += 1
 
-    def fail_if(self, expr: bool, comment: str = "assertion failed"):
+    def fail_if(self, expr: bool, comment: str = "assertion failed") -> None:
         """Register a check failure when EXPR is true."""
         if expr:
             self.failed(comment)
 
-    def fail_if_not_equal(self, what: str, expected: str, actual: str):
+    def fail_if_not_equal(
+        self,
+        what: str,
+        expected: object,
+        actual: object,
+    ) -> None:
         """Register a check failure when EXPECTED and ACTUAL are not equal."""
         self.fail_if(
             expected != actual,
@@ -236,7 +247,13 @@ class Test(object):
             ),
         )
 
-    def _fail_if_regex(self, what, regexp, actual, match_is_fail=False):
+    def _fail_if_regex(
+        self,
+        what: str,
+        regexp: str | re.Pattern[str],
+        actual: str,
+        match_is_fail: bool = False,
+    ) -> None:
         if isinstance(regexp, str):
             regexp = re.compile(regexp)
         # Canonicalize to Unix-style line endings to have cross-platform checks
@@ -252,7 +269,12 @@ class Test(object):
             ),
         )
 
-    def fail_if_no_match(self, what, regexp, actual):
+    def fail_if_no_match(
+        self,
+        what: str,
+        regexp: str | re.Pattern[str],
+        actual: str,
+    ) -> None:
         """Register a check failure when ACTUAL does not match regexp."""
         self._fail_if_regex(
             what,
@@ -261,7 +283,12 @@ class Test(object):
             match_is_fail=False,
         )
 
-    def fail_if_match(self, what, regexp, actual):
+    def fail_if_match(
+        self,
+        what: str,
+        regexp: str | re.Pattern[str],
+        actual: str,
+    ) -> None:
         """Register a check failure when ACTUAL does match regexp."""
         self._fail_if_regex(
             what,
@@ -270,16 +297,16 @@ class Test(object):
             match_is_fail=True,
         )
 
-    def stop(self, exc):
+    def stop(self, exc: Exception) -> NoReturn:
         self.failed("Processing failed")
         self.result()
         raise exc
 
-    def stop_if(self, expr, exc):
+    def stop_if(self, expr: bool, exc: Exception) -> None:
         if expr:
             self.stop(exc)
 
-    def report_output_refiners(self):
+    def report_output_refiners(self) -> list[OutputRefiner]:
         """
         When using the diff computing API (e.g. fail_if_diff), one needs to
         refine the actual output to ignore execution specific data (such as
@@ -290,10 +317,10 @@ class Test(object):
         report formats when needed.
         """
 
-        class XcovPathRemover(OutputRefiner):
+        class XcovPathRemover(OutputRefiner[str]):
             """Remove path lines in outputs."""
 
-            def refine(self, output):
+            def refine(self, output: str) -> str:
                 if os.path.exists(output.strip("\n:")):
                     return ""
                 return output
@@ -307,12 +334,12 @@ class Test(object):
 
     def fail_if_diff_internal(
         self,
-        baseline_file,
-        actual,
-        failure_message="unexpected output",
-        output_refiners=None,
-        ignore_white_chars=True,
-    ):
+        baseline_file: str,
+        actual: str,
+        failure_message: str = "unexpected output",
+        output_refiners: Sequence[OutputRefiner] | None = None,
+        ignore_white_chars: bool = True,
+    ) -> None:
         """Compute the diff between expected and actual outputs.
 
         Return an empty list if there is no diff, and return a list that
@@ -334,7 +361,7 @@ class Test(object):
             output_refiners = self.report_output_refiners()
 
         # Run output refiners on the actual output, and on the baseline
-        refiners = RefiningChain(output_refiners)
+        refiners = RefiningChain(list(output_refiners))
         refined_actual = refiners.refine(actual)
         with open(baseline_file, "r") as f:
             refined_baseline = refiners.refine(f.read())
@@ -353,7 +380,7 @@ class Test(object):
             ignore_white_chars=ignore_white_chars,
         )
         if not d:
-            return []
+            return
 
         message = failure_message
 
@@ -374,9 +401,9 @@ class Test(object):
         baseline_file: str,
         actual_file: str,
         failure_message: str = "unexpected output",
-        output_refiners=None,
+        output_refiners: Sequence[OutputRefiner] | None = None,
         ignore_white_chars: bool = True,
-    ):
+    ) -> None:
         """
         Wrapper around fail_if_diff_internal, taking an actual_file parameter
         instead of an actual string.
@@ -390,7 +417,7 @@ class Test(object):
                 ignore_white_chars,
             )
 
-    def result(self):
+    def result(self) -> None:
         """Output the final result which the testsuite driver looks for.
 
         This should be called once at the end of the test
@@ -421,14 +448,14 @@ class Test(object):
         self.flush()
         self.report.close()
 
-    def create_callgrind_id(self):
+    def create_callgrind_id(self) -> int:
         """Return a test-unique ID to identify a callgrind run."""
         self.callgrind_count += 1
         return self.callgrind_count
 
     # Test options management
 
-    def __cmdline_options(self):
+    def __cmdline_options(self) -> argparse.Namespace:
         """Return an options object to represent the command line options"""
         main = Main(platform_args=True)
         parser = main.argument_parser
@@ -482,24 +509,26 @@ class Test(object):
         control.add_shared_options_to(parser, toplevel=False)
 
         main.parse_args()
+        args = main.args
+        assert args is not None
 
         # "--report-file" is a required "option" which is a bit
         # self-contradictory, but it's easy to do it that way.
         exit_if(
-            main.args.report_file is None,
+            args.report_file is None,
             "The report file must be specified with --report-file",
         )
 
         # Get our tags set as a list. Fetch contents from file if needed
         # first:
-        if main.args.tags and main.args.tags.startswith("@"):
-            main.args.tags = " ".join(lines_of(main.args.tags[1:]))
-        if main.args.tags:
-            main.args.tags = main.args.tags.split()
+        if args.tags and args.tags.startswith("@"):
+            args.tags = " ".join(lines_of(args.tags[1:]))
+        if args.tags:
+            args.tags = args.tags.split()
 
-        return main.args
+        return args
 
-    def suite_cargs_for(self, lang):
+    def suite_cargs_for(self, lang: str | None) -> list[str]:
         """
         String of options passed as --cargs[:LANG] to the testsuite driver.
         None if no such option passed. LANG might be None, to fetch options
@@ -507,23 +536,23 @@ class Test(object):
         """
         return getattr(thistest.options, control.cargs_attr_for(lang))
 
-    def suite_covpgm_for(self, cmd):
+    def suite_covpgm_for(self, cmd: str) -> str | None:
         """
         Alternate program to launch in lieu of "gnatcov CMD", if any specified
         with the --gnatcov-CMD= command line option. None otherwise.
         """
         return getattr(thistest.options, "gnatcov_%s" % cmd, None)
 
-    def suite_gprpgm_for(self, pgm):
+    def suite_gprpgm_for(self, pgm: str) -> str | None:
         """
         Alternate program to launch in lieu of "gpr<tool>",
         """
         return getattr(thistest.options, pgm, None)
 
-    def support_dir(self):
+    def support_dir(self) -> str:
         return os.path.join(ROOT_DIR, "support")
 
-    def bits(self):
+    def bits(self) -> int:
         """
         Address size, in bits, for the programs gnatcov is given to analyze
         this run.
@@ -541,7 +570,7 @@ class BSPInfo:
     linker_switches: list[str]
 
 
-def get_c_bsp_info():
+def get_c_bsp_info() -> BSPInfo | None:
     """
     Return the C base support project information.
 
@@ -603,7 +632,7 @@ def get_c_bsp_info():
 
 
 # C BSP info. This is set by the testsuite
-c_bsp_info: BSPInfo = get_c_bsp_info()
+c_bsp_info = get_c_bsp_info()
 
 # Allow import of a common "test_support" module from test.py when
 # there is a test_support.py available uptree.

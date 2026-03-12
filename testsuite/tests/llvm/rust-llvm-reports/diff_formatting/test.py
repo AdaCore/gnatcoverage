@@ -3,9 +3,9 @@ Check the processing of coverage reports generated from LLVM trace adapter.
 This test checks the handling of identical code that is formatted differently.
 """
 
+from SCOV.llvmutils import check_llvm_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, multi_range
-from SUITE.llvmutils import check_llvm_reports
 
 _wd = Wdir("tmp_")
 

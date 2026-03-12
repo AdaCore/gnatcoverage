@@ -1,20 +1,29 @@
-# -*- coding: utf-8 -*-
-
 """Expose operand kinds suitable for condition expressions."""
+
+from __future__ import annotations
+
+import abc
+from collections.abc import Iterable, Sequence
+from typing import ClassVar
 
 import SCOV.expgen.syntax as syntax
 
 
-class Operand(object):
+class Operand:
     """
     A kind of operand for conditions: a variable, a comparison with an integer,
     a function call, etc.
     """
 
-    def __init__(self, used_types, param_type, actuals):
+    def __init__(
+        self,
+        used_types: Iterable[syntax.Type],
+        param_type: syntax.Type,
+        actuals: dict[bool, syntax.Expr],
+    ):
         # Set for all the types used by the operand kind. They will be used by
         # the serializer to output type declarations.
-        self.used_types = used_types
+        self.used_types = set(used_types)
 
         # Type of the formal used in the operand. Must be in `used_types`.
         self.param_type = param_type
@@ -22,97 +31,87 @@ class Operand(object):
         # Two litterals that make the operand evaluate to False/True.
         self.actuals = actuals
 
-    def get_operand(self, param):
+    @abc.abstractmethod
+    def get_operand(self, param: str) -> syntax.Expr:
         """Turn some parameter name into an abstract tree for the operand."""
-        raise NotImplementedError()
+        pass
 
 
 class LanguageSpecific(Operand):
     """
     Language-specific operand, shortcuts the AST with text substitution.
-
-    The name of the language the operand is specific to must be set in the
-    `LANGUAGE` attribute.
-
-    Subclasses have to override the `FORMAT` attribute with a string template
-    of the operand expression. In order to let the engine insert the formal
-    name used in the operand expression, the template should contain the
-    "{formal_name}" placeholder.
-
-    Subclasses also have to override the `USED_TYPES`, `PARAM_TYPE` and
-    `ACTUALS` attributes.
-
-    TODO: document more deeply those attributes.
     """
 
-    LANGUAGE = None
+    LANGUAGE: ClassVar[str]
+    """
+    Name of the language this operand is specific to.
+    """
 
-    FORMAT = None
-    USED_TYPES = None
-    PARAM_TYPE = None
-    ACTUALS = None
+    FORMAT: ClassVar[str]
+    """
+    String template of the operand expression. In order to let the engine
+    insert the formal name used in the operand expression, the template should
+    contain the "{formal_name}" placeholder.
+    """
 
-    def __init__(self):
-        self.language = self.LANGUAGE
+    USED_TYPES: ClassVar[Sequence[syntax.Type]]
+    """
+    Set of all the types used by this operand.
+    """
 
-        # Convert USED_TYPES to ast.XType nodes.
-        xtypes = []
-        param_type = None
+    PARAM_TYPE: ClassVar[syntax.Type]
+    """
+    Type of the formal used in the operand.
+
+    It must be one of the items returned in ``USED_TYPES
+    """
+
+    ACTUALS: ClassVar[dict[bool, str]]
+    """
+    Mapping for the two literals that make the operand evaluate to False/True.
+    """
+
+    def __init__(self) -> None:
+        # Convert used types to syntax.XType nodes
+        xtypes: list[syntax.Type] = []
+        param_type: syntax.Type | None = None
         for type_ in self.USED_TYPES:
-            xtype = self.convert_type(type_)
-            xtypes.append(xtype)
+            xtypes.append(type_)
 
             # Pick the one that is PARAM_TYPE instead of generating PARAM_TYPE
             # itself, so that in the end, PARAM_TYPE still is in USED_TYPES.
-            if type_ is self.PARAM_TYPE:
-                param_type = xtype
+            if type_ == self.PARAM_TYPE:
+                param_type = type_
 
-        assert (
-            param_type is not None
-        ), "PARAM_TYPE must be present in USED_TYPES"
+        assert param_type is not None, "param must be present in used types"
 
-        # Convert ACTUALS to ast.XLitteral nodes.
-        actuals = {
-            False: syntax.XLitteral(self.LANGUAGE, self.ACTUALS[False]),
-            True: syntax.XLitteral(self.LANGUAGE, self.ACTUALS[True]),
+        # Convert actuals from strings to syntax.XLitteral nodes
+        actuals_str = self.ACTUALS
+        actuals: dict[bool, syntax.Expr] = {
+            value: syntax.XLitteral(self.LANGUAGE, actuals_str[value])
+            for value in (False, True)
         }
 
         super(LanguageSpecific, self).__init__(xtypes, param_type, actuals)
 
-    def get_operand(self, param):
+    def get_operand(self, param: str) -> syntax.Expr:
         return syntax.XOperand(self.LANGUAGE, self.FORMAT, param)
-
-    # Mapping: type_tuple id -> ast.XType
-    # This is global since a type can be used in more than one operand kind,
-    # and each operand kind that contain this type can appear in the same
-    # program.
-    converted_types = {}
-
-    def convert_type(self, type_):
-        type_id = id(type_)
-        try:
-            xtype = self.converted_types[type_id]
-        except KeyError:
-            declaration, usage = type_
-            xtype = syntax.XType(self.LANGUAGE, declaration, usage)
-            self.converted_types[type_id] = xtype
-        return xtype
 
 
 class Variable(Operand):
     """The operand is just the usage of a boolean argument."""
 
-    ACTUALS = {
-        False: syntax.LitteralBoolean(False),
-        True: syntax.LitteralBoolean(True),
-    }
-
-    def __init__(self):
+    def __init__(self) -> None:
         super(Variable, self).__init__(
-            (syntax.BooleanType,), syntax.BooleanType, self.ACTUALS
+            (syntax.BooleanType,),
+            syntax.BooleanType,
+            {
+                False: syntax.LitteralBoolean(False),
+                True: syntax.LitteralBoolean(True),
+            },
         )
 
-    def get_operand(self, param):
+    def get_operand(self, param: str) -> syntax.Expr:
         return syntax.VariableUsage(param)
 
 
@@ -131,7 +130,7 @@ class IntegerComparison(Operand):
         syntax.RelOp.NE: lambda value: (value, value + 1),
     }
 
-    def __init__(self, operator, value):
+    def __init__(self, operator: syntax.RelOp, value: int):
         actual_false, actual_true = self.ACTUALS_MAKERS[operator](value)
         super(IntegerComparison, self).__init__(
             (syntax.IntegerType,),
@@ -144,7 +143,7 @@ class IntegerComparison(Operand):
         self.operator = operator
         self.value = syntax.LitteralInteger(value)
 
-    def get_operand(self, param):
+    def get_operand(self, param: str) -> syntax.Expr:
         return syntax.Comparison(
             self.operator, syntax.VariableUsage(param), self.value
         )

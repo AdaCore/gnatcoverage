@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import collections
 import re
+from typing import TYPE_CHECKING
 
 from e3.fs import mkdir
 
@@ -17,12 +18,17 @@ from SUITE.tutils import (
     xrun,
 )
 
+
+if TYPE_CHECKING:
+    CovData = dict[str, dict[str, int]]
+
+
 # Cache some values we need repeatedly
 
 TARGET_INFO = SUITE.control.target_info()
 
 
-class TestCase(object):
+class TestCase:
     ROUTINES_FILE = "routines.list"
     RESULT_FILE = "coverage.result"
 
@@ -31,16 +37,18 @@ class TestCase(object):
         " ([-!+]): "  # Symbol coverage result
         "[0-9a-f]+-[0-9a-f]+\n$"  # Address range for the symbol
     )
-    NO_COV, PART_COV, FULL_COV = "-!+"
+    NO_COV = "-"
+    PART_COV = "!"
+    FULL_COV = "+"
 
     def __init__(
         self,
-        test_drivers,
-        coverage_expectations,
-        extra_sourcedirs=None,
-        level="branch",
-        annotate="asm",
-        extra_xcov_args=None,
+        test_drivers: dict[str, dict[str, list[str]]],
+        coverage_expectations: CovData,
+        extra_sourcedirs: list[str] | None = None,
+        level: str = "branch",
+        annotate: str = "asm",
+        extra_xcov_args: list[str] | None = None,
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
@@ -52,7 +60,7 @@ class TestCase(object):
         self.annotate = annotate
         self.extra_xcov_args = extra_xcov_args or []
 
-    def run(self, register_failure=True):
+    def run(self, register_failure: bool = True) -> bool:
         """
         Return if "gnatcov coverage" executed properly.
         """
@@ -92,7 +100,11 @@ class TestCase(object):
             )
         return True
 
-    def _compile(self, test_driver, compile_unit_switches):
+    def _compile(
+        self,
+        test_driver: str,
+        compile_unit_switches: dict[str, list[str]],
+    ) -> None:
         mkdir("{}-obj".format(test_driver))
 
         project_file = gprfor(
@@ -115,15 +127,15 @@ class TestCase(object):
         # sensitive to code generation.
         gprbuild(project_file, scovcargs=False, suitecargs=False)
 
-    def _run(self, test_driver):
+    def _run(self, test_driver: str) -> None:
         xrun(unixpath_to(test_driver))
 
-    def _generate_routines_list(self):
+    def _generate_routines_list(self) -> None:
         with open(self.ROUTINES_FILE, "w") as f:
             for routine in self.coverage_expectations:
                 f.write("{}\n".format(routine))
 
-    def _consolidate_traces(self, output, register_failure):
+    def _consolidate_traces(self, output: str, register_failure: bool) -> bool:
         xcov_args = [
             "coverage",
             "--level=" + self.level,
@@ -136,9 +148,9 @@ class TestCase(object):
         p = xcov(xcov_args, out=output, register_failure=register_failure)
         return p.status == 0
 
-    def _parse_coverage_results(self, input_file):
+    def _parse_coverage_results(self, input_file: str) -> CovData:
         # Mapping: {symbol name -> {coverage status -> count} }
-        result = collections.defaultdict(
+        result: CovData = collections.defaultdict(
             lambda: {self.NO_COV: 0, self.PART_COV: 0, self.FULL_COV: 0}
         )
 
@@ -151,7 +163,7 @@ class TestCase(object):
 
         return result
 
-    def fmt_list(self, items):
+    def fmt_list(self, items: list[str]) -> str:
         """
         Format a list of string for the GPR file.
 
@@ -160,14 +172,16 @@ class TestCase(object):
         """
         return ", ".join(['"{}"'.format(item) for item in items])
 
-    def format_coverage(self, coverage):
-        result = []
+    def format_coverage(self, coverage: CovData) -> str:
+        result: list[str] = []
         for symbol in sorted(coverage):
             cov_result = coverage[symbol]
-            result = '  - symbol "{}": {}-  {}!  {}+\n'.format(
-                symbol,
-                cov_result[self.NO_COV],
-                cov_result[self.PART_COV],
-                cov_result[self.FULL_COV],
+            result.append(
+                '  - symbol "{}": {}-  {}!  {}+\n'.format(
+                    symbol,
+                    cov_result[self.NO_COV],
+                    cov_result[self.PART_COV],
+                    cov_result[self.FULL_COV],
+                )
             )
         return "".join(result)

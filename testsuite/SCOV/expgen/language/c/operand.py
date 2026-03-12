@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """C-specific operands"""
 
+from __future__ import annotations
+
 import SCOV.expgen.operand as operand
+import SCOV.expgen.syntax as syntax
 
 
 #
@@ -10,17 +11,18 @@ import SCOV.expgen.operand as operand
 #
 
 # Builtin types
-INTEGER = ([], "int")
+INTEGER = syntax.XType("C", (), "int")
 
-SLOC_STRUCT = (
-    [
+SLOC_STRUCT = syntax.XType(
+    "C",
+    (
         # Type declaration
         "struct sloc",
         "{",
         "    int line;",
         "    int column;",
         "};",
-    ],
+    ),
     "struct sloc",  # Type usage
 )
 

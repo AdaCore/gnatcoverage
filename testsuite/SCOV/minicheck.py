@@ -1,19 +1,23 @@
 """
-Dummy XCOV reports checker.
+Minimal XCOV reports checker.
 
-This is a temporary module to help testcases to check coverage analysis
-reports. Ideally, we should use the regular SCOV circuitry for that but that's
-not possible at the moment for manual report production schemes (for instance
-for specific checkpoints usage testcases).
+This is a simple module to help testcases to check coverage analysis reports.
+Ideally, we should use the regular SCOV circuitry for that but that's not
+possible at the moment for manual report production schemes (for instance for
+specific checkpoints usage testcases).
 """
 
+from __future__ import annotations
+
 import collections
+from collections.abc import Iterable
 import glob
 import json
 import os.path
 import re
 
 from e3.fs import rm
+from e3.os.process import STDOUT
 
 from SCOV.instr import (
     default_dump_channel,
@@ -38,42 +42,54 @@ from SUITE.tutils import (
 )
 
 
+CovData = dict[str, set[int]]
+"""
+Maps coverage status ('+', '-', ...) to the set of coverage lines that have
+this status.
+"""
+
+CovReport = dict[str, CovData]
+"""
+Maps filename to the corresponding coverage data.
+"""
+
+
 COV_RE = re.compile(r"^ *(\d+) (.):.*$")
 
 
 def build_and_run(
     gprsw: GPRswitches,
-    covlevel,
-    mains,
-    extra_coverage_args,
-    quiet=True,
-    scos=None,
-    gpr_obj_dir=None,
-    gpr_exe_dir=None,
-    ignored_source_files=None,
-    separate_coverage=None,
-    extra_args=None,
-    extra_run_args=None,
-    extra_instr_args=None,
-    extra_gprbuild_args=None,
-    extra_gprbuild_cargs=None,
-    extra_gprbuild_largs=None,
-    absolute_paths=False,
-    dump_trigger: str | list[str] = "auto",
-    dump_channel="auto",
-    check_gprbuild_output=False,
-    trace_mode=None,
-    runtime_project=None,
-    gprsw_for_coverage=None,
-    scos_for_run=True,
-    register_failure=True,
-    program_env=None,
-    tolerate_instrument_messages=None,
-    exec_args=None,
+    covlevel: str | None,
+    mains: list[str],
+    extra_coverage_args: list[str],
+    quiet: bool = True,
+    scos: list[str] | None = None,
+    gpr_obj_dir: str | None = None,
+    gpr_exe_dir: str | None = None,
+    ignored_source_files: list[str] | None = None,
+    separate_coverage: str | None = None,
+    extra_args: list[str] | None = None,
+    extra_run_args: list[str] | None = None,
+    extra_instr_args: list[str] | None = None,
+    extra_gprbuild_args: list[str] | None = None,
+    extra_gprbuild_cargs: list[str] | None = None,
+    extra_gprbuild_largs: list[str] | None = None,
+    absolute_paths: bool = False,
+    dump_trigger: str | list[str] | None = "auto",
+    dump_channel: str | None = "auto",
+    check_gprbuild_output: bool = False,
+    trace_mode: str | None = None,
+    runtime_project: str | None = None,
+    gprsw_for_coverage: GPRswitches | None = None,
+    scos_for_run: bool = True,
+    register_failure: bool = True,
+    program_env: dict[str, str] | None = None,
+    tolerate_instrument_messages: str | None = None,
+    exec_args: list[str] | None = None,
     manual_prj_name: str | None = None,
-    auto_config_args=True,
+    auto_config_args: bool = True,
     split_extracted: bool = False,
-):
+) -> list[str]:
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -81,79 +97,76 @@ def build_and_run(
     necessary for the current trace mode to run "gnatcov coverage". It lets one
     write concise testcases that handle both binary and source trace modes.
 
-    :param SUITE.gprutils.GPRswitches gprsw: GPRswitches instance used to
-        describe the project and units of interest to analyze.
-    :param None|str covlevel: Coverage level (as passed with gnatcov's --level=
+    :param gprsw: GPRswitches instance used to describe the project and units
+        of interest to analyze.
+    :param covlevel: Coverage level (as passed with gnatcov's --level=
         argument) for the coverage analysis. Not passed if None.
-    :param list[str] mains: List of names for the various mains to run. These
-        are lower-case names without extension, for instance "foo" for the
+    :param mains: List of names for the various mains to run. These are
+        lower-case names without extension, for instance "foo" for the
         "foo.adb" main source file.
-    :param list[str] extra_coverage_args: List of arguments to append to the
-        "gnatcov coverage" command-line returned. This is just for convenience:
-        one can pass an empty list here and manually append extra arguments to
-        the result.
-    :param bool quiet: Whether to pass "--quiet" to "gnatcov.
-    :param None|list[str] scos: Optional list of SCOs files (ALI or SID) must
-        be passed to gnatcov. These files must have no extension (for instance:
-        'obj/foo' instead of 'obj/foo.ali'. If absent, we pass "-P" to "gnatcov
+    :param extra_coverage_args: List of arguments to append to the "gnatcov
+        coverage" command-line returned. This is just for convenience: one can
+        pass an empty list here and manually append extra arguments to the
+        result.
+    :param quiet: Whether to pass "--quiet" to "gnatcov.
+    :param scos: Optional list of SCOs files (ALI or SID) must be passed to
+        gnatcov. These files must have no extension (for instance: 'obj/foo'
+        instead of 'obj/foo.ali'. If absent, we pass "-P" to "gnatcov
         coverage"/"gnatcov instrument" so that it automatically discovers the
         units of interest from projects.
-    :param None|str gpr_obj_dir: Optional name of the directory where gprbuild
-        will create build artifacts. If left to None, assume they are produced
-        in "$gpr_exe_dir/obj".
-    :param None|str gpr_exe_dir: Optional name of the directory where gprbuild
-        will create executables to run. If left to None, assume they are
-        produced in the current directory.
-    :param list[str] | None ignored_source_files: List of file patterns to pass
-        using the --excluded-source-files option.
-    :param None|str separate_coverage: If provided, the argument is forwarded
-        to gnatcov using the -S option.
-    :param list[str] | None extra_args: List of arguments to pass to any
-        execution of gnatcov (gnatcov run|instrument|coverage).
-    :param list[str] extra_run_args: List of arguments to pass to all
-        executions of "gnatcov run".
-    :param list[str] extra_instr_args: List of arguments to pass to all
-        executions of "gnatcov instrument".
-    :param list[str] | None extra_gprbuild_args: List of arguments to pass to
-        gprbuild.
-    :param list[str] | None extra_gprbuild_cargs: List of arguments to pass to
-        gprbuild's -cargs section.
-    :param list[str] | None extra_gprbuild_largs: List of arguments to pass to
-        gprbuild's -largs section.
-    :param bool absolute_paths: If true, use absolute paths in the result.
-    :param str|list[str] dump_trigger: See xcov_instrument.
-    :param None|str dump_channel: See xcov_instrument.
-    :param bool check_gprbuild_output: If true, check that gprbuild's output is
+    :param gpr_obj_dir: Optional name of the directory where gprbuild will
+        create build artifacts. If left to None, assume they are produced in
+        "$gpr_exe_dir/obj".
+    :param gpr_exe_dir: Optional name of the directory where gprbuild will
+        create executables to run. If left to None, assume they are produced in
+        the current directory.
+    :param ignored_source_files: List of file patterns to pass using the
+        --excluded-source-files option.
+    :param separate_coverage: If provided, the argument is forwarded to gnatcov
+        using the -S option.
+    :param extra_args: List of arguments to pass to any execution of gnatcov
+        (gnatcov run|instrument|coverage).
+    :param extra_run_args: List of arguments to pass to all executions of
+        "gnatcov run".
+    :param extra_instr_args: List of arguments to pass to all executions of
+        "gnatcov instrument".
+    :param extra_gprbuild_args: List of arguments to pass to gprbuild.
+    :param extra_gprbuild_cargs: List of arguments to pass to gprbuild's -cargs
+        section.
+    :param extra_gprbuild_largs: List of arguments to pass to gprbuild's -largs
+        section.
+    :param absolute_paths: If true, use absolute paths in the result.
+    :param dump_trigger: See xcov_instrument.
+    :param dump_channel: See xcov_instrument.
+    :param check_gprbuild_output: If true, check that gprbuild's output is
         empty.
-    :param None|str trace_mode: If None, use the testsuite's trace mode.
-        Otherwise, use the given trace mode ('bin', or 'src').
-    :param None|str runtime_project: If None, use the default name for the
+    :param trace_mode: If None, use the testsuite's trace mode.  Otherwise, use
+        the given trace mode ('bin', or 'src').
+    :param runtime_project: If None, use the default name for the
         instrumentation runtime project. Otherwise, use the name given for this
         option.
-    :param None|SUITE.gprutils.GPRswitches gprsw_for_coverage: GPRswitches
-        instance used to describe the project and units of interest to analyze
-        in "gnatcov coverage". If left to None, use "gprsw".
-    :param bool scos_for_run: Whether to pass SCOs/project information to
-        "gnatcov run".
-    :param bool register_failure: If true and the execution of one of the mains
+    :param gprsw_for_coverage: GPRswitches instance used to describe the
+        project and units of interest to analyze in "gnatcov coverage". If left
+        to None, use "gprsw".
+    :param scos_for_run: Whether to pass SCOs/project information to "gnatcov
+        run".
+    :param register_failure: If true and the execution of one of the mains
         exits with a non-zero status code, stop with a FatalError.
-    :param None|dict[str, str] program_env: If not none, environment variables
-        for the program to run.
-    :param None|str tolerate_instrument_messages: If not None, a re pattern
-        of error or warning messages tolerated in the "gnatcov instrument"
-        output.
-    :param None|list[str] exec_args: List of arguments to pass to the
-        executable. This will only work for native configurations.
-    :param None|str manual_prj_name: When the dump trigger is manual, several
-        traces files (one per project) can be emitted if there are dump buffers
+    :param program_env: If not none, environment variables for the program to
+        run.
+    :param tolerate_instrument_messages: If not None, a re pattern of error or
+        warning messages tolerated in the "gnatcov instrument" output.
+    :param List of arguments to pass to the executable. This will only work for
+        native configurations.
+    :param manual_prj_name: When the dump trigger is manual, several traces
+        files (one per project) can be emitted if there are dump buffers
         procedure calls in at least two distinct projects. This is the name of
         the project for which we want to consider traces.
-    :param bool auto_config_args: If False, do not pass the --config argument
-        to gprbuild and gnatcov invocations.
-    :param bool split_extracted: If True, pass --split-extracted-traces to
-        gnatcov extract-base64-traces
+    :param auto_config_args: If False, do not pass the --config argument to
+        gprbuild and gnatcov invocations.
+    :param split_extracted: If True, pass --split-extracted-traces to gnatcov
+        extract-base64-traces
 
-    :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
         "gnatcov coverage". The only mandatory argument that is missing is the
         annotation format. The last N arguments correspond to trace files for
@@ -161,17 +174,17 @@ def build_and_run(
         M is available as M_output.txt.
     """
 
-    def abspath(path):
+    def abspath(path: str) -> str:
         return os.path.abspath(path) if absolute_paths else path
 
-    def exepath(main):
+    def exepath(main: str) -> str:
         main = os.path.join(
-            gpr_exe_dir,
+            actual_exe_dir,
             (os.path.join(gprsw.subdirs, main) if gprsw.subdirs else main),
         )
         return abspath(exepath_to(main))
 
-    def gprbuild_wrapper(root_project):
+    def gprbuild_wrapper(root_project: str) -> None:
         # Honor build relevant switches from gprsw here
         gprbuild(
             root_project,
@@ -186,7 +199,7 @@ def build_and_run(
         if check_gprbuild_output:
             gprbuild_out = contents_of("gprbuild.out")
             thistest.fail_if(
-                gprbuild_out,
+                bool(gprbuild_out),
                 "gprbuild's output (gprbuild.out) is not empty:\n{}".format(
                     indent(gprbuild_out)
                 ),
@@ -198,8 +211,8 @@ def build_and_run(
 
     extra_args = extra_args or []
 
-    gpr_exe_dir = gpr_exe_dir or gprsw.effective_relocate_build_tree or "."
-    gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
+    actual_exe_dir = gpr_exe_dir or gprsw.effective_relocate_build_tree or "."
+    actual_obj_dir = gpr_obj_dir or os.path.join(actual_exe_dir, "obj")
 
     trace_mode = trace_mode or thistest.options.trace_mode
 
@@ -284,7 +297,7 @@ def build_and_run(
             covlevel,
             quiet=False,
             extra_args=extra_instr_args,
-            gpr_obj_dir=gpr_obj_dir,
+            gpr_obj_dir=actual_obj_dir,
             dump_trigger=dump_trigger,
             dump_channel=dump_channel,
             runtime_project=runtime_project,
@@ -306,7 +319,7 @@ def build_and_run(
         #   (register_failure False), at a point before gnatcov has dumped
         #   the parameters.
 
-        params_file_dir = gpr_obj_dir
+        params_file_dir = actual_obj_dir
         if gprsw.subdirs:
             params_file_dir = os.path.join(params_file_dir, gprsw.subdirs)
         params_file = os.path.join(params_file_dir, "gnatcov-instr.json")
@@ -337,8 +350,8 @@ def build_and_run(
         # If an explicit dump channel was provided to gnatcov instrument and
         # we have the actual dump channel used, the two should be consistent:
         thistest.fail_if(
-            dump_channel
-            and actual_dump_channel
+            bool(dump_channel)
+            and bool(actual_dump_channel)
             and dump_channel != actual_dump_channel,
             "requested dump_channel ({}) != actual ({})".format(
                 dump_channel, actual_dump_channel
@@ -363,7 +376,9 @@ def build_and_run(
         for m in mains:
             rm(srctrace_pattern_for(m, is_manual, manual_prj_name))
             # Callback to run for each instrumented main
-            maybe_relocate_binaries(gpr_obj_dir, gpr_exe_dir, [exename_for(m)])
+            maybe_relocate_binaries(
+                actual_obj_dir, actual_exe_dir, [exename_for(m)]
+            )
 
         patterns = set()
         trace_files = []
@@ -437,13 +452,41 @@ def build_and_run(
 
 
 def build_run_and_coverage(
-    out="coverage.log",
-    err=None,
-    register_failure=True,
-    auto_config_args=True,
-    tolerate_coverage_messages=None,
-    **kwargs,
-):
+    gprsw: GPRswitches,
+    covlevel: str | None,
+    mains: list[str],
+    extra_coverage_args: list[str],
+    quiet: bool = True,
+    scos: list[str] | None = None,
+    gpr_obj_dir: str | None = None,
+    gpr_exe_dir: str | None = None,
+    ignored_source_files: list[str] | None = None,
+    separate_coverage: str | None = None,
+    extra_args: list[str] | None = None,
+    extra_run_args: list[str] | None = None,
+    extra_instr_args: list[str] | None = None,
+    extra_gprbuild_args: list[str] | None = None,
+    extra_gprbuild_cargs: list[str] | None = None,
+    extra_gprbuild_largs: list[str] | None = None,
+    absolute_paths: bool = False,
+    dump_trigger: str | list[str] | None = "auto",
+    dump_channel: str | None = "auto",
+    check_gprbuild_output: bool = False,
+    trace_mode: str | None = None,
+    runtime_project: str | None = None,
+    gprsw_for_coverage: GPRswitches | None = None,
+    scos_for_run: bool = True,
+    register_failure: bool = True,
+    program_env: dict[str, str] | None = None,
+    tolerate_instrument_messages: str | None = None,
+    exec_args: list[str] | None = None,
+    manual_prj_name: str | None = None,
+    auto_config_args: bool = True,
+    split_extracted: bool = False,
+    out: str = "coverage.log",
+    err: str | None = None,
+    tolerate_coverage_messages: str | None = None,
+) -> None:
     """
     Helper to call build_and_run and then invoke `xcov`.
 
@@ -459,35 +502,63 @@ def build_run_and_coverage(
     expression.
     """
     xcov_args = build_and_run(
+        gprsw=gprsw,
+        covlevel=covlevel,
+        mains=mains,
+        extra_coverage_args=extra_coverage_args,
+        quiet=quiet,
+        scos=scos,
+        gpr_obj_dir=gpr_obj_dir,
+        gpr_exe_dir=gpr_exe_dir,
+        ignored_source_files=ignored_source_files,
+        separate_coverage=separate_coverage,
+        extra_args=extra_args,
+        extra_run_args=extra_run_args,
+        extra_instr_args=extra_instr_args,
+        extra_gprbuild_args=extra_gprbuild_args,
+        extra_gprbuild_cargs=extra_gprbuild_cargs,
+        extra_gprbuild_largs=extra_gprbuild_largs,
+        absolute_paths=absolute_paths,
+        dump_trigger=dump_trigger,
+        dump_channel=dump_channel,
+        check_gprbuild_output=check_gprbuild_output,
+        trace_mode=trace_mode,
+        runtime_project=runtime_project,
+        gprsw_for_coverage=gprsw_for_coverage,
+        scos_for_run=scos_for_run,
         register_failure=register_failure,
+        program_env=program_env,
+        tolerate_instrument_messages=tolerate_instrument_messages,
+        exec_args=exec_args,
+        manual_prj_name=manual_prj_name,
         auto_config_args=auto_config_args,
-        **kwargs,
+        split_extracted=split_extracted,
     )
     xcov(
         xcov_args,
         auto_config_args=auto_config_args,
         out=out,
-        err=err,
+        err=STDOUT if err is None else err,
         register_failure=register_failure,
         tolerate_messages=tolerate_coverage_messages,
     )
 
 
-def checked_xcov(args, out_file):
+def checked_xcov(args: list[str], out_file: str) -> None:
     """
     Run "xcov" and make the testcase fail if the output file is not empty.
     """
     xcov(args, out_file)
     out = contents_of(out_file)
     thistest.fail_if(
-        out,
+        bool(out),
         "gnatcov output not empty ({}):\n"
         "   {}\n"
         "{}".format(out_file, " ".join(args), out),
     )
 
 
-def fmt_cov(cov_data):
+def fmt_cov(cov_data: CovData) -> str:
     """
     Format coverage data into a human readable form.
 
@@ -507,7 +578,11 @@ def fmt_cov(cov_data):
     return " ".join(result)
 
 
-def check_xcov_content(filename, expected_cov, trace_mode=None):
+def check_xcov_content(
+    filename: str,
+    expected_cov: CovData,
+    trace_mode: str | None = None,
+) -> None:
     """
     Dumbed-down version of coverage matching. Check that the XCOV file
     "filename" matches some expected coverage data.
@@ -527,7 +602,7 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
 
     """
 
-    def remove_empty_sets(data):
+    def remove_empty_sets(data: CovData) -> CovData:
         """
         Remove entries in "data" that contain empty sets of lines.
         """
@@ -549,14 +624,14 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
         " ".join(sorted(invalid_line_annotations))
     )
 
-    got_cov = collections.defaultdict(set)
-    dot_lines = set()
+    got_cov: CovData = collections.defaultdict(set)
+    dot_lines: set[int] = set()
     with open(filename) as f:
         for line in f:
             m = COV_RE.match(line)
             if m:
-                lineno, cov_char = m.groups()
-                lineno = int(lineno)
+                lineno_str, cov_char = m.groups()
+                lineno = int(lineno_str)
                 if cov_char == ".":
                     dot_lines.add(lineno)
                 else:
@@ -566,15 +641,15 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
     # Compute the set of lines that are expected not to be tagged as no-code
     # and refine expectations to expect "+" when we got "+" while we expected
     # nothing specific.
-    expected_non_dot_lines = set()
-    for lines in expected_cov.values():
-        expected_non_dot_lines.update(lines)
+    expected_non_dot_lines: set[int] = set()
+    for linenos in expected_cov.values():
+        expected_non_dot_lines.update(linenos)
 
-    refined_expectations = collections.defaultdict(set)
+    refined_expectations: CovData = collections.defaultdict(set)
     refined_expectations.update(expected_cov)
-    for line in got_cov.get("+", set()):
-        if line not in expected_non_dot_lines:
-            refined_expectations["+"].add(line)
+    for lineno in got_cov.get("+", set()):
+        if lineno not in expected_non_dot_lines:
+            refined_expectations["+"].add(lineno)
 
     got_cov = remove_empty_sets(got_cov)
     refined_expectations = remove_empty_sets(refined_expectations)
@@ -593,7 +668,11 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
     )
 
 
-def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
+def check_xcov_reports(
+    reports_dir: str,
+    expected_cov: CovReport,
+    discard_empty: bool | None = None,
+) -> None:
     """
     Check the set of XCOV report files and their content.
 
@@ -625,13 +704,15 @@ def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
     on the testsuite trace mode.
     """
 
-    def fmt_sorted_indented_list(items):
+    def fmt_sorted_indented_list(
+        items: Iterable[str],
+    ) -> str:
         return "\n".join("  {}".format(s) for s in sorted(items))
 
     # Avoid discrepancies between filenames on Windows and Unix. Although it is
     # not the canonical representation, Windows supports using slash as
     # separators, so use it.
-    def canonicalize_file(filename):
+    def canonicalize_file(filename: str) -> str:
         return filename.replace("\\", "/")
 
     if discard_empty or (
@@ -656,7 +737,7 @@ def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
     thistest.fail_if(
         xcov_files != set(expected_cov),
         "Unexpected XCOV files. Expected:\n"
-        f"{fmt_sorted_indented_list(expected_cov)}\n"
+        f"{fmt_sorted_indented_list(expected_cov.keys())}\n"
         "But got instead:\n"
         f"{fmt_sorted_indented_list(xcov_files)}\n",
     )
