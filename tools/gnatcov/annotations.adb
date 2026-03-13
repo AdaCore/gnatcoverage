@@ -145,6 +145,44 @@ package body Annotations is
          if Pp.Show_Details then
             Disp_Instruction_Sets (Pp, LI.all);
             Disp_SCOs (Pp, Index, LI.all);
+
+            --  Check if this line corresponds to the start of an exemption
+            --  region. If so emit a message with the justification text
+            --  so that it appears in the source based reports.
+            --
+            --  Note that this is a bit hackish as it was discovered late after
+            --  the introduction of external annotations. Future work on finer
+            --  grained exemptions will need to overhaul our exemption
+            --  representation and display, so this is only meant to be
+            --  temporary, see #451.
+            --
+            --  The message we generate is not stored in LI to avoid modifying
+            --  global state, and the kind is set to Notice so that it does not
+            --  affect the Report pretty printer, which only looks at messages
+            --  in the Coverage_Kind range.
+
+            if LI.Exemption.Source_File = File_Index
+              and then LI.Exemption.L.Line = Index
+            then
+               declare
+                  Justification : constant String_Access :=
+                    Get_Exemption_Message (LI.Exemption);
+                  M             : constant Message :=
+                    (Kind           => Diagnostics.Notice,
+                     Exe            => null,
+                     PC             => No_PC,
+                     Sloc           => LI.Exemption,
+                     Violation_Sloc => Slocs.No_Location,
+                     SCO            => No_SCO_Id,
+                     Msg            =>
+                       +("Exempted region justification: "
+                         & (if Justification /= null
+                            then """" & Justification.all & """"
+                            else "<NO JUSTIFICATION>")));
+               begin
+                  Pp.Pretty_Print_Message (M);
+               end;
+            end if;
             Disp_Messages (Pp, LI.all);
          end if;
 
