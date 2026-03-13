@@ -1409,11 +1409,18 @@ def xcov_annotate(
     )
 
 
-def generate_annotations(annotations, subdir="", tolerate_messages=None):
+def generate_annotations(
+    annotations: list[Ext_Annotation],
+    project: str | None = None,
+    subdir: str = "",
+    tolerate_messages: str | None = None,
+) -> str:
     """
     Setup a temporary working directory in which an annotation file
     will be generated from annotations, using gnatcov add-annotation
     invocations.
+    If project is not None it will be passed as a -P argument to the various
+    gnatcov invocations, which can help normalize filenames.
     Returns the absolute path to the annotation file
 
     :param list[Ext_Annotation] annotations: List of annotation to be generated
@@ -1431,12 +1438,17 @@ def generate_annotations(annotations, subdir="", tolerate_messages=None):
     # directory of the test.
     tmp.to_homedir()
 
+    extra_args: list[str] | None = None
+    if project:
+        extra_args = [f"-P{project}"]
+
     # Generate the annotations
     for annotation in annotations:
         xcov_annotate(
             annotation,
             annot_in_files=[annot_file],
             annot_out_file=annot_file,
+            extra_args=extra_args,
             tolerate_messages=tolerate_messages,
         )
     return annot_file
