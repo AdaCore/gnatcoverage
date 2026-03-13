@@ -141,8 +141,8 @@ class TestCase:
     def __init__(
         self,
         extradrivers: str = "",
-        extracargs: str = "",
-        category: _Category = CAT.auto,
+        extracargs: list[str] | str = "",
+        category: _Category | None = CAT.auto,
         tolerate_messages: str | None = None,
         tolerate_cov_messages: str | None = None,
         expect_non_zero_code: bool = False,

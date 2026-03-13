@@ -11,14 +11,19 @@ Intended mode of use is like:
   ReportChecker(tc).run()
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 import os.path
 import re
 
 from e3.fs import ls
 
-from SCOV.internals.driver import SCOV_helper
 from SCOV.internals.cnotes import xNoteKinds
-from SCOV.internals.tfiles import Tfile
+from SCOV.internals.driver import SCOV_helper
+from SCOV.internals.tfiles import Tfile, Tline
+from SCOV.tc import TestCase
+from SUITE.qdata import QDentry
 from SUITE.tutils import thistest, frame
 
 
@@ -29,7 +34,7 @@ MATCH_NEXT_PIECE, MATCH_NEXT_LINE = range(2)
 class Piece:
     """Single pattern of text expected somewhere in a report."""
 
-    def __init__(self, pattern, pre, nexpected=1):
+    def __init__(self, pattern: str, pre: Piece | None, nexpected: int = 1):
         # Regexp pattern to match over report lines
         self.pattern = pattern
 
@@ -55,7 +60,7 @@ class Piece:
         # How many times (lines) we expect to match and set of tline instances
         # that did actually match.
         self.nexpected = abs(nexpected)
-        self.matches = []
+        self.matches: list[Tline] = []
 
         # Expected predecessor and successor patterns
         self.pre = pre
@@ -63,10 +68,10 @@ class Piece:
         # For nexpected > 0 the last match of pre will need to happen before
         # the first match of self.
 
-    def full(self):
+    def full(self) -> bool:
         return self.bounded and len(self.matches) == self.nexpected
 
-    def check_match(self, tline):
+    def check_match(self, tline: Tline) -> int:
         """Called for self on every report line."""
 
         # If this is a bounded Piece that has hit all it's expected matches
@@ -88,13 +93,13 @@ class Piece:
 
         return MATCH_NEXT_PIECE
 
-    def __first_match(self):
+    def __first_match(self) -> Tline | None:
         return self.matches[0] if self.matches else None
 
-    def __last_match(self):
+    def __last_match(self) -> Tline | None:
         return self.matches[-1] if self.matches else None
 
-    def check(self):
+    def check(self) -> None:
         """
         Check expectations once we're done going through all the report lines.
         """
@@ -127,11 +132,13 @@ class Piece:
                     'On "%s", absence of  match for predecessor "%s"'
                     % (self.pattern, self.pre.pattern)
                 )
-            elif last_pre.lno > first_self.lno:
-                thistest.failed(
-                    'first match for "%s" too early wrt predecessor "%s"'
-                    % (self.pattern, self.pre.pattern)
-                )
+            else:
+                assert first_self
+                if last_pre.lno > first_self.lno:
+                    thistest.failed(
+                        'first match for "%s" too early wrt predecessor "%s"'
+                        % (self.pattern, self.pre.pattern)
+                    )
 
 
 # All the possible per-criterion sections, ordered as they should be in the
@@ -150,20 +157,25 @@ crit_for = {
 class ReportChecker:
     """Whole report checker"""
 
-    def __process_line(self, tline):
+    def __process_line(self, tline: Tline) -> None:
         # See what Piece(s) matches TLINE, stopping on request
         for rpe in self.rpElements:
             if rpe.check_match(tline) == MATCH_NEXT_LINE:
                 return
 
-    def __register(self, rpieces):
+    def __register(self, rpieces: Iterable[Piece]) -> None:
         self.rpElements.extend(rpieces)
 
-    def __setup_expectations(self, ntraces, xcovlevel, xregions):
-        self.rpElements = []
+    def __setup_expectations(
+        self,
+        ntraces: int,
+        xcovlevel: str,
+        xregions: int,
+    ) -> None:
+        self.rpElements: list[Piece] = []
 
         # Track the last Piece with nexpected > 0
-        pre = None
+        pre: Piece | None = None
 
         # REPORT START
 
@@ -309,7 +321,7 @@ class ReportChecker:
         rpEnd = Piece(pattern="END OF REPORT", pre=pre)
         self.__register(rpieces=[rpEnd])
 
-    def __process_one_test(self, qde):
+    def __process_one_test(self, qde: QDentry) -> None:
         frame(
             text=(
                 "report check for xfile = %s\n" % qde.xfile
@@ -328,9 +340,7 @@ class ReportChecker:
         # applicable xcov-level
         self.__setup_expectations(
             ntraces=len(qde.drivers),
-            xcovlevel=SCOV_helper.xcovlevel_for(
-                self.tc, os.path.basename(qde.wdir)
-            ),
+            xcovlevel=SCOV_helper.xcovlevel_for(os.path.basename(qde.wdir)),
             xregions=xregions,
         )
 
@@ -344,9 +354,9 @@ class ReportChecker:
         for rpe in self.rpElements:
             rpe.check()
 
-    def __init__(self, tc):
+    def __init__(self, tc: TestCase):
         self.tc = tc
 
-    def run(self):
+    def run(self) -> None:
         for qde in self.tc.qdata.entries:
             self.__process_one_test(qde=qde)

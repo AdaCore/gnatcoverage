@@ -204,7 +204,7 @@ class BUILDER:
     @staticmethod
     def RUN_CONFIG_SEQUENCE(
         toplev_options: argparse.Namespace,
-        toolchain_discriminant: str,
+        toolchain_discriminant: str | None,
     ) -> None:
         """Arrange to generate the SUITE_CONFIG configuration file"""
 
@@ -347,31 +347,29 @@ def runtime_info() -> RuntimeInfo:
 # against a few possible triplets.
 
 
+@dataclasses.dataclass(frozen=True)
 class TargetInfo:
     """
     Gather target specific information and behaviors
     """
 
-    def __init__(
-        self,
-        exeext: str,
-        partiallinks: bool,
-        to_platform_specific_symbol: Callable[[str], str] | None = None,
-    ):
-        """
-        :param exeext: Filename extension for programs.
-        :param partiallinks: Whether the linker performs partial links.
-            Knowing this is needed to make -gc-sections work properly.
-        :param to_paltform_specific_symbol: Function that turns a
-            platform-independent symbol into a platform specific one, or None
-            if they are the same.  This enables us to use platform-independent
-            symbol names in testcases.
-        """
-        self.exeext = exeext
-        self.partiallinks = partiallinks
-        self.to_platform_specific_symbol = to_platform_specific_symbol or (
-            lambda x: x
-        )
+    exeext: str
+    """
+    Filename extension for programs.
+    """
+
+    partiallinks: bool
+    """
+    Whether the linker performs partial links.  Knowing this is needed to make
+    -gc-sections work properly.
+    """
+
+    to_platform_specific_symbol: Callable[[str], str] = lambda x: x
+    """
+    Function that turns a platform-independent symbol into a platform specific
+    one, or None if they are the same.  This enables us to use
+    platform-independent symbol names in testcases.
+    """
 
 
 # For each family of targets we need to distinguish, a regexp to match against
