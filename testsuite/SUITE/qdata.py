@@ -18,8 +18,12 @@ information about the testsuite run as a whole, such as the command line
 options received etc. This is encapsulated as the SUITEdata class in this file.
 """
 
+import argparse
+from dataclasses import dataclass
 import os
+from typing import Any
 
+from SCOV.internals.cnotes import KnoteDict, Xnote
 from SUITE import dutils
 from SUITE.cutils import output_of, version
 
@@ -61,12 +65,12 @@ QSTRBOX_DIR = "_strbox"
 CTXDATA_FILE = os.path.join(QSTRBOX_DIR, "suite" + STREXT)
 
 
-def TOOL_info(exename, ver=None):
+def TOOL_info(exename: str, ver: str | None = None) -> dict[str, str]:
     """Context data for a tool involved in a testsuite run."""
     return {"exename": exename, "version": ver or version(exename)}
 
 
-def OPT_info_from(options):
+def OPT_info_from(options: argparse.Namespace) -> dict[str, Any]:
     """Context data for the command line options info of relevance."""
     return {
         "target": options.target,
@@ -80,8 +84,16 @@ def OPT_info_from(options):
 
 
 def SUITE_context(
-    treeref, runstamp, host, cmdline, options, gnatpro, gnatemu, gnatcov, other
-):
+    treeref: str,
+    runstamp: str,
+    host: str,
+    cmdline: str,
+    options: dict[str, Any],
+    gnatpro: dict[str, str],
+    gnatemu: dict[str, str],
+    gnatcov: dict[str, str],
+    other: Any,
+) -> dict[str, Any]:
     """
     Toplevel context data structure, wrapping up all the relevant items
     together.
@@ -99,17 +111,17 @@ def SUITE_context(
     }
 
 
+@dataclass(frozen=True)
 class TC_status:
     """Testcase execution status.
 
     Dumped for each testcase by the toplevel testsuite driver.
     """
 
-    def __init__(self, passed=None, xfail=None, status=None, comment=None):
-        self.passed = passed
-        self.xfail = xfail
-        self.status = status
-        self.comment = comment
+    passed: bool | None = None
+    xfail: bool | None = None
+    status: int | None = None
+    comment: str | None = None
 
 
 #
@@ -117,18 +129,19 @@ class TC_status:
 #
 
 
+@dataclass(frozen=True)
 class QDentry:
-    def __init__(self, xfile, drivers, xrnotes, wdir):
-        """
-        :param xfile: Expectation file.
-        :param drivers: Drivers run to satisfy them.
-        :param xrnotes: Expected report notes, KnodeDict per source.
-        :param wdir: Working directory where tc ran.
-        """
-        self.xfile = xfile
-        self.drivers = drivers
-        self.xrnotes = xrnotes
-        self.wdir = wdir
+    xfile: str
+    """Expectation file."""
+
+    drivers: list[str]
+    """Drivers run to satisfy them."""
+
+    xrnotes: dict[str, KnoteDict[Xnote]]
+    """Expected report notes, KnodeDict per source."""
+
+    wdir: str
+    """Working directory where tc ran."""
 
 
 class Qdata:
@@ -138,24 +151,24 @@ class Qdata:
     (that is, per driver + consolidation spec).
     """
 
-    def __init__(self, tcid):
+    def __init__(self, tcid: str):
         # These are filled and dumped by the testcase execution itself:
-        self.entries = []
+        self.entries: list[QDentry] = []
         self.tcid = tcid
 
     # Testcase interface
 
-    def register(self, ob):
+    def register(self, ob: QDentry) -> None:
         self.entries.append(ob)
 
-    def flush(self):
+    def flush(self) -> None:
         dutils.pdump_to(qdaf_in("."), o=self)
 
 
 QUALDATA_FILE = "tc" + STREXT
 
 
-def qdaf_in(dirname):
+def qdaf_in(dirname: str) -> str:
     """
     Filename for qualification data to be pickled in DIR for a testcase.  This
     hosts instances of objects representing test executions, each holding
@@ -164,7 +177,7 @@ def qdaf_in(dirname):
     return os.path.join(dirname, QUALDATA_FILE)
 
 
-def qdafs_from(dirname):
+def qdafs_from(dirname: str) -> list[str]:
     """
     List of filenames for qualification data to be pickled, from the directory
     tree rooted at dirname. Each returned filename hosts instances of objects
@@ -182,12 +195,12 @@ def qdafs_from(dirname):
 STATUSDATA_FILE = "tcs" + STREXT
 
 
-def stdf_in(dirname):
+def stdf_in(dirname: str) -> str:
     """Filename for execution status data to be picked up DIR"""
     return os.path.join(dirname, STATUSDATA_FILE)
 
 
-def treeref_at(dirname):
+def treeref_at(dirname: str) -> str:
     """
     A string representative of the git commit where the DIRNAME
     directory originates from, to be used for consistency checks

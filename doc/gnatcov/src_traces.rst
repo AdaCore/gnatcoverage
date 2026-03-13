@@ -773,6 +773,69 @@ Guarded expression coverage is only available for the Ada language.
 For implementation reasons, it is only available starting from version 2022 of
 the language.
 
+Parallel instrumentation limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+While it is possible to instrument source files in parallel for a given
+``gnatcov instrument`` command (using the ``--jobs=N``/``-jN`` command line
+argument), running multiple ``gnatcov instrument`` commands in parallel is not
+supported when these commands would be concurrent. This limitation is very
+common in build systems, like ``make`` or ``gprbuild`` that must not be run in
+parallel when write races are possible.
+
+For instance, ``gnatcov instrument -P p1.gpr`` and ``gnatcov instrument -P
+p2.gpr`` can be run in parallel if there is no common project in the closures
+of ``p1.gpr`` and ``p2.gpr``. However, they should be run in sequence if
+closures for ``p1.gpr`` and ``p2.gpr`` have projects in common, for example:
+
+* ``p2.gpr`` contains ``with "p1";``, or ``p1.gpr`` contains ``with "p2";``,
+* both ``p1.gpr`` and ``p2.gpr`` contain ``with "lib";``, with ``lib.gpr``
+  being a library project file.
+
+Note that this limitation does not apply to externally built projects (i.e.
+projects considered by GPR tools as read-only), as precisely GPR tools will not
+try to write to their object/library/executable directories. See
+the :ref:`instr-compose` section for an example of how externally built
+projects can be used to achieve this: the instrumentation of each test can be
+run in parallel because the library (a project that is in the closure of all
+tests) is externally built.
+
+Using the ``--subdirs`` argument (accepted by both ``gprbuild`` and
+``gnatcov``) with different subdirectory names for each concurrent invocation
+is another possible workaround to this limitation: in that case, the common
+sources will be instrumented once per ``gnatcov instrument`` invocation. Like
+in ``gprbuild``, passing ``--src-subdirs=mysubdir`` to ``gnatcov instrument``
+will make gnatcov produce instrumentation artifacts in subdirectories of the
+projects object and library directories. For instance:
+
+.. code-block:: ada
+
+   library project Mylib is
+      for Library_Name use "mylib";
+      for Object_Dir use "obj";
+      for Library_Dir use "lib";
+   end Mylib;
+
+.. code-block:: sh
+
+   # Instrumented source files will go to obj/mylib-gnatcov-instr/ and SID
+   # files will go to obj/ and lib/.
+   gnatcov instrument -Pmylib --level=stmt
+   gprbuild -Pmylib --implicit-with=gnatcov_rts --src-subdirs=gnatcov-instr
+
+   # Instrumented source files will go to obj/s1/mylib-gnatcov-instr/ and SID
+   # files will go to obj/s1/ and lib/s1/.
+   gnatcov instrument -Pmylib --level=stmt --subdirs=s1
+   gprbuild -Pmylib --implicit-with=gnatcov_rts --src-subdirs=gnatcov-instr \
+     --subdirs=s1
+
+Yet another workaround is to use the GPR out-of-tree build switches
+(``--relocate-build-tree``, ``--root-dir``) in both ``gnatcov instrument`` and
+``gprbuild`` to arrange for object, library and executable directories to be
+disjoint across parallel instrumentation commands. Please refer to the GPRbuild
+documentation for a description of how ``--relocate-build-tree`` and
+``--root-dir`` switches must be used.
+
 .. _instr-opti:
 
 Optimizing the execution of instrumented programs
