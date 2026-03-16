@@ -54,7 +54,7 @@ def gprdep_for(reldir: str, wd: Wdir) -> str:
 
 @dataclasses.dataclass(frozen=True)
 class Csw:
-    cmd: list[str]
+    cmd: str
     switches: list[str]
 
 

@@ -120,7 +120,7 @@ class TC_status:
 
     passed: bool | None = None
     xfail: bool | None = None
-    status: int | None = None
+    status: str | None = None
     comment: str | None = None
 
 
