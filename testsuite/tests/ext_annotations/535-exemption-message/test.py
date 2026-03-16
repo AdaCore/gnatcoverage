@@ -60,7 +60,7 @@ def check_exemption_justification(
 tmp = Wdir("tmp_")
 prj = gprfor(srcdirs=[".."], mains=["main.adb", "main_c.c"])
 annotations = [
-    Exempt_Region("../main.adb", "7:4", "8:46", "Ada justification text"),
+    Exempt_Region("../main.adb", "7:4", "8:27", "Ada justification text"),
     Exempt_Region("../main_c.c", "8:3", "9:14", "C justification text"),
     Exempt_Region("../static_lib.h", "4:3", "5:17", "C Header text"),
 ]
