@@ -5,13 +5,13 @@ procedure Main is
    pragma Volatile (Fixed_Bool);
 begin
    if Fixed_Bool then
-      raise Program_Error with "Unreachable";
+      raise Program_Error;
    else
       Ada.Text_IO.Put_Line ("Yay!");
    end if;
    pragma Annotate (Xcov, Exempt_On);
    if Fixed_Bool then
-      raise Program_Error with "Doubly unreachable";
+      raise Program_Error;
    end if;
    pragma Annotate (Xcov, Exempt_Off);
 end Main;
