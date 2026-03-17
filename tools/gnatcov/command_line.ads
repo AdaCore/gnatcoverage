@@ -1990,7 +1990,7 @@ package Command_Line is
           (Long_Name   => "--manual-dump-files",
            Help        =>
              "Specify FILES in which gnatcoverage should look for user-written"
-             & "dump indications when --dump-trigger=manual is provided.",
+             & " dump indications when --dump-trigger=manual is provided.",
            Commands    =>
              (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
               others                                             => False),
