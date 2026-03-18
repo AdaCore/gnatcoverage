@@ -54,24 +54,23 @@ with GPR2.Project.View;
 with Libadalang.Project_Provider; use Libadalang.Project_Provider;
 
 with Binary_Files;
-with Command_Line;         use Command_Line;
-with Files_Handling;       use Files_Handling;
-with Files_Table;          use Files_Table;
+with Command_Line;        use Command_Line;
+with Files_Handling;      use Files_Handling;
+with Files_Table;         use Files_Table;
 with Instrument.Ada_Preprocessing;
-with Instrument.Ada_Unit;  use Instrument.Ada_Unit;
+with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.Ada_Unit_Provider;
-with Instrument.C;         use Instrument.C;
+with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
-with Instrument.Common;    use Instrument.Common;
-with Instrument.GPR_Utils; use Instrument.GPR_Utils;
+with Instrument.Common;   use Instrument.Common;
 with Instrument.Debug_Dump;
-with JSON;                 use JSON;
+with JSON;                use JSON;
 with Outputs;
-with Paths;                use Paths;
-with Project;              use Project;
+with Paths;               use Paths;
+with Project;             use Project;
 with Support_Files;
-with Switches_GPR;         use Switches_GPR;
-with Text_Files;           use Text_Files;
+with Switches_GPR;        use Switches_GPR;
+with Text_Files;          use Text_Files;
 
 --  Generate instrumented sources for the source files of all units of
 --  interest. Also save mappings between coverage buffers and SCOs for each
@@ -513,7 +512,7 @@ is
       --  If dump debug info was requested, add entries for buffer symbols
 
       if Args.String_Args (Opt_Dump_Debug).Present
-        and then not Skip_Source (Source_File)
+        and then not Skip_Source (Source)
       then
          declare
             CU : constant Files_Table.Compilation_Unit :=

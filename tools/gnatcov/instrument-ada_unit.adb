@@ -11467,9 +11467,10 @@ package body Instrument.Ada_Unit is
 
       for Cur in Mapping.Local_Pragmas.Iterate loop
          declare
-            Source_File  : constant Unbounded_String := Unit_Maps.Key (Cur);
+            Source_File  : constant Unbounded_String :=
+              Libadalang.Config_Pragmas.Unit_Maps.Key (Cur);
             Pragmas_File : constant Unbounded_String :=
-              Unit_Maps.Element (Cur);
+              Libadalang.Config_Pragmas.Unit_Maps.Element (Cur);
          begin
             Local.Set_Field (+Source_File, Pragmas_File);
          end;

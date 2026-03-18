@@ -26,10 +26,9 @@ with GPR2.Build.Command_Line;
 with GPR2.Project.View;
 
 with Instrument;
-with Instrument.Common;    use Instrument.Common;
-with Instrument.GPR_Utils; use Instrument.GPR_Utils;
-with Switches;             use Switches;
-with Strings;              use Strings;
+with Instrument.Common; use Instrument.Common;
+with Switches;          use Switches;
+with Strings;           use Strings;
 
 package GPR2.Build.Actions.Instrument_Source is
 

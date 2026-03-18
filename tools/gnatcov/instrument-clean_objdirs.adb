@@ -23,11 +23,10 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 with GPR2.Path_Name;
 with GPR2.Project.View;
 
-with Files_Handling;       use Files_Handling;
-with Instrument.Common;    use Instrument.Common;
-with Instrument.GPR_Utils; use Instrument.GPR_Utils;
-with Outputs;              use Outputs;
-with Project;              use Project;
+with Files_Handling;    use Files_Handling;
+with Instrument.Common; use Instrument.Common;
+with Outputs;           use Outputs;
+with Project;           use Project;
 
 procedure Instrument.Clean_Objdirs
   (IC                   : in out Inst_Context;
