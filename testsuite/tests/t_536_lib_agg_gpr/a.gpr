@@ -1,0 +1,6 @@
+library project A is
+   for Source_Files use ("pkg_a.ads");
+   for Object_Dir use "obj/a";
+   for Library_Dir use "lib/a";
+   for Library_Name use "a";
+end A;
