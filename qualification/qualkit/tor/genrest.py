@@ -104,6 +104,19 @@ warn_stats: Dict[str, int] = {}
 # **********************
 
 
+def remove_section_number(name: str) -> str:
+    """
+    Remove leading section number from name.
+
+    For the most common cases, we expect "S[0-9]+_" to designate sections, but
+    we also allow "A0_" for special directories that must come first in
+    reports.
+    """
+    m = re.fullmatch(r"(S[0-9]+_|A0_)?(.*)", name)
+    assert m is not None
+    return m.group(2)
+
+
 def get_content(filename: str) -> str:
     """Return contents of file FILENAME as a string"""
 
@@ -114,10 +127,7 @@ def get_content(filename: str) -> str:
 def to_title(title: str) -> str:
     """Given an entity name return a suitable string to be inserted
     in the documentation"""
-    m = re.search(r"^[0-9]+_(.*)$", title)
-    if m is not None:
-        title = m.group(1)
-    return title.replace("_", " ")
+    return remove_section_number(title).replace("_", " ")
 
 
 def header(text: str, pre_skip: int, post_skip: int) -> str:
@@ -569,14 +579,6 @@ class Dir(Artifact):
     ):
         # Filesystem attributes for this directory
 
-        def to_id(name: str) -> str:
-            """remove leading number from name"""
-            m = re.search(r"^[0-9]+_(.*)$", name)
-            if m is not None:
-                return m.group(1)
-            else:
-                return name
-
         self.root = root  # path to this dir
         self.subdirs = subdirs  # list of local subdir names
         self.files = files  # list of local file names
@@ -585,12 +587,14 @@ class Dir(Artifact):
 
         self.name = os.path.basename(root)  # local name of this dir
         if self.pdo:
-            self.id = self.pdo.id + "/" + to_id(self.name)
+            self.id = self.pdo.id + "/" + remove_section_number(self.name)
         else:
             self.id = (
                 "/"
                 + ART_ID_PREFIX
-                + to_id(self.root[len(os.path.abspath(art_root)) :])
+                + remove_section_number(
+                    self.root[len(os.path.abspath(art_root)) :]
+                )
             )
 
         # If we are at the root directory then return our documentation

@@ -28,7 +28,7 @@ from e3.os.process import Run, quote_arg
 import e3.testsuite
 from e3.testsuite.control import AdaCoreLegacyTestControlCreator
 from e3.testsuite.driver import TestDriver
-from e3.testsuite.driver.classic import TestAbortWithError
+from e3.testsuite.driver.classic import ClassicTestDriver, TestAbortWithError
 from e3.testsuite.result import Log, TestResult, TestStatus
 from e3.testsuite.testcase_finder import (
     ParsedTest,
@@ -38,7 +38,7 @@ from e3.testsuite.testcase_finder import (
 
 import SUITE.cutils as cutils
 
-from SUITE.cutils import strip_prefix, contents_of, lines_of
+from SUITE.cutils import contents_of, lines_of
 from SUITE.cutils import FatalError, exit_if
 from SUITE.cutils import version
 
@@ -1037,7 +1037,17 @@ class GroupPyDriver(TestDriver):
         self.add_fragment(dag, "run_{}".format(index), runner.run_test)
 
 
+class ErrorDriver(ClassicTestDriver):
+    """Dummy test driver that always produces an error result."""
+
+    def run(self) -> None:
+        raise TestAbortWithError(self.test_env["error_msg"])
+
+
 class GNATcovTestFinder(TestFinder):
+
+    identifier_regexp = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
+
     def probe(
         self,
         testsuite: e3.testsuite.TestsuiteCore,
@@ -1068,6 +1078,32 @@ class GNATcovTestFinder(TestFinder):
         else:
             return None
 
+        # Validate that all directories components in the test name are valid
+        # Python identifiers, so that mypy can consider all "test.py" as
+        # distinct modules.
+        assert isinstance(testsuite, TestSuite)
+        test_name_components = testsuite.test_name_components(dirpath)
+        for i, name in enumerate(test_name_components):
+            # Because they come from another repositories,
+            # internal/sanity/spark tests are not covered by mypy pre-commit
+            # checks: do not check their names.
+            if i == 0 and name in (
+                "internal-tests",
+                "sanity-tests",
+                "spark-tests",
+            ):
+                break
+
+            if not self.identifier_regexp.fullmatch(name):
+                return ParsedTest(
+                    test_name="-".join(test_name_components),
+                    driver_cls=ErrorDriver,
+                    test_env={
+                        "error_msg": f"invalid Python module name: {name}"
+                    },
+                    test_dir=dirpath,
+                )
+
         return ParsedTest(
             test_name=testsuite.test_name(dirpath),
             driver_cls=driver_cls,
@@ -1088,24 +1124,26 @@ class TestSuite(e3.testsuite.Testsuite):
     def test_finders(self) -> list[TestFinder]:
         return [GNATcovTestFinder()]
 
-    def test_name(self, test_dir: str) -> str:
+    def test_name_components(self, test_dir: str) -> list[str]:
         # Start with a relative directory name from the tests subdirectory
-        result = os.path.relpath(test_dir, self.test_dir)
+        relpath = os.path.relpath(test_dir, self.test_dir)
 
         # We want to support running tests outside of the test directory, so
         # strip leading "..".
         pattern = os.path.pardir + os.path.sep
-        while result.startswith(pattern):
-            result = result[len(pattern) :]
+        while relpath.startswith(pattern):
+            relpath = relpath[len(pattern) :]
 
-        # Run some name canonicalization and replace directory separators with
-        # dashes.
-        result = unixpath(result).rstrip("/").replace("/", "-")
+        # Run some name canonicalization and split on directory separators
+        result = unixpath(relpath).rstrip("/").split("/")
 
         # Tests from the internal testsuite used to be located in the "tests"
         # subdirectory. They are now in "../extra/tests", but we want the GAIA
         # name to remain the same.
-        return strip_prefix("extra-", result)
+        return result[1:] if result[0] == "extra" else result
+
+    def test_name(self, test_dir: str) -> str:
+        return "-".join(self.test_name_components(test_dir))
 
     # --------------------------
     # -- GAIA file facilities --
