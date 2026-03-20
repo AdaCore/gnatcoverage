@@ -461,7 +461,10 @@ package body Project is
 
    begin
       if Recursive then
-         for Project of Root_Project.Closure (Include_Self => True) loop
+         for Project of
+           Root_Project.Closure
+             (Include_Self => True, Include_Aggregated => True)
+         loop
             Process_Candidate (Project);
          end loop;
       else
