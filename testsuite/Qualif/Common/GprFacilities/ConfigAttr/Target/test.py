@@ -43,7 +43,7 @@ gpr_basename = os.path.basename(gpr_filename)
 gpr_content = contents_of(gpr_filename)
 
 
-def instantiate_gpr(target):
+def instantiate_gpr(target: str) -> None:
     with open(gpr_basename, "w") as f:
         content = gpr_content.replace("%TARGET%", target)
         content = content.replace(

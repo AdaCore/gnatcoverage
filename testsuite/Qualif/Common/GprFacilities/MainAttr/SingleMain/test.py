@@ -31,7 +31,7 @@ gprbuild(project=gprname, gargs=[mainunit1, mainunit2])
 # for this particular case.
 
 
-def check(explicit_exe):
+def check(explicit_exe: str | None) -> None:
     outbase = explicit_exe if explicit_exe else "noexe"
     trace = "%s.trace" % outbase
     dump = "%s.dt" % outbase

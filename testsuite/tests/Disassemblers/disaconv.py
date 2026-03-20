@@ -3,6 +3,7 @@
 import argparse
 import re
 import sys
+from typing import IO
 
 
 # Command-line parsing
@@ -30,12 +31,12 @@ parser.add_argument(
 # Internal data structures
 
 
-def section(match):
+def section(m: re.Match) -> str:
     return "Section"
 
 
-def insn(match):
-    addr = int(match.group("addr"), 16)
+def insn(m: re.Match) -> str:
+    addr = int(m.group("addr"), 16)
     return "Insn:   {:08x}".format(addr)
 
 
@@ -64,7 +65,7 @@ MATCHING_TABLE = (
 )
 
 
-def disaconv(fin, fout):
+def disaconv(fin: IO[str], fout: IO[str]) -> None:
     # For each line in the input file, try to find a matching pattern and write
     # the result of the associated action to the output file.
     for line in fin:

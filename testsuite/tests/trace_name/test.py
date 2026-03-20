@@ -14,7 +14,7 @@ from SUITE.tutils import thistest, gprfor
 import os
 
 
-def check_srctrace_name(gprsw, main):
+def check_srctrace_name(gprsw: GPRswitches, main: str) -> None:
     build_and_run(
         gprsw=gprsw,
         covlevel="stmt",

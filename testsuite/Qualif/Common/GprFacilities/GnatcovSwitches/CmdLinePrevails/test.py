@@ -11,7 +11,11 @@ from SUITE.tutils import gprfor, xcov
 pgm = "test_lt0"
 
 
-def run(subdir, extra_args, covlevel=None):
+def run(
+    subdir: str,
+    extra_args: list[str],
+    covlevel: str | None = None,
+) -> str:
     """
     Build and run the single test program, which volontarily performs stmt and
     decision coverage violations.
@@ -42,10 +46,17 @@ def run(subdir, extra_args, covlevel=None):
     return dirname
 
 
-def check_report(label, filename, pattern, check_present=True):
+def check_report(
+    label: str,
+    filename: str,
+    pattern: str,
+    check_present: bool = True,
+) -> None:
     report = contents_of(filename)
     matched = re.search(pattern, report)
-    thistest.fail_if(not matched if check_present else matched, label)
+    thistest.fail_if(
+        not matched if check_present else matched is not None, label
+    )
 
 
 # Check that we get results corresponding to the project file

@@ -26,12 +26,12 @@ scos_list = ["obj/lib.c", "obj/pkg", "obj/test"]
 
 
 def build_run_coverage_and_check(
-    covlevel,
-    output_opt=None,
-    source_root=None,
-    hide_src=False,
-    expected_filenames=None,
-):
+    covlevel: str,
+    output_opt: str | None = None,
+    source_root: str | None = None,
+    hide_src: bool = False,
+    expected_filenames: set[str] | None = None,
+) -> None:
     # We need to use manually designated SCOs if we are to remove the sources
     # from the project.
     #

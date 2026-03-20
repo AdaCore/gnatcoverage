@@ -18,7 +18,11 @@ from SUITE.gprutils import GPRswitches
 src_traces = thistest.options.trace_mode == "src"
 
 
-def check_xcov(label, args, expected_output=""):
+def check_xcov(
+    label: str,
+    args: list[str],
+    expected_output: str = "",
+) -> None:
     """
     Run xcov with the given aruments and check its output.
 

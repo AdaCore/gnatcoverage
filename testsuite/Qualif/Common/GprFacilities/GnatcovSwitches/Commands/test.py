@@ -17,7 +17,7 @@ wd = Wdir("tmp_")
 # file for a simple program.
 
 
-def gprvariant(prjid, extra):
+def gprvariant(prjid: str, extra: str) -> str:
     return gprfor(
         prjid=prjid, srcdirs=["../src"], mains=["p.adb"], extra=extra
     )
@@ -36,19 +36,19 @@ gprbuild(gprvariant(prjid="bld", extra=""))
 # --annotate, valid only for gnatcov coverage.
 
 
-def tag_for(prjid):
+def tag_for(prjid: str) -> str:
     return "tag-%s" % prjid
 
 
-def tagopt_for(prjid):
+def tagopt_for(prjid: str) -> list[str]:
     return ["--tag=%s" % tag_for(prjid)]
 
 
-def rep_for(prjid):
+def rep_for(prjid: str) -> str:
     return "%s.rep" % prjid
 
 
-def annopt_for(prjid):
+def annopt_for(prjid: str) -> list[str]:
     return ["--annotate=report"]
 
 
@@ -56,11 +56,11 @@ def annopt_for(prjid):
 lev = "stmt+decision"
 
 
-def levopt_for(prjid):
+def levopt_for(prjid: str) -> list[str]:
     return ["--level=%s" % lev]
 
 
-def try_run(prjid, gpr):
+def try_run(prjid: str, gpr: str) -> str:
     """gnatcov run with common set of options & variations via gpr."""
     log = prjid + ".rlog"
     xrun(
@@ -71,7 +71,7 @@ def try_run(prjid, gpr):
     return contents_of(log)
 
 
-def try_cov(prjid, gpr):
+def try_cov(prjid: str, gpr: str) -> None:
     """
     gnatcov coverage with common set of options & variations via gpr.  Expect
     valid options and check for commonly expected outcome
@@ -102,7 +102,7 @@ def try_cov(prjid, gpr):
     )
 
 
-def check_valid_sequence_for(prjid, gprcov):
+def check_valid_sequence_for(prjid: str, gprcov: str) -> None:
     """
     Common checking sequence for a specific gpr coverage package
     with valid options for both run and coverage.
