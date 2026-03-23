@@ -18,7 +18,7 @@ annotations = generate_annotations(
 )
 
 
-def make_lib_gpr(name, srcdirs, deps):
+def make_lib_gpr(name: str, srcdirs: str, deps: list[str] | None) -> str:
     return gprfor(
         mains=[],
         prjid=name,
@@ -29,7 +29,7 @@ def make_lib_gpr(name, srcdirs, deps):
     )
 
 
-def check_one(with_units):
+def check_one(with_units: bool) -> None:
     """
     Do a build, run, coverage, and report-check workflow, ensuring we get the
     expected warnings and coverage results.

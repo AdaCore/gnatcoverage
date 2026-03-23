@@ -12,7 +12,7 @@ from SCOV.minicheck import check_xcov_reports
 from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
 
 
-def process(c_flags, subdir):
+def process(c_flags: list[str], subdir: str) -> None:
     # Run the integrated instrumentation process with the given c_flags, and in
     # the given subdir
     tmp = Wdir(subdir)

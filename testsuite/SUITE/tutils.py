@@ -144,10 +144,8 @@ List of processes run through run_and_log. Useful for debugging.
 def run_and_log(
     cmds: CmdLine,
     cwd: str | Path | None = None,
-    output: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
-    error: (
-        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-    ) = STDOUT,
+    output: PIPE_VALUE | str | Path = PIPE,
+    error: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     input: (  # noqa: A002
         DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None
     ) = None,
@@ -183,11 +181,9 @@ def run_and_log(
     return p
 
 
-def get_process_output(
-    p: Run, out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-) -> str:
+def get_process_output(p: Run, out: PIPE_VALUE | str | Path) -> str:
     """
-    Return the output of the given process, if possible.
+    Return the output of the given process.
 
     :param p: Process to analyse.
     :param out: `output` argument passed to `Run` when running this process.
@@ -202,12 +198,8 @@ def get_process_output(
             return contents_of(filename)
         case Path() as path:
             return contents_of(str(path))
-        case Constants.PIPE | IO():
-            return "<output redirected to in-memory file>"
-        case Constants.DEVNULL:
-            return "<output redirected to devnull>"
-        case None:
-            return "<output not captured>"
+        case Constants.PIPE:
+            return p.out
         case _:
             raise AssertionError(f"invalid out: {out!r}")
 
@@ -399,7 +391,7 @@ def gprbuild(
     largs: Iterable[str] | None = None,
     trace_mode: str | None = None,
     runtime_project: str | None = None,
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = "gprbuild.out",
+    out: PIPE_VALUE | str | Path = "gprbuild.out",
     register_failure: bool = True,
     auto_config_args: bool = True,
 ) -> Run:
@@ -962,10 +954,8 @@ def cmdrun(
     cmd: Iterable[str],
     for_pgm: bool,
     inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = PIPE,
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
-    err: (
-        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-    ) = STDOUT,
+    out: PIPE_VALUE | str | Path = PIPE,
+    err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
     expect_non_zero_code: bool = False,
@@ -1037,10 +1027,8 @@ def cmdrun(
 
 def xcov(
     args: Sequence[str],
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
-    err: (
-        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-    ) = STDOUT,
+    out: PIPE_VALUE | str | Path = PIPE,
+    err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = None,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
@@ -1168,7 +1156,7 @@ def xcov(
 
 def xrun(
     args: Iterable[str],
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
     auto_config_args: bool = True,
@@ -1227,7 +1215,7 @@ def xrun(
 
 def run_cov_program(
     executable: str,
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     exec_args: Iterable[str] | None = None,
     register_failure: bool = True,
@@ -1504,7 +1492,7 @@ def xcov_annotate(
     annot_out_file: str,
     annot_in_files: list[str] | None = None,
     extra_args: list[str] | None = None,
-    out: DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None = PIPE,
+    out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
     auto_config_args: bool = True,

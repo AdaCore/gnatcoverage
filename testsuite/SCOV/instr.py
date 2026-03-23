@@ -7,7 +7,7 @@ import os.path
 from pathlib import Path
 import re
 import shutil
-from typing import IO, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from e3.fs import mkdir, sync_tree
 from e3.os.process import Run, STDOUT
@@ -26,7 +26,7 @@ from SUITE.tutils import (
 
 
 if TYPE_CHECKING:
-    from e3.os.process import DEVNULL_VALUE, PIPE_VALUE, STDOUT_VALUE
+    from e3.os.process import PIPE_VALUE, STDOUT_VALUE
 
 
 def default_dump_trigger(mains: Iterable[str]) -> str:
@@ -70,12 +70,8 @@ def xcov_instrument(
     dump_channel: str | None = "auto",
     gpr_obj_dir: str | None = None,
     runtime_project: str | None = None,
-    out: (
-        DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-    ) = "instrument.log",
-    err: (
-        STDOUT_VALUE | DEVNULL_VALUE | PIPE_VALUE | str | Path | IO | None
-    ) = STDOUT,
+    out: PIPE_VALUE | str | Path = "instrument.log",
+    err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     tolerate_messages: str | None = None,
     register_failure: bool = True,
     auto_config_args: bool = True,
@@ -209,8 +205,8 @@ def xcov_convert_base64(
     base64_file: str,
     output_trace_file: str,
     split_extracted: bool = False,
-    out: str | None = None,
-    err: str | None = None,
+    out: PIPE_VALUE | str | Path = "xcov-convert.out",
+    err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     register_failure: bool = True,
 ) -> None:
     """Extract a trace file out of a Base64 file.

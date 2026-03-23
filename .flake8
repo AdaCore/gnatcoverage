@@ -1,2 +1,11 @@
 [flake8]
-ignore = E203,E402,W503
+ignore =
+    # We do not want to rename test directories just because they happen to
+    # have the same name as a Python standard package
+    A005,
+    # Black inserts a space before ":", so do not warn about these
+    E203,
+    # Some scripts need to modify sys.path before doing imports
+    E402,
+    # Black puts binary operators after line breaks: do not warn about them
+    W503

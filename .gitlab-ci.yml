@@ -252,6 +252,12 @@ pre-commit:
     - anod install libclang -Qdate=$CLANG_FORMAT_DATE
     - eval `anod printenv libclang -Qdate=$CLANG_FORMAT_DATE`
 
+    # Make Libadalang type hints available to Mypy
+    - anod install libadalang
+    - LAL_BSN=$(anod eval --primitive=build libadalang build_space_name)
+    - LAL_INSTALL_DIR=$ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$LAL_BSN/install
+    - export PYTHONPATH=$LAL_INSTALL_DIR/python
+
 static-analysis:
   variables:
     GNATSAS_OBJ_DIR: tools/gnatcov/obj64/prod

@@ -72,7 +72,7 @@ class Checker:
     """
 
     ignore_list = [
-        "testsuite/tests/354-source-encoding/latin1.ads",
+        "testsuite/tests/t_354_source_encoding/latin1.ads",
     ]
     """
     List of files to intentionally ignore for style checking purposes.
@@ -184,7 +184,7 @@ class Checker:
                             f.write("\n")
 
     @classmethod
-    def main(cls, argv: list[str] | None = None):
+    def main(cls, argv: list[str] | None = None) -> int:
         args = args_parser.parse_args(argv)
         checker = cls(
             autofix=args.autofix,

@@ -34,8 +34,8 @@ from SCOV.internals.driver import (
     SCOV_helper_bin_traces,
     SCOV_helper_src_traces,
     SCOV_helper_rust,
+    WdirControl,
 )
-from SCOV.internals.driver import WdirControl
 from SCOV.tctl import CAT, _Category, CovControl
 from SUITE.context import thistest
 from SUITE.cutils import to_list, contents_of, FatalError, ext

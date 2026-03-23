@@ -38,7 +38,13 @@ _xreports = {
 all_projects = list(_xreports)
 
 
-def check(root_project, recurse, projects=None, units=None, xreports=None):
+def check(
+    root_project: str,
+    recurse: bool | None,
+    projects: list[str] | None = None,
+    units: list[str] | None = None,
+    xreports: list[str] | None = None,
+) -> None:
     """
     Check that running our test with
 

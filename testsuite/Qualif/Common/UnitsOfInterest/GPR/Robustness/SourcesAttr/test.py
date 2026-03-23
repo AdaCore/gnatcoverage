@@ -3,7 +3,11 @@ Check that gnatcov processes project files with a Source_Files attribute
 correctly.
 """
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import GPRswitches
@@ -17,7 +21,12 @@ from SUITE.tutils import gprfor
 wd = Wdir()
 
 
-def try_one(subdir, extra_covargs, xreports, xwarnings):
+def try_one(
+    subdir: str,
+    extra_covargs: list[str],
+    xreports: CovReport,
+    xwarnings: list[str],
+) -> None:
     """
     Setup a temp ``subdir`` and perform a build/run/coverage sequence
     for our example, passing ``extra_covargs`` in addition to gnatcov

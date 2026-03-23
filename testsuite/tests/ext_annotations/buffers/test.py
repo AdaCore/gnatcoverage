@@ -5,16 +5,25 @@ buffer dump and buffer reset.
 
 from copy import deepcopy
 
-from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SCOV.minicheck import (
+    CovReport,
+    build_run_and_coverage,
+    check_xcov_reports,
+)
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
+
 tmp = Wdir()
 
 
-def run_one(tc_id, annotation_file, expected_results):
+def run_one(
+    tc_id: str,
+    annotation_file: str,
+    expected_results: CovReport,
+) -> None:
     """
     Run a whole gnatcov source trace workflow, passing the
     given annotation_file to the --external-annotation switch
