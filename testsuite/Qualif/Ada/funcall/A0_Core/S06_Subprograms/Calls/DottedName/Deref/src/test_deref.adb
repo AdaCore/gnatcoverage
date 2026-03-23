@@ -11,6 +11,8 @@ end Test_Deref;
 
 --# deref.adb
 -- /ok/     l+ ## 0
--- /deref1/ l? ## c?
+-- /deref1/ l+ ## 0
 -- /if/     l! ## dT-
--- /deref2/ l- ## s-,c?
+-- /deref2/ l? ## c?
+-- /deref3/ l- ## s-,c-
+-- /deref4/ l- ## s-,c?
