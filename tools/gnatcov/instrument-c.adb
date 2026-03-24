@@ -576,7 +576,7 @@ package body Instrument.C is
    begin
       return Result : chars_ptr_array (1 .. Interfaces.C.size_t (V.Length)) do
          for I in Result'Range loop
-            Result (I) := New_String (+V (Integer (I) - 1));
+            Result (I) := New_String (+V (Positive (I)));
          end loop;
       end return;
    end To_Chars_Ptr_Array;

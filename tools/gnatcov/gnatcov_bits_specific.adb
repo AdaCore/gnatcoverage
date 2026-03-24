@@ -1481,7 +1481,7 @@ procedure GNATcov_Bits_Specific is
                Runtime_Project := new String'(Setup_RTS.Default_Project_File);
             elsif Args.Remaining_Args.Length = 1 then
                declare
-                  Prj : constant String := +Args.Remaining_Args.Element (0);
+                  Prj : constant String := +Args.Remaining_Args.Element (1);
                begin
                   Runtime_Project :=
                     new String'
@@ -2099,8 +2099,8 @@ begin
             Fatal_Error ("exactly two positional arguments expected");
          end if;
          Instrument.Gcc_Wrapper
-           (Config_File   => +Args.Remaining_Args.Element (0),
-            Compiler_Exec => +Args.Remaining_Args.Element (1),
+           (Config_File   => +Args.Remaining_Args.Element (1),
+            Compiler_Exec => +Args.Remaining_Args.Element (2),
             Cargs         => Args.String_List_Args (Opt_Cargs));
 
       when Cmd_Instrument_Source                          =>
@@ -2829,8 +2829,8 @@ begin
             Fatal_Error ("Exactly two arguments expected");
          end if;
          Instrument.Input_Traces.Extract_Base64_Trace
-           (Input_File  => +Args.Remaining_Args (0),
-            Output_File => +Args.Remaining_Args (1));
+           (Input_File  => +Args.Remaining_Args (1),
+            Output_File => +Args.Remaining_Args (2));
 
       when Cmd_Add_Annotation                             =>
          SS_Annotations.Add_Annotation (Args);
