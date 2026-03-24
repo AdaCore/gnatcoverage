@@ -11,12 +11,13 @@ from e3.fs import cp, mkdir
 from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, lines_of
+from SUITE.cutils import Wdir, indent, lines_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import xcov
 
 
 p_gpr = os.path.abspath("p.gpr")
+pkg_adb = os.path.abspath("pkg.adb")
 obj_dir = os.path.abspath("obj")
 unrelated_sid = "unrelated_instr.sid"
 
@@ -59,9 +60,14 @@ p = xcov(
     ],
     out="coverage.log",
 )
-thistest.fail_if(
+excerpt = (
     "[GNATCOV.MISC] discarding source trace entry for unknown instrumented"
-    " unit: body of pkg" not in lines_of("coverage.log")
+    f" unit: {pkg_adb}"
+)
+logs = lines_of("coverage.log")
+thistest.fail_if(
+    excerpt not in logs,
+    f"Could not find:\n{indent(excerpt)}\nin:\n{indent(logs)}",
 )
 
 thistest.result()

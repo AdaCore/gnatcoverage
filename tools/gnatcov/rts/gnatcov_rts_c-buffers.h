@@ -50,22 +50,6 @@ extern "C"
 
 #define FINGERPRINT_SIZE 20
 
-  enum gnatcov_rts_unit_part
-  {
-    /* `NOT_APPLICABLE_PART` is a default value used for compilation units in
-       languages that are not unit-based.  */
-    NOT_APPLICABLE_PART = 0,
-    UNIT_BODY = 1,
-    UNIT_SPEC = 2,
-    UNIT_SEPARATE = 3
-  };
-
-  enum gnatcov_rts_language_kind
-  {
-    UNIT_BASED_LANGUAGE = 0,
-    FILE_BASED_LANGUAGE = 1
-  };
-
   struct gnatcov_rts_coverage_buffers
   {
     /* Hash of SCO info for this unit, as gnatcov computes it (see
@@ -74,24 +58,7 @@ extern "C"
        during instrumentation.  */
     uint8_t fingerprint[FINGERPRINT_SIZE];
 
-    /* Language kind for this unit.  */
-    enum gnatcov_rts_language_kind language_kind;
-
-    /* Unit kind and name for the instrumented unit.  The unit_name field
-       accounts both for unit-based languages (such as Ada) and file-based
-       languages such as C.
-
-       The unit_part field is only there for unit-based languages and is set
-       to NOT_APPLICABLE_PART for file-based languages.
-
-       More specifically, for unit-based languages, unit_name is the fully
-       qualified name of the compilation unit (or subunit) in lower case.
-       For instance: "foo", "ada.text_io" or "foo.bar.my_subunit".
-
-       For file-based languages, unit_name is the simple filename, e.g.
-       "foo.c".  */
-    enum gnatcov_rts_unit_part unit_part;
-    struct gnatcov_rts_string unit_name;
+    struct gnatcov_rts_string filename;
 
     /* Hash of buffer bit mappings for this unit, as gnatcov computes it (see
        SC_Obligations).  Used as a fast way to check that gnatcov will be able

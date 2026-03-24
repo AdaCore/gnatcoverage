@@ -1,5 +1,17 @@
+New group:
 c-main.c
+
+New group:
 c-pkg.c
-main
-pkg
-pkg.child
+
+New group:
+main.adb
+
+New group:
+pkg.ads
+
+New group:
+pkg-child.ads
+pkg-child.adb
+
+Done

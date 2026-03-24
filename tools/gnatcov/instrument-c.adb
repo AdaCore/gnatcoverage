@@ -448,7 +448,7 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
       Trigger      : Valid_Dump_Trigger;
-      Main         : Compilation_Unit_Part;
+      Main         : String;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc);
@@ -3716,17 +3716,9 @@ package body Instrument.C is
       Prj               : Prj_Desc;
       Files_Of_Interest : File_Sets.Set)
    is
-      UIC     : C_Unit_Inst_Context;
-      CU_Name : constant Compilation_Unit_Part :=
-        CU_Name_For_File (+Unit_Name);
+      UIC : C_Unit_Inst_Context;
 
       Orig_Filename : constant String := Unit_Name;
-
-      Buffer_Filename : constant String :=
-        +Self.Buffer_Unit
-           (Compilation_Unit'(File_Based_Language, +Unit_Name), Prj)
-           .Unit_Name;
-      --  Name of the generated source file holding the coverage buffers
 
       Rewriter : C_Source_Rewriter;
       --  Holds the compilation index, the translation unit and the rewriter.
@@ -3770,7 +3762,7 @@ package body Instrument.C is
             Func_Args);
       end Put_Extern_Decl;
 
-      --  Start of processing for Instrument_Source_File
+      --  Start of processing for Instrument_Unit
 
    begin
       --  Exit early if there is no compiler driver found to preprocess the
@@ -3787,8 +3779,7 @@ package body Instrument.C is
 
       --  Initialize the C instrumentation context
 
-      UIC.Instrumented_Unit := CU_Name;
-      UIC.Buffer_Unit := CU_Name_For_File (+Buffer_Filename);
+      UIC.Instrumented_Unit := +Unit_Name;
       UIC.Files_Of_Interest := Files_Of_Interest;
 
       --  Run the preprocessor (this also takes care of importing the
@@ -4232,8 +4223,11 @@ package body Instrument.C is
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc)
    is
-      CU_Name : Compilation_Unit_Part renames UIC.Buffer_Unit;
-      File    : Text_Files.File_Type;
+      Buffer_Unit_Filename : constant String :=
+        +Instrumenter.Buffer_Unit
+           (Compilation_Unit'(File_Based_Language, UIC.Instrumented_Unit), Prj)
+           .Unit_Name;
+      File                 : Text_Files.File_Type;
 
       Buffers_Count : constant Natural := Natural (UIC.Allocated_Bits.Length);
       --  Number of items in the buffer group to create
@@ -4264,10 +4258,9 @@ package body Instrument.C is
 
       Buffers_CUs      : CU_Id_Vectors.Vector :=
         CU_Id_Vectors.To_Vector (No_CU_Id, UIC.Allocated_Bits.Length);
-      Buffers_CU_Names : CU_Name_Vectors.Vector :=
-        CU_Name_Vectors.To_Vector
-          ((Language_Kind => File_Based_Language, others => <>),
-           UIC.Allocated_Bits.Length);
+      Buffers_CU_Names : String_Vectors.Vector :=
+        String_Vectors.To_Vector
+          (Null_Unbounded_String, UIC.Allocated_Bits.Length);
       --  For each set of buffers in UIC.Allocated_Bits, corresponding CU_Id
       --  and CU_Name for the instrumented source file.
 
@@ -4278,12 +4271,12 @@ package body Instrument.C is
            ("Writing "
             & Instrumenter.Language_Name
             & " buffer unit "
-            & (+CU_Name.Filename));
+            & (Buffer_Unit_Filename));
          Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
          Sources_Trace.Trace ("For files:");
          for SOI of UIC.Sources_Of_Interest_Info loop
-            if SOI.Of_Interest then
-               Sources_Trace.Trace ("* " & Image (SOI.CU_Name));
+            if SOI /= No_Source_File then
+               Sources_Trace.Trace ("* " & Get_Full_Name (SOI));
             end if;
          end loop;
          Sources_Trace.Decrease_Indent;
@@ -4295,19 +4288,19 @@ package body Instrument.C is
          declare
             use Created_Unit_Maps;
 
-            SOI   : Source_Of_Interest renames
+            SOI   : Source_File_Index renames
               UIC.Sources_Of_Interest_Info.Constant_Reference (Cur);
             Cur   : Cursor;
             Index : Natural;
          begin
-            if SOI.Of_Interest then
-               Cur := UIC.CUs.Find (SOI.SFI);
+            if SOI /= No_Source_File then
+               Cur := UIC.CUs.Find (SOI);
                if Has_Element (Cur) then
                   Index :=
-                    UIC.Instrumented_Entities.Constant_Reference (SOI.SFI)
+                    UIC.Instrumented_Entities.Constant_Reference (SOI)
                       .Buffers_Index;
                   Buffers_CUs (Index) := Element (Cur);
-                  Buffers_CU_Names (Index) := SOI.CU_Name;
+                  Buffers_CU_Names (Index) := +Get_Full_Name (SOI);
                end if;
             end if;
          end;
@@ -4320,7 +4313,7 @@ package body Instrument.C is
 
       --  Start to emit the buffer unit
 
-      Create_File (Prj, File, +CU_Name.Filename);
+      Create_File (Prj, File, Buffer_Unit_Filename);
 
       File.Put_Line ("#include ""gnatcov_rts_c.h""");
       File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
@@ -4352,9 +4345,8 @@ package body Instrument.C is
               UIC.Allocated_Bits.Constant_Reference (Buffers_Index);
 
             CU          : constant CU_Id := Buffers_CUs (Buffers_Index);
-            CU_Name     : Compilation_Unit_Part renames
+            CU_Filename : Unbounded_String renames
               Buffers_CU_Names.Constant_Reference (Buffers_Index);
-            CU_Filename : constant String := +CU_Name.Filename;
 
             --  Symbol name for each kind of static buffer
 
@@ -4416,10 +4408,6 @@ package body Instrument.C is
                & Format_Fingerprint (SCOs_Fingerprint)
                & ","
                & ASCII.LF
-               & "/*  .language_kind =             */ FILE_BASED_LANGUAGE,"
-               & ASCII.LF
-               & "/*  .unit_part =                 */ NOT_APPLICABLE_PART,"
-               & ASCII.LF
 
                --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
                --  "STR(<string literal>)" is not a static expression, and thus
@@ -4431,10 +4419,10 @@ package body Instrument.C is
                --  the string, which can appear e.g. in in windows full
                --  filenames.
 
-               & "/*  .unit_name =                 */ {"
-               & C_String_Literal (CU_Filename)
+               & "/*  .filename =                 */ {"
+               & C_String_Literal (+CU_Filename)
                & ", "
-               & CU_Filename'Length'Image
+               & US.Length (CU_Filename)'Image
                & "}"
                & ","
                & ASCII.LF
@@ -4490,7 +4478,7 @@ package body Instrument.C is
 
             --  Track which CU_Id maps to which instrumented unit
 
-            Instrumented_Unit_CUs.Insert (CU_Name, CU);
+            Instrumented_Unit_CUs.Insert (CU_Filename, CU);
 
             I := I + 1;
          end;
@@ -4556,7 +4544,7 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
       Trigger      : Valid_Dump_Trigger;
-      Main         : Compilation_Unit_Part;
+      Main         : String;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc)
@@ -4580,7 +4568,7 @@ package body Instrument.C is
          then Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
          else
            Instrumenter.Dump_Helper_Unit
-             (Compilation_Unit'(File_Based_Language, Main.Filename), Prj)
+             (Compilation_Unit'(File_Based_Language, +Main), Prj)
              .Unit_Name);
 
       --  Compute the qualified names we need for instrumentation
@@ -4600,7 +4588,7 @@ package body Instrument.C is
                & Filename);
             Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
             Sources_Trace.Trace ("Filename: " & Filename);
-            Sources_Trace.Trace ("For main: " & Image (Main));
+            Sources_Trace.Trace ("For main: " & Main);
             Sources_Trace.Decrease_Indent;
          end if;
 
@@ -4676,7 +4664,7 @@ package body Instrument.C is
                      & C_String_Literal
                          (if Trigger = Manual
                           then To_Ada (Prj.Prj_Name)
-                          else +Main.Filename)
+                          else Main)
                      & "),");
                   File.Put_Line
                     (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
@@ -4696,7 +4684,7 @@ package body Instrument.C is
                   & C_String_Literal
                       (if Trigger = Manual
                        then To_Ada (Prj.Prj_Name)
-                       else +Main.Filename)
+                       else Main)
                   & "),");
                File.Put_Line (Indent2 & "0,");
                File.Put_Line (Indent2 & "STR ("""")");
@@ -4732,7 +4720,7 @@ package body Instrument.C is
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc)
    is
-      Main : Compilation_Unit_Part;
+      Main : constant String := "";
       --  Since the dump trigger is "manual" and there is no main to be given,
       --  the Main argument in the following call to
       --  Emit_Dump_Helper_Unit_For_Trigger will not be used.
@@ -4763,11 +4751,10 @@ package body Instrument.C is
    is
       Ignore_Check    : constant Boolean := Check_Compiler_Driver (Prj, Self);
       PP_Filename     : Unbounded_String;
-      Dummy_Main      : Compilation_Unit_Part;
       Matches         : Match_Array (0 .. 4);
       Dump_Procedure  : constant String :=
         Dump_Procedure_Symbol
-          (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
+          (Main => "", Manual => True, Prj_Name => Prj.Prj_Name);
       Reset_Procedure : constant String :=
         Reset_Procedure_Symbol (Prj.Prj_Name);
       Extern_Prefix   : constant String :=
@@ -5225,10 +5212,7 @@ package body Instrument.C is
       Helper_Filename : Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
-      Rew  : C_Source_Rewriter;
-      Main : constant Compilation_Unit_Part :=
-        (Language_Kind => File_Based_Language,
-         Filename      => +Ada.Directories.Full_Name (Filename));
+      Rew : C_Source_Rewriter;
 
       Insert_Extern_Location : Source_Location_T;
       --  Where to insert extern declarations
@@ -5257,13 +5241,13 @@ package body Instrument.C is
       if Main_Cursor = Get_Null_Cursor then
          Outputs.Fatal_Error
            ("Could not find main function in "
-            & (Ada.Directories.Simple_Name (+Main.Filename)));
+            & (Ada.Directories.Simple_Name (Filename)));
       end if;
 
       Emit_Dump_Helper_Unit_For_Trigger
         (Dump_Config  => Dump_Config,
          Trigger      => Dump_Config.Auto_Trigger,
-         Main         => Main,
+         Main         => Filename,
          Helper_Unit  => Helper_Filename,
          Instrumenter => Self,
          Prj          => Prj);
@@ -5273,7 +5257,7 @@ package body Instrument.C is
          Insert_Extern_Location,
          Self,
          "void",
-         Dump_Procedure_Symbol (Main),
+         Dump_Procedure_Symbol (Filename),
          Func_Args => "void");
 
       if Dump_Config.Auto_Trigger = Ravenscar_Task_Termination then
@@ -5322,7 +5306,7 @@ package body Instrument.C is
                           (N    => Return_Expr,
                            Text =>
                              ", "
-                             & Dump_Procedure_Symbol (Main)
+                             & Dump_Procedure_Symbol (Filename)
                              & "(), gnatcov_rts_return",
                            Rew  => Rew.Rewriter);
 
@@ -5373,7 +5357,7 @@ package body Instrument.C is
                      CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,
                         End_Sloc (Main_Body),
-                        Dump_Procedure_Symbol (Main) & "();");
+                        Dump_Procedure_Symbol (Filename) & "();");
                   end if;
                end;
             end;
@@ -5399,7 +5383,8 @@ package body Instrument.C is
             begin
                Insert_Text_In_Brackets
                  (CmpdStmt => Body_Cursor,
-                  Text     => "atexit (" & Dump_Procedure_Symbol (Main) & ");",
+                  Text     =>
+                    "atexit (" & Dump_Procedure_Symbol (Filename) & ");",
                   Rew      => Rew.Rewriter);
             end;
 
@@ -6002,22 +5987,15 @@ package body Instrument.C is
          use Source_Of_Interest_Maps;
 
          Cur : constant Cursor := UIC.Sources_Of_Interest_Info.Find (File);
-         SOI : Source_Of_Interest;
+         SOI : Source_File_Index;
       begin
          if Has_Element (Cur) then
-            return UIC.Sources_Of_Interest_Info.Reference (Cur).Of_Interest;
+            return
+              UIC.Sources_Of_Interest_Info.Reference (Cur) /= No_Source_File;
          end if;
 
          if UIC.Files_Of_Interest.Contains (File) then
-            declare
-               SFI : constant Source_File_Index :=
-                 Get_Index_From_Generic_Name (+File.Full_Name, Source_File);
-            begin
-               SOI :=
-                 (Of_Interest => True,
-                  SFI         => SFI,
-                  CU_Name     => CU_Name_For_File (Full_Name (File)));
-            end;
+            SOI := Get_Index_From_Generic_Name (+File.Full_Name, Source_File);
 
             --  Import the external disabled regions for this source
 
@@ -6025,15 +6003,15 @@ package body Instrument.C is
                Annots : constant Instr_Annotation_Map :=
                  Get_Disabled_Cov_Annotations (+File.Full_Name);
             begin
-               UIC.Populate_Ext_Disabled_Cov (Annots, SOI.SFI);
+               UIC.Populate_Ext_Disabled_Cov (Annots, SOI);
             end;
 
          else
-            SOI := (Of_Interest => False);
+            SOI := No_Source_File;
          end if;
          UIC.Sources_Of_Interest_Info.Insert (File, SOI);
 
-         return SOI.Of_Interest;
+         return SOI /= No_Source_File;
       end;
    end Is_Source_Of_Interest;
 

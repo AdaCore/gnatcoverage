@@ -57,9 +57,9 @@ package body Instrument.Checkpoints is
 
          for Cur in CP_IU_Map.Iterate loop
             declare
-               CP_Unit_Name : constant Compilation_Unit_Part := Key (Cur);
+               CP_Filename  : constant Unbounded_String := Key (Cur);
                Existing_Cur : constant Cursor :=
-                 Instrumented_Unit_CUs.Find (CP_Unit_Name);
+                 Instrumented_Unit_CUs.Find (CP_Filename);
                CU_Ignored   : constant Boolean :=
                  CU_Id_Ignored (Relocs, Element (Cur));
 
@@ -75,17 +75,17 @@ package body Instrument.Checkpoints is
             begin
                if not CU_Ignored then
                   if Existing_CU_Id = No_CU_Id then
-                     Instrumented_Unit_CUs.Insert (CP_Unit_Name, New_CU_Id);
+                     Instrumented_Unit_CUs.Insert (CP_Filename, New_CU_Id);
 
                   elsif Existing_CU_Id /= New_CU_Id then
                      Warn
                        ("inconsistent information for instrumented unit "
-                        & Image (CP_Unit_Name));
+                        & (+CP_Filename));
                   end if;
                else
                   Report
                     ("Ignored Instrumented Unit from SID file: "
-                     & Image (CP_Unit_Name),
+                     & (+CP_Filename),
                      Kind => Notice);
                end if;
             end;

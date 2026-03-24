@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 20;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 21;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -65,6 +65,7 @@ package Checkpoints is
    --  19 -- Removed support for instance ids (separate coverage)
    --  20 -- Rework Scope_Entity to identify scopes by their Start/End_Sloc
    --        rather than their Start/End_SCO.
+   --  21 -- Remove unit names (keep only filenames, no matter the language).
    --
    --  Note that we always use the last version when creating a checkpoint.
    --

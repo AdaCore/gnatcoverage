@@ -371,9 +371,9 @@ procedure GNATcov_Bits_Specific is
          --  Callback for Read_Source_Trace_File
 
          procedure On_Trace_Entry
-           (Filename                : String;
+           (Trace_Filename          : String;
             Fingerprint             : SC_Obligations.Fingerprint_Type;
-            CU_Name                 : Instrument.Compilation_Unit_Part;
+            Source_Filename         : String;
             Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
             Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
             Stmt_Buffer             : Coverage_Buffer;
@@ -404,9 +404,9 @@ procedure GNATcov_Bits_Specific is
          ---------------------
 
          procedure On_Trace_Entry
-           (Filename                : String;
+           (Trace_Filename          : String;
             Fingerprint             : SC_Obligations.Fingerprint_Type;
-            CU_Name                 : Instrument.Compilation_Unit_Part;
+            Source_Filename         : String;
             Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
             Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
             Stmt_Buffer             : Coverage_Buffer;
@@ -415,9 +415,9 @@ procedure GNATcov_Bits_Specific is
          begin
             Update_State
               (Consolidated_Src_Traces,
-               Filename,
+               Trace_Filename,
                Fingerprint,
-               CU_Name,
+               Source_Filename,
                Bit_Maps_Fingerprint,
                Annotations_Fingerprint,
                Stmt_Buffer,
