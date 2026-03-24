@@ -1,10 +1,6 @@
 with Make_Call;
 
 -- LIMITATION
--- gnatcov is currently unable to determine the coverage of calls made
--- within dotted names.
---
--- LIMITATION
 -- gnatcov is currently unable to instrument and report coverage for
 -- primitives of tagged types.
 --
@@ -21,21 +17,21 @@ end Test_Primitive;
 
 --#make_call.adb
 -- /decl/     l+ ## 0
--- /A1/       l? ## c?
+-- /A1/       l+ ## 0
 -- /A2/       l+ ## 0
--- /B1/       l? ## c?
+-- /B1/       l+ ## 0
 -- /B2/       l+ ## 0
 -- /C1/       l+ ## 0
 -- /C2/       l+ ## 0
 -- /D1/       l+ ## 0
--- /D2/       l? ## c?
+-- /D2/       l+ ## 0
 -- /D3/       l+ ## 0
--- /E1/       l? ## c?,c?
--- /E2/       l? ## 0
--- /E3/       l? ## 0
+-- /E1/       l+ ## 0
+-- /E2/       l+ ## 0
+-- /E3/       l+ ## 0
 -- /E4/       l+ ## 0
--- /F1/       l? ## c?
--- /F2/       l? ## 0
+-- /F1/       l+ ## 0
+-- /F2/       l+ ## 0
 -- /F3/       l+ ## 0
 -- /stmt/     l+ ## 0
 
