@@ -60,8 +60,8 @@ def check_reports(xcov_dir: str) -> None:
 # Use the appropriate source rebasing arguments so that gnatcov can find all
 # source files in the testcase's directory.
 src_rebase_args = [
-    f"--source-rebase=c:\\tmp\\u204-026-arch-mix={src_dir}",
-    f"--source-rebase=/tmp/U204-026-arch-mix={src_dir}",
+    f"--source-rebase=c:\\tmp\\t_u204_026_arch_mix={src_dir}",
+    f"--source-rebase=/tmp/t_U204_026_arch_mix={src_dir}",
 ]
 cov_args = ["coverage", "-cstmt+mcdc", "-axcov"] + src_rebase_args
 

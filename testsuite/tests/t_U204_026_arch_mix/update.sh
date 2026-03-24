@@ -12,11 +12,11 @@ fi
 
 # Update the linux artifacts
 cd ..
-rsync -ar U204-026-arch-mix/ /tmp/U204-026-arch-mix
-cd /tmp/U204-026-arch-mix
+rsync -ar t_U204_026_arch_mix/ /tmp/t_U204_026_arch_mix
+cd /tmp/t_U204_026_arch_mix
 ./gen.sh linux
 cd $cwd
-rsync -ar /tmp/U204-026-arch-mix/ .
+rsync -ar /tmp/t_U204_026_arch_mix/ .
 
 # Then update the Windows artifacts using an IOD machine. Do not create the IOD
 # instance if one already exists
@@ -36,4 +36,4 @@ fi
 ssh iod 'bash -s' < update_win_setup_git.sh
 git push -f iod:gnatcoverage HEAD:wip
 ssh iod 'bash -s' < update_arch_mix_windows.sh
-rsync -av iod:/cygdrive/c/tmp/U204-026-arch-mix/gen/* gen/
+rsync -av iod:/cygdrive/c/tmp/t_U204_026_arch_mix/gen/* gen/

@@ -15,16 +15,16 @@ git reset --hard wip
 
 # Build gnatcov
 cd /Users/itmgr/wave
-anod vcs --reset
-anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
-anod build gnatcov --smart
-anod install gnatall -Qstable
+# anod vcs --reset
+# anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
+# anod build gnatcov --smart
+# anod install gnatall -Qstable
 eval $(anod printenv gnatcov)
 eval $(anod printenv gnatall -Qstable)
 
 # Then, retrieve the sources of the arch-mix test
-SRC_DIR=/Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix
-BUILD_DIR=/cygdrive/c/tmp/U204-026-arch-mix
+SRC_DIR=/Users/itmgr/gnatcoverage/testsuite/tests/t_U204_026_arch_mix
+BUILD_DIR=/cygdrive/c/tmp/t_U204_026_arch_mix
 rm -rf "$SRC_DIR/gen/x86_64-windows"
 rsync -ar "$SRC_DIR/" "$BUILD_DIR"
 cd "$BUILD_DIR"
