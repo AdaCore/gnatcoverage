@@ -1085,10 +1085,11 @@ class GNATcovTestFinder(TestFinder):
         test_name_components = testsuite.test_name_components(dirpath)
         for i, name in enumerate(test_name_components):
             # Because they come from another repositories,
-            # internal/sanity/spark tests are not covered by mypy pre-commit
-            # checks: do not check their names.
+            # internal/large/sanity/spark tests are not covered by mypy
+            # pre-commit checks: do not check their names.
             if i == 0 and name in (
                 "internal-tests",
+                "large-tests",
                 "sanity-tests",
                 "spark-tests",
             ):
