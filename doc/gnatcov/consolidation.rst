@@ -33,6 +33,7 @@ of the possibilities.
 
    cons_traces
    cons_checkpoints
+   cons_sco_variations
 
 .. index::
    single: Coverage Consolidation
