@@ -596,9 +596,6 @@ class TestPyRunner:
         if mopt.spark_tests:
             testcase_cmd.append("--spark-tests=%s" % mopt.spark_tests)
 
-        if mopt.all_warnings:
-            testcase_cmd.append("--all-warnings")
-
         if mopt.default_dump_trigger:
             testcase_cmd.append(
                 f"--default-dump-trigger={mopt.default_dump_trigger}"
@@ -1652,9 +1649,6 @@ class TestSuite(e3.testsuite.Testsuite):
 
         if self.ts_args.spark_tests:
             result.append("spark-tests")
-
-        if self.ts_args.all_warnings:
-            result.append("all-warnings")
 
         if self.ts_args.block:
             result.append("block")
