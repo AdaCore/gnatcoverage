@@ -6,6 +6,7 @@ extension).
 """
 
 import os
+import re
 
 from e3.fs import cp
 
@@ -75,6 +76,15 @@ def check(label: str, name: str, expected_xcov: CovReport) -> None:
             "--externally-built-projects",
             "--units=pkg",
         ],
+        # TODO (eng/das/cov/gnatcoverage#66): stop tolerating these warnings
+        # once this use case is correctly supported.
+        tolerate_instrument_messages=(
+            r"\*\*\* [a-z-]+\.adb:\d+:\d+: "
+            + re.escape(
+                "warning: Could not determine if stmt is ghost:"
+                " LANGKIT_SUPPORT.ERRORS.PROPERTY_ERROR: Name resolution error"
+            )
+        ),
     )
     check_xcov_reports(obj_dir, expected_xcov)
 
