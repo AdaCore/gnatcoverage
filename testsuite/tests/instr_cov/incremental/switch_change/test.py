@@ -21,7 +21,7 @@ root_prj = gprfor(
 )
 
 
-def instrument_and_check(args, label):
+def instrument_and_check(args: list[str], label: str) -> None:
     # Remove existing instrumentation artifacts
     if os.path.exists("obj"):
         shutil.rmtree("obj")
@@ -37,7 +37,7 @@ def instrument_and_check(args, label):
         extra_args=args,
         out="instrument.out",
     )
-    thistest.stop_if_diff(
+    thistest.fail_if_diff(
         baseline_file=f"../instrument-{label}.expected",
         actual_file="instrument.out",
     )

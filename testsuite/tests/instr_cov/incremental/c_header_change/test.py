@@ -1,5 +1,6 @@
 """
-Check that gnatcov only reinstruments the modified source.
+Check that gnatcov reinstruments all the files that depend on a modified
+source.
 """
 
 from e3.fs import cp

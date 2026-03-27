@@ -1,6 +1,6 @@
 """
-Check that gnatcov correctly reinstrument a source containing a manual dump
-indication.
+Check that gnatcov does not reinstrument any unit when instrumenting
+consecutively a project without any file modification.
 """
 
 from SCOV.minicheck import (
@@ -16,14 +16,12 @@ from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")
 
-prjid = "gen"
-root_prj = gprfor(prjid=prjid, srcdirs=[".."], mains=["main.c"])
+root_prj = gprfor(srcdirs=[".."], mains=["main.c"])
 
 # The first instrumentation command should instrument everything
 xcov_instrument(
     gprsw=GPRswitches(root_project=root_prj),
     covlevel="stmt",
-    dump_trigger="manual",
 )
 
 # Then, the second instrumentation command should not instrument anything
@@ -32,8 +30,6 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=root_prj),
     covlevel="stmt",
     mains=["main"],
-    dump_trigger="manual",
-    manual_prj_name=prjid,
     extra_coverage_args=["-axcov"],
 )
 thistest.fail_if_diff(
@@ -44,7 +40,7 @@ thistest.fail_if_diff(
 check_xcov_reports(
     "obj",
     {
-        "main.c.xcov": {"+": {8}, "-": {10}},
+        "main.c.xcov": {"+": {6, 7}},
         "pkg.c.xcov": {"+": {6}},
         "pkg.h.xcov": {"+": {5}},
     },
