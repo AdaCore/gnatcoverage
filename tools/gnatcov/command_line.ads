@@ -798,7 +798,7 @@ package Command_Line is
              "Treat warnings as errors, i.e. exit with a non-zero"
              & " status code if a warning is emitted.",
            Commands   => (others => True),
-           Internal   => True),
+           Internal   => False),
 
       Opt_Instrument_Block             =>
         Create
