@@ -36,3 +36,7 @@
    causes the indicated executable to be included in the coverage analysis.
    This ensures that any code in that executable that is not exercised by some
    trace file will be reported as not covered.
+
+:cmd-option:`--warnings-as-errors`:
+   Treat warnings as errors, i.e. exit with a non-zero status code if a warning
+   is emitted.
