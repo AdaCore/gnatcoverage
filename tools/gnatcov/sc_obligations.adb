@@ -367,14 +367,13 @@ package body SC_Obligations is
    --  Process_Low_Level_Entry for that CU.
 
    procedure Process_Low_Level_Entry
-     (CU            : CU_Id;
-      SCO_Index     : Nat;
-      State         : in out CU_Load_State;
-      Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
-      SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean;
-      Provider      : SCO_Provider;
-      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx);
+     (CU           : CU_Id;
+      SCO_Index    : Nat;
+      State        : in out CU_Load_State;
+      SCO_Map      : access LL_HL_SCO_Map := null;
+      Count_Paths  : Boolean;
+      Provider     : SCO_Provider;
+      Attached_Ctx : Instr_Attached_Ctx := No_Attached_Ctx);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
@@ -769,7 +768,7 @@ package body SC_Obligations is
    --  decision location.
 
    function Check_SCOs_Consistency
-     (CLS        : in out Checkpoint_Load_State;
+     (CLS        : Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info) return Boolean;
    --  Check the consistency of the SCO in CP_CU wrt. SCOs previously loaded
@@ -788,19 +787,15 @@ package body SC_Obligations is
    --  for Real_CU_Id.
 
    procedure Checkpoint_Load_SID_Info
-     (CLS     : in out Checkpoint_Load_State;
-      CP_CU   : in out CU_Info;
-      Real_CU : in out CU_Info);
+     (CLS : Checkpoint_Load_State; CP_CU : CU_Info; Real_CU : in out CU_Info);
    --  Load the SID information entries in SIDs_Info and add them to Real_CU
 
    procedure Checkpoint_Load_PP_Info
-     (CLS     : in out Checkpoint_Load_State;
-      CP_CU   : in out CU_Info;
-      Real_CU : in out CU_Info);
+     (CLS : Checkpoint_Load_State; CP_CU : CU_Info; Real_CU : in out CU_Info);
    --  Load the preprocessing information in CP_CU and add them to Real_CU
 
    procedure Checkpoint_Load_Scopes
-     (CLS     : in out Checkpoint_Load_State;
+     (CLS     : Checkpoint_Load_State;
       CP_CU   : in out CU_Info;
       Real_CU : in out CU_Info);
    --  Load the scopes in CP_CU and add them to Real_CU
@@ -1544,7 +1539,7 @@ package body SC_Obligations is
    ----------------------------
 
    function Check_SCOs_Consistency
-     (CLS        : in out Checkpoint_Load_State;
+     (CLS        : Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info) return Boolean is
    begin
@@ -1753,9 +1748,7 @@ package body SC_Obligations is
    ------------------------------
 
    procedure Checkpoint_Load_SID_Info
-     (CLS     : in out Checkpoint_Load_State;
-      CP_CU   : in out CU_Info;
-      Real_CU : in out CU_Info)
+     (CLS : Checkpoint_Load_State; CP_CU : CU_Info; Real_CU : in out CU_Info)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
    begin
@@ -1812,9 +1805,7 @@ package body SC_Obligations is
    -----------------------------
 
    procedure Checkpoint_Load_PP_Info
-     (CLS     : in out Checkpoint_Load_State;
-      CP_CU   : in out CU_Info;
-      Real_CU : in out CU_Info)
+     (CLS : Checkpoint_Load_State; CP_CU : CU_Info; Real_CU : in out CU_Info)
    is
       use SCO_PP_Info_Maps;
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
@@ -1843,7 +1834,7 @@ package body SC_Obligations is
    ----------------------------
 
    procedure Checkpoint_Load_Scopes
-     (CLS     : in out Checkpoint_Load_State;
+     (CLS     : Checkpoint_Load_State;
       CP_CU   : in out CU_Info;
       Real_CU : in out CU_Info)
    is
@@ -4763,14 +4754,13 @@ package body SC_Obligations is
    -----------------------------
 
    procedure Process_Low_Level_Entry
-     (CU            : CU_Id;
-      SCO_Index     : Nat;
-      State         : in out CU_Load_State;
-      Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
-      SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean;
-      Provider      : SCO_Provider;
-      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
+     (CU           : CU_Id;
+      SCO_Index    : Nat;
+      State        : in out CU_Load_State;
+      SCO_Map      : access LL_HL_SCO_Map := null;
+      Count_Paths  : Boolean;
+      Provider     : SCO_Provider;
+      Attached_Ctx : Instr_Attached_Ctx := No_Attached_Ctx)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -5115,8 +5105,6 @@ package body SC_Obligations is
       LI_First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
       --  Index of the first high level SCO we are going to create
 
-      Ignored_Slocs_Set : Ignored_Slocs_Sets.Set;
-
       CU_Load_Infos : CU_Load_Info_Vectors.Vector;
    begin
       --  Build a list of units to load, and gather associated SCO entries
@@ -5164,7 +5152,6 @@ package body SC_Obligations is
                     (CU,
                      SCO_Index,
                      State,
-                     Ignored_Slocs_Set,
                      SCO_Map,
                      Count_Paths,
                      Provider,
@@ -5420,12 +5407,6 @@ package body SC_Obligations is
                          (SCOD.Dominant_Sloc.Source_File, Decision)
                          .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
                      pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
-                  elsif Ignored_Slocs_Set.Contains (SCOD.Dominant_Sloc) then
-
-                     --  If the dominant sloc was purposefully ignored,
-                     --  there is no need to warn about it.
-
-                     Dom_Sloc_SCO := No_SCO_Id;
                   else
                      Report
                        (First_Sloc (SCOD.Sloc_Range),

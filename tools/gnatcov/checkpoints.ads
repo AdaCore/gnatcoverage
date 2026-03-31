@@ -107,15 +107,13 @@ package Checkpoints is
    --  when CP_SFI is ignored, as it is not possible to call Remap_SFI on it.
 
    procedure Ignore_SFI
-     (Relocs : in out Checkpoint_Relocations; CP_SFI : Source_File_Index);
-   procedure Ignore_CU_Id
-     (Relocs : in out Checkpoint_Relocations; CP_CU_Id : CU_Id);
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index);
+   procedure Ignore_CU_Id (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id);
    --  Mark the source file index or compilation unit as ignored in the
    --  checkpoint relocation. Trying to remap that source file index or
    --  compilation unit will result in an error.
 
-   procedure Ignore_SCO
-     (Relocs : in out Checkpoint_Relocations; CP_SCO_Id : SCO_Id);
+   procedure Ignore_SCO (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id);
    --  Mark the SCO_Id as being removed in the checkpoint relocation.
    --  No information relative to this SCO should be loaded. In particular,
    --  trying to remap this SCO_Id will result in an error.
@@ -137,7 +135,7 @@ package Checkpoints is
    --  For convenience, No_SCO_Id is never considered ignored.
 
    procedure Set_SFI_Map
-     (Relocs                 : in out Checkpoint_Relocations;
+     (Relocs                 : Checkpoint_Relocations;
       Source_SFI, Target_SFI : Valid_Source_File_Index)
    with Pre => not SFI_Ignored (Relocs, Source_SFI);
    --  Associate Source_SFI to Target_SFI in the relocations map.
@@ -145,13 +143,13 @@ package Checkpoints is
    --  Ignore_SFI.
 
    procedure Set_SFI_Simple_Name
-     (Relocs      : in out Checkpoint_Relocations;
+     (Relocs      : Checkpoint_Relocations;
       SFI         : Valid_Source_File_Index;
       Simple_Name : Unbounded_String);
    --  Assign a simple name to SFI
 
    procedure Set_CU_Id_Map
-     (Relocs                     : in out Checkpoint_Relocations;
+     (Relocs                     : Checkpoint_Relocations;
       Source_CU_Id, Target_CU_Id : Valid_CU_Id)
    with Pre => not CU_Id_Ignored (Relocs, Source_CU_Id);
    --  Associate Source_CU_ID to Target_CU_ID in the relocations map.
@@ -159,12 +157,12 @@ package Checkpoints is
    --  Ignore_CU_Id.
 
    procedure Set_BDD_Node_Id_Map
-     (Relocs                                 : in out Checkpoint_Relocations;
+     (Relocs                                 : Checkpoint_Relocations;
       Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id);
    --  Associate Source_BDD_Node_Id to Target_BDD_Node_ID in the relocation map
 
    procedure Set_SCO_Id_Map
-     (Relocs                       : in out Checkpoint_Relocations;
+     (Relocs                       : Checkpoint_Relocations;
       Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id)
    with Pre => not SCO_Ignored (Relocs, Source_SCO_Id);
    --  Associate Source_SCO_ID to Target_SCO_ID in the relocations map

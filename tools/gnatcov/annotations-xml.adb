@@ -87,7 +87,7 @@ package body Annotations.Xml is
    --   Name = "Value"
 
    procedure T
-     (Pp         : in out Xml_Pretty_Printer'Class;
+     (Pp         : Xml_Pretty_Printer'Class;
       Name       : String;
       Attributes : String;
       Dest       : Printing_Destination := Dest_Compilation_Unit);
@@ -183,7 +183,7 @@ package body Annotations.Xml is
      (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
 
    procedure Print_Coverage_Stats
-     (Pp         : in out Xml_Pretty_Printer'Class;
+     (Pp         : Xml_Pretty_Printer'Class;
       Stats      : Counter_Array;
       Total_Kind : String;
       Dest       : Printing_Destination);
@@ -194,7 +194,7 @@ package body Annotations.Xml is
    --  statistics.
 
    procedure Print_Coverage_Li_Stats
-     (Pp       : in out Xml_Pretty_Printer'Class;
+     (Pp       : Xml_Pretty_Printer'Class;
       Li_Stats : Li_Stat_Array;
       Dest     : Printing_Destination);
    --  Emit a series of <obligation_statistics> tags to Pp to describe the
@@ -786,7 +786,7 @@ package body Annotations.Xml is
    -------
 
    procedure T
-     (Pp         : in out Xml_Pretty_Printer'Class;
+     (Pp         : Xml_Pretty_Printer'Class;
       Name       : String;
       Attributes : String;
       Dest       : Printing_Destination := Dest_Compilation_Unit) is
@@ -881,7 +881,7 @@ package body Annotations.Xml is
    --------------------------
 
    procedure Print_Coverage_Stats
-     (Pp         : in out Xml_Pretty_Printer'Class;
+     (Pp         : Xml_Pretty_Printer'Class;
       Stats      : Counter_Array;
       Total_Kind : String;
       Dest       : Printing_Destination)
@@ -929,7 +929,7 @@ package body Annotations.Xml is
    -----------------------------
 
    procedure Print_Coverage_Li_Stats
-     (Pp       : in out Xml_Pretty_Printer'Class;
+     (Pp       : Xml_Pretty_Printer'Class;
       Li_Stats : Li_Stat_Array;
       Dest     : Printing_Destination) is
    begin

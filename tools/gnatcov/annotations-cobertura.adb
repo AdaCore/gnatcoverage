@@ -88,9 +88,7 @@ package body Annotations.Cobertura is
    --  given in parameter, i.e. Name = "Value".
 
    procedure T
-     (Pp         : in out Cobertura_Pretty_Printer'Class;
-      Name       : String;
-      Attributes : String);
+     (Pp : Cobertura_Pretty_Printer'Class; Name : String; Attributes : String);
    --  Print a string representing an empty tag whose name and attributes are
    --  given in parameter, i.e. <Name Attributes/>.
 
@@ -613,9 +611,8 @@ package body Annotations.Cobertura is
    -------
 
    procedure T
-     (Pp         : in out Cobertura_Pretty_Printer'Class;
-      Name       : String;
-      Attributes : String) is
+     (Pp : Cobertura_Pretty_Printer'Class; Name : String; Attributes : String)
+   is
    begin
       Pp.P ("<" & Name & Attributes & "/>");
    end T;

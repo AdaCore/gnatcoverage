@@ -272,7 +272,7 @@ package body Traces_Dbase is
 
    procedure Split_Trace
      (Base       : in out Traces_Base;
-      Iterator   : in out Entry_Iterator;
+      Iterator   : Entry_Iterator;
       Pc         : Pc_Type;
       Head_State : Insn_State)
    is
