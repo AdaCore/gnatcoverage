@@ -13,7 +13,6 @@ include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/check-issue@~latest
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest
     inputs:
-      stage: check
       # Do not run gnatformat in pre-commit as it is missing from the environment.
       # A specific CI job is used instead.
       pre-commit-skip: "gnatformat"
@@ -33,6 +32,7 @@ include:
   # Run gnatsas on GNATcoverage sources
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@~latest
     inputs:
+      job-name: .static-analysis # little trick to be able to extend the job's script
       anod-spec: gnatcov-gnatsas-check
       cache-paths:
         - $CI_PROJECT_DIR/$GNATSAS_OBJ_DIR
@@ -259,9 +259,15 @@ pre-commit:
     - export PYTHONPATH=$LAL_INSTALL_DIR/python
 
 static-analysis:
+  extends: .static-analysis
   variables:
     GNATSAS_OBJ_DIR: tools/gnatcov/obj64/prod
     GNATSAS_OUT_DIR: tools/gnatcov/analyzer
+  script:
+    - !reference [.static-analysis, script]
+    # Check if there is at least one message and make the job fail
+    - has_msg=$(grep -c 'unexpected messages' $BUILD_DIR/$GNATSAS_OBJ_DIR/results)
+    - exit $has_msg
 
 #################
 # Optional jobs #
