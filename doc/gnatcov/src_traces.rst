@@ -343,6 +343,12 @@ The instrumentation process can be parallelized using the ``-j`` (shorthand for
 ``--jobs``) switch. ``-j0`` can be used for maximal parallelism, and ``-jN``
 with N > 0 to specify the desired level of concurrency.
 
+|gcvins| may emit warnings in situations where an anomaly occurs, when that
+anomaly does not technically prevents the instrumentation process: in that
+case, |gcvins| prints a warning message and resumes its operations. Passing
+:cmd-option:`--warnings-as-errors` makes it treat warnings as errors, i.e. exit
+with a non-zero status code.
+
 .. _Dump_Triggers:
 
 Output strategies for coverage information
