@@ -719,7 +719,7 @@ package body CFG_Dump is
       CFG        : Basic_Blocks renames Context.CFG;
       Current_BB : Basic_Block_Access := null;
 
-      procedure Finalize_Successors (BB : in out Basic_Block);
+      procedure Finalize_Successors (BB : Basic_Block);
       --  Remove successors of all instructions in BB except for the last
       --  instruction. Such successors are useless since the only possible
       --  successor for such instructions is the next one. Also elaborate
@@ -729,7 +729,7 @@ package body CFG_Dump is
       -- Finalize_Successors --
       -------------------------
 
-      procedure Finalize_Successors (BB : in out Basic_Block) is
+      procedure Finalize_Successors (BB : Basic_Block) is
          use Instruction_Vectors;
          use Successor_Vectors;
       begin

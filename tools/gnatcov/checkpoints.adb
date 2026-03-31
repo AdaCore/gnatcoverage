@@ -163,7 +163,7 @@ package body Checkpoints is
    ----------------
 
    procedure Ignore_SFI
-     (Relocs : in out Checkpoint_Relocations; CP_SFI : Source_File_Index) is
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index) is
    begin
       pragma Assert (Relocs.SFI_Map (CP_SFI) = No_Source_File);
       Relocs.Ignored_SFIs (CP_SFI) := True;
@@ -173,8 +173,8 @@ package body Checkpoints is
    -- Ignore_CU_Id --
    ------------------
 
-   procedure Ignore_CU_Id
-     (Relocs : in out Checkpoint_Relocations; CP_CU_Id : CU_Id) is
+   procedure Ignore_CU_Id (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id)
+   is
    begin
       pragma Assert (Relocs.CU_Map (CP_CU_Id) = No_CU_Id);
       Relocs.Ignored_CUs (CP_CU_Id) := True;
@@ -184,8 +184,8 @@ package body Checkpoints is
    -- Ignore_SCO --
    ----------------
 
-   procedure Ignore_SCO
-     (Relocs : in out Checkpoint_Relocations; CP_SCO_Id : SCO_Id) is
+   procedure Ignore_SCO (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id)
+   is
    begin
       pragma Assert (Relocs.SCO_Map (CP_SCO_Id) = No_SCO_Id);
       Relocs.Ignored_SCOs (CP_SCO_Id) := True;
@@ -227,7 +227,7 @@ package body Checkpoints is
    -----------------
 
    procedure Set_SFI_Map
-     (Relocs                 : in out Checkpoint_Relocations;
+     (Relocs                 : Checkpoint_Relocations;
       Source_SFI, Target_SFI : Valid_Source_File_Index) is
    begin
       Relocs.SFI_Map (Source_SFI) := Target_SFI;
@@ -238,7 +238,7 @@ package body Checkpoints is
    -------------------------
 
    procedure Set_SFI_Simple_Name
-     (Relocs      : in out Checkpoint_Relocations;
+     (Relocs      : Checkpoint_Relocations;
       SFI         : Valid_Source_File_Index;
       Simple_Name : Unbounded_String) is
    begin
@@ -250,7 +250,7 @@ package body Checkpoints is
    -------------------
 
    procedure Set_CU_Id_Map
-     (Relocs                     : in out Checkpoint_Relocations;
+     (Relocs                     : Checkpoint_Relocations;
       Source_CU_Id, Target_CU_Id : Valid_CU_Id) is
    begin
       Relocs.CU_Map (Source_CU_Id) := Target_CU_Id;
@@ -261,7 +261,7 @@ package body Checkpoints is
    -------------------------
 
    procedure Set_BDD_Node_Id_Map
-     (Relocs                                 : in out Checkpoint_Relocations;
+     (Relocs                                 : Checkpoint_Relocations;
       Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id) is
    begin
       Relocs.BDD_Map (Source_BDD_Node_Id) := Target_BDD_Node_Id;
@@ -272,7 +272,7 @@ package body Checkpoints is
    --------------------
 
    procedure Set_SCO_Id_Map
-     (Relocs                       : in out Checkpoint_Relocations;
+     (Relocs                       : Checkpoint_Relocations;
       Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id) is
    begin
       Relocs.SCO_Map (Source_SCO_Id) := Target_SCO_Id;

@@ -686,7 +686,7 @@ package body Coverage.Source is
         (SCO       : SCO_Id;
          SCO_State : Line_State;
          Line_Info : Line_Info_Access;
-         SCI       : in out Source_Coverage_Info;
+         SCI       : Source_Coverage_Info;
          Level     : Coverage_Level)
       with Pre => Level in MCDC | UC_MCDC | ATCC;
       --  Complete computation of Level coverage state if SCO is covered for
@@ -710,7 +710,7 @@ package body Coverage.Source is
         (SCO       : SCO_Id;
          SCO_State : Line_State;
          Line_Info : Line_Info_Access;
-         SCI       : in out Source_Coverage_Info;
+         SCI       : Source_Coverage_Info;
          Level     : Coverage_Level) is
       begin
          if SCO_State = Covered then

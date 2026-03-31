@@ -85,7 +85,7 @@ package Instrument.Input_Traces is
       MCDC_Buffer             : Coverage_Buffer);
    --  Update ``Self`` with data from the given coverage buffers
 
-   procedure Process_State (Self : in out Consolidation_State);
+   procedure Process_State (Self : Consolidation_State);
    --  Update gnatcov's code coverage state with data from the coverage buffers
    --  added to ``Self``.
 

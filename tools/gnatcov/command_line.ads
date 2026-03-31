@@ -1596,7 +1596,7 @@ package Command_Line is
              (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
               others                                      => False),
            At_Most_Once => True,
-           Internal     => False));
+           Internal     => True));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Log                     =>

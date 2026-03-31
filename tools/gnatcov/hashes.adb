@@ -48,8 +48,8 @@ package body Hashes is
    -- Digest --
    ------------
 
-   function Digest
-     (Self : in out Tracing_Hash) return GNAT.SHA1.Binary_Message_Digest is
+   function Digest (Self : Tracing_Hash) return GNAT.SHA1.Binary_Message_Digest
+   is
    begin
       if Self.Trace.Is_Active then
          Self.Trace.Trace
