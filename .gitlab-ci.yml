@@ -10,6 +10,7 @@ variables:
    GNATFORMAT_DATE: 20251204
 
 include:
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/check-issue@~latest
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest
     inputs:
       stage: check
@@ -61,7 +62,6 @@ build:
      - mem:16
   stage: build
   script:
-    - require_issue
     - *basic_setup
 
     # 1. Install / build the dependencies of gnatcov using the smart rebuilder
