@@ -113,10 +113,10 @@ package body Annotations.Html is
    -- Other pretty printer utilities --
    ------------------------------------
 
-   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   procedure Plh (Pp : Html_Pretty_Printer'Class; Str : String);
    --  Print Str in Pp's current html file; new line at the end
 
-   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   procedure Wrh (Pp : Html_Pretty_Printer'Class; Str : String);
    --  Put Str in Pp's current html file; no new line at the end
 
    ---------------------------
@@ -131,14 +131,13 @@ package body Annotations.Html is
    -------------------------------
 
    procedure Print_Coverage_Header
-     (F : in out File_Type; Key_Name : String; Display_Keys : Boolean);
+     (F : File_Type; Key_Name : String; Display_Keys : Boolean);
    --  Print the first line of a HTML table that lists some coverage stats;
    --  that is to say, a table line with a short description of each field.
    --  Key_Name is the name of the keys of this table (e.g. file names).
    --  If Display_Keys, Index_Name will be displayed in the first column.
 
-   procedure Print_Coverage_Stats
-     (F : in out File_Type; Stats : Li_Stat_Array);
+   procedure Print_Coverage_Stats (F : File_Type; Stats : Li_Stat_Array);
    --  Put the datas of Stats as HTML table cells ("<td>") in F.
 
    -----------------------
@@ -238,7 +237,7 @@ package body Annotations.Html is
    -- Plh --
    ---------
 
-   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
+   procedure Plh (Pp : Html_Pretty_Printer'Class; Str : String) is
    begin
       Put_Line (Pp.Html_File, Str);
    end Plh;
@@ -775,7 +774,7 @@ package body Annotations.Html is
    ---------------------------
 
    procedure Print_Coverage_Header
-     (F : in out File_Type; Key_Name : String; Display_Keys : Boolean) is
+     (F : File_Type; Key_Name : String; Display_Keys : Boolean) is
    begin
       Put_Line (F, "    <tr>");
 
@@ -808,8 +807,7 @@ package body Annotations.Html is
    -- Print_Coverage_Stats --
    --------------------------
 
-   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Li_Stat_Array)
-   is
+   procedure Print_Coverage_Stats (F : File_Type; Stats : Li_Stat_Array) is
       use Ada.Integer_Text_IO;
 
       Total : constant Natural := Get_Total (Stats);
@@ -928,7 +926,7 @@ package body Annotations.Html is
    -- Wrh --
    ---------
 
-   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
+   procedure Wrh (Pp : Html_Pretty_Printer'Class; Str : String) is
    begin
       Put (Pp.Html_File, Str);
    end Wrh;

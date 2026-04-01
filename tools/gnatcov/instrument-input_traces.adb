@@ -1478,7 +1478,7 @@ package body Instrument.Input_Traces is
    -- Process_State --
    -------------------
 
-   procedure Process_State (Self : in out Consolidation_State) is
+   procedure Process_State (Self : Consolidation_State) is
    begin
       for Cur in Self.Map.Iterate loop
          declare

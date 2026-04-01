@@ -644,7 +644,7 @@ package body Instrument.Ada_Unit is
    --  a declaration in a declare expression.
 
    procedure Fill_Expression_Insertion_Info
-     (UIC : in out Ada_Unit_Inst_Context; Bit : Any_Bit_Id);
+     (UIC : Ada_Unit_Inst_Context; Bit : Any_Bit_Id);
    --  Fill UIC.Current_Insertion_Info with new witness formal and actual
 
    procedure Ensure_With
@@ -1285,7 +1285,7 @@ package body Instrument.Ada_Unit is
    --  End the currently active statement block
 
    procedure Insert_Stmt_Witness
-     (UIC             : in out Ada_Unit_Inst_Context;
+     (UIC             : Ada_Unit_Inst_Context;
       Stmt_Instr_Info : Stmt_Instr_Info_Type;
       Bit             : Any_Bit_Id);
    --  Insert a statement witness call for the given Bit.
@@ -1398,7 +1398,7 @@ package body Instrument.Ada_Unit is
 
    procedure Start_Rewriting
      (Self         : out Ada_Source_Rewriter'Class;
-      Instrumenter : in out Ada_Instrumenter_Type'Class;
+      Instrumenter : Ada_Instrumenter_Type'Class;
       Prj          : Prj_Desc;
       Unit         : Analysis_Unit);
    --  Same as above, but initiating the rewriting session from Unit, skipping
@@ -7681,7 +7681,7 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    procedure Fill_Expression_Insertion_Info
-     (UIC : in out Ada_Unit_Inst_Context; Bit : Any_Bit_Id)
+     (UIC : Ada_Unit_Inst_Context; Bit : Any_Bit_Id)
    is
       Formal_Name   : constant Node_Rewriting_Handle :=
         Make_Identifier (UIC.Rewriting_Context, "Dummy_Witness_Result");
@@ -8436,7 +8436,7 @@ package body Instrument.Ada_Unit is
    -------------------------
 
    procedure Insert_Stmt_Witness
-     (UIC             : in out Ada_Unit_Inst_Context;
+     (UIC             : Ada_Unit_Inst_Context;
       Stmt_Instr_Info : Stmt_Instr_Info_Type;
       Bit             : Any_Bit_Id)
    is
@@ -8691,7 +8691,7 @@ package body Instrument.Ada_Unit is
 
    procedure Start_Rewriting
      (Self         : out Ada_Source_Rewriter'Class;
-      Instrumenter : in out Ada_Instrumenter_Type'Class;
+      Instrumenter : Ada_Instrumenter_Type'Class;
       Prj          : Prj_Desc;
       Unit         : Analysis_Unit)
    is

@@ -326,9 +326,7 @@ package body Instrument.C is
    --  relevant set of coverage buffers.
 
    procedure Insert_Condition_Witness
-     (UIC    : in out C_Unit_Inst_Context;
-      SC     : C_Source_Condition;
-      Offset : Natural);
+     (UIC : C_Unit_Inst_Context; SC : C_Source_Condition; Offset : Natural);
    --  For use when MC/DC coverage requested. Insert witness function call for
    --  the identified condition.
 
@@ -338,7 +336,7 @@ package body Instrument.C is
    --  decision SCO.
 
    function Insert_MCDC_State
-     (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String;
+     (UIC : C_Unit_Inst_Context'Class; Name : String) return String;
 
    procedure Fix_CXX_For_Ranges (UIC : in out C_Unit_Inst_Context);
    --  This procedure fixes C++ for ranges that were purposefully instrumented
@@ -469,7 +467,7 @@ package body Instrument.C is
    --  Same as above but in function form to allow calling in a declarative
    --  region. Always returns False.
 
-   procedure Apply (Self : in out C_Source_Rewriter);
+   procedure Apply (Self : C_Source_Rewriter);
    --  Overwrite the file with the rewritter modifications
 
    procedure Start_Rewriting
@@ -1482,9 +1480,7 @@ package body Instrument.C is
    ------------------------------
 
    procedure Insert_Condition_Witness
-     (UIC    : in out C_Unit_Inst_Context;
-      SC     : C_Source_Condition;
-      Offset : Natural) is
+     (UIC : C_Unit_Inst_Context; SC : C_Source_Condition; Offset : Natural) is
    begin
       --  No instrumentation for condition if there is no local state variable
 
@@ -1589,7 +1585,7 @@ package body Instrument.C is
    -----------------------
 
    function Insert_MCDC_State
-     (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String
+     (UIC : C_Unit_Inst_Context'Class; Name : String) return String
    is
       Var_Decl_Img  : constant String := "unsigned " & Name & "_var;";
       Addr_Decl_Img : constant String :=
@@ -3413,7 +3409,7 @@ package body Instrument.C is
    -- Apply --
    -----------
 
-   procedure Apply (Self : in out C_Source_Rewriter) is
+   procedure Apply (Self : C_Source_Rewriter) is
       Ignored_Res : Interfaces.C.int;
    begin
       Ignored_Res :=

@@ -1742,6 +1742,7 @@ package body Traces_Files is
          Unchecked_Deallocation (Info);
          Info := N_Info;
       end loop;
+      Trace_File.Filename := Null_Unbounded_String;
    end Free;
 
    -----------------------

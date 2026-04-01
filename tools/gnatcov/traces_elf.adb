@@ -4844,7 +4844,7 @@ package body Traces_Elf is
       --  Set trace state for the given routine
 
       procedure Do_Set_Insn_State
-        (Info : in out Subprogram_Info; Last_Executed : out Pc_Type);
+        (Info : Subprogram_Info; Last_Executed : out Pc_Type);
       --  Helper to invoke Set_Insn_Trace in Build_Routine_Insn_State
 
       ------------------------------
@@ -4887,7 +4887,7 @@ package body Traces_Elf is
       -----------------------
 
       procedure Do_Set_Insn_State
-        (Info : in out Subprogram_Info; Last_Executed : out Pc_Type) is
+        (Info : Subprogram_Info; Last_Executed : out Pc_Type) is
       begin
          Set_Insn_State
            (Info.Traces.all,

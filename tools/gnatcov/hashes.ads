@@ -64,7 +64,7 @@ package Hashes is
    --  Append S to the hashed content
 
    function Digest
-     (Self : in out Tracing_Hash) return GNAT.SHA1.Binary_Message_Digest;
+     (Self : Tracing_Hash) return GNAT.SHA1.Binary_Message_Digest;
    --  Return the digest for this hash
 
 private
