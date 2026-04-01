@@ -6572,6 +6572,7 @@ package body Instrument.Ada_Unit is
             if Is_Call_Leaf (Node)
               and then
                 (not Is_Static_Expr (Node.As_Expr) or else Is_Op_String_Call)
+              and then Node.Kind not in Ada_Attribute_Ref
             then
                Full_Call_Node := Full_Call (Node);
 
@@ -6593,7 +6594,9 @@ package body Instrument.Ada_Unit is
 
                   Needs_Qualified_Expr : constant Boolean :=
                     Full_Call_Node.Parent.Kind
-                    in Ada_Dotted_Name | Ada_Explicit_Deref;
+                    in Ada_Dotted_Name
+                     | Ada_Explicit_Deref
+                     | Ada_Attribute_Ref;
 
                   Call_Type : constant Base_Type_Decl :=
                     Full_Call_Node.As_Expr.P_Expression_Type.P_Base_Subtype;
