@@ -400,6 +400,21 @@ gnatsas:
 
 bump_baseline:
 	gnatsas baseline --bump-baseline -P gnatcov.gpr $(GNATSAS_ARGS)
+	# Remove mentions of absolute paths to avoid baseline variations
+	# depending on where the gnatcoverage repository is located.
+	#
+	# Running `cd $(pwd -P)` first will resolve symbolic links, to avoid
+	# potential mismatches.
+	#
+	# Some baseline file lines contain the repo absolute path twice, so run
+	# sed twice...
+	( \
+		cd $$(pwd -P); \
+		GNATSAS_PREFIX=$$(dirname $$(dirname $$(which gnatsas))); \
+		sed "s|$$GNATSAS_PREFIX||" -i analyzer/*.sam; \
+		sed "s|$$PWD||" -i analyzer/*.sam; \
+		sed "s|$$PWD||" -i analyzer/*.sam \
+	)
 
 .PHONY: force
 
