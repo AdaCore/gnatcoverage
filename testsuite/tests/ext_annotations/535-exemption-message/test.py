@@ -58,29 +58,29 @@ def check_exemption_justification(
 
 
 tmp = Wdir("tmp_")
-prj = gprfor(srcdirs=[".."], mains=["main.adb", "main_c.c"])
+prj = gprfor(srcdirs=[".."], mains=["main.adb"])
 annotations = [
-    Exempt_Region("../main.adb", "7:4", "8:27", "Ada justification text"),
+    Exempt_Region("../main.adb", "11:4", "12:27", "Ada justification text"),
     Exempt_Region("../main_c.c", "8:3", "9:14", "C justification text"),
     Exempt_Region("../static_lib.h", "4:3", "5:17", "C Header text"),
 ]
 annotations_file = generate_annotations(annotations, prj)
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=prj),
-    mains=["main", "main_c"],
+    mains=["main"],
     covlevel="stmt+decision",
     extra_coverage_args=[
         "-axcov+",
         f"--external-annotations={annotations_file}",
     ],
     tolerate_instrument_messages=(
-        "main.adb:12:4: warning: No justification given for exempted region"
+        "main.adb:16:4: warning: No justification given for exempted region"
     ),
 )
 check_xcov_reports(
     reports_dir="obj",
     expected_cov={
-        "main.adb.xcov": {"+": {4, 10}, "*": {7, 8, 12, 13, 14, 15, 16}},
+        "main.adb.xcov": {"+": {5, 9, 14}, "*": {11, 12, 16, 17, 18, 19, 20}},
         "main_c.c.xcov": {"+": {7, 10}, "*": {8, 9}},
         "static_lib.h.xcov": {"+": {6}, "*": {4, 5}},
     },
@@ -91,6 +91,6 @@ for exempted_region in annotations:
 
 # Check the result of no exemption justification with an in-source annotation,
 # as the add-annotation command rejects exemptions with no justifications.
-check_exemption_justification("obj", Exempt_Region("main.adb", "12:4", "16:4"))
+check_exemption_justification("obj", Exempt_Region("main.adb", "16:4", "20:4"))
 
 thistest.result()

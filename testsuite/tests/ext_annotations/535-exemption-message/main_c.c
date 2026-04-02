@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 int
-main (void)
+main_c (void)
 {
   int a = bad_is_even (4);
   if (a)
