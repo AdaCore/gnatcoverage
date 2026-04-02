@@ -269,6 +269,8 @@ static-analysis:
     - !reference [.static-analysis, script]
     # Make the job fail if there is at least one message
     - if grep 'unexpected messages' $BUILD_DIR/$GNATSAS_OBJ_DIR/results; then exit 1; fi
+  artifacts:
+    when: always # the default is on_success and does not let us investigate
 
 #################
 # Optional jobs #
