@@ -1,14 +1,3 @@
-workflow:
-  rules:
-    # Run the CI on merge requests only
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-
-variables:
-   PACKAGE_BASE_NAME: gnatcoverage.tar.gz
-   PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
-   CLANG_FORMAT_DATE: 20260303
-   GNATFORMAT_DATE: 20251204
-
 include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/check-issue@~latest
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest
@@ -24,6 +13,8 @@ include:
       install-gnatformat: true
       install-gnatformat-extra-anod-args: -Qedge -Qdate=$GNATFORMAT_DATE
 
+  - local: .gitlab-dates.yaml
+
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
   - local: utils/ci/interruptible.yml
     rules:
@@ -37,6 +28,17 @@ include:
       cache-paths:
         - $CI_PROJECT_DIR/$GNATSAS_OBJ_DIR
       save-anod-logs: true
+
+workflow:
+  rules:
+    # Run the CI on merge requests only
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+variables:
+   PACKAGE_BASE_NAME: gnatcoverage.tar.gz
+   PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
+   CLANG_FORMAT_DATE: !reference [.dates, clang-format]
+   GNATFORMAT_DATE: !reference [.dates, gnatformat]
 
 .basic_setup: &basic_setup
   - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
