@@ -7,11 +7,10 @@ with Expr_Func;
 
 procedure Test_Expr_Func is
 begin
-   begin
-      Expr_Func;
-   exception
-      when Ada.Assertions.Assertion_Error => null;
-   end;
+   Expr_Func;
+exception
+   when Ada.Assertions.Assertion_Error =>
+      null;
 end Test_Expr_Func;
 
 --# expr_func.adb
