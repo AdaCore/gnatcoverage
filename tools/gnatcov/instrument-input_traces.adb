@@ -131,7 +131,7 @@ package body Instrument.Input_Traces is
    is (Stream.Last_Position_Address);
 
    type Trace_Entry_Elements is record
-      Unit_Name        : System.Address;
+      Filename         : System.Address;
       Statement_Buffer : System.Address;
       Decision_Buffer  : System.Address;
       MCDC_Buffer      : System.Address;
@@ -491,38 +491,18 @@ package body Instrument.Input_Traces is
          --  Swap bytes if needed, according to the file endianity
 
          if File_Header.Endianity /= Native_Endianity then
-            Swap4 (Raw_Header.Unit_Name_Length'Address);
+            Swap4 (Raw_Header.Filename_Length'Address);
             Swap4 (Raw_Header.Statement_Bit_Count'Address);
             Swap4 (Raw_Header.Decision_Bit_Count'Address);
             Swap4 (Raw_Header.MCDC_Bit_Count'Address);
          end if;
 
-         if Raw_Header.Language_Kind not in Supported_Language_Kind then
-            Create_Error (Result, "invalid language kind");
-            return False;
-
-         --  Check that the unit part has a valid value, which depends on the
-         --  current language kind.
-
-         elsif (case Raw_Header.Language_Kind is
-                  when Traces_Source.Unit_Based_Language =>
-                    Raw_Header.Unit_Part not in Supported_Unit_Part,
-                  when Traces_Source.File_Based_Language =>
-                    Raw_Header.Unit_Part /= Traces_Source.Not_Applicable_Part,
-                  when others                            =>
-                    raise Program_Error
-                      with "invalid language while already validated")
-         then
-            Create_Error (Result, "invalid unit part");
-            return False;
-
-         elsif Raw_Header.Bit_Buffer_Encoding
-               not in Supported_Bit_Buffer_Encoding
+         if Raw_Header.Bit_Buffer_Encoding not in Supported_Bit_Buffer_Encoding
          then
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 .. 1 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 3 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -534,15 +514,15 @@ package body Instrument.Input_Traces is
       --  MC/DC coverage buffers) in one single read.
 
       declare
-         Unit_Name_Range        : constant Buffer_Range :=
+         Filename_Range         : constant Buffer_Range :=
            Range_For
              (File_Header.Alignment,
               0,
-              Natural (Entry_Header.Unit_Name_Length));
+              Natural (Entry_Header.Filename_Length));
          Statement_Buffer_Range : constant Buffer_Range :=
            Range_For
              (File_Header.Alignment,
-              Offset_After (Unit_Name_Range),
+              Offset_After (Filename_Range),
               Buffer_Size
                 (Entry_Header.Bit_Buffer_Encoding,
                  Entry_Header.Statement_Bit_Count));
@@ -580,7 +560,7 @@ package body Instrument.Input_Traces is
 
          Base_Address := Buffer_Address (Stream);
          Trace_Entry :=
-           (Base_Address + Unit_Name_Range.Offset,
+           (Base_Address + Filename_Range.Offset,
             Base_Address + Statement_Buffer_Range.Offset,
             Base_Address + Decision_Buffer_Range.Offset,
             Base_Address + MCDC_Buffer_Range.Offset);
@@ -629,7 +609,7 @@ package body Instrument.Input_Traces is
    ------------------------------------
 
    procedure Generic_Read_Source_Trace_File
-     (Filename : String; Result : out Traces_Files.Read_Result)
+     (Trace_Filename : String; Result : out Traces_Files.Read_Result)
    is
       Stream           : Binary_Stream;
       File_Header      : Trace_File_Header;
@@ -643,8 +623,8 @@ package body Instrument.Input_Traces is
 
       --  Try to open the file
 
-      if not Open_File (Filename, Stream) then
-         Create_Error (Result, "cannot open " & Filename);
+      if not Open_File (Trace_Filename, Stream) then
+         Create_Error (Result, "cannot open " & Trace_Filename);
          return;
       end if;
 
@@ -684,9 +664,9 @@ package body Instrument.Input_Traces is
               (Stream, File_Header, Entry_Header, Trace_Entry, Result)
       loop
          declare
-            Unit_Name :
-              constant String (1 .. Natural (Entry_Header.Unit_Name_Length))
-            with Import, Address => Trace_Entry.Unit_Name;
+            Source_Filename :
+              constant String (1 .. Natural (Entry_Header.Filename_Length))
+            with Import, Address => Trace_Entry.Filename;
 
             function Convert is new
               Ada.Unchecked_Conversion
@@ -728,8 +708,6 @@ package body Instrument.Input_Traces is
             function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
             is (Any_Bit_Id (Bit_Count) - 1);
 
-            CU_Name : Compilation_Unit_Part;
-
          begin
             Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
             Reserve (Decision_Buffer, Entry_Header.Decision_Bit_Count);
@@ -764,21 +742,10 @@ package body Instrument.Input_Traces is
                goto Cleanup_And_Exit;
             end if;
 
-            case Supported_Language_Kind (Entry_Header.Language_Kind) is
-               when Traces_Source.Unit_Based_Language =>
-                  CU_Name :=
-                    CU_Name_For_Unit
-                      (Unit => To_Qualified_Name (Unit_Name),
-                       Part => +Entry_Header.Unit_Part);
-
-               when Traces_Source.File_Based_Language =>
-                  CU_Name := CU_Name_For_File (+Unit_Name);
-            end case;
-
             On_Trace_Entry
-              (Filename,
+              (Trace_Filename,
                Fingerprint,
-               CU_Name,
+               Source_Filename,
                Bit_Maps_Fingerprint,
                Annotations_Fingerprint,
                Statement_Buffer
@@ -805,9 +772,9 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Info
         (Kind : Traces_Source.Supported_Info_Kind; Data : String);
       procedure On_Trace_Entry
-        (Filename                : String;
+        (Trace_Filename          : String;
          Fingerprint             : SC_Obligations.Fingerprint_Type;
-         CU_Name                 : Compilation_Unit_Part;
+         Source_Filename         : String;
          Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
          Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer             : Coverage_Buffer;
@@ -845,16 +812,16 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Filename                : String;
+        (Trace_Filename          : String;
          Fingerprint             : SC_Obligations.Fingerprint_Type;
-         CU_Name                 : Compilation_Unit_Part;
+         Source_Filename         : String;
          Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
          Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer             : Coverage_Buffer;
          Decision_Buffer         : Coverage_Buffer;
          MCDC_Buffer             : Coverage_Buffer)
       is
-         pragma Unreferenced (Filename);
+         pragma Unreferenced (Trace_Filename);
          use Ada.Text_IO;
       begin
          if Last_Is_Info then
@@ -862,18 +829,7 @@ package body Instrument.Input_Traces is
             Last_Is_Info := False;
          end if;
 
-         case CU_Name.Language_Kind is
-            when Traces_Source.Unit_Based_Language =>
-               Put
-                 ("Unit "
-                  & To_Ada (CU_Name.Unit)
-                  & " ("
-                  & CU_Name.Part'Image
-                  & ", ");
-
-            when Traces_Source.File_Based_Language =>
-               Put ("Unit " & (+CU_Name.Filename) & " (");
-         end case;
+         Put ("Unit " & Source_Filename & " (");
 
          Put ("SCOs hash=");
          for B of Fingerprint loop
@@ -1306,7 +1262,7 @@ package body Instrument.Input_Traces is
    function Hash
      (Self : Consolidated_Trace_Key) return Ada.Containers.Hash_Type is
    begin
-      return Result : Ada.Containers.Hash_Type := Hash (Self.CU_Name) do
+      return Result : Ada.Containers.Hash_Type := Hash (Self.Filename) do
          for Digit of Self.Fingerprint loop
             Result := Combine (Result, Stream_Element'Pos (Digit));
          end loop;
@@ -1319,9 +1275,9 @@ package body Instrument.Input_Traces is
 
    procedure Update_State
      (Self                    : in out Consolidation_State;
-      Filename                : String;
+      Trace_Filename          : String;
       Fingerprint             : SC_Obligations.Fingerprint_Type;
-      CU_Name                 : Compilation_Unit_Part;
+      Source_Filename         : String;
       Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
       Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer             : Coverage_Buffer;
@@ -1330,36 +1286,13 @@ package body Instrument.Input_Traces is
    is
       use Consolidated_Trace_Maps;
 
-      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
-      --  Helper to include Part in an error message
-
-      function Unit_Image return String
-      is (case CU_Name.Language_Kind is
-            when Unit_Based_Language =>
-              (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
-            when File_Based_Language => +CU_Name.Filename);
-      --  Helper to refer to the instrumented unit in an error message
-
-      ----------------
-      -- Part_Image --
-      ----------------
-
-      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
-      begin
-         return
-           (case Part is
-              when GPR2.S_Body     => "body of",
-              when GPR2.S_Spec     => "spec of",
-              when GPR2.S_Separate => "separate");
-      end Part_Image;
-
-      Key : constant Consolidated_Trace_Key := (CU_Name, Fingerprint);
+      Key : constant Consolidated_Trace_Key := (+Source_Filename, Fingerprint);
       Elt : Consolidated_Trace_Entry;
       Cur : Cursor;
       CU  : CU_Id;
    begin
       if Misc_Trace.Is_Active then
-         Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+         Misc_Trace.Trace ("processing traces for unit " & Source_Filename);
       end if;
 
       --  Look for a consolidated trace entry corresponding to these coverage:
@@ -1370,7 +1303,7 @@ package body Instrument.Input_Traces is
       if Has_Element (Cur) then
          CU := Element (Cur).CU;
       else
-         CU := Find_Instrumented_Unit (CU_Name);
+         CU := Find_Instrumented_Unit (Key.Filename);
 
          if CU = No_CU_Id then
 
@@ -1383,7 +1316,7 @@ package body Instrument.Input_Traces is
 
             Misc_Trace.Trace
               ("discarding source trace entry for unknown instrumented unit: "
-               & Unit_Image);
+               & Source_Filename);
             return;
 
          elsif Provider (CU) /= Instrumenter then
@@ -1395,7 +1328,7 @@ package body Instrument.Input_Traces is
             Outputs.Warn
               ("inconsistent coverage method, ignoring coverage information"
                & " for "
-               & Unit_Image);
+               & Source_Filename);
             return;
          end if;
       end if;
@@ -1413,9 +1346,9 @@ package body Instrument.Input_Traces is
       then
          Outputs.Warn
            ("traces for "
-            & Unit_Image
+            & Source_Filename
             & " (from "
-            & Filename
+            & Trace_Filename
             & ") are"
             & " inconsistent with the corresponding Source Instrumentation"
             & " Data");

@@ -24,8 +24,6 @@
 
 with Interfaces; use Interfaces;
 
-with GPR2;
-
 --  Describes the content of a source trace file. Should be kept up to date
 --  when the trace format is modified. It is notably used to parse source
 --  traces in gnatcov.
@@ -75,28 +73,6 @@ package Traces_Source is
 
    type Hash_Type is new Unsigned_32;
    --  Hash type to perform consistency checks
-
-   type Any_Unit_Part is new Unsigned_8;
-   Not_Applicable_Part : constant Any_Unit_Part := 0;
-   Unit_Body           : constant Any_Unit_Part := 1;
-   Unit_Spec           : constant Any_Unit_Part := 2;
-   Unit_Separate       : constant Any_Unit_Part := 3;
-   subtype All_Unit_Part is
-     Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
-   subtype Supported_Unit_Part is
-     Any_Unit_Part range Unit_Body .. Unit_Separate;
-   --  Describe the kind of unit referenced by a trace entry
-
-   function "+" (Part : Supported_Unit_Part) return GPR2.Valid_Unit_Kind
-   is (case Part is
-         when Unit_Body     => GPR2.S_Body,
-         when Unit_Spec     => GPR2.S_Spec,
-         when Unit_Separate => GPR2.S_Separate);
-   function "+" (Part : GPR2.Valid_Unit_Kind) return Supported_Unit_Part
-   is (case Part is
-         when GPR2.S_Body     => Unit_Body,
-         when GPR2.S_Spec     => Unit_Spec,
-         when GPR2.S_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
@@ -218,24 +194,20 @@ package Traces_Source is
    type Fingerprint_Type is new String (1 .. 20);
 
    type Trace_Entry_Header is record
-      Unit_Name_Length : Unsigned_32;
-      --  Length of the unit name / filename for the unit this trace entry
-      --  describes.
+      Filename_Length : Unsigned_32;
+      --  Length of the filename for the unit this trace entry describes
 
       Statement_Bit_Count : Any_Bit_Count;
       Decision_Bit_Count  : Any_Bit_Count;
       MCDC_Bit_Count      : Any_Bit_Count;
       --  Number of bits in the statement, decision and MC/DC coverage buffers
 
-      Language_Kind : Any_Language_Kind;
-      --  Language for this unit
-
-      Unit_Part : Any_Unit_Part;
-      --  Part of the unit this trace entry describes. Not_Applicable_Part for
-      --  file-based languages.
-
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
+
+      Padding : String (1 .. 3);
+      --  Padding used only to make the size of this trace entry header a
+      --  multiple of 8 bytes. Must be set to zero.
 
       Fingerprint : Fingerprint_Type;
       --  Hash of SCO info for this unit. Useds a fast way to check that
@@ -252,25 +224,19 @@ package Traces_Source is
       --  Hash of annotations for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used as a fast way to check that source traces and
       --  coverage data are consistent.
-
-      Padding : String (1 .. 1);
-      --  Padding used only to make the size of this trace entry header a
-      --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use
      record
-       Unit_Name_Length at 0 range 0 .. 31;
+       Filename_Length at 0 range 0 .. 31;
        Statement_Bit_Count at 4 range 0 .. 31;
        Decision_Bit_Count at 8 range 0 .. 31;
        MCDC_Bit_Count at 12 range 0 .. 31;
-       Language_Kind at 16 range 0 .. 7;
-       Unit_Part at 17 range 0 .. 7;
-       Bit_Buffer_Encoding at 18 range 0 .. 7;
-       Fingerprint at 19 range 0 .. 20 * 8 - 1;
-       Bit_Maps_Fingerprint at 39 range 0 .. 20 * 8 - 1;
-       Annotations_Fingerprint at 59 range 0 .. 20 * 8 - 1;
-       Padding at 79 range 0 .. 1 * 8 - 1;
+       Bit_Buffer_Encoding at 16 range 0 .. 7;
+       Padding at 17 range 0 .. 3 * 8 - 1;
+       Fingerprint at 20 range 0 .. 20 * 8 - 1;
+       Bit_Maps_Fingerprint at 40 range 0 .. 20 * 8 - 1;
+       Annotations_Fingerprint at 60 range 0 .. 20 * 8 - 1;
      end record;
 
    for Trace_Entry_Header'Size use 80 * 8;

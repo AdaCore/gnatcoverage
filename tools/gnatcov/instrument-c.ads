@@ -375,25 +375,14 @@ package Instrument.C is
    --  Shortcut to call Import_From_Project, and Import_From_Args on the
    --  --c-opts/--c++-opts option.
 
-   type Source_Of_Interest (Of_Interest : Boolean := False) is record
-      case Of_Interest is
-         when False =>
-            null;
-
-         when True =>
-            SFI     : Valid_Source_File_Index;
-            CU_Name : Compilation_Unit_Part;
-      end case;
-   end record;
-   --  Descriptor for a source file: Of_Interest determines if we should
-   --  compute its code coverage. If we are, SFI is the corresponding index in
-   --  gnatcov's file table and Project_Name is the name of the project that
-   --  owns this source file.
+   --  In data structures holding ``Source_File_Index`` values before,
+   --  ``No_Source_File`` means that a source file is not of interest (we
+   --  should not compute its code covearge).
 
    package Source_Of_Interest_Maps is new
      Ada.Containers.Ordered_Maps
        (Key_Type     => Virtual_File,
-        Element_Type => Source_Of_Interest,
+        Element_Type => Source_File_Index,
         "<"          => GNATCOLL.VFS."<",
         "="          => "=");
 

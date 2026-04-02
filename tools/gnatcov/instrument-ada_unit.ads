@@ -396,6 +396,11 @@ private
 
    type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context
    with record
+      Instrumented_Unit_Part : GPR2.Valid_Unit_Kind;
+      --  Unit part for the instrumented source file. Used to generate distinct
+      --  names for dummy entities generated to insert witness calls, so that
+      --  there is no name clash between them in the spec and in the body.
+
       Language_Version_Pragma : Unbounded_Wide_Wide_String;
       --  Language version configuration pragma for unit, if any
 
@@ -422,7 +427,7 @@ private
       Entities : Instrumentation_Entities;
       --  Bank of nodes to use during instrumentation
 
-      Pure_Buffer_Unit : Compilation_Unit_Part;
+      Pure_Buffer_Unit : Ada_Qualified_Name;
       --  Name of the compilation unit that holds addresses for the coverage
       --  buffers of the unit being instrumented.
 

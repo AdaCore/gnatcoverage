@@ -20,8 +20,6 @@ begin
          Buffers : Coverage_Buffers_Group (1 .. Natural (G.Length));
          pragma Import (C, Buffers);
          for Buffers'Address use G.Buffers;
-
-         Unit_Name : GNATcov_RTS_String;
       begin
          --  All buffer groups are supposed to have at least one buffer
 
@@ -29,32 +27,21 @@ begin
             raise Program_Error;
          end if;
 
+         Put_Line ("New group:");
          for I in Buffers'Range loop
             declare
                B : GNATcov_RTS_Coverage_Buffers renames Buffers (I).all;
 
-               Name : String (1 .. Natural (B.Unit_Name.Length));
+               Name : String (1 .. Natural (B.Filename.Length));
                pragma Import (C, Name);
-               for Name'Address use B.Unit_Name.Str;
+               for Name'Address use B.Filename.Str;
             begin
-               --  Check that all buffers in this group are for the same unit
-
-               if I = 1 then
-                  Unit_Name := B.Unit_Name;
-                  Put_Line (Name);
-               else
-                  declare
-                     UN : String (1 .. Natural (Unit_Name.Length));
-                     pragma Import (C, UN);
-                     for UN'Address use Unit_Name.Str;
-                  begin
-                     if UN /= Name then
-                        raise Program_Error;
-                     end if;
-                  end;
-               end if;
+               Put_Line (Name);
             end;
          end loop;
+         New_Line;
       end;
    end loop;
+
+   Put_Line ("Done");
 end Harness;

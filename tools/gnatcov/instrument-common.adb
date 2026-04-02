@@ -30,7 +30,7 @@ with SCOs;
 package body Instrument.Common is
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part; Buffer_Name : String)
+     (Instrumented_Unit : Unbounded_String; Buffer_Name : String)
       return String;
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
@@ -45,10 +45,9 @@ package body Instrument.Common is
    -------------------
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part; Buffer_Name : String)
-      return String
+     (Instrumented_Unit : Unbounded_String; Buffer_Name : String) return String
    is
-      Slug : constant String := Instrumented_Unit_Slug (Instrumented_Unit);
+      Slug : constant String := Filename_Slug (+Instrumented_Unit);
    begin
       return "xcov__buf_" & Buffer_Name & "__" & Slug;
    end Buffer_Symbol;
@@ -58,7 +57,7 @@ package body Instrument.Common is
    -----------------------------
 
    function Statement_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String is
+     (Instrumented_Unit : Unbounded_String) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "stmt");
    end Statement_Buffer_Symbol;
@@ -68,7 +67,7 @@ package body Instrument.Common is
    ----------------------------
 
    function Decision_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String is
+     (Instrumented_Unit : Unbounded_String) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "dc");
    end Decision_Buffer_Symbol;
@@ -78,15 +77,13 @@ package body Instrument.Common is
    ------------------------
 
    function MCDC_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String is
+     (Instrumented_Unit : Unbounded_String) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "mcdc");
    end MCDC_Buffer_Symbol;
 
    Dump_Pattern  : constant Pattern_Matcher :=
-     Compile
-       (Dump_Procedure_Symbol
-          ((File_Based_Language, Null_Unbounded_String), Manual => True));
+     Compile (Dump_Procedure_Symbol ("", Manual => True));
    Reset_Pattern : constant Pattern_Matcher :=
      Compile (Reset_Procedure_Symbol (Ada_Identifier_Vectors.Empty_Vector));
    --  Precomputed patterns to be used as helpers for
@@ -445,70 +442,6 @@ package body Instrument.Common is
    begin
       File.Create (Filename);
    end Create_File;
-
-   -----------------
-   -- To_Filename --
-   -----------------
-
-   function To_Filename
-     (Prj : Prj_Desc; CU_Name : Compilation_Unit_Part) return String is
-   begin
-      case CU_Name.Language_Kind is
-         when Unit_Based_Language =>
-
-            --  It is tempting here to fetch the answer from the best source of
-            --  truth: the GPR library for the given project. Unfortunately
-            --  this is not always possible: this function may be called in a
-            --  subprocess for the parallel instrumentation, and no GPR project
-            --  is loaded in this context.
-            --
-            --  Fortunately, this function is called only to create new sources
-            --  (i.e. not instrumented sources, but extra helpers): all we have
-            --  to do in principle is to follow the general purpose naming
-            --  scheme directives (dot replacement and body/spec sufifxes), as
-            --  project files are very unlikely to contain naming exceptions
-            --  for extra helpers, which are sources that do not exist before
-            --  instrumentation.
-
-            declare
-               --  Do the same assumption as GPR2: the only unit-based language
-               --  is Ada.
-
-               Language : constant Src_Supported_Language := Ada_Language;
-
-               NS       : Naming_Scheme_Desc renames Prj.Naming_Scheme;
-               Filename : Unbounded_String;
-            begin
-               for Id of CU_Name.Unit loop
-                  if Filename /= "" then
-                     Append (Filename, NS.Dot_Replacement);
-                  end if;
-                  case NS.Casing is
-                     when Lowercase =>
-                        Append (Filename, To_Lower (To_String (Id)));
-
-                     when Uppercase =>
-                        Append (Filename, To_Upper (To_String (Id)));
-
-                     when Mixedcase =>
-                        Append (Filename, To_String (Id));
-                  end case;
-               end loop;
-
-               case CU_Name.Part is
-                  when GPR2.S_Body | GPR2.S_Separate =>
-                     Append (Filename, NS.Body_Suffix (Language));
-
-                  when GPR2.S_Spec                   =>
-                     Append (Filename, NS.Spec_Suffix (Language));
-               end case;
-               return +Filename;
-            end;
-
-         when File_Based_Language =>
-            return +CU_Name.Filename;
-      end case;
-   end To_Filename;
 
    -----------------
    -- Add_Options --

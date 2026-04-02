@@ -12,10 +12,10 @@ set -ex
 os="$1"
 case "$os" in
     linux)
-        expected_cwd="/tmp/U204-026-arch-mix"
+        expected_cwd="/tmp/t_U204_026_arch_mix"
         ;;
     windows)
-        expected_cwd="/cygdrive/c/tmp/U204-026-arch-mix"
+        expected_cwd="/cygdrive/c/tmp/t_U204_026_arch_mix"
         ;;
     *)
         echo "Invalid OS: $os"

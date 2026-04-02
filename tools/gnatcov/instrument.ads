@@ -22,7 +22,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
-with GPR2.Build.Source;
 with GPR2.Project.View;
 
 with Types; use Types;
@@ -99,49 +98,8 @@ package Instrument is
         Vectors       => Ada_Identifier_Vectors,
         Write_Element => Write);
 
-   type Compilation_Unit_Part
-     (Language_Kind : Supported_Language_Kind := Unit_Based_Language)
-   is record
-
-      case Language_Kind is
-         when Unit_Based_Language =>
-            Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
-            Part : GPR2.Valid_Unit_Kind := GPR2.S_Body;
-            --  Identifies an Ada compilation unit (unit-based)
-
-         when File_Based_Language =>
-            Filename : Unbounded_String;
-            --  Fallback for file-based languages (like C). We use the full
-            --  filename, for homonym resiliency.
-
-      end case;
-   end record;
-   --  Unique identifier for an instrumented unit part
-
-   function Hash
-     (Self : Compilation_Unit_Part) return Ada.Containers.Hash_Type;
-
-   procedure Read
-     (CLS   : in out Checkpoints.Checkpoint_Load_State;
-      Value : out Compilation_Unit_Part);
-   --  Read a Compilation_Unit_Part from CLS
-
-   procedure Write
-     (CSS   : in out Checkpoints.Checkpoint_Save_State;
-      Value : Compilation_Unit_Part);
-   --  Write a Compilation_Unit_Part to CSS
-
    Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
      (GPR2.S_Spec => 'S', GPR2.S_Body => 'B', GPR2.S_Separate => 'U');
-
-   function "=" (Left, Right : Compilation_Unit_Part) return Boolean;
-
-   function "<" (Left, Right : Compilation_Unit_Part) return Boolean;
-   --  Compare the result of a call to Instrumented_Unit_Slug (which gives
-   --  unique identifiers for each compilation unit name) for both operands.
-
-   function Image (CU_Name : Compilation_Unit_Part) return String;
-   --  Return a string representation of CU_Name for use in diagnostics
 
    function Qualified_Name_Slug
      (Name     : Ada_Qualified_Name;
@@ -153,20 +111,13 @@ package Instrument is
    --  This identifier can be used as a filename suffix / unit name, as it does
    --  not contain any '-'.
 
-   function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Part) return String;
-   --  Given a unit to instrument, return a unique identifier to describe it
-   --  (the so called slug).
+   function Filename_Slug (Fullname : String) return String;
+   --  Given a filename to instrument (absolute filename), return a unique
+   --  identifier to describe it (the so called slug).
    --
-   --  One can use this slug to generate unique names for this unit.
-
-   function Filename_Slug
-     (Fullname : String; Use_Hash : Boolean := not Switches.Use_Full_Slugs)
-      return String;
-   --  Given a filename to instrument, return a unique identifier to describe
-   --  it (the so called slug). This is a hash of the filename if Use_Hash is
-   --  True, otherwise a human-readable slug of the base name with the same
-   --  hash concatenated at the end, to distinguish slugs from homonym files.
+   --  Unless --full-slug is passed, this is a hash of the filename. Otherwise,
+   --  this is a human-readable slug of the base name with the same hash
+   --  concatenated at the end, to distinguish slugs from homonym files.
    --
    --  One can use this slug to generate unique names for this unit.
 
@@ -191,31 +142,16 @@ package Instrument is
    --  Returns whether Name starts with the same identifiers as Prefix, case
    --  sensitive.
 
-   function CU_Name_For_Unit
-     (Unit : Ada_Qualified_Name; Part : GPR2.Valid_Unit_Kind)
-      return Compilation_Unit_Part;
-   --  Return the compilation unit name for the Ada compilation unit
-   --  corresponding to the unit name and the unit part parameters.
-
-   function CU_Name_For_File
-     (Filename : Unbounded_String) return Compilation_Unit_Part;
-   --  Return the compilation unit name for the C translation unit
-   --  corresponding to the filename parameter.
-
-   function To_Compilation_Unit_Name
-     (Source : GPR2.Build.Source.Object) return Compilation_Unit_Part;
-   --  Return the compilation unit name corresponding to the unit in Source
-
    package Instrumented_Unit_To_CU_Maps is new
      Ada.Containers.Hashed_Maps
-       (Key_Type        => Compilation_Unit_Part,
+       (Key_Type        => Unbounded_String,
         Element_Type    => CU_Id,
         Hash            => Hash,
         Equivalent_Keys => "=");
 
    procedure Read is new
      Read_Map
-       (Key_Type     => Compilation_Unit_Part,
+       (Key_Type     => Unbounded_String,
         Element_Type => CU_Id,
         Map_Type     => Instrumented_Unit_To_CU_Maps.Map,
         Clear        => Instrumented_Unit_To_CU_Maps.Clear,
@@ -225,7 +161,7 @@ package Instrument is
 
    procedure Write is new
      Write_Map
-       (Key_Type      => Compilation_Unit_Part,
+       (Key_Type      => Unbounded_String,
         Element_Type  => CU_Id,
         Map_Type      => Instrumented_Unit_To_CU_Maps.Map,
         Cursor_Type   => Instrumented_Unit_To_CU_Maps.Cursor,
@@ -270,8 +206,7 @@ package Instrument is
    PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
    --  Save the preprocessing command for each unit that supports it
 
-   function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Part) return CU_Id;
+   function Find_Instrumented_Unit (Filename : Unbounded_String) return CU_Id;
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 

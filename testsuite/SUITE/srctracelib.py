@@ -32,17 +32,15 @@ trace_info_header_struct = Struct(
 
 trace_entry_header_struct = Struct(
     "trace entry header",
-    ("unit_name_length", "I"),
+    ("filename_length", "I"),
     ("stmt_bit_count", "I"),
     ("dc_bit_count", "I"),
     ("mcdc_bit_count", "I"),
-    ("language", "B"),
-    ("unit_part", "B"),
     ("bit_buffer_encoding", "B"),
+    ("padding", "3s"),
     ("fingerprint", "20s"),
     ("bit_maps_fingerprint", "20s"),
     ("annotations_fingerprint", "20s"),
-    ("padding", "B"),
 )
 
 
@@ -215,8 +213,8 @@ class SrcTraceFile:
         print("")
         for e in self.entries:
             print(
-                f"  Unit {e.unit_name!r} ({e.unit_part},"
-                f" SCOS hash={format_fingerprint(e.fingerprint)},"
+                f"  Unit {e.filename!r}"
+                f" (SCOS hash={format_fingerprint(e.fingerprint)},"
                 f" bit maps hash={format_fingerprint(e.bit_maps_fingerprint)},"
                 " annotations hash="
                 f"{format_fingerprint(e.annotations_fingerprint)})"
@@ -291,17 +289,6 @@ class TraceEntry:
     In-memory representation of a trace entry.
     """
 
-    UNIT_PART_NAMES = {
-        0: "not_applicable_part",
-        1: "body",
-        2: "spec",
-        3: "separate",
-    }
-    UNIT_PART_CODES = {value: key for key, value in UNIT_PART_NAMES.items()}
-
-    LANGUAGE_NAMES = {0: "unit_based", 1: "file_based"}
-    LANGUAGE_CODES = {value: key for key, value in LANGUAGE_NAMES.items()}
-
     BIT_BUFFER_ENCODING_NAMES = {0: "lsb_first_bytes"}
     BIT_BUFFER_ENCODING_CODES = {
         value: key for key, value in BIT_BUFFER_ENCODING_NAMES.items()
@@ -309,9 +296,7 @@ class TraceEntry:
 
     def __init__(
         self,
-        language: str,
-        unit_part: str,
-        unit_name: bytes,
+        filename: bytes,
         fingerprint: bytes,
         bit_maps_fingerprint: bytes,
         annotations_fingerprint: bytes,
@@ -319,9 +304,7 @@ class TraceEntry:
         dc_buffer: TraceBuffer,
         mcdc_buffer: TraceBuffer,
     ):
-        self.language = language
-        self.unit_part = unit_part
-        self.unit_name = unit_name
+        self.filename = filename
         self.fingerprint = fingerprint
         self.bit_maps_fingerprint = bit_maps_fingerprint
         self.annotations_fingerprint = annotations_fingerprint
@@ -344,18 +327,9 @@ class TraceEntry:
             if not header:
                 return None
 
-            unit_part_id = header["unit_part"]
-            assert isinstance(unit_part_id, int)
-            unit_part = cls.UNIT_PART_NAMES[unit_part_id]
-
-            language_id = header["language"]
-            assert isinstance(language_id, int)
-            language = cls.LANGUAGE_NAMES[language_id]
-
             padding = header["padding"]
-            assert isinstance(padding, int)
-            if padding != 0:
-                raise ValueError(f"Invalid padding: {padding}")
+            if padding != b"\x00" * 3:
+                raise ValueError(f"Invalid padding: {padding!r}")
 
             bit_buffer_encoding_id = header["bit_buffer_encoding"]
             assert isinstance(bit_buffer_encoding_id, int)
@@ -363,8 +337,8 @@ class TraceEntry:
                 bit_buffer_encoding_id
             ]
 
-            unit_name_length = header["unit_name_length"]
-            assert isinstance(unit_name_length, int)
+            filename_length = header["filename_length"]
+            assert isinstance(filename_length, int)
 
             fingerprint = header["fingerprint"]
             assert isinstance(fingerprint, bytes)
@@ -384,11 +358,11 @@ class TraceEntry:
             mcdc_bit_count = header["mcdc_bit_count"]
             assert isinstance(mcdc_bit_count, int)
 
-            with fp.label_context("unit name"):
-                unit_name = read_aligned(
-                    fp, unit_name_length, trace_file.alignment
+            with fp.label_context("filename"):
+                filename = read_aligned(
+                    fp, filename_length, trace_file.alignment
                 )
-                assert isinstance(unit_name, bytes)
+                assert isinstance(filename, bytes)
 
             with fp.label_context("stmt buffer"):
                 stmt_buffer = TraceBuffer.read(
@@ -404,9 +378,7 @@ class TraceEntry:
                 )
 
         return cls(
-            language,
-            unit_part,
-            unit_name,
+            filename,
             fingerprint,
             bit_maps_fingerprint,
             annotations_fingerprint,
@@ -418,25 +390,23 @@ class TraceEntry:
     def write(self, fp: IO[bytes], big_endian: bool, alignment: int) -> None:
         """Write this trace info entry to the `fp` file."""
         field_values: dict[str, int | bytes] = {
-            "unit_name_length": len(self.unit_name),
+            "filename_length": len(self.filename),
             "stmt_bit_count": len(self.stmt_buffer.bits),
             "dc_bit_count": len(self.dc_buffer.bits),
             "mcdc_bit_count": len(self.mcdc_buffer.bits),
-            "language": self.LANGUAGE_CODES[self.language],
-            "unit_part": self.UNIT_PART_CODES[self.unit_part],
             "bit_buffer_encoding": self.BIT_BUFFER_ENCODING_CODES[
                 "lsb_first_bytes"
             ],
+            "padding": b"\x00" * 3,
             "fingerprint": self.fingerprint,
             "bit_maps_fingerprint": self.bit_maps_fingerprint,
             "annotations_fingerprint": self.annotations_fingerprint,
-            "padding": 0,
         }
         trace_entry_header_struct.write(
             fp, field_values, big_endian=big_endian
         )
 
-        write_aligned(fp, self.unit_name, alignment)
+        write_aligned(fp, self.filename, alignment)
 
         self.stmt_buffer.write(fp, alignment)
         self.dc_buffer.write(fp, alignment)

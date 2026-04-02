@@ -113,24 +113,20 @@ extern "C"
 
   struct trace_entry_header
   {
-    /* Length of the unit name / filename for the unit this trace entry
-       describes.  */
-    uint32_t unit_name_length;
+    /* Length of the filename for the unit this trace entry describes.  */
+    uint32_t filename_length;
 
     /* Number of bits in the statement, decision and MC/DC coverage buffers. */
     uint32_t statement_bit_count;
     uint32_t decision_bit_count;
     uint32_t mcdc_bit_count;
 
-    /* Language kind for this unit */
-    uint8_t language_kind;
-
-    /* Part of the unit this trace entry describes. `not_applicable_part` for
-       file-based languages.  */
-    uint8_t unit_part;
-
     /* Encoding used to represent statement and decision coverage buffers.  */
     uint8_t bit_buffer_encoding;
+
+    /* Padding used only to make the size of this trace entry header a multiple
+       of 8 bytes. Must be set to zero.  */
+    uint8_t padding[3];
 
     /* Hash of SCO info for this unit. Used as a fast way to check that
        coverage obligations and coverage data are consistent. Specific hash
@@ -147,10 +143,6 @@ extern "C"
        SC_Obligations). Used as a fast way to check that source traces and
        coverage data are consistent.  */
     uint8_t annotations_fingerprint[20];
-
-    /* Padding used only to make the size of this trace entry header a multiple
-       of 8 bytes. Must be zero.  */
-    uint8_t padding[1];
   };
 
 #ifdef __cplusplus

@@ -17,5 +17,5 @@
  *                                                                          *
  ****************************************************************************/
 
-#define GNATCOV_RTS_VERSION 11
+#define GNATCOV_RTS_VERSION 12
 // See comment in gnatcov_rts.ads

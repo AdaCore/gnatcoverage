@@ -22,14 +22,12 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Hash;
-with Ada.Strings.Unbounded.Hash;
 
 with GNAT.OS_Lib;
 
 with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
-with GPR2.Build.Unit_Info;
 
 --  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
 
@@ -39,14 +37,11 @@ pragma Warnings (On, "not referenced");
 
 with Command_Line;   use Command_Line;
 with Files_Handling; use Files_Handling;
-with Hashes;         use Hashes;
 with Hex_Images;     use Hex_Images;
 with Outputs;
 with Paths;
 
 package body Instrument is
-
-   use type GPR2.Unit_Kind;
 
    function Hash_32_Image (S : String) return String
    is (Hex_Image (Unsigned_32 (Ada.Strings.Hash (S))));
@@ -83,35 +78,6 @@ package body Instrument is
    end To_Ada;
 
    ----------
-   -- Hash --
-   ----------
-
-   function Hash (Self : Compilation_Unit_Part) return Ada.Containers.Hash_Type
-   is
-   begin
-      return
-         Result : Ada.Containers.Hash_Type :=
-           Supported_Language_Kind'Pos (Self.Language_Kind)
-      do
-         case Self.Language_Kind is
-            when Unit_Based_Language =>
-               for Id of Self.Unit loop
-                  Result :=
-                    Combine
-                      (Result,
-                       Ada.Strings.Unbounded.Hash (Unbounded_String (Id)));
-               end loop;
-               Result :=
-                 Combine (Result, GPR2.Valid_Unit_Kind'Pos (Self.Part));
-
-            when File_Based_Language =>
-               Result :=
-                 Combine (Result, Ada.Strings.Unbounded.Hash (Self.Filename));
-         end case;
-      end return;
-   end Hash;
-
-   ----------
    -- Read --
    ----------
 
@@ -120,29 +86,6 @@ package body Instrument is
       Value : out Ada_Identifier) is
    begin
       Value := Ada_Identifier (CLS.Read_Unbounded_String);
-   end Read;
-
-   procedure Read
-     (CLS   : in out Checkpoints.Checkpoint_Load_State;
-      Value : out Compilation_Unit_Part)
-   is
-      CUP : Compilation_Unit_Part (CLS.Read_Language_Kind);
-   begin
-      case CUP.Language_Kind is
-         when Unit_Based_Language =>
-            Read (CLS, CUP.Unit);
-            CUP.Part :=
-              (case CLS.Read_U8 is
-                 when 0      => GPR2.S_Body,
-                 when 1      => GPR2.S_Spec,
-                 when 2      => GPR2.S_Separate,
-                 when others => raise Constraint_Error);
-
-         when File_Based_Language =>
-            CUP.Filename := CLS.Read_Unbounded_String;
-      end case;
-
-      Value := CUP;
    end Read;
 
    -----------
@@ -156,106 +99,6 @@ package body Instrument is
       CSS.Write (Unbounded_String (Value));
    end Write;
 
-   procedure Write
-     (CSS   : in out Checkpoints.Checkpoint_Save_State;
-      Value : Compilation_Unit_Part) is
-   begin
-      CSS.Write (Value.Language_Kind);
-      case Value.Language_Kind is
-         when Unit_Based_Language =>
-            Write (CSS, Value.Unit);
-            CSS.Write_U8
-              (case Value.Part is
-                 when GPR2.S_Spec     => 1,
-                 when GPR2.S_Body     => 0,
-                 when GPR2.S_Separate => 2);
-
-         when File_Based_Language =>
-            CSS.Write (Value.Filename);
-      end case;
-   end Write;
-
-   ---------
-   -- "<" --
-   ---------
-
-   function "<" (Left, Right : Compilation_Unit_Part) return Boolean is
-   begin
-      if Left.Language_Kind = Right.Language_Kind then
-         case Left.Language_Kind is
-            when Unit_Based_Language =>
-               if Left.Part = Right.Part then
-                  if Left.Unit.Length = Right.Unit.Length then
-                     for I in 1 .. Integer (Left.Unit.Length) loop
-                        declare
-                           Left_Id  : constant Unbounded_String :=
-                             Unbounded_String (Left.Unit.Element (I));
-                           Right_Id : constant Unbounded_String :=
-                             Unbounded_String (Right.Unit.Element (I));
-                        begin
-                           if not Strings.Equal_Case_Insensitive
-                                    (Left_Id, Right_Id)
-                           then
-                              return
-                                Strings.Less_Case_Insensitive
-                                  (Left_Id, Right_Id);
-                           end if;
-                        end;
-                     end loop;
-
-                     --  If we get there, they are equal
-
-                     return False;
-                  else
-                     return Left.Unit.Length < Right.Unit.Length;
-                  end if;
-               else
-                  return Left.Part < Right.Part;
-               end if;
-
-            when File_Based_Language =>
-               return Left.Filename < Right.Filename;
-         end case;
-      else
-         return Left.Language_Kind < Right.Language_Kind;
-      end if;
-   end "<";
-
-   ---------
-   -- "=" --
-   ---------
-
-   function "=" (Left, Right : Compilation_Unit_Part) return Boolean is
-      use Ada_Identifier_Vectors;
-   begin
-      if Left.Language_Kind = Right.Language_Kind then
-         case Left.Language_Kind is
-            when Unit_Based_Language =>
-               if Left.Part = Right.Part
-                 and then Length (Left.Unit) = Length (Right.Unit)
-               then
-                  for I in 1 .. Integer (Length (Left.Unit)) loop
-                     if not Strings.Equal_Case_Insensitive
-                              (Unbounded_String (Left.Unit.Element (I)),
-                               Unbounded_String (Right.Unit.Element (I)))
-                     then
-                        return False;
-                     end if;
-                  end loop;
-
-                  --  If we get there, they are equal
-
-                  return True;
-               end if;
-               return False;
-
-            when File_Based_Language =>
-               return Left.Filename = Right.Filename;
-         end case;
-      else
-         return False;
-      end if;
-   end "=";
    -------------------------
    -- Qualified_Name_Slug --
    -------------------------
@@ -300,49 +143,17 @@ package body Instrument is
       end if;
    end Qualified_Name_Slug;
 
-   ----------------------------
-   -- Instrumented_Unit_Slug --
-   ----------------------------
-
-   function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Part) return String is
-   begin
-      case Instrumented_Unit.Language_Kind is
-         when Unit_Based_Language =>
-            declare
-               Result : Ada_Identifier;
-            begin
-               --  Add a single letter so that the spec and body of the same
-               --  unit don't conflict.
-
-               Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
-
-               --  Append a unique suffix corresponding to the qualified name
-               --  of the unit to instrument.
-
-               Append (Result, Qualified_Name_Slug (Instrumented_Unit.Unit));
-               return To_String (Result);
-            end;
-
-         when File_Based_Language =>
-            return Filename_Slug (+Instrumented_Unit.Filename);
-      end case;
-   end Instrumented_Unit_Slug;
-
    -------------------
    -- Filename_Slug --
    -------------------
 
-   function Filename_Slug
-     (Fullname : String; Use_Hash : Boolean := not Switches.Use_Full_Slugs)
-      return String
-   is
+   function Filename_Slug (Fullname : String) return String is
       use Ada.Directories;
       Result : Ada_Identifier;
 
       Full_Name_Hash : constant String := Hash_32_Image (Fullname);
    begin
-      if Use_Hash then
+      if not Switches.Use_Full_Slugs then
 
          --  Prefix the hash with "z_" to ensure the filename slug doesn't
          --  start with a digit.
@@ -377,27 +188,6 @@ package body Instrument is
       Append (Result, Full_Name_Hash);
       return To_String (Result);
    end Filename_Slug;
-
-   -----------
-   -- Image --
-   -----------
-
-   function Image (CU_Name : Compilation_Unit_Part) return String is
-   begin
-      case CU_Name.Language_Kind is
-         when Unit_Based_Language =>
-            return
-              To_Ada (CU_Name.Unit)
-              & " "
-              & (case CU_Name.Part is
-                   when GPR2.S_Spec     => "spec",
-                   when GPR2.S_Body     => "body",
-                   when GPR2.S_Separate => "subunit");
-
-         when File_Based_Language =>
-            return +CU_Name.Filename;
-      end case;
-   end Image;
 
    -----------------------
    -- To_Qualified_Name --
@@ -449,61 +239,15 @@ package body Instrument is
       return +Result;
    end To_Symbol_Name;
 
-   ----------------------
-   -- CU_Name_For_Unit --
-   ----------------------
-
-   function CU_Name_For_Unit
-     (Unit : Ada_Qualified_Name; Part : GPR2.Valid_Unit_Kind)
-      return Compilation_Unit_Part is
-   begin
-      return (Unit_Based_Language, Unit, Part);
-   end CU_Name_For_Unit;
-
-   ----------------------
-   -- CU_Name_For_File --
-   ----------------------
-
-   function CU_Name_For_File
-     (Filename : Unbounded_String) return Compilation_Unit_Part is
-   begin
-      return (File_Based_Language, Filename);
-   end CU_Name_For_File;
-
-   ------------------------------
-   -- To_Compilation_Unit_Name --
-   ------------------------------
-
-   function To_Compilation_Unit_Name
-     (Source : GPR2.Build.Source.Object) return Compilation_Unit_Part is
-   begin
-      case Language_Kind (To_Language (Source.Language)) is
-         when Unit_Based_Language =>
-            declare
-               Unit : constant GPR2.Build.Unit_Info.Object := Source.Unit;
-            begin
-               return
-                 CU_Name_For_Unit
-                   (Unit => To_Qualified_Name (To_Lower (String (Unit.Name))),
-                    Part => Unit.Kind);
-            end;
-
-         when File_Based_Language =>
-            return
-              CU_Name_For_File (Filename => +String (Source.Path_Name.Value));
-      end case;
-   end To_Compilation_Unit_Name;
-
    ----------------------------
    -- Find_Instrumented_Unit --
    ----------------------------
 
-   function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Part) return CU_Id
+   function Find_Instrumented_Unit (Filename : Unbounded_String) return CU_Id
    is
       use Instrumented_Unit_To_CU_Maps;
 
-      Position : constant Cursor := Instrumented_Unit_CUs.Find (CU_Name);
+      Position : constant Cursor := Instrumented_Unit_CUs.Find (Filename);
    begin
       if Has_Element (Position) then
          return Element (Position);

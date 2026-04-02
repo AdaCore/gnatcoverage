@@ -7,15 +7,18 @@ provided where an SID file is expected and conversely, and check that
 information in SID files does not "leak" to consolidation checkpoints.
 """
 
+import os.path
+
 from e3.fs import cp
 
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.gprutils import GPRswitches
-from SUITE.cutils import Wdir, contents_of, lines_of
+from SUITE.cutils import Wdir, contents_of, indent, lines_of
 from SUITE.tutils import gprfor, srctracename_for, xcov
 
 
+main1_adb = os.path.abspath("main1.adb")
 tmp = Wdir("tmp_")
 
 
@@ -118,9 +121,14 @@ xcov(
     ],
     out="leak.log",
 )
-thistest.fail_if(
+excerpt = (
     "[GNATCOV.MISC] discarding source trace entry for unknown instrumented"
-    " unit: body of main1" not in lines_of("leak.log")
+    f" unit: {main1_adb}"
+)
+logs = lines_of("leak.log")
+thistest.fail_if(
+    excerpt not in logs,
+    f"Could not find:\n{indent(excerpt)}\nin:\n{indent(logs)}",
 )
 
 thistest.result()
