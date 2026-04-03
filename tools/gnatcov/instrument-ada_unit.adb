@@ -3009,7 +3009,7 @@ package body Instrument.Ada_Unit is
                     "Could not find previous declaration for the"
                     & " expression function: "
                     & Switches.Exception_Info (Exc),
-                  Kind => Low_Warning);
+                  Kind => Warning);
          end;
       else
          Augmented_Function_Decl := No_Node_Rewriting_Handle;
@@ -3198,7 +3198,7 @@ package body Instrument.Ada_Unit is
             Common_Nodes.N,
             "failed to determine return type of expression function: "
             & Switches.Exception_Info (Exc),
-            Low_Warning);
+            Warning);
          return False;
    end Return_Type_Is_Controlling;
 
@@ -3291,7 +3291,7 @@ package body Instrument.Ada_Unit is
               "Unable to determine to which body this return statment"
               & "applies: "
               & Switches.Exception_Info (Exc),
-            Kind => Low_Warning);
+            Kind => Warning);
 
          --  Inserting an extranous Dump_Buffer call isn't really a problem
          --  as, at best the trace dump generated too early will be overwritten
@@ -3426,7 +3426,7 @@ package body Instrument.Ada_Unit is
                      Msg  =>
                        "Unexpected kind for a convention name: "
                        & First_Child.Kind_Name,
-                     Kind => Low_Warning);
+                     Kind => Warning);
                   return No_Identifier;
             end case;
          end;
@@ -7977,7 +7977,7 @@ package body Instrument.Ada_Unit is
             Msg  =>
               "Could not determine if decl is ghost: "
               & Switches.Exception_Info (E),
-            Kind => Low_Warning);
+            Kind => Warning);
          return False;
 
    end Safe_Is_Ghost;
@@ -7992,7 +7992,7 @@ package body Instrument.Ada_Unit is
             Msg  =>
               "Could not determine if stmt is ghost: "
               & Switches.Exception_Info (E),
-            Kind => Low_Warning);
+            Kind => Warning);
          return False;
 
    end Safe_Is_Ghost;
@@ -8250,7 +8250,7 @@ package body Instrument.Ada_Unit is
            (E,
             "failed to determine whether this is a static expression: "
             & Switches.Exception_Info (Exc),
-            Low_Warning);
+            Warning);
          return False;
    end Is_Static_Expr;
 
@@ -8267,7 +8267,7 @@ package body Instrument.Ada_Unit is
            (E,
             "failed to evaluate the expression: "
             & Switches.Exception_Info (Exc),
-            Low_Warning);
+            Warning);
          return "";
    end Bool_Expr_Eval;
 
@@ -9287,7 +9287,7 @@ package body Instrument.Ada_Unit is
          Report
            (Node => Orig_Name,
             Msg  => "Could not find all references to this subprogram",
-            Kind => Low_Warning);
+            Kind => Warning);
       end if;
 
       --  Rename the defining name itself and write the resulting unit in a new
@@ -9509,11 +9509,11 @@ package body Instrument.Ada_Unit is
            (Msg  =>
               "Could not parse the System unit for the runtime,"
               & " instrumentation of mains may be incorrect:",
-            Kind => Low_Warning);
+            Kind => Warning);
          for Diag of System_Unit.Diagnostics loop
             Diagnostics.Report
               (Msg  => System_Unit.Format_GNU_Diagnostic (Diag),
-               Kind => Low_Warning);
+               Kind => Warning);
          end loop;
          Unusable_System_Reported := True;
       end if;
@@ -10418,7 +10418,7 @@ package body Instrument.Ada_Unit is
                UIC.Root_Unit,
                "Could not determine pragmas of the compilation unit: "
                & Switches.Exception_Info (Exc),
-               Kind => Low_Warning);
+               Kind => Warning);
             Has_Pragma_SCAO := False;
       end;
 
