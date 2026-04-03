@@ -67,13 +67,6 @@ package GNATcov_RTS.Buffers is
 
    type GNATcov_RTS_Bool is new unsigned;
 
-   type Any_Unit_Part is
-     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
-   pragma Convention (C, Any_Unit_Part);
-
-   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
-   pragma Convention (C, Any_Language_Kind);
-
    type Fingerprint_Type is array (1 .. 20) of Unsigned_8;
    for Fingerprint_Type'Component_Size use 8;
    for Fingerprint_Type'Size use 20 * 8;
@@ -83,9 +76,7 @@ package GNATcov_RTS.Buffers is
 
    type GNATcov_RTS_Coverage_Buffers is record
       Fingerprint                                          : Fingerprint_Type;
-      Language                                             : Any_Language_Kind;
-      Unit_Part                                            : Any_Unit_Part;
-      Unit_Name                                            :
+      Filename                                             :
         GNATcov_RTS_String;
       Bit_Maps_Fingerprint                                 : Fingerprint_Type;
       Annotations_Fingerprint                              : Fingerprint_Type;

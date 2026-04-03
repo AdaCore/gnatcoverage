@@ -72,7 +72,7 @@ package body Instrument.Ada_Unit is
      (Buffer_Unit : String;
       Filename    : String;
       Prj         : Prj_Desc;
-      CU_Names    : CU_Name_Vectors.Vector;
+      CU_Names    : String_Vectors.Vector;
       Is_Pure     : Boolean);
    --  Helper to display details about a buffer unit to be emitted
 
@@ -119,6 +119,66 @@ package body Instrument.Ada_Unit is
    is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
    --  Shortcut function for rendering a template to an Unbounded_String.
 
+   function To_Filename
+     (Prj : Prj_Desc; Name : Ada_Qualified_Name; Part : GPR2.Valid_Unit_Kind)
+      return String;
+   --  Return the filename to use for a given unit ``Name`` and ``Part`` for
+   --  the given project (``Prj``).
+   --
+   --  This takes into account naming convention settings in ``Prj``.
+
+   -----------------
+   -- To_Filename --
+   -----------------
+
+   function To_Filename
+     (Prj : Prj_Desc; Name : Ada_Qualified_Name; Part : GPR2.Valid_Unit_Kind)
+      return String
+   is
+      --  It is tempting here to fetch the answer from the best source of
+      --  truth: the GPR library for the given project. Unfortunately this is
+      --  not always possible: this function may be called in a subprocess for
+      --  the parallel instrumentation, and no GPR project is loaded in this
+      --  context.
+      --
+      --  Fortunately, this function is called only to create new sources (i.e.
+      --  not instrumented sources, but extra helpers): all we have to do in
+      --  principle is to follow the general purpose naming scheme directives
+      --  (dot replacement and body/spec sufifxes), as project files are very
+      --  unlikely to contain naming exceptions for extra helpers, which are
+      --  sources that do not exist before instrumentation.
+
+      use Ada.Characters.Handling;
+
+      NS       : Naming_Scheme_Desc renames Prj.Naming_Scheme;
+      Filename : Unbounded_String;
+   begin
+      for Id of Name loop
+         if Filename /= "" then
+            Append (Filename, NS.Dot_Replacement);
+         end if;
+         case NS.Casing is
+            when Lowercase =>
+               Append (Filename, To_Lower (To_String (Id)));
+
+            when Uppercase =>
+               Append (Filename, To_Upper (To_String (Id)));
+
+            when Mixedcase =>
+               Append (Filename, To_String (Id));
+         end case;
+      end loop;
+
+      case Part is
+         when GPR2.S_Body | GPR2.S_Separate =>
+            Append (Filename, NS.Body_Suffix (Ada_Language));
+
+         when GPR2.S_Spec                   =>
+            Append (Filename, NS.Spec_Suffix (Ada_Language));
+      end case;
+      return +Filename;
+   end To_Filename;
+
    -------------------------------
    -- Create_Context_Instrument --
    -------------------------------
@@ -140,11 +200,6 @@ package body Instrument.Ada_Unit is
      (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name;
    --  Return the qualified name corresponding to the given name from a parse
    --  tree.
-
-   function To_Qualified_Name
-     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
-      return Ada_Qualified_Name;
-   --  Convert a Libadalang fully qualified name into our format
 
    function Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type; Filename : String)
@@ -179,7 +234,7 @@ package body Instrument.Ada_Unit is
      (Buffer_Unit : String;
       Filename    : String;
       Prj         : Prj_Desc;
-      CU_Names    : CU_Name_Vectors.Vector;
+      CU_Names    : String_Vectors.Vector;
       Is_Pure     : Boolean) is
    begin
       if not Sources_Trace.Is_Active then
@@ -195,7 +250,7 @@ package body Instrument.Ada_Unit is
       Sources_Trace.Trace ("Filename: " & Filename);
       Sources_Trace.Trace ("For units:");
       for CU of CU_Names loop
-         Sources_Trace.Trace ("* " & Image (CU));
+         Sources_Trace.Trace ("* " & (+CU));
       end loop;
       Sources_Trace.Decrease_Indent;
    end Trace_Buffer_Unit;
@@ -237,21 +292,6 @@ package body Instrument.Ada_Unit is
                raise Constraint_Error
                  with "no qualified name for " & Name.Kind'Image & " nodes";
          end case;
-      end return;
-   end To_Qualified_Name;
-
-   function To_Qualified_Name
-     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
-      return Ada_Qualified_Name is
-   begin
-      return Result : Ada_Qualified_Name do
-         for N of Name loop
-
-            --  ??? Same limitation regarding non-ASCII characters as above
-
-            Result.Append
-              (To_Unbounded_String (Image (To_Wide_Wide_String (N))));
-         end loop;
       end return;
    end To_Qualified_Name;
 
@@ -1461,8 +1501,8 @@ package body Instrument.Ada_Unit is
 
    type Main_Instrumentation_Description (Synthetic : Boolean := False) is
    record
-      Main : Compilation_Unit_Part;
-      --  Name of the compilation unit corresponding to the main body
+      Main : Unbounded_String;
+      --  Absolute filename for the main body source file
 
       Controlled_Types_Available : Boolean;
       --  Whether instrumentation can insert uses of controlled types
@@ -1609,19 +1649,19 @@ package body Instrument.Ada_Unit is
    --  addresses to its coverage buffers.
 
    procedure Emit_Buffer_Unit
-     (Buffer_Unit : Compilation_Unit_Part;
+     (Buffer_Unit : Ada_Qualified_Name;
       Prj         : Prj_Desc;
       Unit        : Files_Table.Compilation_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
-      CU_Names    : CU_Name_Vectors.Vector;
+      CU_Names    : String_Vectors.Vector;
       CUs         : CU_Id_Vectors.Vector);
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit.
 
    procedure Emit_Pure_Buffer_Unit
-     (PB_Unit                        : Compilation_Unit_Part;
+     (PB_Unit                        : Ada_Qualified_Name;
       Prj                            : Prj_Desc;
-      CU_Names                       : CU_Name_Vectors.Vector;
+      CU_Names                       : String_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
       Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
       Has_No_Elaboration_Code_All    : Boolean);
@@ -1646,7 +1686,7 @@ package body Instrument.Ada_Unit is
       Dump_Trigger   : Valid_Dump_Trigger;
       Instrumenter   : Ada_Instrumenter_Type'Class;
       Prj            : Prj_Desc;
-      Main           : Compilation_Unit_Part;
+      Main           : String;
       Helper_Unit    : out Ada_Qualified_Name;
       Has_Controlled : Boolean := False);
    --  Emit the unit to contain helpers to implement the automatic dump of
@@ -1857,7 +1897,7 @@ package body Instrument.Ada_Unit is
 
       function Decl_Img return String
       is ("Discard_"
-          & UIC.Instrumented_Unit.Part'Img
+          & UIC.Instrumented_Unit_Part'Img
           & Bit_Img
           & " :"
           & (if In_Decl_Expr then " constant" else "")
@@ -4287,7 +4327,7 @@ package body Instrument.Ada_Unit is
                else (if Fun_Cov then "Aux" else "Null_Proc"))
               & "_"
               & Img (UIC.Degenerate_Subprogram_Index)
-              & Part_Tags (UIC.Instrumented_Unit.Part)
+              & Part_Tags (UIC.Instrumented_Unit_Part)
               & '_');
          --  Prefix for the name of all entities we create here
 
@@ -5196,8 +5236,7 @@ package body Instrument.Ada_Unit is
 
                   declare
                      Buffers_Unit        : constant Node_Rewriting_Handle :=
-                       To_Nodes
-                         (UIC.Rewriting_Context, UIC.Pure_Buffer_Unit.Unit);
+                       To_Nodes (UIC.Rewriting_Context, UIC.Pure_Buffer_Unit);
                      With_Buffers_Clause : constant Node_Rewriting_Handle :=
                        Create_From_Template
                          (UIC.Rewriting_Context,
@@ -8881,15 +8920,14 @@ package body Instrument.Ada_Unit is
             return
               Create_From_Template
                 (Handle    => RH,
-                 Template  =>
-                   To_Text (To_Ada (UIC.Pure_Buffer_Unit.Unit & Buffer)),
+                 Template  => To_Text (To_Ada (UIC.Pure_Buffer_Unit & Buffer)),
                  Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
                  Rule      => Expr_Rule);
          end Indexed_Buffer;
 
       begin
          E.Common_Buffers := To_Nodes (RH, Sys_Buffers);
-         E.Unit_Buffers := To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit);
+         E.Unit_Buffers := To_Nodes (RH, UIC.Pure_Buffer_Unit);
          E.Statement_Buffer := Indexed_Buffer (Statement_Buffer_Name);
 
          if Any_Decision_Or_Assertion_Coverage_Enabled then
@@ -8916,22 +8954,21 @@ package body Instrument.Ada_Unit is
       CU  : LAL.Compilation_Unit;
       Tmp : LAL.Ada_Node;
 
+      --  Temporaries used to initialize Main_Instrumentation_Description
+      --  components.
+
+      Main                       : Unbounded_String;
       Controlled_Types_Available : Boolean;
       Actual_Auto_Dump_Trigger   : Auto_Dump_Trigger;
 
-      Main : Compilation_Unit_Part (Unit_Based_Language) :=
-        (Language_Kind => Unit_Based_Language,
-         Part          => GPR2.S_Body,
-         others        => <>);
-      --  Note that we can't get the compilation unit name using the
-      --  To_Compilation_Unit_Name overload taking a File_Info parameter,
-      --  as the main we are instrumenting there may be the instrumented
-      --  version of the original version, in which case it won't belong
-      --  to the root project as it will be in the <prj>-gnatcov-instr
-      --  directory.
-
       function Remove_Pragma_Ada_83_Nodes
         (N : Ada_Node'Class) return Visit_Status;
+      --  Callback for ``Libadalang.Analysis.Traverse``. Remove "pragma Ada_83"
+      --  nodes from the rewritten unit.
+
+      --------------------------------
+      -- Remove_Pragma_Ada_83_Nodes --
+      --------------------------------
 
       function Remove_Pragma_Ada_83_Nodes
         (N : Ada_Node'Class) return Visit_Status is
@@ -8949,6 +8986,8 @@ package body Instrument.Ada_Unit is
             return Into;
          end if;
       end Remove_Pragma_Ada_83_Nodes;
+
+      --  Start of processing for Probe_Main
 
    begin
       --  Make sure this main source has the expected structure:
@@ -8983,7 +9022,7 @@ package body Instrument.Ada_Unit is
          then Ravenscar_Task_Termination
          else Dump_Config.Auto_Trigger);
 
-      Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
+      Main := +U.Get_Filename;
 
       Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
 
@@ -9717,7 +9756,7 @@ package body Instrument.Ada_Unit is
          Dump_Trigger   => Desc.Actual_Auto_Dump_Trigger,
          Instrumenter   => Self,
          Prj            => Prj,
-         Main           => Desc.Main,
+         Main           => +Desc.Main,
          Helper_Unit    => Helper_Unit,
          Has_Controlled => Desc.Controlled_Types_Available);
 
@@ -10259,7 +10298,6 @@ package body Instrument.Ada_Unit is
       Instrumenter : in out Ada_Instrumenter_Type;
       Prj          : Prj_Desc)
    is
-      CU_Name   : Compilation_Unit_Part (Language_Kind => Unit_Based_Language);
       Rewriter  : Ada_Source_Rewriter;
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Instrumenting " & Filename);
@@ -10305,22 +10343,18 @@ package body Instrument.Ada_Unit is
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
 
-      --  Determine whether Unit is required to be preelaborable, and whether
-      --  we can insert witness calls (which are not preelaborable).
-
-      CU_Name.Part := +UIC.Root_Unit.P_Unit_Kind;
-
       --  P_Unit_Kind does not detect separates, so manually inspect the
       --  compilation unit's contents.
 
-      if UIC.Root_Unit.F_Body.Kind = Ada_Subunit then
-         CU_Name.Part := GPR2.S_Separate;
-      end if;
-
-      CU_Name.Unit :=
-        To_Qualified_Name (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
+      UIC.Instrumented_Unit_Part :=
+        (if UIC.Root_Unit.F_Body.Kind = Ada_Subunit
+         then GPR2.S_Separate
+         else +UIC.Root_Unit.P_Unit_Kind);
 
       begin
+         --  Determine whether Unit is required to be preelaborable, and
+         --  whether we can insert witness calls (which are not preelaborable).
+         --
          --  Library level declarations can be instrumented only when
          --  elaboration code is allowed.
 
@@ -10370,7 +10404,7 @@ package body Instrument.Ada_Unit is
       UIC.False_Static_LL_SCOs.Clear;
 
       Initialize_Rewriting (UIC, Instrumenter);
-      UIC.Instrumented_Unit := CU_Name;
+      UIC.Instrumented_Unit := +Filename;
 
       begin
          Has_Pragma_SCAO :=
@@ -10597,7 +10631,7 @@ package body Instrument.Ada_Unit is
 
       --  Track which CU_Id maps to which instrumented unit
 
-      Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
+      Instrumented_Unit_CUs.Insert (+Filename, UIC.CU);
 
       --  Update the Ignore_Status of the CU we instrumented
 
@@ -10664,17 +10698,18 @@ package body Instrument.Ada_Unit is
    ----------------------
 
    procedure Emit_Buffer_Unit
-     (Buffer_Unit : Compilation_Unit_Part;
+     (Buffer_Unit : Ada_Qualified_Name;
       Prj         : Prj_Desc;
       Unit        : Files_Table.Compilation_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
-      CU_Names    : CU_Name_Vectors.Vector;
+      CU_Names    : String_Vectors.Vector;
       CUs         : CU_Id_Vectors.Vector)
    is
-      Pkg_Name : constant String := To_Ada (Buffer_Unit.Unit);
+      Pkg_Name : constant String := To_Ada (Buffer_Unit);
       --  Package name for the buffer unit
 
-      Filename : constant String := To_Filename (Prj, Buffer_Unit);
+      Filename : constant String :=
+        To_Filename (Prj, Buffer_Unit, GPR2.S_Spec);
 
       File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
@@ -10688,9 +10723,8 @@ package body Instrument.Ada_Unit is
       Create_File (Prj, File, Filename);
 
       declare
-         Buffer_Indexes    : Vector_Tag;
-         Buffer_Unit_Names : Vector_Tag;
-         Buffer_Unit_Parts : Vector_Tag;
+         Buffer_Indexes   : Vector_Tag;
+         Buffer_Filenames : Vector_Tag;
 
          SCOs_Fingerprints        : Vector_Tag;
          Bit_Maps_Fingerprints    : Vector_Tag;
@@ -10708,29 +10742,15 @@ package body Instrument.Ada_Unit is
          for I in 1 .. Last_Buffer_Index loop
             declare
                Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
-               CU_Name  : constant Compilation_Unit_Part :=
-                 CU_Names.Element (I);
+               CU_Name  : constant Unbounded_String := CU_Names.Element (I);
                CU       : constant CU_Id := CUs.Element (I);
-
-               Unit_Name : constant String :=
-                 Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
-               --  Lower-case name for the instrumented unit
-
-               Unit_Part : constant String :=
-                 (case CU_Name.Part is
-                    when GPR2.S_Spec     => "Unit_Spec",
-                    when GPR2.S_Body     => "Unit_Body",
-                    when GPR2.S_Separate => "Unit_Separate");
-               --  Do not use 'Image so that we use the original casing for the
-               --  enumerators, and thus avoid compilation warnings/errors.
 
                SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
                  SC_Obligations.Fingerprint (CU);
 
             begin
                Append (Buffer_Indexes, Img (I));
-               Append (Buffer_Unit_Names, Unit_Name);
-               Append (Buffer_Unit_Parts, Unit_Part);
+               Append (Buffer_Filenames, CU_Name);
 
                Append
                  (SCOs_Fingerprints, Format_Fingerprint (SCOs_Fingerprint));
@@ -10761,8 +10781,7 @@ package body Instrument.Ada_Unit is
          T :=
            T
            & Assoc ("BUFFER_IDX", Buffer_Indexes)
-           & Assoc ("BUF_UNIT_NAME", Buffer_Unit_Names)
-           & Assoc ("BUF_UNIT_PART", Buffer_Unit_Parts)
+           & Assoc ("BUF_FILENAME", Buffer_Filenames)
            & Assoc ("SCOS_FINGERPRINT", SCOs_Fingerprints)
            & Assoc ("BIT_MAPS_FINGERPRINT", Bit_Maps_Fingerprints)
            & Assoc ("ANNOTATIONS_FINGERPRINT", Annotations_Fingerprints)
@@ -10785,17 +10804,17 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Emit_Pure_Buffer_Unit
-     (PB_Unit                        : Compilation_Unit_Part;
+     (PB_Unit                        : Ada_Qualified_Name;
       Prj                            : Prj_Desc;
-      CU_Names                       : CU_Name_Vectors.Vector;
+      CU_Names                       : String_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
       Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
       Has_No_Elaboration_Code_All    : Boolean)
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
-      Pkg_Name          : constant String := To_Ada (PB_Unit.Unit);
+      Pkg_Name          : constant String := To_Ada (PB_Unit);
       Filename          : constant String :=
-        New_File (Prj, To_Filename (Prj, PB_Unit));
+        New_File (Prj, To_Filename (Prj, PB_Unit, GPR2.S_Spec));
       File              : Text_Files.File_Type;
 
       T : Translate_Set :=
@@ -10818,8 +10837,7 @@ package body Instrument.Ada_Unit is
       begin
          for I in 1 .. Last_Buffer_Index loop
             declare
-               CU_Name : constant Compilation_Unit_Part :=
-                 CU_Names.Element (I);
+               CU_Name : constant Unbounded_String := CU_Names.Element (I);
             begin
                Append (Buffer_Indexes, Img (I));
                Append (Stmt_Buf_Symbols, Statement_Buffer_Symbol (CU_Name));
@@ -10857,12 +10875,8 @@ package body Instrument.Ada_Unit is
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
          declare
-            PB_Unit_Body             : constant Compilation_Unit_Part :=
-              (Language_Kind => Unit_Based_Language,
-               Unit          => PB_Unit.Unit,
-               Part          => GPR2.S_Body);
             PB_Filename              : constant String :=
-              New_File (Prj, To_Filename (Prj, PB_Unit_Body));
+              New_File (Prj, To_Filename (Prj, PB_Unit, GPR2.S_Body));
             Degenerate_Subp_Generics : Vector_Tag;
          begin
             for G of Degenerate_Subprogram_Generics loop
@@ -10927,7 +10941,7 @@ package body Instrument.Ada_Unit is
       Dump_Trigger   : Valid_Dump_Trigger;
       Instrumenter   : Ada_Instrumenter_Type'Class;
       Prj            : Prj_Desc;
-      Main           : Compilation_Unit_Part;
+      Main           : String;
       Helper_Unit    : out Ada_Qualified_Name;
       Has_Controlled : Boolean := False)
    is
@@ -10945,8 +10959,7 @@ package body Instrument.Ada_Unit is
          Helper_Unit := Create_Manual_Helper_Unit_Name (Prj);
       else
          Helper_Unit := Sys_Prefix;
-         Helper_Unit.Append
-           (To_Unbounded_String ("D" & Instrumented_Unit_Slug (Main)));
+         Helper_Unit.Append (To_Unbounded_String ("D" & Filename_Slug (Main)));
       end if;
 
       --  Compute the qualified names we need for instrumentation
@@ -10967,9 +10980,9 @@ package body Instrument.Ada_Unit is
 
       declare
          Spec_Filename : constant String :=
-           To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Spec));
+           To_Filename (Prj, Helper_Unit, GPR2.S_Spec);
          Body_Filename : constant String :=
-           To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Body));
+           To_Filename (Prj, Helper_Unit, GPR2.S_Body);
 
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
          Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
@@ -11010,7 +11023,7 @@ package body Instrument.Ada_Unit is
             Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
             Sources_Trace.Trace ("Spec filename: " & Spec_Filename);
             Sources_Trace.Trace ("Body filename: " & Body_Filename);
-            Sources_Trace.Trace ("For main: " & Image (Main));
+            Sources_Trace.Trace ("For main: " & Main);
             Sources_Trace.Decrease_Indent;
          end if;
 
@@ -11099,7 +11112,7 @@ package body Instrument.Ada_Unit is
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc)
    is
-      Main : Compilation_Unit_Part;
+      Main : constant String := "";
       --  Since the dump trigger is "manual" and there is no main to be given,
       --  the Main argument in the following call to Emit_Dump_Helper_Unit will
       --  not be used.
@@ -11125,10 +11138,11 @@ package body Instrument.Ada_Unit is
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc)
    is
-      Buffers_CU_Name : constant Compilation_Unit_Part :=
-        CU_Name_For_Unit (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec);
-      Unit_Name       : constant String := To_Ada (Buffers_CU_Name.Unit);
-      Filename        : constant String := To_Filename (Prj, Buffers_CU_Name);
+      Buffers_CU_Name : constant Ada_Qualified_Name :=
+        Buffers_List_Unit (Prj.Prj_Name);
+      Unit_Name       : constant String := To_Ada (Buffers_CU_Name);
+      Filename        : constant String :=
+        To_Filename (Prj, Buffers_CU_Name, GPR2.S_Spec);
       File            : Text_Files.File_Type;
    begin
       if Sources_Trace.Is_Active then
@@ -11251,7 +11265,7 @@ package body Instrument.Ada_Unit is
       pragma Unreferenced (Self);
 
       Buf_List_Unit      : constant Ada_Qualified_Name :=
-        CU_Name_For_Unit (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec).Unit;
+        Buffers_List_Unit (Prj.Prj_Name);
       Buf_List_Unit_Name : constant String := To_Ada (Buf_List_Unit);
 
       Obs_Unit      : constant Ada_Qualified_Name :=
@@ -11261,9 +11275,9 @@ package body Instrument.Ada_Unit is
       Obs_Unit_Name : constant String := To_Ada (Obs_Unit);
 
       Obs_Spec_Filename : constant String :=
-        To_Filename (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Spec));
+        To_Filename (Prj, Obs_Unit, GPR2.S_Spec);
       Obs_Body_Filename : constant String :=
-        To_Filename (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Body));
+        To_Filename (Prj, Obs_Unit, GPR2.S_Body);
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
@@ -11417,7 +11431,7 @@ package body Instrument.Ada_Unit is
    is
       Allocated_Bits    : Allocated_Bits_Vectors.Vector;
       Last_Buffer_Index : Natural := 0;
-      CU_Names          : CU_Name_Vectors.Vector;
+      CU_Names          : String_Vectors.Vector;
       CUs               : CU_Id_Vectors.Vector;
       Unit              : constant Files_Table.Compilation_Unit :=
         (Language => Unit_Based_Language, Unit_Name => +Unit_Name);
@@ -11466,17 +11480,18 @@ package body Instrument.Ada_Unit is
             Allocated_Bits.Append (UIC.Unit_Bits);
          end if;
       end Instrument_Source_File_Wrapper;
-   begin
+
       --  Initialize the buffer unit to match the unit name. It will contain
       --  coverage buffers for all parts of the unit: specification, body,
       --  and separates.
 
-      UIC.Buffer_Unit :=
-        CU_Name_For_Unit
-          (Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR2.S_Spec);
-      UIC.Pure_Buffer_Unit :=
-        CU_Name_For_Unit
-          (Pure_Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR2.S_Spec);
+      Buffer_Unit_Name : constant Ada_Qualified_Name :=
+        Buffer_Unit (To_Qualified_Name (Unit_Name));
+
+      --  Start of processing for Instrument_Unit
+
+   begin
+      UIC.Pure_Buffer_Unit := Pure_Buffer_Unit (To_Qualified_Name (Unit_Name));
 
       --  We consider that theer is no No_Elaboration_Code_All pragma/aspect
       --  until we see one.
@@ -11503,7 +11518,7 @@ package body Instrument.Ada_Unit is
       --  Once the unit was instrumented, emit the coverage buffer units
 
       Emit_Buffer_Unit
-        (Buffer_Unit => UIC.Buffer_Unit,
+        (Buffer_Unit => Buffer_Unit_Name,
          Prj         => Prj,
          Unit        => Unit,
          Unit_Bits   => Allocated_Bits,

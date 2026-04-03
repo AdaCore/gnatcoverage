@@ -22,14 +22,14 @@ Coverage instrumentation
    [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] Filename: gcvrt-b[HASH#1].ads
    [GNATCOV.INSTRUMENT_SOURCES] For units:
-   [GNATCOV.INSTRUMENT_SOURCES] * mylib spec
-   [GNATCOV.INSTRUMENT_SOURCES] * mylib body
+   [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib_extended/mylib.ads
+   [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib.adb
 [GNATCOV.INSTRUMENT_SOURCES] Writing pure Ada buffer unit GCVRT.P[HASH#1]
    [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] Filename: [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt-p[HASH#1].ads
    [GNATCOV.INSTRUMENT_SOURCES] For units:
-   [GNATCOV.INSTRUMENT_SOURCES] * mylib spec
-   [GNATCOV.INSTRUMENT_SOURCES] * mylib body
+   [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib_extended/mylib.ads
+   [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib.adb
    [C]             mylib_ext.c
 [GNATCOV.INSTRUMENT_SOURCES] Writing C buffer unit [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt_b_[HASH#2].c
    [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
@@ -37,13 +37,13 @@ Coverage instrumentation
    [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib_ext.c
 Main instrumentation
    [Ada]           test1
-[GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.DB_[HASH#3]
+[GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.D[HASH#3]
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
    [GNATCOV.INSTRUMENT_SOURCES] Spec filename: gcvrt-db_[HASH#3].ads
    [GNATCOV.INSTRUMENT_SOURCES] Body filename: gcvrt-db_[HASH#3].adb
    [GNATCOV.INSTRUMENT_SOURCES] For main: test1 body
    [Ada]           test2
-[GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.DB_[HASH#4]
+[GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.D[HASH#4]
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
    [GNATCOV.INSTRUMENT_SOURCES] Spec filename: gcvrt-db_[HASH#4].ads
    [GNATCOV.INSTRUMENT_SOURCES] Body filename: gcvrt-db_[HASH#4].adb

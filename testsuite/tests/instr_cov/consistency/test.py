@@ -69,6 +69,7 @@ srctrace = xcov_args[-1]
 # Now try to run a coverage analysis with the trace file produced for the
 # second SID file but giving gnatcov the first one.
 out_file = "gnatcov.out"
+main_adb = os.path.abspath("main.adb")
 mkdir("xcov")
 xcov(
     [
@@ -82,7 +83,7 @@ xcov(
     ],
     out=out_file,
     tolerate_messages=(
-        r"traces for body of main \(from .*\) are"
+        rf"traces for {main_adb} \(from .*\) are"
         r" inconsistent with the corresponding Source Instrumentation Data"
     ),
 )
@@ -90,10 +91,8 @@ xcov(
 # Check that gnatcov warns about inconsistent fingerprints
 actual = contents_of(out_file).strip()
 expected = (
-    "warning: traces for body of main (from {}) are"
-    " inconsistent with the corresponding Source Instrumentation Data".format(
-        srctrace
-    )
+    f"warning: traces for {main_adb} (from {srctrace}) are"
+    " inconsistent with the corresponding Source Instrumentation Data"
 )
 thistest.fail_if(
     expected != actual,

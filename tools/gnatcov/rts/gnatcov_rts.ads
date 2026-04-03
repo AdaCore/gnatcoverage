@@ -42,7 +42,7 @@ package GNATcov_RTS is
    pragma Warnings (Off, Std);
    pragma Warnings (Off, Sys);
 
-   Version : constant := 11;
+   Version : constant := 12;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned. When updating the runtime version, also update it in
    --  gnatcov_rts_c.h, and in the Instrument.Common unit.
@@ -59,5 +59,6 @@ package GNATcov_RTS is
    --  9  -- add versioning for C sources
    --  10 -- add identity function to initialize MC/DC state holder variables
    --  11 -- change the signature for witness subprograms for declarations
+   --  12 -- remove unit names (keep only filenames, no matter the language)
 
 end GNATcov_RTS;

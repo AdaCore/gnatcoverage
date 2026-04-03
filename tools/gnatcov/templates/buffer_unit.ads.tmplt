@@ -7,7 +7,7 @@
 @@-- per unit, for the spec and body)
 @@--
 @@--  BUFFER_IDX (List[Int]): Indexes of the buffers
-@@--  BUF_UNIT_NAME (List[String]): Names of the units associated to buffers
+@@--  BUF_FILENAME (List[String]): Absolute filenames associated to buffers
 @@--  BUF_UNIT_PART (List[String]): "Unit_Spec" | "Unit_Body" | "Unit_Separate"
 @@--  SCOS_FINGERPRINT (List[String])
 @@--  BIT_MAPS_FINGERPRINT (List[String])
@@ -54,13 +54,11 @@ package @_UNIT_NAME_@ is
       pragma Export
         (C, MCDC_Buffer_Address, "@_MCDC_BUF_SYM_@_@_BUFFER_IDX_@");
 
-      Unit_Name : constant String := "@_BUF_UNIT_NAME_@";
+      Filename : constant String := "@_BUF_FILENAME_@";
 
       Buffers : aliased constant GNATcov_RTS_Coverage_Buffers :=
         (Fingerprint             => @_SCOS_FINGERPRINT_@,
-         Language                => Unit_Based_Language,
-         Unit_Part               => @_BUF_UNIT_PART_@,
-         Unit_Name               => (Unit_Name'Address, Unit_Name'Length),
+         Filename                => (Filename'Address, Filename'Length),
          Bit_Maps_Fingerprint    => @_BIT_MAPS_FINGERPRINT_@,
          Annotations_Fingerprint => @_ANNOTATIONS_FINGERPRINT_@,
          Statement               => Statement_Buffer'Address,

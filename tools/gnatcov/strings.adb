@@ -123,7 +123,7 @@ package body Strings is
    is
       procedure Read is new
         Read_Vector
-          (Index_Type   => Natural,
+          (Index_Type   => Positive,
            Element_Type => Unbounded_String,
            "="          => "=",
            Vectors      => String_Vectors,
@@ -159,7 +159,7 @@ package body Strings is
    is
       procedure Write is new
         Write_Vector
-          (Index_Type    => Natural,
+          (Index_Type    => Positive,
            Element_Type  => Unbounded_String,
            "="           => "=",
            Vectors       => String_Vectors,
@@ -272,7 +272,7 @@ package body Strings is
       use String_Vectors;
 
       Pattern_Length : constant Natural := Natural (Patterns_List.Length);
-      Regexps        : array (0 .. Pattern_Length - 1) of GNAT.Regexp.Regexp;
+      Regexps        : array (1 .. Pattern_Length) of GNAT.Regexp.Regexp;
       --  List of regexps, one for each pattern in Patterns_List
 
       Matching_Strings : String_Vectors.Vector;

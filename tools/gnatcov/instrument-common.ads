@@ -27,14 +27,14 @@
 --  generated:
 --
 --  * "gnatcov_rts-buffers-B<SLUG>.ads" for all compilation units of interest.
---    (<SLUG> is the result of Instrumented_Unit_Slug for the compilation unit
---    to instrument). These units are preelaborated and contain definitions for
+--    (<SLUG> is the result of Filename_Slug for the compilation unit to
+--    instrument). These units are preelaborated and contain definitions for
 --    the coverage buffers themselves, but also for buffers "metadata".
 --
 --  * "gnatcov_rts-buffers-P<SLUG>.ads" for all compilation units of interest
---    (<SLUG> is the result of Instrumented_Unit_Slug for the compilation unit
---    to instrument). These units are pure and contain one System.Address
---    constant per coverage buffer for the corresponding compilation unit.
+--    (<SLUG> is the result of Filename_Slug for the compilation unit to
+--    instrument). These units are pure and contain one System.Address constant
+--    per coverage buffer for the corresponding compilation unit.
 --
 --  * A single "gnatcov_rts-buffers-lists-<NAME>.ads" unit (<NAME> is the name
 --    of the root project). This unit contains a list of access to buffers for
@@ -111,12 +111,12 @@ package Instrument.Common is
    --  handler.
 
    function Dump_Procedure_Symbol
-     (Main     : Compilation_Unit_Part;
+     (Main     : String;
       Manual   : Boolean := False;
       Prj_Name : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector)
       return String
    is ("gnatcov_rts_"
-       & (if Manual then "manual" else Instrumented_Unit_Slug (Main))
+       & (if Manual then "manual" else Filename_Slug (Main))
        & "_"
        & To_Lower (To_String (Dump_Procedure_Name))
        & (if Manual then "_" & To_Symbol_Name (Prj_Name) else ""));
@@ -136,17 +136,17 @@ package Instrument.Common is
    --  Check that Symbol corresponds to the name of one such procedure.
 
    function Statement_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String;
+     (Instrumented_Unit : Unbounded_String) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the statement coverage buffer.
 
    function Decision_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String;
+     (Instrumented_Unit : Unbounded_String) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
    function MCDC_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part) return String;
+     (Instrumented_Unit : Unbounded_String) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
@@ -193,7 +193,7 @@ package Instrument.Common is
 
    package Instrumented_Unit_Maps is new
      Ada.Containers.Ordered_Maps
-       (Key_Type     => Compilation_Unit_Part,
+       (Key_Type     => Unbounded_String,
         Element_Type => Instrumented_Unit_Info_Access);
 
    ------------------------------------------------------
@@ -338,18 +338,14 @@ package Instrument.Common is
      Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Nat);
 
    type Unit_Inst_Context is tagged record
-      Instrumented_Unit : Compilation_Unit_Part;
-      --  Name of the compilation unit being instrumented
+      Instrumented_Unit : Unbounded_String;
+      --  Absolute filename for the source that is being instrumented
 
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented
 
       Fullname : Unbounded_String;
       --  Fullname of the compilation unit being instrumented
-
-      Buffer_Unit : Compilation_Unit_Part;
-      --  Name of the compilation unit that holds coverage buffers for the
-      --  unit currently being instrumented (see Common.Buffer_Unit).
 
       Annotations : Annotation_Vectors.Vector;
       --  Annotations created during the instrumentation process, to insert in
@@ -401,7 +397,7 @@ package Instrument.Common is
    function Img (Bit : Any_Bit_Id) return String
    is (Strings.Img (Integer (Bit)));
 
-   Runtime_Version : constant Natural := 11;
+   Runtime_Version : constant Natural := 12;
    Runtime_Error   : constant String :=
      "Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
@@ -448,11 +444,6 @@ package Instrument.Common is
      (Blocks : in out SCO_Id_Vector_Vector; SCO_Map : LL_HL_SCO_Map);
    --  Convert low level SCOs in Blocks to high-level SCOs using the
    --  mapping in SCO_Map.
-
-   package CU_Name_Vectors is new
-     Ada.Containers.Vectors
-       (Index_Type   => Positive,
-        Element_Type => Compilation_Unit_Part);
 
    package Ada_Qualified_Name_Vectors is new
      Ada.Containers.Vectors
@@ -591,12 +582,6 @@ package Instrument.Common is
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in Prj.Output_Dir.
-
-   function To_Filename
-     (Prj : Prj_Desc; CU_Name : Compilation_Unit_Part) return String;
-   --  Convert a Compilation_Unit_Name to a file basename, using the body /
-   --  spec suffix and dot replacement (for unit based languages) defined in
-   --  Prj.
 
    type Macro_Definition (Define : Boolean := True) is record
       Name : Unbounded_String;

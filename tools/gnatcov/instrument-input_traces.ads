@@ -37,17 +37,17 @@ package Instrument.Input_Traces is
           (Kind : Traces_Source.Supported_Info_Kind; Data : String) is <>;
       with
         procedure On_Trace_Entry
-          (Filename                : String;
+          (Trace_Filename          : String;
            Fingerprint             : SC_Obligations.Fingerprint_Type;
-           CU_Name                 : Compilation_Unit_Part;
+           Source_Filename         : String;
            Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
            Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
            Stmt_Buffer             : Coverage_Buffer;
            Decision_Buffer         : Coverage_Buffer;
            MCDC_Buffer             : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File
-     (Filename : String; Result : out Traces_Files.Read_Result);
-   --  Read the given Filename source trace file and call:
+     (Trace_Filename : String; Result : out Traces_Files.Read_Result);
+   --  Read the given Trace_Filename source trace file and call:
    --
    --    * On_Trace_Info on each decoded trace info entry;
    --    * On_Trace_Entry on each decoded trace entry.
@@ -75,9 +75,9 @@ package Instrument.Input_Traces is
 
    procedure Update_State
      (Self                    : in out Consolidation_State;
-      Filename                : String;
+      Trace_Filename          : String;
       Fingerprint             : SC_Obligations.Fingerprint_Type;
-      CU_Name                 : Compilation_Unit_Part;
+      Source_Filename         : String;
       Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
       Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer             : Coverage_Buffer;
@@ -95,7 +95,7 @@ package Instrument.Input_Traces is
 private
 
    type Consolidated_Trace_Key is record
-      CU_Name     : Compilation_Unit_Part;
+      Filename    : Unbounded_String;
       Fingerprint : SC_Obligations.Fingerprint_Type;
    end record;
 

@@ -124,8 +124,9 @@ is
    --  thus must be deallocated when maps are deallocated.
 
    type Main_To_Instrument is record
-      CU_Name : Compilation_Unit_Part;
-      --  Compilation unit of the main to instrument
+      Unit_Name : Unbounded_String;
+      --  For unit-based languages, name of the unit that implements this main.
+      --  Empty string for file-based languages.
 
       File : GNATCOLL.VFS.Virtual_File;
       --  Source file to instrument
@@ -154,6 +155,12 @@ is
       --  Name of this unit: unit name for unit-based languages, simple name
       --  for file-based languages.
 
+      Display_Name : Unbounded_String;
+      --  Name of this unit in messages.
+      --
+      --  To keep progress logs readable, use source basenames for file-based
+      --  languages. Fold actual unit names to lower case for readability.
+
       Instr_Project : GPR2.Project.View.Object;
       --  Project in which instrumentation artifacts for this unit are
       --  generated.
@@ -180,7 +187,7 @@ is
    package Unit_Maps is new
      Ada.Containers.Indefinite_Ordered_Maps (String, Library_Unit_Info);
    --  Map to unit names to unit info of files implementing this unit. For
-   --  file- based languages, the unit name is the full name (to simplify
+   --  file-based languages, the unit name is the full name (to simplify
    --  dealing with homonym in different projects).
 
    type Inst_Context is limited record
@@ -298,7 +305,17 @@ is
    --  Clean the instrumentation directories and print any relevant information
    --  regarding the instrumentation context.
 
-   procedure Show_Progress (Language : Some_Language; Unit_Name : String);
+   function Display_Name
+     (Kind : Supported_Language_Kind; Unit_Name : String) return String
+   is (case Kind is
+         when Unit_Based_Language => To_Lower (Unit_Name),
+         when File_Based_Language => Ada.Directories.Simple_Name (Unit_Name));
+   --  Compute the display name for a given unit.
+   --
+   --  `Unit_Name` must be the actual unit name for unit-based languages, and
+   --  must be the source filename for file-based languages.
+
+   procedure Show_Progress (Language : Some_Language; Display_Name : String);
    --  If quiet mode is not enabled, show instrumentation progress by printing
    --  the language/unit name that are being instrumented.
 
@@ -613,16 +630,20 @@ is
       Mains   : in out Main_To_Instrument_Vectors.Vector;
       Main    : GPR2.Build.Compilation_Unit.Unit_Location)
    is
-      CU_Name  : constant Compilation_Unit_Part :=
-        To_Compilation_Unit_Name (Main.View.Source (Main.Source.Simple_Name));
-      Prj_Info : constant Project_Info_Access :=
+      Source    : constant GPR2.Build.Source.Object :=
+        Main.View.Source (Main.Source.Simple_Name);
+      Unit_Name : constant String :=
+        (case Language_Kind (To_Language (Source.Language)) is
+           when Unit_Based_Language => To_Lower (String (Source.Unit.Name)),
+           when File_Based_Language => "");
+      Prj_Info  : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (Context, Main.View);
    begin
       Mains.Append
         (Main_To_Instrument'
-           (CU_Name  => CU_Name,
-            File     => Create (+String (Main.Source.Value)),
-            Prj_Info => Prj_Info));
+           (Unit_Name => +Unit_Name,
+            File      => Create (+String (Main.Source.Value)),
+            Prj_Info  => Prj_Info));
    end Register_Main_To_Instrument;
 
    ------------------
@@ -846,6 +867,7 @@ is
             Instrumented_Sources.Insert
               (Unit_Name,
                (Unit_Name            => +Unit_Name,
+                Display_Name         => +Display_Name (Lang_Kind, Unit_Name),
                 Language_Kind        => Lang_Kind,
                 Language             => Language,
                 All_Externally_Built => Prj_Info.Externally_Built,
@@ -1138,7 +1160,7 @@ is
    -- Show_Progress --
    -------------------
 
-   procedure Show_Progress (Language : Some_Language; Unit_Name : String) is
+   procedure Show_Progress (Language : Some_Language; Display_Name : String) is
    begin
       if Quiet then
          return;
@@ -1153,16 +1175,7 @@ is
          Put ("   ");
          Put (Language_Name);
          Put (Filename_Indentation);
-
-         --  To keep progress logs readable, use source basenames for
-         --  file-based languages. Fold actual unit names to lower case for
-         --  readability.
-
-         if Language_Kind (Language) = File_Based_Language then
-            Put_Line (Ada.Directories.Simple_Name (Unit_Name));
-         else
-            Put_Line (To_Lower (Unit_Name));
-         end if;
+         Put_Line (Display_Name);
       end;
    end Show_Progress;
 
@@ -1480,7 +1493,7 @@ begin
 
             Unit_Args.Append (+Unit_Name);
 
-            Show_Progress (LU_Info.Language, Unit_Name);
+            Show_Progress (LU_Info.Language, +LU_Info.Display_Name);
 
             --  According to the set parallelism level, instrument in
             --  the same process (thus reusing the libadalang context, which
@@ -1579,9 +1592,9 @@ begin
             for Main of Mains_To_Instrument (Language) loop
                declare
                   Unit_Name : constant Unbounded_String :=
-                    +(case Main.CU_Name.Language_Kind is
-                        when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
-                        when File_Based_Language => (+Main.File.Full_Name));
+                    (if Main.Unit_Name = ""
+                     then +(+Main.File.Full_Name)
+                     else Main.Unit_Name);
                   Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
                begin
                   Unit_Args.Append
@@ -1591,7 +1604,6 @@ begin
                         Library_Unit_Info'
                           (Unit_Name            => Unit_Name,
                            Instr_Project        => Main.Prj_Info.Project,
-                           Language_Kind        => Language_Kind (Language),
                            Language             => Language,
                            All_Externally_Built => False,
                            others               => <>)));
@@ -1618,16 +1630,18 @@ begin
 
                declare
                   Unit_Name : constant String :=
-                    (case Main.CU_Name.Language_Kind is
-                       when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
-                       when File_Based_Language => +Main.File.Full_Name);
+                    (if Main.Unit_Name = ""
+                     then +Main.File.Full_Name
+                     else +Main.Unit_Name);
                   Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
                begin
                   if not Quiet and then First_Main then
                      First_Main := False;
                      Put_Line ("Main instrumentation");
                   end if;
-                  Show_Progress (Language, Unit_Name);
+                  Show_Progress
+                    (Language,
+                     Display_Name (Language_Kind (Language), Unit_Name));
 
                   Unit_Args.Append
                     (Compilation_Unit_Options
@@ -1636,7 +1650,6 @@ begin
                         Library_Unit_Info'
                           (Unit_Name            => +Unit_Name,
                            Instr_Project        => Main.Prj_Info.Project,
-                           Language_Kind        => Language_Kind (Language),
                            Language             => Language,
                            All_Externally_Built => False,
                            others               => <>)));

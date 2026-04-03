@@ -1039,7 +1039,7 @@ begin
       --  Then, substitute files of interest with their instrumented version,
       --  which were generated in Prj.Output_Dir.
 
-      for I in 0 .. Natural (String_Vectors.Length (New_Args) - 1) loop
+      for I in 1 .. New_Args.Last_Index loop
          declare
             Arg : constant Unbounded_String := New_Args.Element (I);
 
