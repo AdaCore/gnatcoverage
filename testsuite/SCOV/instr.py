@@ -271,7 +271,7 @@ def add_dumper_lch_hook(
         os.path.join(obj_dir, f"{project}-gnatcov-instr")
     ):
         for file in files:
-            res = re.match(pattern="gcvrt-d(.+).adb", string=file)
+            res = re.match(pattern=r"gcvrt-d(.+)\.adb$", string=file)
             if res:
                 auto_dump_suffix = res.group(1)
                 break
