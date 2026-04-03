@@ -31,6 +31,13 @@
 # on possibly case-insensitive filesystems.
 PREFIX=$(PWD)/local
 
+# Set path separator
+ifeq ($(HOST_OS), windows)
+PSEP ?= ;
+else
+PSEP ?= :
+endif
+
 # ----------------
 # -- To cleanup --
 # ----------------
@@ -70,7 +77,7 @@ ifeq ($(C_SUPPORT), True)
 include libclang_common.mk
 else
 CURRENT_DIR := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
-GPR_PROJECT_PATH := $(CURRENT_DIR)/gpr_stubs:$(GPR_PROJECT_PATH)
+GPR_PROJECT_PATH := $(CURRENT_DIR)/gpr_stubs$(PSEP)$(GPR_PROJECT_PATH)
 endif
 
 #####################################################################
