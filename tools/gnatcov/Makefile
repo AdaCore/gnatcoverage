@@ -381,14 +381,15 @@ gnat_util.gpr:
 # This is equivalent to the default run performed during CI
 GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=gnatcov64
 GNATSAS_OBJ_DIR=obj64/$(BUILD_MODE)
+GNATSAS_RESULTS=$(GNATSAS_OBJ_DIR)/results
 gnatsas:
-	rm -f $(GNATSAS_OBJ_DIR)/results
+	rm -f $(GNATSAS_RESULTS)
 	gnatsas analyze -P gnatcov.gpr $(GNATSAS_ARGS)
 	gnatsas report text -P gnatcov.gpr $(GNATSAS_ARGS)
 	if gnatsas report exit-code -P gnatcov.gpr $(GNATSAS_ARGS); then \
-		echo "gnatsas:PASSED" >> $(GNATSAS_OBJ_DIR)/results ; \
+		echo "gnatsas:PASSED" >> $(GNATSAS_RESULTS) ; \
 	else \
-		echo "gnatsas:FAILED:unexpected messages" >> $(GNATSAS_OBJ_DIR)/results ; \
+		echo "gnatsas:FAILED:unexpected messages" >> $(GNATSAS_RESULTS) ; \
 		gnatsas report -P gnatcov.gpr -o $(GNATSAS_OBJ_DIR)/gnatsas.out \
       $(GNATSAS_ARGS) ; \
 	fi
