@@ -178,10 +178,9 @@ package body GNATcov_RTS.Traces.Output is
       procedure Write_Entry
         (Output : in out Output_Stream; Buffers : GNATcov_RTS_Coverage_Buffers)
       is
-         Unit_Name_Bytes :
-           Uint8_Array (1 .. Integer (Buffers.Unit_Name.Length));
-         for Unit_Name_Bytes'Address use Buffers.Unit_Name.Str;
-         pragma Import (Ada, Unit_Name_Bytes);
+         Filename_Bytes : Uint8_Array (1 .. Integer (Buffers.Filename.Length));
+         for Filename_Bytes'Address use Buffers.Filename.Str;
+         pragma Import (Ada, Filename_Bytes);
 
          subtype Bounded_Uint8_Array is Uint8_Array (1 .. 20);
          function To_Uint8_Array is new
@@ -189,27 +188,21 @@ package body GNATcov_RTS.Traces.Output is
       begin
          --  Write trace entry header
 
-         Write_U32 (Output, Unsigned_32 (Buffers.Unit_Name.Length));
+         Write_U32 (Output, Unsigned_32 (Buffers.Filename.Length));
          Write_U32 (Output, Unsigned_32 (Buffers.Statement_Last_Bit + 1));
          Write_U32 (Output, Unsigned_32 (Buffers.Decision_Last_Bit + 1));
          Write_U32 (Output, Unsigned_32 (Buffers.MCDC_Last_Bit + 1));
-         Write_U8
-           (Output, Unsigned_8 (Any_Language_Kind_Map (Buffers.Language)));
-         Write_U8
-           (Output,
-            Unsigned_8
-              (GNATcov_RTS.Buffers.Any_Unit_Part'Pos (Buffers.Unit_Part)));
+         Write_Bytes (Output, (1 .. 3 => 0));
          Write_U8 (Output, Unsigned_8 (LSB_First_Bytes));
          Write_Bytes (Output, To_Uint8_Array (Buffers.Fingerprint));
          Write_Bytes (Output, To_Uint8_Array (Buffers.Bit_Maps_Fingerprint));
          Write_Bytes
            (Output, To_Uint8_Array (Buffers.Annotations_Fingerprint));
-         Write_Bytes (Output, (1 .. 1 => 0));
 
-         --  Write the unit name
+         --  Write the filename
 
-         Write_Bytes (Output, Unit_Name_Bytes);
-         Write_Padding (Output, Integer (Buffers.Unit_Name.Length));
+         Write_Bytes (Output, Filename_Bytes);
+         Write_Padding (Output, Integer (Buffers.Filename.Length));
 
          --  Write coverage buffers
 
