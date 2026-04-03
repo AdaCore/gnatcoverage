@@ -5,6 +5,7 @@ the provided SID files.
 
 import os
 import os.path
+import re
 
 from e3.fs import cp, mkdir
 
@@ -83,7 +84,7 @@ xcov(
     ],
     out=out_file,
     tolerate_messages=(
-        rf"traces for {main_adb} \(from .*\) are"
+        rf"traces for {re.escape(main_adb)} \(from .*\) are"
         r" inconsistent with the corresponding Source Instrumentation Data"
     ),
 )
