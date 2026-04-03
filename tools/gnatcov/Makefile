@@ -382,7 +382,7 @@ gnat_util.gpr:
 GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=gnatcov64
 GNATSAS_OBJ_DIR=obj64/$(BUILD_MODE)
 gnatsas:
-	rm -f $(OBJ_DIR)/results
+	rm -f $(GNATSAS_OBJ_DIR)/results
 	gnatsas analyze -P gnatcov.gpr $(GNATSAS_ARGS)
 	gnatsas report text -P gnatcov.gpr $(GNATSAS_ARGS)
 	if gnatsas report exit-code -P gnatcov.gpr $(GNATSAS_ARGS); then \
