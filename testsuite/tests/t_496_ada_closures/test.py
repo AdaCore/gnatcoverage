@@ -477,6 +477,49 @@ tests = [
             deps=["deps1_lib1", "deps1_lib2"],
         )
     ),
+    # Check with a dependent project that has one set of units used by a
+    # library project, and a disjoint set of units used by the main project.
+    Test(
+        root_project=Project(
+            name="deps4_root",
+            sources=[
+                Source(
+                    "deps4_main.adb",
+                    is_main=True,
+                    deps=["deps4_pkg1", "deps4_pkg5"],
+                ),
+            ],
+            deps=[
+                Project(
+                    name="deps4_shared",
+                    sources=[
+                        Source("deps4_pkg1.ads", deps=["deps4_pkg3"]),
+                        Source("deps4_pkg2.ads", deps=["deps4_pkg4"]),
+                        Source("deps4_pkg3.ads"),
+                        Source("deps4_pkg4.ads"),
+                        Source("deps4_extra1.ads"),
+                    ],
+                ),
+                # When they have no library interface, all Ada units in a
+                # library project must be included.
+                Project(
+                    name="deps4_lib1",
+                    sources=[Source("deps4_pkg5.ads", deps=["deps4_pkg2"])],
+                    deps=["deps4_shared"],
+                    is_library=True,
+                ),
+            ],
+        ),
+        expected_xcov={
+            "deps4_main.adb",
+            "deps4_pkg1.ads",
+            "deps4_pkg2.ads",
+            "deps4_pkg3.ads",
+            "deps4_pkg4.ads",
+            "deps4_pkg5.ads",
+        },
+        missing_unit_info={"deps4_extra1"},
+    ),
 ]
 
 
