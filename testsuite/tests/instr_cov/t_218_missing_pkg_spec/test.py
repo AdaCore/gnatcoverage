@@ -35,7 +35,7 @@ for line in lines_of(filename):
         line.startswith("warning: ")
         or line.startswith("*** warning:")
         or line.startswith(
-            "*** main.adb:5:4: low_warning: Could not determine if stmt is"
+            "*** main.adb:5:4: warning: Could not determine if stmt is"
             " ghost"
         )
     ):

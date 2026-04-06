@@ -47,7 +47,6 @@ package body Diagnostics is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
         (Notice           => "---",
-         Low_Warning      => "***",
          Limitation       => "???",
          Warning          => "***",
          Error            => "!!!",
@@ -300,7 +299,7 @@ package body Diagnostics is
       elsif Args.Bool_Args (Opt_Suppress_Limitations) then
          return M.Kind <= Limitation;
       else
-         return M.Kind <= Low_Warning;
+         return M.Kind <= Notice;
       end if;
    end Suppress_Message;
 

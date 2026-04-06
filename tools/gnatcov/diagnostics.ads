@@ -49,7 +49,6 @@ package Diagnostics is
 
    type Report_Kind is
      (Notice,
-      Low_Warning,
       Limitation,
       Warning,
       Error,
