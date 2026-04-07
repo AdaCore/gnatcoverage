@@ -14,7 +14,7 @@ prj = gprfor(
     srcdirs=[".."],
     mains=["main.adb"],
     extra="""package Coverage is
-       for Units use ("pkg", "pkg.child");
+       for Units use ("pkg", "pkg.child", "pkg.gen");
     end Coverage;
     """,
 )
@@ -31,7 +31,10 @@ check_xcov_reports(
         "pkg.ads.xcov": {"+": {12, 15}, "-": {11, 14}},
         "pkg.adb.xcov": {"+": {5, 6}, "-": {8}},
         "pkg-child.ads.xcov": {"+": {9}, "-": {10, 12, 13}},
+        "pkg-gen.ads.xcov": {},
+        "pkg-gen.adb.xcov": {"+": {6}},
     },
+    discard_empty=False,
 )
 
 thistest.result()
