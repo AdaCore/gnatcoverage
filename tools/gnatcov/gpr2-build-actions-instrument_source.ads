@@ -50,6 +50,10 @@ package GPR2.Build.Actions.Instrument_Source is
       Dump_Config  : Any_Dump_Config);
    --  Initialize a source instrumentation action
 
+   procedure Common_Compute_Signature
+     (Self : in out Object; Check_Checksums : Boolean);
+   --  Code shared between Compute_Signature implementations
+
    overriding
    procedure Compute_Signature
      (Self : in out Object; Check_Checksums : Boolean);

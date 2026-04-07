@@ -70,14 +70,6 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       end Process_Part;
 
    begin
-      Self.Write_Instrumented_Files_List;
-
-      for Art of Self.Artifacts loop
-         if not Self.Signature.Add_Output (Art, Check_Checksums) then
-            return;
-         end if;
-      end loop;
-
       --  Add all of the unit parts of interest as dependencies
 
       begin
@@ -87,16 +79,6 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
          when Exit_Signature_Exception =>
             return;
       end;
-
-      --  All of the unit dependencies are inputs
-
-      for Dep of Self.Dependencies loop
-         if not Self.Signature.Add_Input
-                  (GPR2.Build.Artifacts.Files.Create (Dep), Check_Checksums)
-         then
-            return;
-         end if;
-      end loop;
 
       --  Add the preprocessor data file as input
 
@@ -117,6 +99,8 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       then
          return;
       end if;
+
+      Self.Common_Compute_Signature (Check_Checksums);
    end Compute_Signature;
 
    ------------------

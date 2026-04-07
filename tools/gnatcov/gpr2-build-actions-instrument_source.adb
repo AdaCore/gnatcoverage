@@ -110,36 +110,16 @@ package body GPR2.Build.Actions.Instrument_Source is
       end loop;
    end Initialize;
 
-   -----------------------
-   -- Compute_Signature --
-   -----------------------
+   ------------------------------
+   -- Common_Compute_Signature --
+   ------------------------------
 
-   procedure Compute_Signature
+   procedure Common_Compute_Signature
      (Self : in out Object; Check_Checksums : Boolean)
    is
-      use GPR2.Build.Signature;
-      Deps : constant GPR2.Containers.Filename_Set := Self.Dependencies;
+      Deps : constant GPR2.Containers.Filename_Set :=
+        Object'Class (Self).Dependencies;
    begin
-      if Deps.Is_Empty then
-
-         --  Dependency file parsing went wrong, at least put the direct
-         --  source as an input.
-
-         if not Self.Signature.Add_Input
-                  (Artifacts.Files.Create
-                     (Self.LU_Info.Main_Part_Src.Path_Name))
-         then
-            Self.Force := True;
-            return;
-         end if;
-
-         --  This actions should be done no matter what since the
-         --  dependencies states are unknown.
-
-         Self.Force := True;
-         return;
-      end if;
-
       for Dep of Deps loop
          declare
             Path : constant GPR2.Path_Name.Object :=
@@ -174,6 +154,52 @@ package body GPR2.Build.Actions.Instrument_Source is
             return;
          end if;
       end loop;
+
+      --  Compute signatures for external annotation files
+
+      for Arg of Switches.Args.String_List_Args (Opt_Ext_Annotations) loop
+         if not Self.Signature.Add_Output
+                  (Artifacts.Files.Create (Filename_Type (+Arg)),
+                   Check_Checksums)
+         then
+            Self.Force := True;
+            return;
+         end if;
+      end loop;
+      return;
+   end Common_Compute_Signature;
+
+   -----------------------
+   -- Compute_Signature --
+   -----------------------
+
+   procedure Compute_Signature
+     (Self : in out Object; Check_Checksums : Boolean)
+   is
+      use GPR2.Build.Signature;
+      Deps : constant GPR2.Containers.Filename_Set :=
+        Object'Class (Self).Dependencies;
+   begin
+      if Deps.Is_Empty then
+
+         --  Dependency file parsing went wrong, at least put the direct
+         --  source as an input.
+
+         if not Self.Signature.Add_Input
+                  (Artifacts.Files.Create
+                     (Self.LU_Info.Main_Part_Src.Path_Name))
+         then
+            Self.Force := True;
+            return;
+         end if;
+
+         --  This actions should be done no matter what since the
+         --  dependencies states are unknown.
+
+         Self.Force := True;
+         return;
+      end if;
+      Self.Common_Compute_Signature (Check_Checksums);
    end Compute_Signature;
 
    ---------------------
