@@ -180,25 +180,8 @@ is
    ---------------------
 
    procedure Destroy_Context (Context : in out Inst_Context) is
-      use Ada.Directories;
       procedure Free is new
         Ada.Unchecked_Deallocation (Project_Info, Project_Info_Access);
-
-      procedure Delete_File_Wrapper (Filename : US.Unbounded_String);
-      --  Wrapper around Delete_File to ignore non-existing files
-
-      -------------------------
-      -- Delete_File_Wrapper --
-      -------------------------
-
-      procedure Delete_File_Wrapper (Filename : US.Unbounded_String) is
-         F : constant String := +Filename;
-      begin
-         if Exists (F) then
-            Delete_File (F);
-         end if;
-      end Delete_File_Wrapper;
-
    begin
       --  Deallocate all Project_Info in Context, and then clear the hashed
       --  map, both to avoid dangling pointers and to make Destroy_Context
@@ -213,15 +196,6 @@ is
          end;
       end loop;
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
-
-      --  Cleanup temporary artifacts if not instructed to keep them
-
-      if not Save_Temps then
-         Delete_File_Wrapper (Context.Mapping_File);
-         Delete_File_Wrapper (Context.Config_Pragmas_Mapping);
-         Delete_File_Wrapper (Context.Sources_Of_Interest_Response_File);
-         Delete_File_Wrapper (Context.Ada_Preprocessor_Data_File);
-      end if;
    end Destroy_Context;
 
    ----------------------------

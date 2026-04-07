@@ -238,6 +238,16 @@ begin
          end;
       end loop;
 
+      --  Cleanup temporary artifacts if not instructed to keep them
+
+      if Save_Temps then
+         Instr_Artifacts.Insert (Create (+(+IC.Mapping_File)));
+         Instr_Artifacts.Insert (Create (+(+IC.Config_Pragmas_Mapping)));
+         Instr_Artifacts.Insert
+           (Create (+(+IC.Sources_Of_Interest_Response_File)));
+         Instr_Artifacts.Insert (Create (+(+IC.Ada_Preprocessor_Data_File)));
+      end if;
+
       --  Trace the preserved artifacts
 
       Clean_Objdirs_Trace.Increase_Indent
