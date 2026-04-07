@@ -267,9 +267,10 @@ static-analysis:
     GNATSAS_OUT_DIR: tools/gnatcov/analyzer
   script:
     - !reference [.static-analysis, script]
-    # Check if there is at least one message and make the job fail
-    - has_msg=$(grep -c 'unexpected messages' $BUILD_DIR/$GNATSAS_OBJ_DIR/results)
-    - exit $has_msg
+    # Make the job fail if there is at least one message
+    - if grep 'unexpected messages' $BUILD_DIR/$GNATSAS_OBJ_DIR/results; then exit 1; fi
+  artifacts:
+    when: always # the default is on_success and does not let us investigate
 
 #################
 # Optional jobs #

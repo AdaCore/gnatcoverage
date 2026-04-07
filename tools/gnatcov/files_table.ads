@@ -574,8 +574,7 @@ package Files_Table is
    --  records of FI based on the information in Annotation_Map.
 
    function Writeable_Sloc_To_SCO_Map
-     (Index : Source_File_Index; Kind : SCO_Kind)
-      return access Sloc_To_SCO_Maps.Map
+     (Index : Source_File_Index; Kind : SCO_Kind) return Sloc_To_SCO_Map_Acc
    with
      Pre  => Get_File (Index).Kind = Source_File,
      Post => Writeable_Sloc_To_SCO_Map'Result /= null;
@@ -584,7 +583,7 @@ package Files_Table is
 
    function Sloc_To_SCO_Map
      (Index : Source_File_Index; Kind : SCO_Kind)
-      return access constant Sloc_To_SCO_Maps.Map
+      return Constant_Sloc_To_SCO_Map_Acc
    with Post => Sloc_To_SCO_Map'Result /= null;
    --  Return the requested map, in a read-only state
 

@@ -851,6 +851,9 @@ package SC_Obligations is
        (Key_Type     => Local_Source_Location_Range,
         Element_Type => SCO_Id);
 
+   type Sloc_To_SCO_Map_Acc is access all Sloc_To_SCO_Maps.Map;
+   type Constant_Sloc_To_SCO_Map_Acc is access constant Sloc_To_SCO_Maps.Map;
+
    type Sloc_To_SCO_Map_Array is
      array (SCO_Kind) of aliased Sloc_To_SCO_Maps.Map;
    type Sloc_To_SCO_Map_Array_Acc is access all Sloc_To_SCO_Map_Array;

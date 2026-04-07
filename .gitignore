@@ -7,6 +7,10 @@ lib
 *.qm
 /extra
 /doc/_build
+/tools/gnatcov/analyzer/*.backup
+/tools/gnatcov/analyzer/gnatcov._no_sub.sam
+/tools/gnatcov/analyzer/gnatcov.runs_info.json
+/tools/gnatcov/analyzer/gnatcov.sar
 /tools/gnatcov/doc/html
 /tools/gnatcov/doc/pdf
 /tools/gnatcov/obj32/

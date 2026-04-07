@@ -393,7 +393,7 @@ package body Instrument.C is
    type Start_Or_End is (Start_Annotation, End_Annotation);
 
    procedure Search_Annotation_Couple
-     (UIC                        : in out C_Unit_Inst_Context;
+     (UIC                        : C_Unit_Inst_Context;
       Start_Matcher, End_Matcher : String;
       Process                    :
         access procedure
@@ -3458,7 +3458,7 @@ package body Instrument.C is
    ------------------------------
 
    procedure Search_Annotation_Couple
-     (UIC                        : in out C_Unit_Inst_Context;
+     (UIC                        : C_Unit_Inst_Context;
       Start_Matcher, End_Matcher : String;
       Process                    :
         access procedure

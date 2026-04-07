@@ -1982,8 +1982,7 @@ package body Files_Table is
    -------------------------------
 
    function Writeable_Sloc_To_SCO_Map
-     (Index : Source_File_Index; Kind : SCO_Kind)
-      return access Sloc_To_SCO_Maps.Map
+     (Index : Source_File_Index; Kind : SCO_Kind) return Sloc_To_SCO_Map_Acc
    is
       FI : constant File_Info_Access := Get_File (Index);
    begin
@@ -1999,10 +1998,12 @@ package body Files_Table is
 
    function Sloc_To_SCO_Map
      (Index : Source_File_Index; Kind : SCO_Kind)
-      return access constant Sloc_To_SCO_Maps.Map is
+      return Constant_Sloc_To_SCO_Map_Acc is
    begin
       if Get_File (Index).Kind = Source_File then
-         return Writeable_Sloc_To_SCO_Map (Index, Kind);
+         return
+           Constant_Sloc_To_SCO_Map_Acc
+             (Writeable_Sloc_To_SCO_Map (Index, Kind));
       else
          return Empty_Sloc_To_SCO_Map'Access;
       end if;
