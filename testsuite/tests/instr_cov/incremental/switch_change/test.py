@@ -3,9 +3,6 @@ Check that when running gnatcov instrument with varying switches, gnatcov
 reinstruments the files.
 """
 
-import os.path
-import shutil
-
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.control import env
@@ -13,18 +10,16 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
-tmp = Wdir("tmp_")
-
-# Create a project
-root_prj = gprfor(
-    srcdirs=[".."], langs=["Ada", "C", "C++"], mains=["main.adb"]
-)
+tmp = Wdir()
 
 
 def instrument_and_check(args: list[str], label: str) -> None:
-    # Remove existing instrumentation artifacts
-    if os.path.exists("obj"):
-        shutil.rmtree("obj")
+    tmp.to_subdir(f"tmp_{label}")
+
+    # Create a project
+    root_prj = gprfor(
+        srcdirs=[".."], langs=["Ada", "C", "C++"], mains=["main.adb"]
+    )
 
     # Start with a statement instrumentation, and then check incrementality
     xcov_instrument(gprsw=GPRswitches(root_project=root_prj), covlevel="stmt")
