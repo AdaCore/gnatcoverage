@@ -1450,12 +1450,13 @@ is computed differently.
 If such coverage analysis is needed, it should always be activated along one of
 the previously described coverage levels, as an "addition". In the following
 sections on assertion coverage, their associated command line options will be
-written as `--level=...+<assertion coverage level>` where `...` is one of
-`stmt`, `stmt+decision`, `stmt+mcdc` and `stmt+uc_mcdc`.
+written as ``--level=...+<assertion coverage level>`` where ``...`` is one of
+``stmt``, ``stmt+decision``, ``stmt+mcdc`` and ``stmt+uc_mcdc``.
 
 Using assertion coverage levels allows to compute the coverage of the pragma
-statements `Assert`, `Assert_And_Cut`, `Assume`, `Check`, `Loop_Invariant`, and
-the aspects `Type_Invariant`, `Precondition` and `Postcondition`.
+statements ``Assert``, ``Assert_And_Cut``, ``Assume``, ``Check``,
+``Loop_Invariant``, and the aspects ``Type_Invariant``, ``Precondition`` and
+``Postcondition``.
 
 The limitations of this coverage level are detailed in the
 :ref:`instr-limitations` section.
@@ -1557,9 +1558,9 @@ Ada, C, and C++ source traces.
 If such coverage analysis is needed, it should always be activated along one of
 the non-assertion coverage levels previously described. In this section on
 function and call coverage, the associated command line option will be written
-as `--level=...+fun_call` where `...` is one of `stmt`, `stmt+decision`,
-`stmt+mcdc` and `stmt+uc_mcdc`. Assertion coverage can also be activated at the
-same time.
+as ``--level=...+fun_call`` where ``...`` is one of ``stmt``,
+``stmt+decision``, ``stmt+mcdc`` and ``stmt+uc_mcdc``. Assertion coverage can
+also be activated at the same time.
 
 Core notions and Reporting (:cmd-option:`--level=...+fun_call`)
 ---------------------------------------------------------------
