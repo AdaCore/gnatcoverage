@@ -6529,10 +6529,7 @@ package body Instrument.Ada_Unit is
       --  Helper to Libadalang's Traverse.
       --  Only operates on Case_Exprs, call Instrument_GExpr on every case
 
-      procedure Process_Decisions
-        (UIC : in out Ada_Unit_Inst_Context;
-         N   : Ada_Node'Class;
-         T   : Character);
+      procedure Process_Decisions (N : Ada_Node'Class; T : Character);
 
       -----------------------------
       -- Process_Call_Expression --
@@ -6932,9 +6929,7 @@ package body Instrument.Ada_Unit is
       -- Process_Decisions --
       -----------------------
 
-      procedure Process_Decisions
-        (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
-      is
+      procedure Process_Decisions (N : Ada_Node'Class; T : Character) is
          Mark : Nat;
          --  This is used to mark the location of a decision sequence in the
          --  SCO table. We use it for backing out a simple decision in an
@@ -7334,7 +7329,7 @@ package body Instrument.Ada_Unit is
                end if;
 
             else
-               Process_Decisions (UIC, N, 'X');
+               Process_Decisions (N, 'X');
             end if;
          end Find_Nested_Decisions;
 
@@ -7442,8 +7437,8 @@ package body Instrument.Ada_Unit is
                      Alt : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
                   begin
-                     Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
-                     Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                     Process_Decisions (IEN.F_Cond_Expr, 'I');
+                     Process_Decisions (IEN.F_Then_Expr, 'X');
                      if Enabled (GExpr) then
                         Instrument_GExpr
                           (IEN.F_Then_Expr,
@@ -7457,8 +7452,8 @@ package body Instrument.Ada_Unit is
                            EIN : constant Elsif_Expr_Part :=
                              Alt.Child (J).As_Elsif_Expr_Part;
                         begin
-                           Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
-                           Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                           Process_Decisions (EIN.F_Cond_Expr, 'I');
+                           Process_Decisions (EIN.F_Then_Expr, 'X');
                            if Enabled (GExpr) then
                               Instrument_GExpr
                                 (EIN.F_Then_Expr,
@@ -7469,7 +7464,7 @@ package body Instrument.Ada_Unit is
                         end;
                      end loop;
 
-                     Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                     Process_Decisions (IEN.F_Else_Expr, 'X');
                      if Enabled (GExpr) then
                         Instrument_GExpr
                           (IEN.F_Else_Expr,
@@ -7481,9 +7476,8 @@ package body Instrument.Ada_Unit is
                   end;
 
                when Ada_Quantified_Expr =>
-                  Process_Decisions
-                    (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
-                  Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+                  Process_Decisions (N.As_Quantified_Expr.F_Loop_Spec, 'X');
+                  Process_Decisions (N.As_Quantified_Expr.F_Expr, 'W');
 
                   if Enabled (GExpr) then
                      Instrument_GExpr
@@ -7498,10 +7492,10 @@ package body Instrument.Ada_Unit is
                   declare
                      LS : constant For_Loop_Spec := N.As_For_Loop_Spec;
                   begin
-                     Process_Decisions (UIC, LS.F_Var_Decl, 'X');
-                     Process_Decisions (UIC, LS.F_Iter_Expr, 'X');
+                     Process_Decisions (LS.F_Var_Decl, 'X');
+                     Process_Decisions (LS.F_Iter_Expr, 'X');
                      if not LS.F_Iter_Filter.Is_Null then
-                        Process_Decisions (UIC, LS.F_Iter_Filter.F_Expr, 'W');
+                        Process_Decisions (LS.F_Iter_Filter.F_Expr, 'W');
                      end if;
                   end;
                   return Over;
@@ -7534,7 +7528,7 @@ package body Instrument.Ada_Unit is
                --  instrumenting them, but do process the final expression.
 
                when Ada_Decl_Expr       =>
-                  Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
+                  Process_Decisions (N.As_Decl_Expr.F_Expr, 'X');
                   return Over;
 
                --  All other cases, continue scan
@@ -7564,7 +7558,7 @@ package body Instrument.Ada_Unit is
       if N.Is_Null then
          return;
       end if;
-      Process_Decisions (UIC, N, T);
+      Process_Decisions (N, T);
 
       --  Then, look for all call expressions to instrument them. However,
       --  avoid instrumenting calls that are in subprogram specifications.

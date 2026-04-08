@@ -290,7 +290,18 @@ project Gnatcov is
          "--no-inspector",
          "--no-gnat");
 
-      Filter := ("--show", "age=added+removed");
+      CWE_Filter :=
+        --  [CWE 200] Do not warn about information leak: gnatcov does not deal
+        --  with sensitive information.
+        "kind-information_leak"
+        --  [CWE 22] Do not warn about path traversal issues: gnatcov users are
+        --  expected to pass relative and absolute paths to gnatcov, there is
+        --  no intention to restrict file access outside of any directory.
+        & ",kind-path_traversal"
+        --  [CWE 78] gnatcov writes command line arguments in various files and
+        --  then reads them later to run the commands.
+        & ",kind-os_command_injection";
+      Filter := ("--show", "age=added," & CWE_Filter);
       for Switches ("report text") use Filter;
       for Switches ("report exit-code") use Filter;
       for Switches ("report code-climate") use Filter & ("--long-desc");

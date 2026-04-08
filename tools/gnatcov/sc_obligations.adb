@@ -737,7 +737,7 @@ package body SC_Obligations is
 
    procedure Remap_BDD
      (CP_Vectors   : Source_Coverage_Vectors;
-      Relocs       : in out Checkpoint_Relocations;
+      Relocs       : Checkpoint_Relocations;
       Decision_BDD : in out BDD.BDD_Type);
    --  Remap a sequence of BDD nodes, for a whole decision BDD
 
@@ -1966,7 +1966,7 @@ package body SC_Obligations is
 
    procedure Remap_BDD
      (CP_Vectors   : Source_Coverage_Vectors;
-      Relocs       : in out Checkpoint_Relocations;
+      Relocs       : Checkpoint_Relocations;
       Decision_BDD : in out BDD.BDD_Type)
    is
       CP_First  : constant BDD_Node_Id := Decision_BDD.First_Node;

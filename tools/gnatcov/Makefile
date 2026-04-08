@@ -381,14 +381,15 @@ gnat_util.gpr:
 # This is equivalent to the default run performed during CI
 GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=gnatcov64
 GNATSAS_OBJ_DIR=obj64/$(BUILD_MODE)
+GNATSAS_RESULTS=$(GNATSAS_OBJ_DIR)/results
 gnatsas:
-	rm -f $(OBJ_DIR)/results
+	rm -f $(GNATSAS_RESULTS)
 	gnatsas analyze -P gnatcov.gpr $(GNATSAS_ARGS)
 	gnatsas report text -P gnatcov.gpr $(GNATSAS_ARGS)
 	if gnatsas report exit-code -P gnatcov.gpr $(GNATSAS_ARGS); then \
-		echo "gnatsas:PASSED" >> $(GNATSAS_OBJ_DIR)/results ; \
+		echo "gnatsas:PASSED" >> $(GNATSAS_RESULTS) ; \
 	else \
-		echo "gnatsas:FAILED:unexpected messages" >> $(GNATSAS_OBJ_DIR)/results ; \
+		echo "gnatsas:FAILED:unexpected messages" >> $(GNATSAS_RESULTS) ; \
 		gnatsas report -P gnatcov.gpr -o $(GNATSAS_OBJ_DIR)/gnatsas.out \
       $(GNATSAS_ARGS) ; \
 	fi
@@ -400,6 +401,21 @@ gnatsas:
 
 bump_baseline:
 	gnatsas baseline --bump-baseline -P gnatcov.gpr $(GNATSAS_ARGS)
+	# Remove mentions of absolute paths to avoid baseline variations
+	# depending on where the gnatcoverage repository is located.
+	#
+	# Running `cd $(pwd -P)` first will resolve symbolic links, to avoid
+	# potential mismatches.
+	#
+	# Some baseline file lines contain the repo absolute path twice, so run
+	# sed twice...
+	( \
+		cd $$(pwd -P); \
+		GNATSAS_PREFIX=$$(dirname $$(dirname $$(which gnatsas))); \
+		sed "s|$$GNATSAS_PREFIX||" -i analyzer/*.sam; \
+		sed "s|$$PWD||" -i analyzer/*.sam; \
+		sed "s|$$PWD||" -i analyzer/*.sam \
+	)
 
 .PHONY: force
 
