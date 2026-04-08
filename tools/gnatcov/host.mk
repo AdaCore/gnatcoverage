@@ -14,6 +14,11 @@ HOST_OS=linux
 LN_S=ln -sf
 exeext=
 endif
+ifneq (,$(filter Darwin, $(HOST_UNAME)))
+HOST_OS=darwin
+LN_S=ln -sf
+exeext=
+endif
 
 RM=rm -f
 CP=cp -pf

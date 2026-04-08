@@ -31,13 +31,6 @@
 # on possibly case-insensitive filesystems.
 PREFIX=$(PWD)/local
 
-# Set path separator
-ifeq ($(HOST_OS), windows)
-PSEP ?= ;
-else
-PSEP ?= :
-endif
-
 # ----------------
 # -- To cleanup --
 # ----------------
@@ -64,6 +57,13 @@ COMPILERPATH=obj32/$(BUILD_MODE)/compiler_wrappers-gcc
 DIRNAME=gnatcoverage
 
 include host.mk
+
+# Set path separator
+ifeq ($(HOST_OS), windows)
+PSEP ?= ;
+else
+PSEP ?= :
+endif
 
 # We want to allow community users to build gnatcov without a dependency to a
 # customized version of libclang (needed for C instrumentation), through the
@@ -331,6 +331,8 @@ distrib-linux-extra:
 	chmod +x $(PREFIX)/doinstall
 
 distrib-windows-extra:
+
+distrib-darwin-extra:
 
 distrib-common: install-adapters distrib-${HOST_OS}-extra
 distrib-without-doc: distrib-common install-without-doc
