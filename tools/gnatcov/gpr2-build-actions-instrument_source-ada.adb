@@ -59,13 +59,10 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       is
          pragma Unreferenced (Kind, View, Index, Sep_Name);
       begin
-         if Self.IC.Files_Of_Interest.Contains (Path.Virtual_File) then
-            if not Self.Signature.Add_Input
-                     (GPR2.Build.Artifacts.Files.Create (Path),
-                      Check_Checksums)
-            then
-               raise Exit_Signature_Exception;
-            end if;
+         if not Self.Signature.Add_Input
+                  (GPR2.Build.Artifacts.Files.Create (Path), Check_Checksums)
+         then
+            raise Exit_Signature_Exception;
          end if;
       end Process_Part;
 
