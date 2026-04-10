@@ -1,14 +1,16 @@
-******************************************************
-Consolidation with varying source coverage obligations
-******************************************************
+*****************************************************************
+Consolidating Coverage for Different Project Build Configurations
+*****************************************************************
 
 Some projects need to provide alternative implementations depending on the
-context: for instance different backends for some service, to be selected at
-compilation time.
+context. For instance, when using a GPR file, an external variable may
+configure a target-specific implementation of an API at build-time (you can
+learn more about external variables in the GPR Tools User's Guide, section
+2.9.6.3 The function External).
 
-Here is a simple example: the ``Logging`` package provides helper to emit
-errors or warnings. A single source file (``logging.ads``) defines the API to
-emit these messages, but two source files (``logging__text_io.adb`` and
+Here is a simple example: the ``Logging`` package a means to emit errors or
+warnings. A single source file (``logging.ads``) defines the API to emit these
+messages, but two source files (``logging__text_io.adb`` and
 ``logging__gnat_io.adb``) implement this API: one relies on the ``Ada.Text_IO``
 runtime unit, and the other on the ``GNAT.IO`` unit.
 
@@ -107,15 +109,42 @@ Building and running the programs in order to generated source traces is next:
 
 As described in :ref:`sunits`, coverage obligations for all the source files
 that need to appear in the coverage report must be conveyed to ``gnatcov
-coverage`` eventually. Since a given set of project loading options (``-P``,
-``-X``) covers one alternative at a time, special care must be taken when
-generating the coverage report. The two methods of consolidation can be usede
+coverage`` eventually. Since a given set of GPR file loading options (``-P``,
+``-X``) deals with one implementation at a time, special care must be taken
+when generating the coverage report. The two methods of consolidation can be
+used
 here:
 
 1. Manually pass the relevant SID files (``--sid`` switch) to use all source
    traces at once (i.e. :ref:`cons-traces`).
 2. Keep using project loading options to load source traces separately and
    produce checkpoint files (i.e. :ref:`checkpoints`).
+
+In the following sections, we will use the above example to demonstrate
+consolidation for two variant programs running on the same host, but you can
+expect the same kind of coverage consolidation even if traces are obtained from
+execution on different targets. For instance, for a project that targets a
+bareboard ARM system, with a variant running on a native host for testing
+purposes:
+
+.. code-block:: sh
+
+   # Instrument and run the program to run on the ARM system
+   gnatcov instrument --level=stmt \
+     -P example.gpr --target=arm-eabi --RTS=light-stm32f4
+   gprbuild --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts \
+     -P example.gpr --target=arm-eabi --RTS=light-stm32f4
+   # [execute on target and produce onboard.srctrace]
+
+   # Instrument and run the program to run on the host system
+   gnatcov instrument --level=stmt \
+     -P example.gpr
+   gprbuild --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts \
+     -P example.gpr
+   GNATCOV_TRACE_FILE=native.srctrace obj/example
+
+   # It is then possible to produce a coverage report using either of the two
+   # methods presented below from onboard.srctrace and native.srctrace.
 
 Use SID files to use all source traces at once
 ==============================================
@@ -131,8 +160,8 @@ traces, pass all the relevant SID files (:ref:`passing_scos`):
      main*.srctrace \
      --level=stmt --annotate=xcov --output-dir=xcov
 
-This yields the expected coverage report, mentionning the two alternative
-implementations of ``Logging``:
+This yields the expected coverage report, displaying the coverage for the two
+alternative implementations of ``Logging``:
 
 .. code-block:: sh
 
@@ -227,69 +256,6 @@ generate the coverage report from the checkpoints:
      --checkpoint=gnat_io.ckpt \
      --level=stmt --annotate=xcov --output-dir=xcov
 
-As for the first method, this yields the expected coverage report, mentionning
-the two alternative implementations of ``Logging``:
-
-.. code-block:: sh
-
-   cat xcov/logging.ads.xcov
-   /tmp/foo/logging.ads:
-   no code
-   no code
-   Coverage level: stmt
-      1 .:    package Logging is
-      2 .:       procedure Warn (Message : String);
-      3 .:       procedure Error (Message : String);
-      4 .:    end Logging;
-
-   cat xcov/logging__text_io.adb.xcov
-   /tmp/foo/logging__text_io.adb:
-   75% of 4 lines covered
-   75% statement coverage (3 out of 4)
-
-   Coverage level: stmt
-      1 .:    with Ada.Text_IO; use Ada.Text_IO;
-      2 .:    package body Logging is
-      3 .:
-      4 .:       procedure Write (Prefix, Message : String) is
-      5 .:       begin
-      6 +:          Put (Prefix);
-      7 +:          Put_Line (Message);
-      8 .:       end Write;
-      9 .:
-     10 .:       procedure Warn (Message : String) is
-     11 .:       begin
-     12 +:          Write ("warning: ", Message);
-     13 .:       end Warn;
-     14 .:
-     15 .:       procedure Error (Message : String) is
-     16 .:       begin
-     17 -:          Write ("error: ", Message);
-     18 .:       end Error;
-     19 .:    end Logging;
-   cat xcov/logging__gnat_io.adb.xcov
-   /tmp/foo/logging__gnat_io.adb:
-   80% of 5 lines covered
-   80% statement coverage (4 out of 5)
-
-   Coverage level: stmt
-      1 .:    with GNAT.IO; use GNAT.IO;
-      2 .:    package body Logging is
-      3 .:
-      4 .:       procedure Write (Prefix, Message : String) is
-      5 .:       begin
-      6 +:          Put (Prefix);
-      7 +:          Put (Message);
-      8 +:          New_Line;
-      9 .:       end Write;
-     10 .:
-     11 .:       procedure Warn (Message : String) is
-     12 .:       begin
-     13 +:          Write ("warning: ", Message);
-     14 .:       end Warn;
-     15 .:
-     16 .:       procedure Error (Message : String) is
-     17 .:       begin
-     18 -:          Write ("error: ", Message);
-     19 .:       end Error;
-     20 .:    end Logging;
+The same as the first method, this yields the expected coverage report,
+displaying coverage for the two alternative implementations of ``Logging``: see
+the coverage report in the previous section.
