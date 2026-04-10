@@ -30,8 +30,7 @@ package body Diagnostics is
 
    function Suppress_Message (M : Message) return Boolean;
    --  Return whether the given message must be removed from reports based on
-   --  the various command line options (--all-warnings,
-   --  --suppress-limitations, etc).
+   --  the various command line options (--suppress-limitations, etc).
 
    procedure Output_Message (M : Message);
    --  Display M
@@ -294,9 +293,7 @@ package body Diagnostics is
 
    function Suppress_Message (M : Message) return Boolean is
    begin
-      if Args.Bool_Args (Opt_All_Warnings) then
-         return M.Kind <= Notice;
-      elsif Args.Bool_Args (Opt_Suppress_Limitations) then
+      if Args.Bool_Args (Opt_Suppress_Limitations) then
          return M.Kind <= Limitation;
       else
          return M.Kind <= Notice;
