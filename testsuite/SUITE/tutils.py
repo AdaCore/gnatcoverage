@@ -1070,9 +1070,6 @@ def xcov(
     covcmd = args[0]
     covargs = args[1:]
 
-    if thistest.options.all_warnings:
-        covargs = ["--all-warnings"] + list(covargs)
-
     covargs = xcov_suite_args(
         covcmd,
         covargs,
