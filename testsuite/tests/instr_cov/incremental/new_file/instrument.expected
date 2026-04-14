@@ -1,4 +1,2 @@
-[GPR.BUILD.ACTIONS_SCHEDULER.IN_THREAD] Signature is valid, do not execute the job '[Ada Instrument] main.adb (gen.gpr)'
-[GPR.BUILD.ACTIONS_SCHEDULER.IN_THREAD] Collect_Job returned CONTINUE_EXECUTION for action '[Ada Instrument] main.adb (gen.gpr)'
-[GPR.BUILD.ACTIONS_SCHEDULER.IN_THREAD] Signature is valid, do not execute the job '[Ada Instrument] pkg.adb (gen.gpr)'
-[GPR.BUILD.ACTIONS_SCHEDULER.IN_THREAD] Collect_Job returned CONTINUE_EXECUTION for action '[Ada Instrument] pkg.adb (gen.gpr)'
+[GPR.PROCESS_MANAGER] Signature is valid, do not execute the job '[Ada Instrument] main.adb (gen.gpr)'
+[GPR.PROCESS_MANAGER] Signature is valid, do not execute the job '[Ada Instrument] pkg.adb (gen.gpr)'

@@ -22,11 +22,9 @@ package GPR2.Build.Actions.Instrument_Source.Ada is
 
    overriding
    procedure Compute_Signature
-     (Self : in out Object; Check_Checksums : Boolean);
-
-   overriding
-   function Extended (Self : Object) return Object
-   is (raise Internal_Error with "This action is not extending");
+     (Self            : in out Object;
+      Signature       : in out GPR2.Build.Signature.Object;
+      Check_Checksums : Boolean);
 
    overriding
    function Dependencies (Self : in out Object) return Containers.Filename_Set;

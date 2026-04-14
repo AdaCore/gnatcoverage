@@ -25,7 +25,6 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 with GPR2.Build.Artifacts;
 with GPR2.Build.Makefile_Parser;
 with GPR2.Build.Source;
-with GPR2.Build.Tree_Db;
 with GPR2.Path_Name;
 with GPR2.Project;
 with GPR2.Project.Attribute_Index;
@@ -34,7 +33,6 @@ with GPR2.Project.Registry.Attribute;
 with Command_Line; use Command_Line;
 with Files_Handling;
 with Files_Table;  use Files_Table;
-with Instrument.Source;
 with Outputs;
 with Project;      use Project;
 with Support_Files;
@@ -49,6 +47,14 @@ package body GPR2.Build.Actions.Instrument_Source is
    --  After running the source instrumentation command / action, we may need
    --  to copy the SID file to the project library directory.
 
+   function Dep_File (Self : Object) return GPR2.Path_Name.Object
+   is (GPR2.Path_Name.Create
+         (Instrument.Common.Dependency_File
+            (Self.Prj_Info.Desc,
+             Self.LU_Info.Main_Part_Src.Path_Name.Virtual_File)));
+   --  Return the path for the dependency file for this unit instrumentation
+   --  action.
+
    ----------------
    -- Initialize --
    ----------------
@@ -61,7 +67,6 @@ package body GPR2.Build.Actions.Instrument_Source is
       Prj_Info     : Project_Info_Access;
       Dump_Config  : Any_Dump_Config) is
    begin
-      Self.Ctxt := LU_Info.Instr_Project;
       Self.LU_Info := LU_Info;
       Self.IC := IC;
       Self.Instrumenter := Instrumenter;
@@ -82,7 +87,7 @@ package body GPR2.Build.Actions.Instrument_Source is
             Self.Dump_Config.Filename_Prefix :=
               Strings."+"
                 (String
-                   (Self.Ctxt.Executable
+                   (Self.LU_Info.Instr_Project.Executable
                       (Source =>
                          Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name,
                        At_Pos => 0)
@@ -115,7 +120,9 @@ package body GPR2.Build.Actions.Instrument_Source is
    ------------------------------
 
    procedure Common_Compute_Signature
-     (Self : in out Object; Check_Checksums : Boolean)
+     (Self            : in out Object;
+      Signature       : in out GPR2.Build.Signature.Object;
+      Check_Checksums : Boolean)
    is
       Deps : constant GPR2.Containers.Filename_Set :=
         Object'Class (Self).Dependencies;
@@ -130,14 +137,14 @@ package body GPR2.Build.Actions.Instrument_Source is
                  ("Compute_Signature: cannot find dependency " & String (Dep));
 
                if Check_Checksums then
-                  Self.Signature.Clear;
+                  Signature.Clear;
                   return;
                end if;
 
-            elsif not Self.Signature.Add_Input
+            elsif not Signature.Add_Input
                         (Artifacts.Files.Create (Path), Check_Checksums)
             then
-               Self.Force := True;
+               Signature.Clear;
                return;
             end if;
          end;
@@ -149,8 +156,8 @@ package body GPR2.Build.Actions.Instrument_Source is
       Object'Class (Self).Write_Instrumented_Files_List;
 
       for Art of Self.Artifacts loop
-         if not Self.Signature.Add_Output (Art, Check_Checksums) then
-            Self.Force := True;
+         if not Signature.Add_Output (Art, Check_Checksums) then
+            Signature.Clear;
             return;
          end if;
       end loop;
@@ -158,11 +165,11 @@ package body GPR2.Build.Actions.Instrument_Source is
       --  Compute signatures for external annotation files
 
       for Arg of Switches.Args.String_List_Args (Opt_Ext_Annotations) loop
-         if not Self.Signature.Add_Output
+         if not Signature.Add_Output
                   (Artifacts.Files.Create (Filename_Type (+Arg)),
                    Check_Checksums)
          then
-            Self.Force := True;
+            Signature.Clear;
             return;
          end if;
       end loop;
@@ -174,7 +181,9 @@ package body GPR2.Build.Actions.Instrument_Source is
    -----------------------
 
    procedure Compute_Signature
-     (Self : in out Object; Check_Checksums : Boolean)
+     (Self            : in out Object;
+      Signature       : in out GPR2.Build.Signature.Object;
+      Check_Checksums : Boolean)
    is
       use GPR2.Build.Signature;
       Deps : constant GPR2.Containers.Filename_Set :=
@@ -185,33 +194,31 @@ package body GPR2.Build.Actions.Instrument_Source is
          --  Dependency file parsing went wrong, at least put the direct
          --  source as an input.
 
-         if not Self.Signature.Add_Input
+         if not Signature.Add_Input
                   (Artifacts.Files.Create
                      (Self.LU_Info.Main_Part_Src.Path_Name))
          then
-            Self.Force := True;
+            Signature.Clear;
             return;
          end if;
 
          --  This actions should be done no matter what since the
          --  dependencies states are unknown.
 
-         Self.Force := True;
+         Signature.Clear;
          return;
       end if;
-      Self.Common_Compute_Signature (Check_Checksums);
+      Self.Common_Compute_Signature (Signature, Check_Checksums);
    end Compute_Signature;
 
    ---------------------
    -- Compute_Command --
    ---------------------
 
-   overriding
-   procedure Compute_Command
-     (Self           : in out Object;
-      Slot           : Positive;
-      Cmd_Line       : in out GPR2.Build.Command_Line.Object;
-      Signature_Only : Boolean) is
+   function Compute_Command
+     (Self : in out Object) return GPR2.Build.Command_Line.Object
+   is
+      Cmd_Line : GPR2.Build.Command_Line.Object;
    begin
       Cmd_Line.Set_Driver (Support_Files.Gnatcov64);
       Cmd_Line.Add_Argument ("instrument-source");
@@ -225,7 +232,10 @@ package body GPR2.Build.Actions.Instrument_Source is
       for Arg of
         Compilation_Unit_Options
           (IC   => Self.IC.all,
-           Prj  => Self.IC.Project_Info_Map.Element (+Self.Ctxt.Name).Desc,
+           Prj  =>
+             Self.IC.Project_Info_Map.Element
+               (+Self.LU_Info.Instr_Project.Name)
+               .Desc,
            Lang => Self.LU_Info.Language,
            Src  => Self.LU_Info.Main_Part_Src)
       loop
@@ -252,19 +262,8 @@ package body GPR2.Build.Actions.Instrument_Source is
       end if;
 
       Cmd_Line.Add_Argument (Self.Unit_Name);
+      return Cmd_Line;
    end Compute_Command;
-
-   -----------------------
-   -- On_Tree_Insertion --
-   -----------------------
-
-   function On_Tree_Insertion
-     (Self : Object; Db : in out GPR2.Build.Tree_Db.Object) return Boolean
-   is
-      pragma Unreferenced (Db);
-   begin
-      return True;
-   end On_Tree_Insertion;
 
    -----------------------------------
    -- Write_Instrumented_Files_List --
@@ -290,12 +289,11 @@ package body GPR2.Build.Actions.Instrument_Source is
       Close (F);
    end Write_Instrumented_Files_List;
 
-   ------------------
-   -- Post_Command --
-   ------------------
+   --------------------
+   -- Post_Execution --
+   --------------------
 
-   overriding
-   function Post_Command
+   function Post_Execution
      (Self   : in out Object;
       Status : Execution_Status;
       Stdout : US.Unbounded_String := US.Null_Unbounded_String;
@@ -321,7 +319,21 @@ package body GPR2.Build.Actions.Instrument_Source is
 
       Object'Class (Self).Write_Instrumented_Files_List;
       return True;
-   end Post_Command;
+   end Post_Execution;
+
+   ---------
+   -- UID --
+   ---------
+
+   function UID (Self : Object) return Actions.Action_Id'Class is
+      Result : constant GPR2.Build.Actions.Instrument_Source.Instrument_Id :=
+        (Name_Len => Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name'Length,
+         Lang     => To_Language_Id (Self.LU_Info.Language),
+         Ctxt     => Self.LU_Info.Instr_Project,
+         Src_Name => Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name);
+   begin
+      return Result;
+   end UID;
 
    ------------------
    -- Dependencies --
@@ -333,7 +345,7 @@ package body GPR2.Build.Actions.Instrument_Source is
         Self.LU_Info.Main_Part_Src.Path_Name.Base_Filename;
       O_Suff : constant Simple_Name :=
         Simple_Name
-          (Self.Ctxt.Attribute
+          (Self.LU_Info.Instr_Project.Attribute
              (PRA.Compiler.Object_File_Suffix,
               PAI.Create (Self.LU_Info.Main_Part_Src.Language))
              .Value
@@ -350,7 +362,8 @@ package body GPR2.Build.Actions.Instrument_Source is
 
       if not GPR2.Build.Makefile_Parser.Dependencies
                (Self.Dep_File,
-                Self.View.Object_Directory.Compose (BN & O_Suff),
+                Self.LU_Info.Instr_Project.Object_Directory.Compose
+                  (BN & O_Suff),
                 Self.Deps_Cache)
       then
          Instrument.Sources_Trace.Trace
@@ -363,40 +376,6 @@ package body GPR2.Build.Actions.Instrument_Source is
 
       return Self.Deps_Cache;
    end Dependencies;
-
-   --------------
-   -- Execute --
-   --------------
-
-   function Execute
-     (Self   : in out Object;
-      Stdout : in out US.Unbounded_String;
-      Stderr : in out US.Unbounded_String) return Integer is
-   begin
-      --  HACK: as we rely on GPR2.Build.Actions default Load_Signature /
-      --  Write_Signature, which adds the command line as an input artifact,
-      --  add an artificial command line as input by calling
-      --  Update_Command_Line.
-      --
-      --  The slot passed does not matter here as the command line creation
-      --  does not yield any temporary file creation.
-
-      Self.Update_Command_Line (Slot => 1);
-      Instrument.Source
-        (Unit_Name         => Self.Unit_Name,
-         SID_Name          => String (Self.SID_Path.Value),
-         Instrumenter      => Self.Instrumenter.all,
-         Files_Of_Interest => Self.IC.Files_Of_Interest,
-         Prj_Actual        => Self.Prj_Info.Desc,
-         Is_UOI            => Self.LU_Info.Is_UOI,
-         Is_Main           => Self.LU_Info.Is_Main,
-         Dump_Config       => Self.Dump_Config);
-
-      --  If Instrument.Source executed without raising an exception, consider
-      --  the action execution successful.
-
-      return 0;
-   end Execute;
 
    -------------------------
    -- Copy_SID_To_Lib_Dir --
@@ -436,20 +415,5 @@ package body GPR2.Build.Actions.Instrument_Source is
          return Src.Path_Name.Virtual_File.Display_Full_Name;
       end if;
    end Unit_Name;
-
-   ---------
-   -- UID --
-   ---------
-
-   overriding
-   function UID (Self : Object) return Actions.Action_Id'Class is
-      Result : constant Instrument_Id :=
-        (Name_Len => Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name'Length,
-         Lang     => To_Language_Id (Self.LU_Info.Language),
-         Ctxt     => Self.Ctxt,
-         Src_Name => Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name);
-   begin
-      return Result;
-   end UID;
 
 end GPR2.Build.Actions.Instrument_Source;

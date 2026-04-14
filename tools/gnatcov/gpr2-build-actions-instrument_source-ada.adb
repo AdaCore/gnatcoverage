@@ -32,7 +32,9 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
    -----------------------
 
    procedure Compute_Signature
-     (Self : in out Object; Check_Checksums : Boolean)
+     (Self            : in out Object;
+      Signature       : in out GPR2.Build.Signature.Object;
+      Check_Checksums : Boolean)
    is
       Exit_Signature_Exception : exception;
 
@@ -59,7 +61,7 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       is
          pragma Unreferenced (Kind, View, Index, Sep_Name);
       begin
-         if not Self.Signature.Add_Input
+         if not Signature.Add_Input
                   (GPR2.Build.Artifacts.Files.Create (Path), Check_Checksums)
          then
             raise Exit_Signature_Exception;
@@ -70,8 +72,9 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       --  Add all of the unit parts of interest as dependencies
 
       begin
-         Self.Ctxt.Own_Unit (Self.LU_Info.Main_Part_Src.Unit.Name).For_All_Part
-           (Process_Part'Access);
+         Self.LU_Info.Instr_Project.Own_Unit
+           (Self.LU_Info.Main_Part_Src.Unit.Name)
+           .For_All_Part (Process_Part'Access);
       exception
          when Exit_Signature_Exception =>
             return;
@@ -79,7 +82,7 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
 
       --  Add the preprocessor data file as input
 
-      if not Self.Signature.Add_Input
+      if not Signature.Add_Input
                (GPR2.Build.Artifacts.Files.Create
                   (Filename_Type (+Self.IC.Ada_Preprocessor_Data_File)),
                 Check_Checksums)
@@ -89,7 +92,7 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
 
       --  Also add the configuration pragma file
 
-      if not Self.Signature.Add_Input
+      if not Signature.Add_Input
                (GPR2.Build.Artifacts.Files.Create
                   (Filename_Type (+Self.IC.Config_Pragmas_Mapping)),
                 Check_Checksums)
@@ -97,7 +100,7 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
          return;
       end if;
 
-      Self.Common_Compute_Signature (Check_Checksums);
+      Self.Common_Compute_Signature (Signature, Check_Checksums);
    end Compute_Signature;
 
    ------------------
@@ -109,10 +112,11 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       Result : Containers.Filename_Set;
 
       Namespace_Root : constant GPR2.Project.View.Set.Object :=
-        Self.Ctxt.Namespace_Roots;
+        Self.LU_Info.Instr_Project.Namespace_Roots;
       pragma Assert (Namespace_Root.Length = 1);
       CU             : constant GPR2.Build.Compilation_Unit.Object :=
-        Self.Ctxt.Own_Unit (Self.LU_Info.Main_Part_Src.Unit.Name);
+        Self.LU_Info.Instr_Project.Own_Unit
+          (Self.LU_Info.Main_Part_Src.Unit.Name);
    begin
       for Dep of CU.Known_Dependencies loop
          declare
@@ -165,7 +169,7 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       end Process_Unit_Part;
 
       Prj : constant GPR2.Project.View.Object :=
-        Self.Ctxt.Namespace_Roots.First_Element;
+        Self.LU_Info.Instr_Project.Namespace_Roots.First_Element;
       CU  : constant GPR2.Build.Compilation_Unit.Object :=
         Prj.Unit (Self.LU_Info.Main_Part_Src.Unit.Name);
    begin

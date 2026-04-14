@@ -32,14 +32,15 @@ with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with GPR2;
-with GPR2.Build.Actions.Instrument_Source;
-with GPR2.Build.Actions.Instrument_Source.Ada;
+with GPR2.Build.Actions.Process.Instrument_Source;
+with GPR2.Build.Actions.Thread.Instrument_Source;
 with GPR2.Build.Actions_Scheduler.In_Thread;
 with GPR2.Build.Actions_Scheduler.Processes;
 with GPR2.Build.Artifacts;
 with GPR2.Build.Artifacts.Files;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Actions_Scheduler;
+with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Source;
 with GPR2.Build.Source.Sets;
 with GPR2.Build.Tree_Db;
@@ -545,6 +546,8 @@ is
       end if;
    end Clean_And_Print;
 
+   use all type GPR2.Build.Actions_Scheduler.Report_Status;
+
    Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type;
    C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type;
    CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type;
@@ -557,10 +560,8 @@ is
    Tree_Db : GPR2.Build.Tree_Db.Object_Access renames
      Project.Project.Artifacts_Database;
 
-   Processes_Scheduler : GPR2.Build.Actions_Scheduler.Processes.Object;
-   In_Thread_Scheduler : GPR2.Build.Actions_Scheduler.In_Thread.Object;
-   --  If running non-parallel, execute all instrument actions in thread.
-   --  Otherwise, spawn a process for every instrument action.
+   Scheduler : GPR2.Build.Actions_Scheduler.Object;
+   --  The scheduler takes care of scheduling source instrument actions
 
    --  Start of processing for Instrument_Units_Of_Interest
 
@@ -800,81 +801,73 @@ begin
       Sources_Of_Interest_File.Close;
    end;
 
-   --  Instrument every unit of interest asynchronously
+   --  Instrument every unit of interest
 
    for Cur in Instrumented_Sources.Iterate loop
       declare
          LU_Info : constant Library_Unit_Info := Unit_Maps.Element (Cur);
          Prj     : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
 
-         Ada_Source_Instrumenter :
-           GPR2.Build.Actions.Instrument_Source.Ada.Object;
-         C_Source_Instrumenter   : GPR2.Build.Actions.Instrument_Source.Object;
-
       begin
-         --  Asynchronously instrument
-
-         if LU_Info.Language_Kind = Unit_Based_Language then
-            Ada_Source_Instrumenter.Initialize
-              (LU_Info      => LU_Info,
-               IC           => IC'Unrestricted_Access,
-               Instrumenter => Instrumenters (LU_Info.Language),
-               Prj_Info     =>
-                 IC.Project_Info_Map.Element (+String (Prj.Name)),
-               Dump_Config  => Dump_Config);
-
-            if not Tree_Db.Add_Action (Ada_Source_Instrumenter) then
-               raise Program_Error;
-            end if;
+         if Parallelism_Level = 1 then
+            declare
+               Inst_Action :
+                 GPR2.Build.Actions.Thread.Instrument_Source.Object;
+            begin
+               Inst_Action.Initialize
+                 (LU_Info      => LU_Info,
+                  IC           => IC'Unrestricted_Access,
+                  Instrumenter => Instrumenters (LU_Info.Language),
+                  Prj_Info     =>
+                    IC.Project_Info_Map.Element (+String (Prj.Name)),
+                  Dump_Config  => Dump_Config);
+               if not Tree_Db.Add_Action (Inst_Action) then
+                  raise Program_Error;
+               end if;
+            end;
          else
-            --  File based language
-
-            C_Source_Instrumenter.Initialize
-              (LU_Info      => LU_Info,
-               IC           => IC'Unrestricted_Access,
-               Instrumenter => Instrumenters (LU_Info.Language),
-               Prj_Info     =>
-                 IC.Project_Info_Map.Element (+String (Prj.Name)),
-               Dump_Config  => Dump_Config);
-
-            if not Tree_Db.Add_Action (C_Source_Instrumenter) then
-               raise Program_Error;
-            end if;
+            declare
+               Inst_Action :
+                 GPR2.Build.Actions.Process.Instrument_Source.Object;
+            begin
+               Inst_Action.Initialize
+                 (LU_Info      => LU_Info,
+                  IC           => IC'Unrestricted_Access,
+                  Instrumenter => Instrumenters (LU_Info.Language),
+                  Prj_Info     =>
+                    IC.Project_Info_Map.Element (+String (Prj.Name)),
+                  Dump_Config  => Dump_Config);
+               if not Tree_Db.Add_Action (Inst_Action) then
+                  raise Program_Error;
+               end if;
+            end;
          end if;
       end;
    end loop;
 
-   --  Execute all of the actions. When parallelism is disabled, run all of
-   --  the actions in the same process to benefit from sharing the Libadalang
-   --  context. Otherwise, use the GPR2 process manager to execute the actions.
+   --  Execute all of the actions
 
    if Parallelism_Level = 1 then
+      loop
+         declare
+            use GPR2.Build.Actions_Scheduler;
+            Action_Rep : constant Action_Report :=
+              Tree_Db.Execute_Next_Action (Catch_Exceptions => False);
+         begin
+            exit when Action_Rep.Status = No_Action_To_Execute;
+         end;
+      end loop;
+   else
       declare
          Opt : constant GPR2.Build.Actions_Scheduler.Options :=
            (Keep_Temp_Files => Save_Temps, others => <>);
       begin
-         case Tree_Db.Execute (In_Thread_Scheduler, Opt) is
+         case Tree_Db.Execute (Scheduler, Opt) is
             when GPR2.Build.Actions_Scheduler.Success =>
                null;
 
             when others                               =>
-               Ada.Command_Line.Set_Exit_Status (Failure);
-               raise Outputs.Xcov_Exit_Exc;
-         end case;
-      end;
-   else
-      declare
-         Opt : constant GPR2.Build.Actions_Scheduler.Processes.Options :=
-           (Jobs            => Parallelism_Level,
-            Keep_Temp_Files => Save_Temps,
-            others          => <>);
-      begin
-         case Tree_Db.Execute (Processes_Scheduler, Opt) is
-            when GPR2.Build.Actions_Scheduler.Success =>
-               null;
-
-            when others                               =>
-               Ada.Command_Line.Set_Exit_Status (Failure);
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                raise Outputs.Xcov_Exit_Exc;
          end case;
       end;
@@ -985,8 +978,8 @@ begin
                All_File_Names : Unbounded_String;
             begin
                for File_Name of Non_Root_Src_Calls loop
-                  Append (All_File_Names, File_Name);
-                  Append (All_File_Names, ASCII.LF);
+                  US.Append (All_File_Names, File_Name);
+                  US.Append (All_File_Names, ASCII.LF);
                end loop;
 
                Outputs.Warn
