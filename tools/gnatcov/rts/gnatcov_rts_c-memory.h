@@ -35,8 +35,8 @@ extern "C"
      string.h header: older versions of light runtimes did not package newlib,
      and thus did not provide the string.h portable header.  Though the memcpy
      and memset functions are provided by the light runtime in this case.  */
-  extern void *memcpy (void *__dest, const void *__src, size_t __n);
-  extern void *memset (void *__s, int __c, size_t __n);
+  extern void *(memcpy) (void *__dest, const void *__src, size_t __n);
+  extern void *(memset) (void *__s, int __c, size_t __n);
 
 #ifdef __cplusplus
 }
