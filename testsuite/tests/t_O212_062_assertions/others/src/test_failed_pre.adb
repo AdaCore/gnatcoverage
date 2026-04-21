@@ -1,18 +1,17 @@
 with Ada.Assertions;
 with Silent_Last_Chance;
 
-With Failed_Pre;
+with Failed_Pre;
 
 --  Check the coverage states when calling Foo with a parameter not satisfying
 --  the its precondition.
 
 procedure Test_Failed_Pre is
 begin
-   begin
-      Failed_Pre;
-   exception
-      when Ada.Assertions.Assertion_Error => null;
-   end;
+   Failed_Pre;
+exception
+   when Ada.Assertions.Assertion_Error =>
+      null;
 end Test_Failed_Pre;
 
 --# functions.ads
