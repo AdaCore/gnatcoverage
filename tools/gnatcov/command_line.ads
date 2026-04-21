@@ -104,7 +104,8 @@ package Command_Line is
       Opt_Annotate_After,
       Opt_No_Stdlib,
       Opt_Split_Extracted_Traces,
-      Opt_Suppress_Limitations);
+      Opt_Suppress_Limitations,
+      Opt_Compiler_Prefix);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -853,6 +854,14 @@ package Command_Line is
              & " the coverage reports unless explicitly exempted.",
            Commands  =>
              (Cmd_Instrument | Cmd_Coverage => True, others => False),
+           Internal  => False),
+      Opt_Compiler_Prefix              =>
+        Create
+          (Long_Name => "--compiler-prefix",
+           Help      =>
+             "Install the instrumentation runtime in the same prefix as the"
+             & " compiler used to compile it.",
+           Commands  => (Cmd_Setup => True, others => False),
            Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -1231,7 +1240,7 @@ package Command_Line is
            Pattern      => "DIR",
            Help         =>
              "Installation prefix for the instrumentation runtime. If not"
-             & " provided, install it in the toolchain prefix.",
+             & " provided, install it in the same prefix as GPR tools.",
            Commands     => (Cmd_Setup => True, others => False),
            At_Most_Once => False,
            Internal     => False),
@@ -2014,20 +2023,22 @@ package Command_Line is
               others                                      => False),
            Internal  => False));
 
+   --  Callbacks to process inter-dependent switches
+
    procedure Bool_Callback
      (Result : in out Parsed_Arguments; Option : Bool_Options);
-   --  Handle the --include and --exclude options to add them to remaining
-   --  options.
+
+   procedure String_Callback
+     (Result : in out Parsed_Arguments;
+      Option : String_Options;
+      Value  : String);
 
    procedure String_List_Callback
      (Result : in out Parsed_Arguments;
       Option : String_List_Options;
       Value  : String);
-   --  Add --exec options to the Opt_Trace vector with the ASCII.NUL prefix.
 
    procedure Arg_Callback (Result : in out Parsed_Arguments; Value : String);
-   --  For the commands that interpret remaining argument as trace files,
-   --  forward remaining arguments to Opt_Trace.
 
    function Create return Parser_Type
    is (Create
@@ -2036,7 +2047,7 @@ package Command_Line is
           String_Infos         => String_Infos,
           String_List_Infos    => String_List_Infos,
           Bool_Callback        => Bool_Callback'Access,
-          String_Callback      => null,
+          String_Callback      => String_Callback'Access,
           String_List_Callback => String_List_Callback'Access,
           Arg_Callback         => Arg_Callback'Access));
 

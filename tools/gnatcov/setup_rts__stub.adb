@@ -81,7 +81,7 @@ package body Setup_RTS is
       RTS          : String;
       Config_File  : String;
       Db_Dir       : String;
-      Prefix       : String;
+      Prefix       : Install_Prefix;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
       Gargs        : String_Vectors.Vector)

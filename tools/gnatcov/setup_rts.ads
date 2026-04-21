@@ -40,6 +40,30 @@ package Setup_RTS is
    function Image (Profile : Any_RTS_Profile) return String;
    function Value (Profile : String) return Any_RTS_Profile;
 
+   --  Installation prefix for the coverage runtime:
+   --
+   --  * Default: install the coverage runtime in the same prefix as the GPR
+   --    tools.
+   --
+   --  * Compiler: install the coverage runtime in the same prefix as compiler
+   --    for the selected target/RTS.
+   --
+   --  * Explicit: install the coverage runtime in some explicitly mentionned
+   --    prefix directory.
+
+   type Install_Prefix_Kind is (Default, Compiler, Explicit);
+   type Install_Prefix
+     (Kind : Install_Prefix_Kind := Install_Prefix_Kind'First)
+   is record
+      case Kind is
+         when Default | Compiler =>
+            null;
+
+         when Explicit =>
+            Value : Unbounded_String;
+      end case;
+   end record;
+
    function Default_Dump_Config
      (RTS_Profile : Resolved_RTS_Profile; RTS : String) return Any_Dump_Config;
    --  Return the default dump configuration to use for the given runtime
@@ -58,7 +82,7 @@ package Setup_RTS is
       RTS          : String;
       Config_File  : String;
       Db_Dir       : String;
-      Prefix       : String;
+      Prefix       : Install_Prefix;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
       Gargs        : String_Vectors.Vector);
