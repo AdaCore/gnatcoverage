@@ -20,7 +20,7 @@ prj = gprfor(
 )
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=prj),
-    covlevel="stmt",
+    covlevel="stmt+mcdc",
     mains=["main"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
@@ -28,8 +28,8 @@ build_run_and_coverage(
 check_xcov_reports(
     "xcov",
     {
-        "pkg.ads.xcov": {"+": {12, 15}, "-": {11, 14}},
-        "pkg.adb.xcov": {"+": {5, 6}, "-": {8}},
+        "pkg.ads.xcov": {"+": {16, 19}, "-": {15, 18}},
+        "pkg.adb.xcov": {"+": {6}, "-": {8}, "!": {5}},
         "pkg-child.ads.xcov": {"+": {9}, "-": {10, 12, 13}},
         "pkg-gen.ads.xcov": {},
         "pkg-gen.adb.xcov": {"+": {6}},

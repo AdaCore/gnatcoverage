@@ -3701,13 +3701,19 @@ package body Instrument.Ada_Unit is
    --  which aren't valid for a pragma.
 
    procedure Process_Expression
-     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
+     (UIC     : in out Ada_Unit_Inst_Context;
+      N       : Ada_Node'Class;
+      T       : Character;
+      Preelab : Boolean := False);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
    --  other than X, the node N is the if expression involved, and a decision
    --  is always present (at the very least a simple decision is present at the
    --  top level).
+   --
+   --  If Preelab, consider that the expression is evaluated in a preelaborated
+   --  context, i.e. that its decisions/expressions cannot be instrumented.
    --
    --  This also processes any nested declare expressions.
 
@@ -5710,7 +5716,8 @@ package body Instrument.Ada_Unit is
                                  Process_Expression
                                    (UIC,
                                     Prag_Arg_Expr (Prag_Args, Index),
-                                    'P');
+                                    'P',
+                                    Preelab);
                               end if;
                            end;
                         else
@@ -5731,12 +5738,15 @@ package body Instrument.Ada_Unit is
                            --  second argument is an X decision.
 
                            Process_Expression
-                             (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'P');
+                             (UIC,
+                              Prag_Arg_Expr (Prag_Args, Arg),
+                              'P',
+                              Preelab);
                            Arg := 2;
                         end if;
 
                         Process_Expression
-                          (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'X');
+                          (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'X', Preelab);
 
                      when Name_Annotate
                      =>
@@ -5792,7 +5802,7 @@ package body Instrument.Ada_Unit is
                      when others
                      =>
                         Instrument_Statement (UIC, N, 'P');
-                        Process_Expression (UIC, N, 'X');
+                        Process_Expression (UIC, N, 'X', Preelab);
                   end case;
                end;
 
@@ -5802,7 +5812,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Number_Decl | Ada_Object_Decl                 =>
                Instrument_Statement (UIC, N, 'o');
-               Process_Expression (UIC, N, 'X');
+               Process_Expression (UIC, N, 'X', Preelab);
 
             when Ada_Protected_Type_Decl | Ada_Task_Type_Decl      =>
                Instrument_Statement (UIC, N, 't');
@@ -5850,7 +5860,7 @@ package body Instrument.Ada_Unit is
                --  Process any embedded decisions
 
                if N.Kind /= Ada_Concrete_Type_Decl then
-                  Process_Expression (UIC, N, 'X');
+                  Process_Expression (UIC, N, 'X', Preelab);
                   return;
                end if;
 
@@ -5875,7 +5885,7 @@ package body Instrument.Ada_Unit is
                           .F_Record_Def
                           .F_Components);
                   else
-                     Process_Expression (UIC, TD.F_Type_Def, 'X');
+                     Process_Expression (UIC, TD.F_Type_Def, 'X', Preelab);
                   end if;
 
                   --  Access to subprogram types can have pre/post conditions:
@@ -5981,7 +5991,7 @@ package body Instrument.Ada_Unit is
 
                --  Process any embedded decisions
 
-               Process_Expression (UIC, N, 'X');
+               Process_Expression (UIC, N, 'X', Preelab);
          end case;
       end Traverse_One;
 
@@ -6485,7 +6495,10 @@ package body Instrument.Ada_Unit is
    ------------------------
 
    procedure Process_Expression
-     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
+     (UIC     : in out Ada_Unit_Inst_Context;
+      N       : Ada_Node'Class;
+      T       : Character;
+      Preelab : Boolean := False)
    is
       procedure Process_Call_Expression (N : Ada_Node'Class);
       --  Traverse the expression N to instrument calls for call coverage.
@@ -7271,10 +7284,12 @@ package body Instrument.Ada_Unit is
             --         else <value>);
             --
             --  For this reason, also refrain from instrumenting static
-            --  decisions.
+            --  decisions. It is also illegal to insert witness calls (which
+            --  are non-static) to decisions in preelaborated contexts.
 
             if not UIC.Disable_Instrumentation
               and then not Is_Static_Expr (E)
+              and then not Preelab
               and then Any_Decision_Or_Assertion_Coverage_Enabled
             then
                if MCDC_Coverage_Enabled
