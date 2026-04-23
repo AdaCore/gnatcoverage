@@ -36,6 +36,7 @@ with GPR2.Project.Attribute_Index;
 with GPR2.Project.Configuration;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
+with GPR2.Project.View;
 with GPR2.Reporter.Console;
 
 with GPR2.Reporter;
@@ -49,6 +50,8 @@ with Temp_Dirs;    use Temp_Dirs;
 with Text_Files;
 
 package body Setup_RTS is
+
+   use type US.Unbounded_String;
 
    type Library_Support is (None, Static_Only, Full);
    --  Support for libraries in the given target/runtime configuration, as
@@ -111,9 +114,11 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
+      Prefix           : Install_Prefix;
       Actual_Target    : out Unbounded_String;
       Actual_RTS_Dir   : out Unbounded_String;
       Actual_RTS_Name  : out Unbounded_String;
+      Actual_Prefix    : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support);
    --  Load the project file at Project_File using the Target/RTS/Config_File
@@ -125,6 +130,9 @@ package body Setup_RTS is
    --  Set Actual_Target, Actual_RTS_Dir and Actual_RTS_Name to the actual
    --  target/RTS names for the loaded project: they can be different from
    --  Target/RTS because of canonicalization and Config_File.
+   --
+   --  Interpret Prefix according to the loaded project and set Actual_Prefix
+   --  to the resolved installation prefix.
 
    procedure Uninstall (Project_Name, Prefix : String);
    --  Try to uninstall a previous installation of the project called
@@ -447,9 +455,11 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
+      Prefix           : Install_Prefix;
       Actual_Target    : out Unbounded_String;
       Actual_RTS_Dir   : out Unbounded_String;
       Actual_RTS_Name  : out Unbounded_String;
+      Actual_Prefix    : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support)
    is
@@ -632,6 +642,46 @@ package body Setup_RTS is
       end;
 
       Setup_RTS_Trace.Trace ("Library support: " & Lib_Support'Image);
+
+      case Prefix.Kind is
+         when Default  =>
+            Actual_Prefix := US.Null_Unbounded_String;
+
+         when Compiler =>
+            declare
+               --  Look for the Compiler'Driver attribute in the configuration
+               --  project, get the compiler driver for the main language used
+               --  to compile the coverage runtime.
+
+               Language : constant String := GPR2.Image (Main_Language);
+               Cfg      : constant GPR2.Project.View.Object :=
+                 Prj.Configuration.Corresponding_View;
+               Attr     : constant GPR2.Project.Attribute.Object :=
+                 Cfg.Attribute
+                   (Name  => GPR2.Project.Registry.Attribute.Compiler.Driver,
+                    Index => GPR2.Project.Attribute_Index.Create (Language));
+            begin
+               if not Attr.Is_Defined then
+                  Fatal_Error
+                    ("Cannot find the compiler prefix for " & Language);
+               end if;
+
+               --  Compilers are supposed to be installed in $PREFIX/bin, so
+               --  the prefix is the compiler driver's grandparent directory.
+
+               declare
+                  Driver : constant String := String (Attr.Value.Text);
+               begin
+                  Setup_RTS_Trace.Trace ("Compiler driver: " & Driver);
+                  Actual_Prefix :=
+                    +Containing_Directory (Containing_Directory (Driver));
+                  Setup_RTS_Trace.Trace ("Actual prefix: " & (+Actual_Prefix));
+               end;
+            end;
+
+         when Explicit =>
+            Actual_Prefix := Prefix.Value;
+      end case;
    end Load_Project_Parameters;
 
    ---------------
@@ -751,7 +801,7 @@ package body Setup_RTS is
       RTS          : String;
       Config_File  : String;
       Db_Dir       : String;
-      Prefix       : String;
+      Prefix       : Install_Prefix;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
       Gargs        : String_Vectors.Vector)
@@ -761,6 +811,7 @@ package body Setup_RTS is
       Actual_Target      : Unbounded_String;
       Actual_RTS_Dir     : Unbounded_String;
       Actual_RTS_Name    : Unbounded_String;
+      Actual_Prefix      : Unbounded_String;
       Auto_RTS_Profile   : Any_RTS_Profile;
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
@@ -780,9 +831,11 @@ package body Setup_RTS is
          Target,
          RTS,
          Config_File,
+         Prefix,
          Actual_Target,
          Actual_RTS_Dir,
          Actual_RTS_Name,
+         Actual_Prefix,
          Auto_RTS_Profile,
          Lib_Support);
 
@@ -828,14 +881,15 @@ package body Setup_RTS is
          --  environment, and thus the installed project to accurately describe
          --  what is installed.
 
-         Uninstall (Install_Name, Prefix);
+         Uninstall (Install_Name, +Actual_Prefix);
 
          --  No matter what the source directories are in the coverage runtime
          --  project, there should be exactly one source directory in the
          --  installed project thanks to the gprinstall step.
 
          declare
-            Dir : constant String := Prefix / "include" / "gnatcov_rts";
+            Dir : constant String :=
+              (+Actual_Prefix) / "include" / "gnatcov_rts";
          begin
             RTS_Source_Dirs.Append (Create (+Dir));
          end;
@@ -884,8 +938,8 @@ package body Setup_RTS is
                Common_Args.Append (+"--db");
                Common_Args.Append (+Db_Dir);
             end if;
-            if Prefix /= "" then
-               Install_Args.Append (+("--prefix=" & Prefix));
+            if Actual_Prefix /= "" then
+               Install_Args.Append ("--prefix=" & Actual_Prefix);
             end if;
 
             if Quiet then
@@ -950,7 +1004,7 @@ package body Setup_RTS is
       if not Quiet then
          New_Line;
          Put_Line ("The coverage runtime has been successfully installed.");
-         if Prefix = "" then
+         if Prefix.Kind in Default | Compiler then
             Put_Line
               ("It was installed in the toolchain's prefix: the environment"
                & " is ready to use it.");
@@ -961,7 +1015,7 @@ package body Setup_RTS is
 
                Norm_Prefix    : constant String :=
                  GNAT.OS_Lib.Normalize_Pathname
-                   (Prefix, Resolve_Links => False);
+                   (+Actual_Prefix, Resolve_Links => False);
                GPR_Dir        : constant String :=
                  Norm_Prefix & Dir_Sep & "share" & Dir_Sep & "gpr";
                Shared_Lib_Dir : constant String :=
@@ -969,7 +1023,7 @@ package body Setup_RTS is
                Shared_Lib_Var : constant String :=
                  (if On_Windows then "PATH" else "LD_LIBRARY_PATH");
             begin
-               Put_Line ("It was installed in: " & Prefix);
+               Put_Line ("It was installed in: " & (+Actual_Prefix));
                Put_Line ("In order to use it, remember to add:");
                New_Line;
                Put_Line ("  " & GPR_Dir);

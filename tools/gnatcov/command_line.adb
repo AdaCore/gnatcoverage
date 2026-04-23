@@ -28,13 +28,20 @@ package body Command_Line is
      (Result : in out Parsed_Arguments; Option : Bool_Options) is
    begin
       case Option is
-         when Opt_Include =>
+         when Opt_Compiler_Prefix =>
+
+            --  Passing --compiler-prefix overrides previously passed --prefix
+            --  arguments.
+
+            Result.String_Args (Opt_Prefix) := (Present => False);
+
+         when Opt_Include         =>
             Result.Remaining_Args.Append (+"--include");
 
-         when Opt_Exclude =>
+         when Opt_Exclude         =>
             Result.Remaining_Args.Append (+"--exclude");
 
-         when Opt_Quiet   =>
+         when Opt_Quiet           =>
 
             --  "--quiet" cancels all the previous requests to enable logs
             --  ("--log") and cancels any previuos request for full verbosity
@@ -43,17 +50,41 @@ package body Command_Line is
             Result.Bool_Args (Opt_Verbose) := False;
             Result.String_List_Args (Opt_Log).Clear;
 
-         when Opt_Verbose =>
+         when Opt_Verbose         =>
 
             --  "--verbose" cancels any previous request for quiet verbosity
             --  ("--quiet").
 
             Result.Bool_Args (Opt_Quiet) := False;
 
-         when others      =>
+         when others              =>
             null;
       end case;
    end Bool_Callback;
+
+   ---------------------
+   -- String_Callback --
+   ---------------------
+
+   procedure String_Callback
+     (Result : in out Parsed_Arguments;
+      Option : String_Options;
+      Value  : String)
+   is
+      pragma Unreferenced (Value);
+   begin
+      case Option is
+         when Opt_Prefix =>
+
+            --  Passing --prefix overrides previously passed --compiler-prefix
+            --  arguments.
+
+            Result.Bool_Args (Opt_Compiler_Prefix) := False;
+
+         when others     =>
+            null;
+      end case;
+   end String_Callback;
 
    --------------------------
    -- String_List_Callback --
