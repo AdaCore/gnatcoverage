@@ -1948,6 +1948,8 @@ begin
             RTS_Profile_Str : constant String :=
               Value (Args, Opt_RTS_Profile, "auto");
             RTS_Profile     : Any_RTS_Profile;
+
+            Prefix : Install_Prefix;
          begin
             --  Decode the --rts-profile option
 
@@ -1977,13 +1979,23 @@ begin
                RTS_Profile := Minimal;
             end if;
 
+            if Args.Bool_Args (Opt_Compiler_Prefix) then
+               Prefix := (Kind => Compiler);
+            elsif Args.String_Args (Opt_Prefix).Present then
+               Prefix :=
+                 (Kind  => Explicit,
+                  Value => Args.String_Args (Opt_Prefix).Value);
+            else
+               Prefix := (Kind => Default);
+            end if;
+
             Setup
               (Project_File => Project_File,
                Target       => Target,
                RTS          => Value (Args, Opt_Runtime),
                Config_File  => Value (Args, Opt_Config),
                Db_Dir       => Value (Args, Opt_Db),
-               Prefix       => Value (Args, Opt_Prefix),
+               Prefix       => Prefix,
                RTS_Profile  => RTS_Profile,
                Install_Name => Install_Name,
                Gargs        => Args.String_List_Args (Opt_Gargs));
