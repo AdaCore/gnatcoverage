@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
+with Params_A;
 with Pkg;       use Pkg;
 with Pkg.Child; use Pkg.Child;
 with Pkg.Gen;
@@ -12,4 +13,5 @@ begin
    Pkg.Do_Nothing_2;
    Pkg.Child.Do_Nothing_3;
    Dummy := G.Identity (Dummy);
+   Put_Line (Boolean'Image (Params_A.Param_1));
 end Main;
