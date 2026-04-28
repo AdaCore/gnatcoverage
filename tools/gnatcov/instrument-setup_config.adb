@@ -313,7 +313,8 @@ package body Instrument.Setup_Config is
                Outputs.Fatal_Error
                  ("Manual dump trigger FILES indication is missing,"
                   & " mandatory in integrated instrumentation mode:"
-                  & " --dump-trigger=manual,FILES");
+                  & " --dump-trigger=manual"
+                  & " --manual-dump-files FILES");
             else
                for Manual_Dump_File of Dump_Config.Manual_Indication_Files loop
                   Append
