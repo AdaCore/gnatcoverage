@@ -1721,6 +1721,9 @@ package body Instrument.C is
          --  Name of MC/DC state local variable for current decision (MC/DC
          --  only).
 
+         Saved_Disable_Instrumentation : constant Boolean :=
+           UIC.Disable_Instrumentation;
+
          procedure Output_Decision_Operand (Operand : Cursor_T);
          --  The node Operand is the top level logical operator of a decision,
          --  or it is one of the operands of a logical operator belonging to
@@ -1934,6 +1937,14 @@ package body Instrument.C is
 
          begin
             if Decision_Root then
+
+               --  When at a decision root, verify that we are not in a
+               --  static context, and avoid instrumenting if so.
+
+               if Must_Be_Static (N) then
+                  UIC.Disable_Instrumentation := True;
+               end if;
+
                declare
                   T : Character;
 
@@ -2027,6 +2038,7 @@ package body Instrument.C is
          Hash_Entries.Init;
          Visit (N, Process_Node'Access);
          Hash_Entries.Free;
+         UIC.Disable_Instrumentation := Saved_Disable_Instrumentation;
       end Process_Decisions;
 
       -------------------------
@@ -2282,10 +2294,7 @@ package body Instrument.C is
             Add_SCO_And_Instrument_Statement (N, C2 => ' ');
 
             --  Process any embedded decisions
-
-            if Is_Constexpr (N) then
-               return;
-            else
+            if not Is_Constexpr (N) then
                Process_Expression (UIC, N, 'X');
             end if;
          end Instrument_Basic_Statement;
