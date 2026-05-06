@@ -10,4 +10,5 @@ from SUITE.context import thistest
 
 
 TestCase(category=CAT.mcdc).run()
+TestCase(category=CAT.mcdc, instrument_ghost=True).run()
 thistest.result()
