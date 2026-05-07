@@ -149,6 +149,7 @@ class TestCase:
         assert_lvl: str | None = None,
         fun_call_lvl: bool = False,
         gexpr_lvl: bool = False,
+        instrument_ghost: bool = False,
     ):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
@@ -211,6 +212,10 @@ class TestCase:
         self.assert_lvl = assert_lvl
         self.fun_call_lvl = fun_call_lvl
         self.gexpr_lvl = gexpr_lvl
+        self.instrument_ghost = instrument_ghost
+        assert (
+            not instrument_ghost or thistest.options.trace_mode == "src"
+        ), "Ghost code instrumentation is a source trace-specific feature"
 
         # - extra compilation arguments, added to what --cargs was provided to
         #   the testsuite command line:
@@ -295,6 +300,9 @@ class TestCase:
 
         if self.fun_call_lvl:
             wdbase += "fc"
+
+        if self.instrument_ghost:
+            wdbase += "_ghost"
 
         return wdbase + "_"
 

@@ -609,9 +609,6 @@ class TestPyRunner:
         if mopt.block:
             testcase_cmd.append("--block")
 
-        if mopt.instrument_ghost:
-            testcase_cmd.append("--instrument-ghost")
-
         if mopt.ada_version:
             testcase_cmd.append(f"--ada-version={mopt.ada_version}")
 
@@ -1655,9 +1652,6 @@ class TestSuite(e3.testsuite.Testsuite):
 
         if self.ts_args.community:
             result.append("community")
-
-        if self.ts_args.instrument_ghost:
-            result.append("instrument-ghost")
 
         return result
 

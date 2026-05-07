@@ -34,8 +34,6 @@ import os
 from e3.fs import mkdir, ls, rm
 from e3.os.fs import cd
 
-from SCOV.tctl import _Category, CAT, CovControl
-
 from SCOV.instr import (
     add_dumper_lch_hook,
     default_dump_channel,
@@ -45,7 +43,8 @@ from SCOV.instr import (
     xcov_convert_base64,
     xcov_instrument,
 )
-
+from SCOV.spark import GhostTestParams
+from SCOV.tctl import _Category, CAT, CovControl
 from SUITE.context import thistest
 from SUITE.control import language_info, language_info_or_error, runtime_info
 from SUITE.cutils import ext, to_list, list_to_file, no_ext, FatalError
@@ -527,7 +526,7 @@ class SCOV_helper(ABC):
         ctl_opts = ["--trace-mode=%s" % thistest.options.trace_mode]
 
         # Add the instrument-ghost option
-        if thistest.options.instrument_ghost:
+        if testcase.instrument_ghost:
             ctl_opts.append("--instrument-ghost")
 
         self.extracargs: list[str] = to_list(self.testcase.extracargs)
@@ -1585,6 +1584,8 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
             subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
+        ghost_params = GhostTestParams(self.testcase.instrument_ghost)
+
         # The AAMP target does not support library project and requires
         # rebuilding the instrumentation runtime: copy it in the test
         # directory.
@@ -1599,7 +1600,8 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
             covlevel=self.xcovlevel,
             extra_args=(
                 to_list(self.covctl.instroptions) if self.covctl else []
-            ),
+            )
+            + ghost_params.extra_instr_args,
             dump_channel=self.dump_channel,
             dump_trigger=self.dump_trigger,
             gprsw=instrument_gprsw,
@@ -1643,7 +1645,11 @@ class SCOV_helper_src_traces(SCOV_helper_gpr):
         gprbuild(
             self.gpr,
             extracargs=self.extracargs,
-            gargs=self.common_build_gargs() + ["--src-subdirs=gnatcov-instr"],
+            gargs=(
+                self.common_build_gargs()
+                + ["--src-subdirs=gnatcov-instr"]
+                + ghost_params.extra_gprbuild_gargs
+            ),
         )
         maybe_relocate_binaries(
             self.gpr_obj_dir, self.gpr_exe_dir, [exename_for(self.main())]
