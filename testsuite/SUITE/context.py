@@ -552,6 +552,16 @@ class Test:
     def support_dir(self) -> str:
         return os.path.join(ROOT_DIR, "support")
 
+    def large_source(self, *items: str) -> str:
+        """
+        Return a filename inside the 'large' source tree.
+        """
+        root_dir = thistest.options.large_sources
+        thistest.stop_if(
+            not root_dir, RuntimeError("Test requires --large-sources")
+        )
+        return os.path.join(root_dir, *items)
+
     def bits(self) -> int:
         """
         Address size, in bits, for the programs gnatcov is given to analyze

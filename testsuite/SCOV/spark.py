@@ -64,6 +64,7 @@ class TestCase:
                 extra_instr_args=params.extra_instr_args,
                 extra_coverage_args=["--annotate=xcov"],
                 extra_gprbuild_args=gnatec_args + params.extra_gprbuild_gargs,
+                extra_gprbuild_cargs=["-cargs:Ada", "-gnat2022"],
             )
 
             # If there are mains, generate a coverage report from the traces

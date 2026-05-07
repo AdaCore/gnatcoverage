@@ -593,8 +593,10 @@ class TestPyRunner:
         if mopt.pretty_print:
             testcase_cmd.append("--pretty-print")
 
-        if mopt.spark_tests:
-            testcase_cmd.append("--spark-tests=%s" % mopt.spark_tests)
+        if mopt.large_sources:
+            testcase_cmd.append(
+                f"--large-sources={os.path.abspath(mopt.large_sources)}"
+            )
 
         if mopt.default_dump_trigger:
             testcase_cmd.append(
@@ -1079,13 +1081,12 @@ class GNATcovTestFinder(TestFinder):
         test_name_components = testsuite.test_name_components(dirpath)
         for i, name in enumerate(test_name_components):
             # Because they come from another repositories,
-            # internal/large/sanity/spark tests are not covered by mypy
-            # pre-commit checks: do not check their names.
+            # internal/large/sanity tests are not covered by mypy pre-commit
+            # checks: do not check their names.
             if i == 0 and name in (
                 "internal-tests",
                 "large-tests",
                 "sanity-tests",
-                "spark-tests",
             ):
                 break
 
@@ -1460,13 +1461,6 @@ class TestSuite(e3.testsuite.Testsuite):
                 gnatcov_instr_ada_version = "05"
                 setattr(args, attr_cargs_ada, cargs_ada + " -gnat05")
 
-        # Most SPARK testcases require Ada 2022
-
-        if args.spark_tests:
-            logging.debug("Setting Ada version to Ada 2022 for SPARK")
-            gnatcov_instr_ada_version = "2022"
-            setattr(args, attr_cargs_ada, cargs_ada + " -gnat2022")
-
         # Make sure gnatcov instrument is called with the same Ada version as
         # the one passed to gnat afterwards
         args.ada_version = gnatcov_instr_ada_version
@@ -1643,9 +1637,6 @@ class TestSuite(e3.testsuite.Testsuite):
         result.append(
             "src-traces" if self.ts_args.trace_mode == "src" else "bin-traces"
         )
-
-        if self.ts_args.spark_tests:
-            result.append("spark-tests")
 
         if self.ts_args.block:
             result.append("block")
