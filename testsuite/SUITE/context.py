@@ -460,6 +460,7 @@ class Test:
         main = Main(platform_args=True)
         parser = main.argument_parser
         parser.add_argument("--timeout", type=int, default=None)
+        parser.add_argument("--jobs", type=int, default=1)
         parser.add_argument(
             "--report-file",
             metavar="FILE",
