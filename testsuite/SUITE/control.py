@@ -686,13 +686,12 @@ def add_shared_options_to(
         ' instrument".',
     )
 
-    # --spark-tests
+    # --large-sources
     parser.add_argument(
-        "--spark-tests",
-        dest="spark_tests",
-        metavar="SPARK_TESTSUITE_PATH",
-        help="Path to the SPARK testsuite. Activate SPARK-specific"
-        " tests. Implicitly appends -gnat2022 to Ada cargs.",
+        "--large-sources",
+        dest="large_sources",
+        metavar="LARGE_SOURCES_DIR",
+        help="Directory that contain codebases for 'large' tests.",
     )
 
     parser.add_argument(
