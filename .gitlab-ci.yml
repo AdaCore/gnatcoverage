@@ -269,8 +269,39 @@ static-analysis:
     - !reference [.static-analysis, script]
     # Make the job fail if there is at least one message
     - if grep 'unexpected messages' $BUILD_DIR/$GNATSAS_OBJ_DIR/results; then exit 1; fi
+  after_script:
+    - !reference [.static-analysis, after_script]
+    - gl-sections open --collapsed "Move Infer frontend debug files"
+    # Infer frontend debug files are generated next to sources, but gitlab can
+    # only find artifacts in the CI_PROJECT_DIR. Moving all .test files is not
+    # straightforward, let's copy everything.
+    - mkdir -p $BUILD_DIR/tools/gnatcov
+    - mkdir -p $CI_PROJECT_DIR/tools/gnatcov
+    - rsync -avz $BUILD_DIR/tools/gnatcov/ $CI_PROJECT_DIR/tools/gnatcov
+    - gl-sections close
   artifacts:
     when: always # the default is on_success and does not let us investigate
+    paths:
+      - anod-logs/
+      # For reporting
+      - $CI_PROJECT_DIR/**/gnatsas/*.json
+      # For reviewing messages
+      - $CI_PROJECT_DIR/**/$GNATSAS_OUT_DIR/**/*.sam
+      - $CI_PROJECT_DIR/**/$GNATSAS_OUT_DIR/**/*.json
+      # For debugging
+      - $CI_PROJECT_DIR/**/gnatsas/**/*.stdout
+      - $CI_PROJECT_DIR/**/gnatsas/**/*.stderr
+      - $CI_PROJECT_DIR/**/gnatsas/**/*.log
+      # Debugging Infer frontend non-determinism. Note that in case of
+      # incremental run, those artifacts may be missing if capture/analysis is
+      # not run again.
+      - $CI_PROJECT_DIR/**/*.test
+      - $CI_PROJECT_DIR/**/*.test.dot
+    exclude:
+      - $CI_PROJECT_DIR/**/gnatsas/**/*.inspector/backup_lvl1/*
+      - $CI_PROJECT_DIR/**/$GNATSAS_OUT_DIR/**/*.annots/*
+    reports:
+      codequality: "**/gnatsas/*.json"
 
 #################
 # Optional jobs #
