@@ -530,6 +530,7 @@ class TestPyRunner:
         testcase_cmd = [
             sys.executable,
             self.test_dir(self.filename),
+            f"--jobs={mopt.jobs}",
             "--report-file=" + outf,
             "--log-file=" + logf,
         ]
@@ -593,8 +594,10 @@ class TestPyRunner:
         if mopt.pretty_print:
             testcase_cmd.append("--pretty-print")
 
-        if mopt.spark_tests:
-            testcase_cmd.append("--spark-tests=%s" % mopt.spark_tests)
+        if mopt.large_sources:
+            testcase_cmd.append(
+                f"--large-sources={os.path.abspath(mopt.large_sources)}"
+            )
 
         if mopt.default_dump_trigger:
             testcase_cmd.append(
@@ -1079,13 +1082,12 @@ class GNATcovTestFinder(TestFinder):
         test_name_components = testsuite.test_name_components(dirpath)
         for i, name in enumerate(test_name_components):
             # Because they come from another repositories,
-            # internal/large/sanity/spark tests are not covered by mypy
-            # pre-commit checks: do not check their names.
+            # internal/large/sanity tests are not covered by mypy pre-commit
+            # checks: do not check their names.
             if i == 0 and name in (
                 "internal-tests",
                 "large-tests",
                 "sanity-tests",
-                "spark-tests",
             ):
                 break
 
@@ -1102,7 +1104,10 @@ class GNATcovTestFinder(TestFinder):
         return ParsedTest(
             test_name=testsuite.test_name(dirpath),
             driver_cls=driver_cls,
-            test_env={"testsuite_root_dir": testsuite.root_dir},
+            test_env={
+                "testsuite_root_dir": testsuite.root_dir,
+                "run_in_parallel": ".run_in_parallel" in filenames,
+            },
             test_dir=dirpath,
         )
 
@@ -1139,6 +1144,42 @@ class TestSuite(e3.testsuite.Testsuite):
 
     def test_name(self, test_dir: str) -> str:
         return "-".join(self.test_name_components(test_dir))
+
+    def adjust_dag_dependencies(self, dag: e3.collection.dag.DAG) -> None:
+        # There are two kinds of tests: the regular ones (which are supposed to
+        # use only one core) and the parallel ones (which are free to use as
+        # many cores as the testsuite itself).
+        #
+        # See GNATcovTestFinder.probe for how we determine whether a given
+        # testcase is a parallel one.
+        regular_tests = []
+        parallel_tests = []
+        for fragment in dag.vertex_data.values():
+            if fragment.driver.test_env.get("run_in_parallel"):
+                parallel_tests.append(fragment)
+            else:
+                regular_tests.append(fragment)
+
+        # To respect the requested level of parallelism, arrange to run all
+        # regular tests first, and only then the parallel tests one by one.
+        if parallel_tests:
+            # Pick one parallel test to run after all regular tests have
+            # completed.
+            first = parallel_tests.pop()
+            dag.update_vertex(
+                vertex_id=first.uid,
+                predecessors=[fragment.uid for fragment in regular_tests],
+            )
+
+            # Then arrange for all the other parallel tests to run one after
+            # the other...
+            previous = first
+            for fragment in parallel_tests:
+                dag.update_vertex(
+                    vertex_id=fragment.uid,
+                    predecessors=[previous.uid],
+                )
+                previous = fragment
 
     # --------------------------
     # -- GAIA file facilities --
@@ -1460,13 +1501,6 @@ class TestSuite(e3.testsuite.Testsuite):
                 gnatcov_instr_ada_version = "05"
                 setattr(args, attr_cargs_ada, cargs_ada + " -gnat05")
 
-        # Most SPARK testcases require Ada 2022
-
-        if args.spark_tests:
-            logging.debug("Setting Ada version to Ada 2022 for SPARK")
-            gnatcov_instr_ada_version = "2022"
-            setattr(args, attr_cargs_ada, cargs_ada + " -gnat2022")
-
         # Make sure gnatcov instrument is called with the same Ada version as
         # the one passed to gnat afterwards
         args.ada_version = gnatcov_instr_ada_version
@@ -1643,9 +1677,6 @@ class TestSuite(e3.testsuite.Testsuite):
         result.append(
             "src-traces" if self.ts_args.trace_mode == "src" else "bin-traces"
         )
-
-        if self.ts_args.spark_tests:
-            result.append("spark-tests")
 
         if self.ts_args.block:
             result.append("block")

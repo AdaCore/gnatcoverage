@@ -224,7 +224,7 @@ test_5.04a1_src_traces:
 
   <<: *artifacts
 
-test_spark:
+test_large:
   interruptible: true
   services:
      - image:pe-base
@@ -235,8 +235,8 @@ test_spark:
     - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - anod test gnatcov --minimal -Qlarge-tests,src-traces,instr $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qlarge-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - *common_testsuite_reports
 

@@ -460,6 +460,7 @@ class Test:
         main = Main(platform_args=True)
         parser = main.argument_parser
         parser.add_argument("--timeout", type=int, default=None)
+        parser.add_argument("--jobs", type=int, default=1)
         parser.add_argument(
             "--report-file",
             metavar="FILE",
@@ -551,6 +552,16 @@ class Test:
 
     def support_dir(self) -> str:
         return os.path.join(ROOT_DIR, "support")
+
+    def large_source(self, *items: str) -> str:
+        """
+        Return a filename inside the 'large' source tree.
+        """
+        root_dir = thistest.options.large_sources
+        thistest.stop_if(
+            not root_dir, RuntimeError("Test requires --large-sources")
+        )
+        return os.path.join(root_dir, *items)
 
     def bits(self) -> int:
         """
