@@ -2435,11 +2435,6 @@ package body SC_Obligations is
            (if Is_New_CU
             then CU_Vector.Last_Index + 1
             else CU_Map.Element (CP_CU.Main_Source));
-
-         Real_CU : access CU_Info;
-         --  Pointer to the update CU_Info in CU_Vector. This is a new entry
-         --  into CU_Vector if Is_New_CU, otherwise an existing one.
-
       begin
          Set_CU_Id_Map (Relocs, CP_CU_Id, Real_CU_Id);
 
@@ -2456,151 +2451,155 @@ package body SC_Obligations is
 
          --  Then, retrieve the newly created (or existing) CU
 
-         Real_CU := CU_Vector.Reference (Real_CU_Id).Element;
-
-         --  Check if the unit has new SCOs
-
-         Has_New_SCOs := Is_New_CU;
-         if not Is_New_CU then
-            for SID_Info in CP_CU.SIDs_Info.Iterate loop
-               if not Real_CU.SIDs_Info.Contains (SID_Info_Maps.Key (SID_Info))
-               then
-                  Has_New_SCOs := True;
-                  exit;
-               end if;
-            end loop;
-         end if;
-
-         --  If this is a new CU, initialize the CU fields shared for all
-         --  versions.
-
-         if Is_New_CU then
-            Real_CU.Origin := CP_CU.Origin;
-            Real_CU.Main_Source := CP_CU.Main_Source;
-            case Real_CU.Provider is
-               when Compiler | LLVM =>
-                  Real_CU.SCOs_Fingerprint := CP_CU.SCOs_Fingerprint;
-
-               when Instrumenter    =>
-                  Real_CU.Source_Fingerprint := CP_CU.Source_Fingerprint;
-            end case;
-            CU_Map.Insert (CP_CU.Main_Source, Real_CU_Id);
-            for Dep_SFI of Real_CU.Deps loop
-
-               --  Units of interest can depend on units outside of the
-               --  scope of code coverage analysis. Keeping track of these
-               --  introduces clashes between stubbed units and the real
-               --  one, so they are excluded from checkpoints. Hence, allow
-               --  them to be missing here.
-
-               if not SFI_Ignored (Relocs, Dep_SFI) then
-                  Remap_SFI (Relocs, Dep_SFI);
-               end if;
-            end loop;
-            Register_CU (Real_CU_Id);
-
-         else
-            --  Otherwise, check that the SCOs in the new version are
-            --  consistent with those previously loaded.
-
-            if not Check_SCOs_Consistency (CLS, CP_Vectors, CP_CU) then
-               Outputs.Warn
-                 ("Discarding source coverage data for unit "
-                  & Get_Full_Name (Real_CU.Main_Source)
-                  & " (from "
-                  & Get_Full_Name (Real_CU.Origin)
-                  & "), loaded from "
-                  & (+CLS.Filename));
-               return;
-            end if;
-         end if;
-
-         --  In all cases, load the SCOs: if they already exist in Real_CU,
-         --  we will remap the SCOs in the loaded checkpoint to the already
-         --  existing ones.
-
-         Checkpoint_Load_SCOs
-           (CLS        => CLS,
-            CP_Vectors => CP_Vectors,
-            CP_CU      => CP_CU,
-            Real_CU    => Real_CU.all,
-            Real_CU_Id => Real_CU_Id);
-
-         --  If this is a new unit / it contains new SCOs, load additional
-         --  information (SID information, preprocessing information, and
-         --  scopes).
-
-         if Has_New_SCOs then
-
-            --  Process SID information
-
-            Checkpoint_Load_SID_Info
-              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
-
-            --  Process macro information
-
-            Checkpoint_Load_PP_Info
-              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
-
-            --  Process scopes
-
-            Checkpoint_Load_Scopes
-              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
-         end if;
-
-         --  Read uninstrumented SCOs for stmt/decision
-
-         for SCO_Range of CP_CU.SCOs loop
-            for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
-               declare
-                  Old_SCOD   : SCO_Descriptor renames
-                    CP_Vectors.SCO_Vector (Old_SCO_Id);
-                  New_SCO_Id : constant SCO_Id :=
-                    Remap_SCO_Id (Relocs, Old_SCO_Id);
-                  SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
-               begin
-                  case SCOD.Kind is
-                     when Statement         =>
-                        if Old_SCOD.Stmt_Instrumented then
-                           SCOD.Stmt_Instrumented := True;
-                        end if;
-
-                     when Decision          =>
-                        Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
-
-                     when Fun_Call_SCO_Kind =>
-                        if Old_SCOD.Fun_Call_Instrumented then
-                           SCOD.Fun_Call_Instrumented := True;
-                        end if;
-
-                     when Guarded_Expr      =>
-                        if Old_SCOD.GExpr_Instrumented then
-                           SCOD.GExpr_Instrumented := True;
-                        end if;
-
-                     when others            =>
-                        null;
-                  end case;
-               end;
-            end loop;
-         end loop;
-
-         --  Has_Code indication
-
-         Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
-
-         --  Remap ALI annotations and then merge them
-
          declare
-            Remapped_Annotations : ALI_Annotation_Maps.Map :=
-              CP_CU.ALI_Annotations;
+            Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id);
          begin
-            Remap_ALI_Annotations (Relocs, Remapped_Annotations);
-            for Cur in Remapped_Annotations.Iterate loop
-               Real_CU.ALI_Annotations.Include
-                 (ALI_Annotation_Maps.Key (Cur),
-                  ALI_Annotation_Maps.Element (Cur));
+            --  Check if the unit has new SCOs
+
+            Has_New_SCOs := Is_New_CU;
+            if not Is_New_CU then
+               for SID_Info in CP_CU.SIDs_Info.Iterate loop
+                  if not Real_CU.SIDs_Info.Contains
+                           (SID_Info_Maps.Key (SID_Info))
+                  then
+                     Has_New_SCOs := True;
+                     exit;
+                  end if;
+               end loop;
+            end if;
+
+            --  If this is a new CU, initialize the CU fields shared for all
+            --  versions.
+
+            if Is_New_CU then
+               Real_CU.Origin := CP_CU.Origin;
+               Real_CU.Main_Source := CP_CU.Main_Source;
+               case Real_CU.Provider is
+                  when Compiler | LLVM =>
+                     Real_CU.SCOs_Fingerprint := CP_CU.SCOs_Fingerprint;
+
+                  when Instrumenter    =>
+                     Real_CU.Source_Fingerprint := CP_CU.Source_Fingerprint;
+               end case;
+               CU_Map.Insert (CP_CU.Main_Source, Real_CU_Id);
+               for Dep_SFI of Real_CU.Deps loop
+
+                  --  Units of interest can depend on units outside of the
+                  --  scope of code coverage analysis. Keeping track of these
+                  --  introduces clashes between stubbed units and the real
+                  --  one, so they are excluded from checkpoints. Hence, allow
+                  --  them to be missing here.
+
+                  if not SFI_Ignored (Relocs, Dep_SFI) then
+                     Remap_SFI (Relocs, Dep_SFI);
+                  end if;
+               end loop;
+               Register_CU (Real_CU_Id);
+
+            else
+               --  Otherwise, check that the SCOs in the new version are
+               --  consistent with those previously loaded.
+
+               if not Check_SCOs_Consistency (CLS, CP_Vectors, CP_CU) then
+                  Outputs.Warn
+                    ("Discarding source coverage data for unit "
+                     & Get_Full_Name (Real_CU.Main_Source)
+                     & " (from "
+                     & Get_Full_Name (Real_CU.Origin)
+                     & "), loaded from "
+                     & (+CLS.Filename));
+                  return;
+               end if;
+            end if;
+
+            --  In all cases, load the SCOs: if they already exist in Real_CU,
+            --  we will remap the SCOs in the loaded checkpoint to the already
+            --  existing ones.
+
+            Checkpoint_Load_SCOs
+              (CLS        => CLS,
+               CP_Vectors => CP_Vectors,
+               CP_CU      => CP_CU,
+               Real_CU    => Real_CU,
+               Real_CU_Id => Real_CU_Id);
+
+            --  If this is a new unit / it contains new SCOs, load additional
+            --  information (SID information, preprocessing information, and
+            --  scopes).
+
+            if Has_New_SCOs then
+
+               --  Process SID information
+
+               Checkpoint_Load_SID_Info
+                 (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU);
+
+               --  Process macro information
+
+               Checkpoint_Load_PP_Info
+                 (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU);
+
+               --  Process scopes
+
+               Checkpoint_Load_Scopes
+                 (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU);
+            end if;
+
+            --  Read uninstrumented SCOs for stmt/decision
+
+            for SCO_Range of CP_CU.SCOs loop
+               for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
+                  declare
+                     Old_SCOD   : SCO_Descriptor renames
+                       CP_Vectors.SCO_Vector (Old_SCO_Id);
+                     New_SCO_Id : constant SCO_Id :=
+                       Remap_SCO_Id (Relocs, Old_SCO_Id);
+                     SCOD       : SCO_Descriptor renames
+                       SCO_Vector (New_SCO_Id);
+                  begin
+                     case SCOD.Kind is
+                        when Statement         =>
+                           if Old_SCOD.Stmt_Instrumented then
+                              SCOD.Stmt_Instrumented := True;
+                           end if;
+
+                        when Decision          =>
+                           Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
+
+                        when Fun_Call_SCO_Kind =>
+                           if Old_SCOD.Fun_Call_Instrumented then
+                              SCOD.Fun_Call_Instrumented := True;
+                           end if;
+
+                        when Guarded_Expr      =>
+                           if Old_SCOD.GExpr_Instrumented then
+                              SCOD.GExpr_Instrumented := True;
+                           end if;
+
+                        when others            =>
+                           null;
+                     end case;
+                  end;
+               end loop;
             end loop;
+
+            --  Has_Code indication
+
+            Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
+
+            --  Remap ALI annotations and then merge them
+
+            declare
+               Remapped_Annotations : ALI_Annotation_Maps.Map :=
+                 CP_CU.ALI_Annotations;
+            begin
+               Remap_ALI_Annotations (Relocs, Remapped_Annotations);
+               for Cur in Remapped_Annotations.Iterate loop
+                  Real_CU.ALI_Annotations.Include
+                    (ALI_Annotation_Maps.Key (Cur),
+                     ALI_Annotation_Maps.Element (Cur));
+               end loop;
+            end;
          end;
       end;
    end Checkpoint_Load_Unit;
