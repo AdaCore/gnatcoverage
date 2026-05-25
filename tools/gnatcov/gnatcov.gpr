@@ -289,6 +289,7 @@ project Gnatcov is
          "--no-subprojects",
          "--no-inspector",
          "--no-gnat");
+      for Switches ("infer") use ("--frontend-tests");
 
       CWE_Filter :=
         --  [CWE 200] Do not warn about information leak: gnatcov does not deal
