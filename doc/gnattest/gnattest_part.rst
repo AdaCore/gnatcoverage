@@ -322,6 +322,25 @@ Switches for ``gnattest`` in framework generation mode
   unit whose specification is declared in specified ``spec`` file.
 
 
+  .. index:: --include-for-stubbing (gnattest)
+
+:switch:`--include-for-stubbing={filename}`
+  Enables stubbing of units listed in ``filename``. The file should contain
+  corresponding spec files, one per line.
+
+:switch:`--include-for-stubbing:{spec}={filename}`
+  Same as above, but corresponding units will be stubbed only when testing unit
+  whose specification is declared in specified ``spec`` file.
+
+Note: in case of using both include-for-stubbing and excluded-from-stubbing,
+local configuration will override the global configuration, e.g. if one unit
+is excluded by default from stubbing, and then included for a specific unit by
+using the {spec}={filename} variant, then it shall be included for this specific
+unit.
+
+gnattest rejects cases of using both options with the same granularity level.
+
+
   .. index:: --validate-type-extensions (gnattest)
 
 :switch:`--validate-type-extensions`
