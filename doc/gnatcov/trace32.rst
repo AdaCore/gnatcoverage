@@ -4,6 +4,10 @@
 Generating Coverage Information from Lauterbach Trace32
 *******************************************************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Lauterbach Trace32 BranchFlow trace data can be produced while running an
 executable on a processor supporting the needed execution trace output.
 
