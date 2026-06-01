@@ -1,3 +1,6 @@
+.. only:: html
+
+  .. include:: bin_warning.rst
 
 .. _target_specific_notes:
 

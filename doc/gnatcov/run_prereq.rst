@@ -3,6 +3,10 @@
 Compilation prerequisites
 =========================
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 General rules
 -------------
 

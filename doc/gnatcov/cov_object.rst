@@ -4,6 +4,10 @@
 Object coverage analysis with |gcvcov|
 **************************************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 .. _ocov-principles:
 
 Object coverage analysis computes metrics focused on machine-level object

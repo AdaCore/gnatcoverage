@@ -4,6 +4,10 @@
 Producing binary traces with |gcvrun|
 #####################################
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 The simplest way to produce binary traces for |gcp| is to run the program in
 an environment that knows how to produce such traces directly. For bareboard
 environments operating within |gem|, the |gcvrun| command is available for

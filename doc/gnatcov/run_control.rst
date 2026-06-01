@@ -4,6 +4,10 @@
 Execution environment
 *********************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 For cross configurations, the :cmd-option:`--target` command line option allows
 specifying the target environment for which the program was built and for which
 |gcvrun| should pick a suitable execution environment. The option states a base

@@ -2,6 +2,10 @@
 Introduction
 ************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Definition and main characteristics
 -----------------------------------
 

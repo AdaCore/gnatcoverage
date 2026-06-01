@@ -2,6 +2,10 @@
 Using |gcp| from |gps|
 ######################
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Starting from GNATcoverage version 22.0, binary traces (using gnatcov run) are
 no longer supported in native profiles. This mode is still supported for cross
 configurations, and the IDE integrated use in such cases is similar to the use
@@ -25,4 +29,3 @@ workflow: add it to the toolbar as shown below.
 
 Remove the ``Run GNATcoverage with instrumentation`` entry from the toolbar in
 the same fashion.
-
