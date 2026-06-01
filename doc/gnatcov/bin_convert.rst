@@ -4,6 +4,10 @@
 Importing binary traces with |gcvcnv|
 #####################################
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Traces generated from external sources (other than by using |gcvrun|)
 can be imported into |gcp| by converting them to the |gcp| format
 using |gcvcnv|.
