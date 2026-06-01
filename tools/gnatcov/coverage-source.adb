@@ -22,16 +22,12 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
-with GPR2.Build.Source;
-with GPR2.Project.View;
-
 with Binary_Files;          use Binary_Files;
 with Decision_Map;          use Decision_Map;
 with Diagnostics;           use Diagnostics;
 with Elf_Disassemblers;     use Elf_Disassemblers;
 with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;               use Outputs;
-with Project;               use Project;
 with Slocs;                 use Slocs;
 with Switches;              use Switches;
 with Traces_Elf;            use Traces_Elf;
@@ -275,48 +271,6 @@ package body Coverage.Source is
          Unit_List.Include (Unit);
       end if;
    end Add_Unit;
-
-   -------------------------------------------
-   -- Compute_Unit_Name_For_Excluded_Sources --
-   -------------------------------------------
-
-   procedure Compute_Unit_Name_For_Excluded_Sources is
-      use Types;
-
-      procedure Callback
-        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object);
-      --  If the file is a (sometimes) ignored file, compute its unit name and
-      --  store it in the file table.
-
-      --------------
-      -- Callback --
-      --------------
-
-      procedure Callback
-        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object)
-      is
-         pragma Unreferenced (Project);
-         SFI : constant Source_File_Index :=
-           Get_Index_From_Generic_Name
-             (String (File.Path_Name.Value), Source_File, Insert => False);
-         FI  : constant File_Info_Access :=
-           (if SFI /= No_Source_File then Get_File (SFI) else null);
-      begin
-         if FI /= null and then not FI.Unit.Known then
-            declare
-               Unit : constant Compilation_Unit := To_Compilation_Unit (File);
-            begin
-               Consolidate_Source_File_Unit (SFI, Unit);
-            end;
-         end if;
-      end Callback;
-
-      --  Start of processing for Compute_Unit_Name_For_Excluded_Sources
-
-   begin
-      Enumerate_Sources
-        (Callback'Access, Language => All_Languages, Mode => Only_UOIs);
-   end Compute_Unit_Name_For_Excluded_Sources;
 
    -------------------------
    -- Fill_Ignored_SF_Map --

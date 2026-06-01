@@ -32,7 +32,6 @@ with GNAT.Exception_Actions;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
-
 with GNATCOLL.JSON;               use GNATCOLL.JSON;
 with GNATCOLL.VFS;                use GNATCOLL.VFS;
 with GPR2.Build.Compilation_Unit;
@@ -42,6 +41,7 @@ with GPR2.Path_Name;
 with GPR2.Project.Attribute;
 with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
+with GPR2.Project.View;
 with Libadalang.Project_Provider; use Libadalang.Project_Provider;
 
 with Binary_Files;
@@ -62,6 +62,7 @@ with Outputs;
 with Paths;               use Paths;
 with Project;             use Project;
 with Support_Files;
+with Switches_GPR;        use Switches_GPR;
 with Text_Files;          use Text_Files;
 
 --  Generate instrumented sources for the source files of all units of

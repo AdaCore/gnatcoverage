@@ -58,6 +58,7 @@ with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
+with GPR2.Project.View;
 
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;

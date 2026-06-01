@@ -29,12 +29,6 @@ with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
---  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
-
-pragma Warnings (Off, "not referenced");
-with GPR2.Project.View.Set;
-pragma Warnings (On, "not referenced");
-
 with Command_Line;   use Command_Line;
 with Files_Handling; use Files_Handling;
 with Hex_Images;     use Hex_Images;

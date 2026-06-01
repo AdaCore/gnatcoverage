@@ -19,6 +19,7 @@
 with Ada.Directories; use Ada.Directories;
 
 with GPR2.Path_Name;
+with GPR2.Project.View;
 
 with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;

@@ -27,6 +27,7 @@ with Command_Line; use Command_Line;
 with Outputs;      use Outputs;
 with Support_Files;
 with Switches;     use Switches;
+with Switches_GPR; use Switches_GPR;
 
 procedure GNATcov is
    Use_Gnatcov64 : Boolean := False;

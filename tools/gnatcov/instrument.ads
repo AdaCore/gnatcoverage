@@ -22,8 +22,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
-with GPR2.Project.View;
-
 with Types; use Types;
 
 with Checkpoints;    use Checkpoints;
@@ -97,9 +95,6 @@ package Instrument is
         Element_Type  => Ada_Identifier,
         Vectors       => Ada_Identifier_Vectors,
         Write_Element => Write);
-
-   Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
-     (GPR2.S_Spec => 'S', GPR2.S_Body => 'B', GPR2.S_Separate => 'U');
 
    function Qualified_Name_Slug
      (Name     : Ada_Qualified_Name;

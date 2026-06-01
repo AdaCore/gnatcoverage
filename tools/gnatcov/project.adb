@@ -44,11 +44,14 @@ with GPR2.Project.Registry.Pack.Description;
 with GPR2.Project.Registry.Pack;
 with GPR2.Reporter.Console;
 
-with Inputs;     use Inputs;
-with Instrument; use Instrument;
-with Outputs;    use Outputs;
-with Paths;      use Paths;
+with Files_Table;  use Files_Table;
+with Inputs;       use Inputs;
+with Instrument;   use Instrument;
+with Outputs;      use Outputs;
+with Paths;        use Paths;
 with Traces_Source;
+with Types;
+with Switches_GPR; use Switches_GPR;
 
 package body Project is
 
@@ -61,9 +64,6 @@ package body Project is
    use type GPR2.Project.View.Object;
    use type GPR2.Project_Kind;
    use type GPR2.Unit_Kind;
-
-   subtype Compilation_Unit is Files_Table.Compilation_Unit;
-   use type Compilation_Unit;
 
    use type Traces_Source.Supported_Language_Kind;
 
@@ -1568,6 +1568,48 @@ package body Project is
       Build_Prj_Map;
       Build_Unit_Map (Override_Units);
    end Compute_Units_Of_Interest;
+
+   -------------------------------------------
+   -- Compute_Unit_Name_For_Excluded_Sources --
+   -------------------------------------------
+
+   procedure Compute_Unit_Name_For_Excluded_Sources is
+      use Types;
+
+      procedure Callback
+        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object);
+      --  If the file is a (sometimes) ignored file, compute its unit name and
+      --  store it in the file table.
+
+      --------------
+      -- Callback --
+      --------------
+
+      procedure Callback
+        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object)
+      is
+         pragma Unreferenced (Project);
+         SFI : constant Source_File_Index :=
+           Get_Index_From_Generic_Name
+             (String (File.Path_Name.Value), Source_File, Insert => False);
+         FI  : constant File_Info_Access :=
+           (if SFI /= No_Source_File then Get_File (SFI) else null);
+      begin
+         if FI /= null and then not FI.Unit.Known then
+            declare
+               Unit : constant Compilation_Unit := To_Compilation_Unit (File);
+            begin
+               Consolidate_Source_File_Unit (SFI, Unit);
+            end;
+         end if;
+      end Callback;
+
+      --  Start of processing for Compute_Unit_Name_For_Excluded_Sources
+
+   begin
+      Enumerate_Sources
+        (Callback'Access, Language => All_Languages, Mode => Only_UOIs);
+   end Compute_Unit_Name_For_Excluded_Sources;
 
    -----------------------
    -- Is_Project_Loaded --
