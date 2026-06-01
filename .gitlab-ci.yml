@@ -27,6 +27,35 @@ include:
       anod-spec: gnatcov-gnatsas-check
       save-anod-logs: true
 
+  # Build
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
+    inputs:
+      job-name: build
+      anod-args: build --smart-rebuild gnatcov -Qinstr
+      cpus: 16
+      image: pe-base
+      save-component: true
+
+  # Build community gnatcov
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
+    inputs:
+      job-name: build-community
+      stage: test
+      anod-args: build --smart-rebuild gnatcov -Qno-c
+      cpus: 16
+      image: pe-base
+
+  # Test gnatcov
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/test@~latest
+    inputs:
+      linux: false # we provide our own runnable jobs
+      anod-args: test gnatcov --minimal $TARGET_ARGS -Q$TEST_QUALIFIER
+      generic-anod-ci-args: --add-dep eng/das/cov/gnatcoverage-extra
+      needs: ["build:linux"]
+      image: pe-base
+      cpus: 16
+      disk: 80
+
 workflow:
   rules:
     # Run the CI on merge requests only
@@ -38,52 +67,10 @@ variables:
    CLANG_FORMAT_DATE: !reference [.dates, clang-format]
    GNATFORMAT_DATE: !reference [.dates, gnatformat]
 
-.basic_setup: &basic_setup
-  - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
-  - cat /tmp/ci_env.sh
-  - . /tmp/ci_env.sh
-
-  # Install vanilla gnatcov from cathod. We use it both to instrument gnatcov
-  # itself ("build" job) and then to produce coverage reports (test jobs).
-  - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
-  - uid=`anod eval gnatcov uid | tr "'" ' '`
-  - touch $ANOD_DEFAULT_SANDBOX_DIR/fingerprints/$uid.json.assume-unchanged
-
 stages:
   - build
   - test
   - check
-
-build:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: build
-  script:
-    - *basic_setup
-
-    # 1. Install / build the dependencies of gnatcov using the smart rebuilder
-    #    to allow testing of breaking changes. Do not use the -Qinstr qualifier
-    #    as this would trigger a rebuild of the vanilla gnatcov.
-    - anod build --smart-rebuild --deps-only gnatcov $ACI_TRACK_QUALIFIER
-
-    # 2. Build using anod, but minimally as all dependencies are supposed to be
-    #    already built/installed via 1, but we don't want to re-build the
-    #    gnatcov installed in "basic_setup" with --smart-rebuild.
-    - anod build --minimal gnatcov -Qinstr $ACI_TRACK_QUALIFIER
-
-    # Package all components created so far
-    - anod-copy-components --standalone-export $ANOD_DEFAULT_SANDBOX_DIR $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
-    - tar czf $PACKAGE_ABSOLUTE_NAME -C / $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
-
-    - cd $CI_PROJECT_DIR
-    - ls -l $PACKAGE_BASE_NAME
-
-  artifacts:
-    paths:
-      - $PACKAGE_BASE_NAME
 
 build_docs:
   stage: build
@@ -96,7 +83,7 @@ build_docs:
         - doc/**/*
       when: always
   script:
-    - *basic_setup
+    - generic_anod_ci
     - anod build gnatdas-doc -Qwarn-errors --latest
     - DOC_BSN=$(anod eval gnatdas-doc -Qwarn-errors build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$DOC_BSN/install/share/doc/gnatdas/ $CI_PROJECT_DIR
@@ -107,50 +94,24 @@ build_docs:
       - gnatdas/pdf/gnatdas.pdf
       - gnatdas/html
 
-build_community:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:8
-     - mem:16
-  stage: test
+.test_and_collect:
+  extends: .test:linux:true
+  variables:
+    # Set native defaults
+    TARGET_ARGS: ""
   script:
-    - *basic_setup
-    # Build using anod, we can use the smart rebuilder here as gnatcov does not
-    # depend on itself in this case.
-    - anod build --smart-rebuild gnatcov -Qno-c $ACI_TRACK_QUALIFIER
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
-      when: always
-
-.common_test_bits: &basic_test_setup
-    # Setup the sandbox
-    - *basic_setup
-
-    # Import components from the artifact and install the instrumented gnatcov,
-    # then remove temporaries to save disk space.
-    - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
-    - anod-copy-components $ANOD_DEFAULT_SANDBOX_DIR/exp-comps $ANOD_DEFAULT_SANDBOX_DIR
-    - anod install gnatcov -Qinstr $ACI_TRACK_QUALIFIER
-    - rm -rf $PACKAGE_ABSOLUTE_NAME $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
-
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
+    - !reference [.test:common, script]
+    - TEST_DIR=$(anod info test gnatcov $TARGET_ARGS -Q$TEST_QUALIFIER --show working_dir)
+    - mv $TEST_DIR/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
 
-.common_testsuite_reports: &common_testsuite_reports
-    # We must parse testsuite results with the same version of e3-testsuite
-    # that produced them. So we install e3-testsuite using the same sandbox as
-    # testing.
-    - anod install e3-for-testing
-    - eval $(anod printenv e3-for-testing)
-    - testsuite_reports
-
-
-.common_artifacts_bits: &artifacts
   artifacts:
+    when: always
     paths:
       - xunit-*.xml
       - coverage/cobertura.xml
+      - anod-logs/
 
     reports:
       junit: xunit-*.xml
@@ -159,50 +120,24 @@ build_community:
         path: coverage/cobertura.xml
 
 test_bin_traces:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
-  script:
-    - *basic_test_setup
-
-    # Test using anod
-    - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+  extends: .test_and_collect
+  variables:
+    TARGET_ARGS: --target=leon3-elf,,qemu
+    TEST_QUALIFIER: RTS=embedded-leon3,-O0,instr
 
 test_src_traces:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
-  script:
-    - *basic_test_setup
-
-    # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+  extends: .test_and_collect
+  variables:
+    TEST_QUALIFIER: src-traces,instr
 
 test_5.04a1_src_traces:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
+  extends: .test_and_collect
+  variables:
+    TEST_QUALIFIER: 5.04a1,src-traces,gpr-mode,instr
   script:
-    - *basic_test_setup
+    - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
+    - cat /tmp/ci_env.sh
+    - . /tmp/ci_env.sh
 
     # GNAT 5.04a1 does not ship "ar" nor "ld". Make the ones from gnat/stable
     # available as if they were installed system-wide.
@@ -213,32 +148,12 @@ test_5.04a1_src_traces:
     - export PATH="$PWD/build-essentials:$PATH"
     - ln -s $STABLE_GNAT_PREFIX/bin/ar build-essentials/
     - ln -s $STABLE_GNAT_PREFIX/x86_64-pc-linux-gnu/bin/ld build-essentials/
-    # Test using anod
-    - TEST_QUALIFIER="-Q5.04a1,src-traces,gpr-mode,instr $ACI_TRACK_QUALIFIER"
-    - anod test gnatcov --minimal $TEST_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov $TEST_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+    - !reference [.test_and_collect, script]
 
 test_large:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
-  script:
-    - *basic_test_setup
-
-    # Test using anod
-    - anod test gnatcov --minimal -Qlarge-tests,src-traces,instr $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qlarge-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+  extends: .test_and_collect
+  variables:
+    TEST_QUALIFIER: large-tests,src-traces,instr
 
 ##########
 # Checks #
@@ -246,7 +161,9 @@ test_large:
 
 pre-commit:
   before_script:
-    - *basic_setup
+    - generic_anod_ci
+    - cat /tmp/ci_env.sh
+    - . /tmp/ci_env.sh
 
     # Install the clang-format executable and make it available
     - anod install libclang -Qdate=$CLANG_FORMAT_DATE
@@ -305,28 +222,15 @@ static-analysis:
 # Optional jobs #
 #################
 
-# Optional job for block instrumentation and the GPR mode.
+# Optional job for block instrumentation.
 #
 # To be run when Ada or C instrumentation is modified to ensure the new
 # changes are also compatible with block instrumentation.
 test_block_instr:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
+  extends: .test_and_collect
   when: manual
-  script:
-    - *basic_test_setup
-
-    # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+  variables:
+    TEST_QUALIFIER: src-traces,instr,block
 
 # Optional job for light runtime testing on source traces. Dump trigger
 # strategies differ on that runtime, and not all tests are compatible with
@@ -336,23 +240,11 @@ test_block_instr:
 # Only needs to be run when large batches of src-trace specific tests are added,
 # or if instrumentation code related to buffer dump is modified.
 test_src_light:
-  interruptible: true
-  services:
-     - image:pe-base
-     - cpu:16
-     - mem:16
-  stage: test
+  extends: .test_and_collect
   when: manual
-  script:
-    - *basic_test_setup
-
-    # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER build_space_name)
-    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - *common_testsuite_reports
-
-  <<: *artifacts
+  variables:
+    TARGET_ARGS: --target=arm-elf,,qemu-stm32
+    TEST_QUALIFIER: src-traces,instr,RTS=light-stm32f4
 
 test_qualkit:
   interruptible: true
@@ -362,20 +254,22 @@ test_qualkit:
     - mem:16
   stage: test
   script:
-    - *basic_test_setup
+    - generic_anod_ci
+    - cat /tmp/ci_env.sh
+    - . /tmp/ci_env.sh
 
     # Use the gnatcov-qualrun and gnatcov-qualkit specs to run the
     # qualification testsuite and create a qualification kit
-    - anod test gnatcov-qualrun --minimal -Qci $ACI_TRACK_QUALIFIER
-    - anod build gnatcov-qualkit --minimal -Qci $ACI_TRACK_QUALIFIER
-    - QUALKIT_BSN=$(anod eval --primitive=build gnatcov-qualkit -Qci $ACI_TRACK_QUALIFIER build_space_name)
-    - QUALRUN_BSN=$(anod eval --primitive=test gnatcov-qualrun -Qci $ACI_TRACK_QUALIFIER build_space_name)
+    - anod test gnatcov-qualrun --minimal -Qci
+    - anod build gnatcov-qualkit --minimal -Qci
+    - QUALKIT_BSN=$(anod eval --primitive=build gnatcov-qualkit -Qci build_space_name)
+    - QUALRUN_BSN=$(anod eval --primitive=test gnatcov-qualrun -Qci build_space_name)
     - mkdir $CI_PROJECT_DIR/qualkits
     - mkdir $CI_PROJECT_DIR/qualrun
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALRUN_BSN/tmp/attachment-testsuite_tree.tgz $CI_PROJECT_DIR/qualrun/
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/*.zip $CI_PROJECT_DIR/qualkits/
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/consistency.log $CI_PROJECT_DIR/qualkits/
-    - *common_testsuite_reports
+    - testsuite_reports
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       changes:
