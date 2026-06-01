@@ -36,7 +36,7 @@ with Coverage;              use Coverage;
 with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;
 with Perf_Counters;         use Perf_Counters;
-with Project;
+with Project_Find_Source_File;
 with Switches;
 
 package body Files_Table is
@@ -1856,7 +1856,7 @@ package body Files_Table is
             --  If previous attempt failed, try again to locate the source file
             --  with the help of the project manager
 
-            FI.Full_Name := Project.Find_Source_File (FI.Simple_Name.all);
+            FI.Full_Name := Project_Find_Source_File (FI.Simple_Name.all);
             if FI.Full_Name /= null then
                Try_Open (File, FI.Full_Name.all, Success);
                if not Success then

@@ -23,14 +23,14 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
+with GNATCOLL.Refcount;         use GNATCOLL.Refcount;
+with GNATCOLL.VFS;              use GNATCOLL.VFS;
+with GPR2;
 with Langkit_Support.File_Readers;
 with Langkit_Support.Text;      use Langkit_Support.Text;
 with Libadalang.Analysis;       use Libadalang.Analysis;
 with Libadalang.Config_Pragmas; use Libadalang.Config_Pragmas;
 with Libadalang.Rewriting;      use Libadalang.Rewriting;
-
-with GNATCOLL.Refcount; use GNATCOLL.Refcount;
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;

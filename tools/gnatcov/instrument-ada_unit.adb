@@ -68,6 +68,9 @@ package body Instrument.Ada_Unit is
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
 
+   Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
+     (GPR2.S_Spec => 'S', GPR2.S_Body => 'B', GPR2.S_Separate => 'U');
+
    procedure Trace_Buffer_Unit
      (Buffer_Unit : String;
       Filename    : String;

@@ -129,6 +129,15 @@ project Gnatcov is
             for Body ("Setup_RTS") use "setup_rts__stub.adb";
       end case;
 
+      case Part is
+         when "lib32" | "lib64" | "compiler" =>
+            for Body ("project_find_source_file")
+               use "project_find_source_file__stub.adb";
+
+         when others =>
+            null;
+      end case;
+
       case C_Support is
          when "False" =>
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
