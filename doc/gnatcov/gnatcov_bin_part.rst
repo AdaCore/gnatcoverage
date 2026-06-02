@@ -2,6 +2,8 @@
 Appendix A. Using GNATcoverage Binary Traces
 #############################################
 
+.. include:: bin_warning.rst
+
 .. toctree::
    :maxdepth: 3
 

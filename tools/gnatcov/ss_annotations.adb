@@ -42,6 +42,7 @@ with Outputs;           use Outputs;
 with Paths;             use Paths;
 with Project;           use Project;
 with Switches;          use Switches;
+with Switches_GPR;      use Switches_GPR;
 
 package body SS_Annotations is
    use type Unbounded_String;

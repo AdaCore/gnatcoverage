@@ -114,6 +114,10 @@ package Project is
    --  considered, else the set defined by the project through the Units,
    --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
 
+   procedure Compute_Unit_Name_For_Excluded_Sources;
+   --  Compute the name of the owning unit for each known source file that is
+   --  (sometimes or always) ignored.
+
    ----------------------------
    -- Post-loading accessors --
    ----------------------------

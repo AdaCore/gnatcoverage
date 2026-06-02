@@ -84,6 +84,7 @@ with Setup_RTS;             use Setup_RTS;
 with SS_Annotations;        use SS_Annotations;
 with Strings;               use Strings;
 with Switches;              use Switches;
+with Switches_GPR;          use Switches_GPR;
 with Temp_Dirs;             use Temp_Dirs;
 with Traces;                use Traces;
 with Traces_Dbase;          use Traces_Dbase;

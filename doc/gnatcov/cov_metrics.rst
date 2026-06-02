@@ -3,6 +3,10 @@
 Object/Source level metrics considerations
 ******************************************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Even though the executable code reflects semantics expressed in the
 application sources, Object and Source level coverage metrics are of very
 different nature, concerned with machine instructions vs high level constructs

@@ -7,6 +7,10 @@
 |gcvrun| command line
 **********************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 |gcvrun| offers a unified interface to launch programs for a specific target
 machine and produce execution traces. The general interface synopsis is
 available from ``gnatcov`` ``--help``, as follows::

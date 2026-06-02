@@ -22,7 +22,6 @@ with Ada.Directories;
 with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
-with GPR2;
 
 with Calendar_Utils; use Calendar_Utils;
 with Command_Line;   use Command_Line;
@@ -48,14 +47,6 @@ package Switches is
    --  enabled, do not include the exception name in the error message. Passing
    --  True for this is appropriate when formatting a user-level error message
    --  (exception names make the error message look like a crash).
-
-   procedure Parse_Arguments (From_Driver : Boolean);
-   --  Load arguments from command-line and from the project file (if any) into
-   --  Args (see below). Print usage and exit if there is no argument.
-   --
-   --  If From_Driver is True, do not compute the lists of projects/units of
-   --  interest from project files. This is meant to be used only in the
-   --  gnatcov driver, where we just need to determine the target.
 
    Arg_Parser : constant Command_Line.Parser.Parser_Type :=
      Command_Line.Create;
@@ -230,22 +221,11 @@ package Switches is
    --  Convert a human-readable language name to the corresponding enumeration
    --  value. Abort with a fatal error if Name is invalid.
 
-   function To_Language (Id : GPR2.Language_Id) return Some_Language;
-   --  Convert a GPR2 lanugage ID to our enumeration value. Abort with a fatal
-   --  error if Name is invalid.
-
    function To_Language_Or_All (Name : String) return Any_Language;
-   --  Like To_Language, but return All_Languages if Name is invalid
-
-   function To_Language_Or_All (Id : GPR2.Language_Id) return Any_Language;
    --  Like To_Language, but return All_Languages if Name is invalid
 
    function Image (Language : Some_Language) return String;
    --  Return a human-readable name for the given language
-
-   function To_Language_Id (Language : Some_Language) return GPR2.Language_Id;
-   --   Convert our enumeration value for languages to the corresponding GPR2
-   --   language ID.
 
    subtype Bin_Supported_Language is
      Some_Language range Ada_Language .. C_Language;

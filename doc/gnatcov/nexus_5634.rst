@@ -4,6 +4,10 @@
 Generating Coverage Information from Nexus Traces on MPC5634M
 *************************************************************
 
+.. only:: html
+
+  .. include:: bin_warning.rst
+
 Nexus realtime Program Trace data can be produced while running an executable
 on a processor supporting the needed combination of Nexus capabilites. Such
 data can be processed by |gcp| in two steps:

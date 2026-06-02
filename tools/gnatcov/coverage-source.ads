@@ -130,10 +130,6 @@ package Coverage.Source is
    --  Add Unit to the list of units of interest. For convenience, do nothing
    --  if it is invalid.
 
-   procedure Compute_Unit_Name_For_Excluded_Sources;
-   --  Compute the name of the owning unit for each known source file that is
-   --  (sometimes or always) ignored.
-
    procedure Fill_Ignored_SF_Map;
    --  Iterate over all excluded source files to create a map indexed by
    --  unit names, linking them to the list of excluded source files.

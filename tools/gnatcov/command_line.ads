@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GPR2.Options;
-
 with Argparse;
 with Coverage_Options; use Coverage_Options;
 
@@ -251,7 +249,7 @@ package Command_Line is
            Internal    => True),
       Cmd_Print_GPR_Registry          =>
         Create
-          (Name        => GPR2.Options.Print_GPR_Registry_Option,
+          (Name        => "--print-gpr-registry",
            Pattern     => "",
            Description => "Print the GPR registry.",
            Internal    => True),
