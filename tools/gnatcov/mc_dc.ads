@@ -30,12 +30,15 @@ package MC_DC is
       --  The decision being evaluated
 
       Values : Condition_Evaluation_Vectors.Vector;
-      --  Values of the conditions (True or False if condition has been
-      --  evaluated, Unknown if it is masked or not evaluated yet).
+      --  Values of the conditions.
+      --
+      --  True or False if condition has been evaluated, Unknown if it is
+      --  masked or not evaluated yet.
 
       Outcome : Tristate;
-      --  Outcome of the decision with the given set of conditions values,
-      --  Unknown as long as the evaluation is not completed).
+      --  Outcome of the decision with the given set of conditions values.
+      --
+      --  Unknown as long as the evaluation is not completed.
 
       Next_Condition : Any_Condition_Index;
       --  Next condition expected to be evaluated. Initially 0 before first
@@ -46,15 +49,26 @@ package MC_DC is
    function "<" (L, R : Evaluation) return Boolean;
    --  Operator used to build an ordered set of evaluations
 
+   function Has_Reached_Outcome (Eval : Evaluation) return Boolean
+   is (Eval.Decision /= No_SCO_Id
+       and then Eval.Outcome /= Unknown
+       and then Eval.Next_Condition = No_Condition_Index);
+
    function Is_MC_DC_Pair
      (Eval_1, Eval_2 : Evaluation; Unique_Cause : Boolean)
-      return Any_Condition_Index;
+      return Any_Condition_Index
+   with
+     Pre =>
+       Eval_1.Decision = Eval_2.Decision
+       and then Has_Reached_Outcome (Eval_1)
+       and then Has_Reached_Outcome (Eval_2);
    --  For two evaluations Eval_1 and Eval_2 of a decision, determine whether
    --  the two evaluations demonstrate independent influence of a condition on
    --  the decision outcome, and if so, return the index of the condition (note
    --  that any two evaluations can't be an MC/DC independant pair for more
    --  than one condition). No_Condition_Index is returned if this is not an
    --  MC/DC pair for any condition.
+   --
    --  If Unique_Cause is True, use Unique Cause MC/DC independance, else use
    --  Masking MC/DC independence.
 

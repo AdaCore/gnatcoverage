@@ -125,10 +125,6 @@ package body MC_DC is
    is
       First_Different : Any_Condition_Index := No_Condition_Index;
    begin
-      pragma Assert (Eval_1.Decision = Eval_2.Decision);
-      pragma
-        Assert (Eval_1.Outcome /= Unknown and then Eval_2.Outcome /= Unknown);
-
       --  Not an MC/DC pair if both evaluations produced the same outcome
 
       if Eval_1.Outcome = Eval_2.Outcome then
