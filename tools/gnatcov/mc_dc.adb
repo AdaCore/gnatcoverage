@@ -125,9 +125,10 @@ package body MC_DC is
    is
       First_Different : Any_Condition_Index := No_Condition_Index;
    begin
-      --  Not an MC/DC pair if both evaluations produced the same outcome
+      --  Eval_1 and Eval_2 may form a MC/DC pair only if one evaluation
+      --  reached the False outcome and the other reached the True outcome.
 
-      if Eval_1.Outcome = Eval_2.Outcome then
+      if not Known_And_Different (Eval_1.Outcome, Eval_2.Outcome) then
          return No_Condition_Index;
       end if;
 
@@ -167,10 +168,7 @@ package body MC_DC is
             --  Start of processing for Check_Condition
 
          begin
-            if Val_1 /= Unknown
-              and then Val_2 /= Unknown
-              and then Val_1 /= Val_2
-            then
+            if Known_And_Different (Val_1, Val_2) then
                if not Unique_Cause then
                   --  Remarkable property of Masking MC/DC with short circuit:
                   --  any evaluation pair with varied outcome is an independent
