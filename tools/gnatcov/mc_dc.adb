@@ -142,51 +142,26 @@ package body MC_DC is
           Condition_Index'Max
             (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
       loop
-         Check_Condition : declare
-            function Cond_J
-              (V : Condition_Evaluation_Vectors.Vector) return Tristate;
-            --  Return the value of condition J in V, or Unknown if not
-            --  evaluated.
+         if Known_And_Different
+              (Condition_Value (Eval_1, J), Condition_Value (Eval_2, J))
+         then
+            if not Unique_Cause then
+               --  Remarkable property of Masking MC/DC with short circuit: any
+               --  evaluation pair with varied outcome is an independent
+               --  influence pair for the rightmost varied condition.
 
-            ------------
-            -- Cond_J --
-            ------------
+               return J;
 
-            function Cond_J
-              (V : Condition_Evaluation_Vectors.Vector) return Tristate is
-            begin
-               if J in V.First_Index .. V.Last_Index then
-                  return V.Element (J);
-               else
-                  return Unknown;
-               end if;
-            end Cond_J;
+            elsif First_Different = No_Condition_Index then
+               First_Different := J;
 
-            Val_1 : constant Tristate := Cond_J (Eval_1.Values);
-            Val_2 : constant Tristate := Cond_J (Eval_2.Values);
+            else
+               --  More than one condition had different values in both
+               --  evaluations: not an MC/DC pair.
 
-            --  Start of processing for Check_Condition
-
-         begin
-            if Known_And_Different (Val_1, Val_2) then
-               if not Unique_Cause then
-                  --  Remarkable property of Masking MC/DC with short circuit:
-                  --  any evaluation pair with varied outcome is an independent
-                  --  influence pair for the rightmost varied condition.
-
-                  return J;
-
-               elsif First_Different = No_Condition_Index then
-                  First_Different := J;
-
-               else
-                  --  More than one condition had different values in both
-                  --  evaluations: not an MC/DC pair.
-
-                  return No_Condition_Index;
-               end if;
+               return No_Condition_Index;
             end if;
-         end Check_Condition;
+         end if;
       end loop;
 
       return First_Different;

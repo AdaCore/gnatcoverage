@@ -54,6 +54,12 @@ package MC_DC is
        and then Eval.Outcome /= Unknown
        and then Eval.Next_Condition = No_Condition_Index);
 
+   function Condition_Value
+     (Eval : Evaluation; Index : Condition_Index) return Tristate
+   is (if Index > Eval.Values.Last_Index
+       then Unknown
+       else Eval.Values (Index));
+
    function Is_MC_DC_Pair
      (Eval_1, Eval_2 : Evaluation; Unique_Cause : Boolean)
       return Any_Condition_Index
