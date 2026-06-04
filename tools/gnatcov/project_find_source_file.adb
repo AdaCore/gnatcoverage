@@ -18,8 +18,17 @@
 
 with Project;
 
-function Project_Find_Source_File (Simple_Name : String) return String_Access
-is
-begin
-   return Project.Find_Source_File (Simple_Name);
+package body Project_Find_Source_File is
+
+   function Prj_Find_Source_File
+     (Simple_Name : String; Ambiguous : out Boolean) return String_Access is
+   begin
+      return Project.Find_Source_File (Simple_Name, Ambiguous);
+   end Prj_Find_Source_File;
+
+   function Prj_Find_Source_File (Simple_Name : String) return String_Access is
+   begin
+      return Project.Find_Source_File (Simple_Name);
+   end Prj_Find_Source_File;
+
 end Project_Find_Source_File;

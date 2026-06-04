@@ -31,13 +31,13 @@ with GNATCOLL.Iconv; use GNATCOLL.Iconv;
 with GNATCOLL.Utils; use GNATCOLL.Utils;
 with GNATCOLL.VFS;   use GNATCOLL.VFS;
 
-with Checkpoints;           use Checkpoints;
-with Coverage;              use Coverage;
-with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
+with Checkpoints;              use Checkpoints;
+with Coverage;                 use Coverage;
+with LLVM_JSON_Checkpoints;    use LLVM_JSON_Checkpoints;
 with Outputs;
-with Perf_Counters;         use Perf_Counters;
-with Project_Find_Source_File;
-with Switches;              use Switches;
+with Perf_Counters;            use Perf_Counters;
+with Project_Find_Source_File; use Project_Find_Source_File;
+with Switches;                 use Switches;
 
 package body Files_Table is
 
@@ -141,7 +141,7 @@ package body Files_Table is
 
    Renaming_Map : Filename_Rebase_Maps.Map;
    --  Cache for source rebasing/source search. When a file is successfully
-   --  rebased/seached, an entry will be added to this map with the original
+   --  rebased/searched, an entry will be added to this map with the original
    --  full path as the key and the rebase full path as the element. This
    --  limits the number of call to Locate_Source when querying mutliple times
    --  the file index for one given file.
@@ -1856,7 +1856,7 @@ package body Files_Table is
             --  If previous attempt failed, try again to locate the source file
             --  with the help of the project manager
 
-            FI.Full_Name := Project_Find_Source_File (FI.Simple_Name.all);
+            FI.Full_Name := Prj_Find_Source_File (FI.Simple_Name.all);
             if FI.Full_Name /= null then
                Try_Open (File, FI.Full_Name.all, Success);
                if not Success then
