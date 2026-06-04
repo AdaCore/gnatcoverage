@@ -183,7 +183,8 @@ package body Files_Table is
 
    function Use_Renaming_Map return Boolean
    is (First_Source_Rebase_Entry /= null
-       or else First_Source_Search_Entry /= null);
+       or else First_Source_Search_Entry /= null
+       or else Switches.Auto_Source_Relocation);
    --  Whether we should even try to rebase files using Renaming_Map or not
 
    function Locate_Source (File : Virtual_File) return Virtual_File;
@@ -1934,6 +1935,30 @@ package body Files_Table is
             E := E.Next;
          end loop;
       end;
+
+      --  Try source relocation from project file sources (automatic)
+
+      if Switches.Auto_Source_Relocation and then not File.Is_Readable then
+         declare
+            Ambiguous : Boolean;
+            S_Acc     : constant GNAT.Strings.String_Access :=
+              Prj_Find_Source_File (+File.Base_Name, Ambiguous);
+         begin
+            if Ambiguous then
+               Files_Table_Trace.Trace
+                 ("Auto Source Reloc: "
+                  & File.Display_Base_Name
+                  & " is ambiguous. Not resolved.");
+            else
+               if S_Acc /= null then
+                  Candidate := Create (+S_Acc.all);
+                  if Candidate.Is_Readable then
+                     return Candidate;
+                  end if;
+               end if;
+            end if;
+         end;
+      end if;
 
       return File;
 
