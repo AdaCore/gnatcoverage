@@ -106,7 +106,8 @@ package Command_Line is
       Opt_Compiler_Prefix,
       Opt_Main,
       Opt_UOI,
-      Opt_Force_Parallelism);
+      Opt_Force_Parallelism,
+      Opt_No_Auto_Source_Relocation);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -910,7 +911,13 @@ package Command_Line is
              & " with a single job to keep resource usage in check during"
              & " testing",
            Commands  => (Commands_With_Parallelism => True, others => False),
-           Internal  => True));
+           Internal  => True),
+      Opt_No_Auto_Source_Relocation    =>
+        Create
+          (Long_Name => "--no-auto-source-relocation",
+           Help      => "Disable the automatic source relocation",
+           Commands  => (Cmd_Coverage => True, others => False),
+           Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>
