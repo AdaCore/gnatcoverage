@@ -517,6 +517,9 @@ package SC_Obligations is
    subtype Known_Tristate is Tristate range False .. True;
    --  State of a condition, if known
 
+   function Known_And_Different (Left, Right : Tristate) return Boolean
+   is (Left /= Unknown and then Right /= Unknown and then Left /= Right);
+
    To_Tristate : constant array (Boolean) of Known_Tristate :=
      (False => False, True => True);
 
