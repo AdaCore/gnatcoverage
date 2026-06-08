@@ -66,7 +66,6 @@ with GPR2.Project.View;
 
 with GPR2.Build.Source;
 with GPR2.Path_Name;
-with GPR2.Project.View;
 
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;

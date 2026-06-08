@@ -40,8 +40,6 @@ with Traces_Source;  use Traces_Source;
 
 package Instrument is
 
-   use type GPR2.Unit_Kind;
-
    Clean_Objdirs_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("INSTRUMENT_CLEAN_OBJDIRS");
    --  Trace to show details about how object directories in GPR projects are

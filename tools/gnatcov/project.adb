@@ -45,7 +45,6 @@ with GPR2.Project.Registry.Pack;
 with GPR2.Reporter.Console;
 
 with Command_Line; use Command_Line;
-with Files_Table;  use Files_Table;
 with Inputs;       use Inputs;
 with Instrument;   use Instrument;
 with Outputs;      use Outputs;
@@ -2084,6 +2083,27 @@ package body Project is
          then Source.Unit
          else Source.Unit (Index => 1));
    end First_Unit;
+
+   -------------------------
+   -- To_Compilation_Unit --
+   -------------------------
+
+   function To_Compilation_Unit
+     (Source : GPR2.Build.Source.Object) return Compilation_Unit
+   is
+      Language : constant Some_Language := To_Language (Source.Language);
+      U        : Compilation_Unit;
+   begin
+      U.Language := Language_Kind (Language);
+      case U.Language is
+         when Traces_Source.File_Based_Language =>
+            U.Unit_Name := +String (Source.Path_Name.Value);
+
+         when Traces_Source.Unit_Based_Language =>
+            U.Unit_Name := +To_Lower (String (First_Unit (Source).Name));
+      end case;
+      return U;
+   end To_Compilation_Unit;
 
    --  Register the Coverage package and its attributes to GPR2
 

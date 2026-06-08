@@ -33,7 +33,6 @@ with GNATCOLL.VFS;   use GNATCOLL.VFS;
 
 with Checkpoints;           use Checkpoints;
 with Coverage;              use Coverage;
-with Instrument;            use Instrument;
 with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;
 with Perf_Counters;         use Perf_Counters;
@@ -328,28 +327,6 @@ package body Files_Table is
       Expand_Line_Table (File, Line);
       Append_SCO (FI.Lines.Element (Line).all.SCOs, SCO);
    end Add_Line_For_Source_Coverage;
-
-   -------------------------
-   -- To_Compilation_Unit --
-   -------------------------
-
-   function To_Compilation_Unit
-     (Source : GPR2.Build.Source.Object) return Compilation_Unit
-   is
-      Language : constant Some_Language := To_Language (Source.Language);
-      U        : Compilation_Unit;
-   begin
-      U.Language := Language_Kind (Language);
-      case U.Language is
-         when Traces_Source.File_Based_Language =>
-            U.Unit_Name := +String (Source.Path_Name.Value);
-
-         when Traces_Source.Unit_Based_Language =>
-            U.Unit_Name :=
-              +To_Lower (String (Project.First_Unit (Source).Name));
-      end case;
-      return U;
-   end To_Compilation_Unit;
 
    -----------------------
    -- Add_Source_Rebase --

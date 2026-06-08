@@ -34,13 +34,8 @@ with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2;
 with GPR2.Build.Actions.Process.Instrument_Source;
 with GPR2.Build.Actions.Thread.Instrument_Source;
-with GPR2.Build.Actions_Scheduler.In_Thread;
-with GPR2.Build.Actions_Scheduler.Processes;
-with GPR2.Build.Artifacts;
-with GPR2.Build.Artifacts.Files;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Actions_Scheduler;
-with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Source;
 with GPR2.Build.Source.Sets;
 with GPR2.Build.Tree_Db;
@@ -69,7 +64,6 @@ with JSON;                use JSON;
 with Outputs;
 with Paths;               use Paths;
 with Project;             use Project;
-with Support_Files;
 with Switches_GPR;        use Switches_GPR;
 with Text_Files;          use Text_Files;
 
@@ -102,6 +96,7 @@ procedure Instrument.Projects
    Mains                 : String_Vectors.Vector)
 is
    use type GPR2.Language_Id;
+   use type GPR2.Unit_Kind;
 
    function Create_Context
      (Excluded_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;

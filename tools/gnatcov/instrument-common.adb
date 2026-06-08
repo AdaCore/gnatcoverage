@@ -28,11 +28,12 @@ with GPR2.Project.Registry.Attribute;
 
 with Coverage;
 with Diagnostics;
-with JSON;    use JSON;
-with Outputs; use Outputs;
+with JSON;         use JSON;
+with Outputs;      use Outputs;
 with SCOs;
-with Paths;   use Paths;
-with Project; use Project;
+with Paths;        use Paths;
+with Project;      use Project;
+with Switches_GPR; use Switches_GPR;
 
 package body Instrument.Common is
 

@@ -33,6 +33,7 @@ with Command_Line; use Command_Line;
 with Files_Table;  use Files_Table;
 with Project;      use Project;
 with Support_Files;
+with Switches_GPR; use Switches_GPR;
 with Text_Files;
 
 package body GPR2.Build.Actions.Instrument_Source is

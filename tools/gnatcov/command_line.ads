@@ -870,6 +870,7 @@ package Command_Line is
              "Install the instrumentation runtime in the same prefix as the"
              & " compiler used to compile it.",
            Commands  => (Cmd_Setup => True, others => False),
+           Internal  => False),
       Opt_UOI                          =>
         Create
           (Long_Name => "--uoi",
@@ -883,7 +884,7 @@ package Command_Line is
            Help      =>
              "Whether the given unit should be instrumented as a main",
            Commands  => (Cmd_Instrument_Source => True, others => False),
-           Internal  => False)));
+           Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>
