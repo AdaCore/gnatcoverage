@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Exceptions; use Ada.Exceptions;
+
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
@@ -25,6 +27,7 @@ with Files_Handling;    use Files_Handling;
 with Instrument.Ada_Unit;
 with Instrument.Common; use Instrument.Common;
 with JSON;
+with Outputs;
 with Traces_Files;      use Traces_Files;
 
 --  Implementation of the gnatcov instrument-source command.
@@ -60,6 +63,35 @@ procedure Instrument.Source
    Is_Main           : Boolean;
    Dump_Config       : Any_Dump_Config)
 is
+   procedure Copy_SID_To_Lib_Dir;
+   --  Copy the SID file to Prj_Actual.Lib_Dir, if the former is set
+
+   -------------------------
+   -- Copy_SID_To_Lib_Dir --
+   -------------------------
+
+   procedure Copy_SID_To_Lib_Dir is
+      Obj_SID : constant Virtual_File := Create (+SID_Name);
+      Lib_SID : constant Virtual_File :=
+        Join (Prj_Actual.Lib_Dir, Obj_SID.Base_Name);
+   begin
+      if Obj_SID /= Lib_SID then
+
+         --  Unlike the object directory, which GPR2 creates automatically, the
+         --  library directory may not exist: create it if needed.
+
+         begin
+            Prj_Actual.Lib_Dir.Make_Dir;
+         exception
+            when Exc : VFS_Directory_Error =>
+               Outputs.Fatal_Error (Exception_Message (Exc));
+         end;
+
+         Files_Handling.Copy_File
+           (Obj_SID.Display_Full_Name, Lib_SID.Display_Full_Name);
+      end if;
+   end Copy_SID_To_Lib_Dir;
+
    Context : aliased Coverage.Context := Coverage.Get_Context;
 
    Prj : Prj_Desc := Prj_Actual;
@@ -261,4 +293,9 @@ begin
    Unit_Instr_Info_JSON.Set_Field ("artifacts", Instr_Artifacts);
    JSON.Write (Unit_Instr_Info_File.Display_Full_Name, Unit_Instr_Info_JSON);
 
+   --  If needed, copy the SID file to the library directory
+
+   if Prj_Actual.Lib_Dir /= No_File then
+      Copy_SID_To_Lib_Dir;
+   end if;
 end Instrument.Source;

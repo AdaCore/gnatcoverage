@@ -117,6 +117,7 @@ package Command_Line is
       Opt_Config,
       Opt_Output,
       Opt_Output_Directory,
+      Opt_Lib_Directory,
       Opt_Tag,
       Opt_Kernel,
       Opt_Coverage_Level,
@@ -999,6 +1000,15 @@ package Command_Line is
                 False),
            At_Most_Once => False,
            Internal     => False,
+           Incremental  => True),
+      Opt_Lib_Directory          =>
+        Create
+          (Long_Name    => "--lib-dir",
+           Pattern      => "SUBDIR",
+           Help         => "Library directory for the instrumented project.",
+           Commands     => (Cmd_Instrument_Source => True, others => False),
+           At_Most_Once => False,
+           Internal     => True,
            Incremental  => True),
       Opt_Tag                    =>
         Create

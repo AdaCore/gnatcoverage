@@ -284,6 +284,7 @@ package body Instrument is
       Language   : constant Some_Language :=
         To_Language (+Args.String_Args (Opt_Lang).Value);
       Output_Dir : Unbounded_String;
+      Lib_Dir    : Unbounded_String;
       Prj_Name   : Unbounded_String;
       Result     : Prj_Desc;
 
@@ -314,9 +315,11 @@ package body Instrument is
            (Opt_Compiler_Driver, Result.Compiler_Driver (Language));
       end if;
       Fill_If_Present (Opt_Output_Directory, Output_Dir);
+      Fill_If_Present (Opt_Lib_Directory, Lib_Dir);
       Fill_If_Present (Opt_Project_Name, Prj_Name);
       Result.Prj_Name := To_Qualified_Name (+Prj_Name);
       Result.Output_Dir := Create (+(+Output_Dir));
+      Result.Lib_Dir := Create (+(+Lib_Dir));
 
       declare
          NS     : Naming_Scheme_Desc renames Result.Naming_Scheme;
@@ -433,6 +436,11 @@ package body Instrument is
 
       Result.Append (Create ("--output-dir"));
       Result.Append (Create (+Desc.Output_Dir.Full_Name));
+
+      if Desc.Lib_Dir /= No_File then
+         Result.Append (Create ("--lib-dir"));
+         Result.Append (Create (+Desc.Lib_Dir.Full_Name));
+      end if;
 
       Result.Append (Create ("--project-name"));
       Result.Append (Create (To_Ada (Desc.Prj_Name)));

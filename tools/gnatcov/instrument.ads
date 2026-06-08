@@ -246,6 +246,9 @@ package Instrument is
       --  Where the instrumented sources and coverage buffer units are
       --  generated.
 
+      Lib_Dir : GNATCOLL.VFS.Virtual_File;
+      --  Library directory if the project is a library project
+
       Naming_Scheme : Naming_Scheme_Desc;
       --  Naming scheme for this project
 

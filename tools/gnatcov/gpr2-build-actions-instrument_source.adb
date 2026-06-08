@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 with GNATCOLL.Traces;
@@ -31,9 +30,7 @@ with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
 
 with Command_Line; use Command_Line;
-with Files_Handling;
 with Files_Table;  use Files_Table;
-with Outputs;
 with Project;      use Project;
 with Support_Files;
 with Text_Files;
@@ -42,10 +39,6 @@ package body GPR2.Build.Actions.Instrument_Source is
 
    package PRA renames GPR2.Project.Registry.Attribute;
    package PAI renames GPR2.Project.Attribute_Index;
-
-   procedure Copy_SID_To_Lib_Dir (Self : Object);
-   --  After running the source instrumentation command / action, we may need
-   --  to copy the SID file to the project library directory.
 
    function Dep_File (Self : Object) return GPR2.Path_Name.Object
    is (GPR2.Path_Name.Create
@@ -300,10 +293,6 @@ package body GPR2.Build.Actions.Instrument_Source is
       Stderr : US.Unbounded_String := US.Null_Unbounded_String) return Boolean
    is
    begin
-      if Status = Success then
-         Self.Copy_SID_To_Lib_Dir;
-      end if;
-
       --  Add the instrumentation artifacts
 
       for VF of
@@ -376,31 +365,6 @@ package body GPR2.Build.Actions.Instrument_Source is
 
       return Self.Deps_Cache;
    end Dependencies;
-
-   -------------------------
-   -- Copy_SID_To_Lib_Dir --
-   -------------------------
-
-   procedure Copy_SID_To_Lib_Dir (Self : Object) is
-      Obj_SID : constant String := String (Self.SID_Path.Value);
-      Lib_SID : constant String :=
-        SID_Filename (Self.LU_Info.Main_Part_Src, In_Library_Dir => True);
-   begin
-      if Lib_SID /= "" and then Obj_SID /= Lib_SID then
-
-         --  Unlike the object directory, which GPR2 creates automatically, the
-         --  library directory may not exist: create it if needed.
-
-         begin
-            Create (Create (+Lib_SID).Dir_Name).Make_Dir;
-         exception
-            when Exc : VFS_Directory_Error =>
-               Outputs.Fatal_Error (Exception_Message (Exc));
-         end;
-
-         Files_Handling.Copy_File (Obj_SID, Lib_SID);
-      end if;
-   end Copy_SID_To_Lib_Dir;
 
    ---------------
    -- Unit_Name --

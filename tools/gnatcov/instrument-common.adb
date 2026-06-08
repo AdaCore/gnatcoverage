@@ -1161,6 +1161,9 @@ package body Instrument.Common is
                  Desc             => Load_From_Project (Project));
          begin
             Result.Desc.Output_Dir := Project_Output_Dir (Project);
+            if Project.Is_Library then
+               Result.Desc.Lib_Dir := Project.Library_Directory.Virtual_File;
+            end if;
             Context.Project_Info_Map.Insert (Project_Name, Result);
             return Result;
          end;
