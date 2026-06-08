@@ -22,6 +22,7 @@ with GNATCOLL.Traces;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with GPR2.Build.Artifacts;
+with GPR2.Build.Artifacts.Key_Value;
 with GPR2.Build.Makefile_Parser;
 with GPR2.Build.Source;
 with GPR2.Path_Name;
@@ -35,6 +36,7 @@ with Project;      use Project;
 with Support_Files;
 with Switches_GPR; use Switches_GPR;
 with Text_Files;
+with Version;
 
 package body GPR2.Build.Actions.Instrument_Source is
 
@@ -167,7 +169,18 @@ package body GPR2.Build.Actions.Instrument_Source is
             return;
          end if;
       end loop;
-      return;
+
+      --  Add the gnatcov version as a signature input artifact
+
+      if not Signature.Add_Input
+               (Artifacts.Key_Value.Create
+                  (Key   => Value_Type'("gnatcov_version"),
+                   Value => Value_Type'(Version.Xcov_Version)),
+                Check_Checksums)
+      then
+         Signature.Clear;
+         return;
+      end if;
    end Common_Compute_Signature;
 
    -----------------------
@@ -202,6 +215,7 @@ package body GPR2.Build.Actions.Instrument_Source is
          Signature.Clear;
          return;
       end if;
+
       Self.Common_Compute_Signature (Signature, Check_Checksums);
    end Compute_Signature;
 
