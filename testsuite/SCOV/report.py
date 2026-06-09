@@ -14,6 +14,7 @@ Intended mode of use is like:
 from __future__ import annotations
 
 from collections.abc import Iterable
+import enum
 import os.path
 import re
 
@@ -27,8 +28,11 @@ from SUITE.qdata import QDentry
 from SUITE.tutils import thistest, frame
 
 
-# What the whole report checker should do
-MATCH_NEXT_PIECE, MATCH_NEXT_LINE = range(2)
+class MatchKind(enum.Enum):
+    """What the whole report checker should do."""
+
+    next_piece = enum.auto()
+    next_line = enum.auto()
 
 
 class Piece:
@@ -71,14 +75,14 @@ class Piece:
     def full(self) -> bool:
         return self.bounded and len(self.matches) == self.nexpected
 
-    def check_match(self, tline: Tline) -> int:
+    def check_match(self, tline: Tline) -> MatchKind:
         """Called for self on every report line."""
 
         # If this is a bounded Piece that has hit all it's expected matches
         # already, just skip it: don't record an extra match and keep looking
         # for other Piece candidates for that text
         if self.full():
-            return MATCH_NEXT_PIECE
+            return MatchKind.next_piece
 
         # Otherwise, check if the provided line matches this Piece. If it
         # does, record and check if that fills this possibly bounded Piece.
@@ -89,9 +93,9 @@ class Piece:
         if re.search(self.pattern, tline.text):
             self.matches.append(tline)
             if self.full():
-                return MATCH_NEXT_LINE
+                return MatchKind.next_line
 
-        return MATCH_NEXT_PIECE
+        return MatchKind.next_piece
 
     def __first_match(self) -> Tline | None:
         return self.matches[0] if self.matches else None
@@ -348,7 +352,7 @@ class ReportChecker:
         for tline in self.report:
             # See what Piece(s) matches TLINE, stopping on request
             for rpe in self.rpElements:
-                if rpe.check_match(tline) == MATCH_NEXT_LINE:
+                if rpe.check_match(tline) == MatchKind.next_line:
                     break
         for rpe in self.rpElements:
             rpe.check()
