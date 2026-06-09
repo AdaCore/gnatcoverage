@@ -25,7 +25,7 @@ from SCOV.internals.driver import SCOV_helper
 from SCOV.internals.tfiles import Tfile, Tline
 from SCOV.tc import TestCase
 from SUITE.qdata import QDentry
-from SUITE.tutils import thistest, frame
+from SUITE.tutils import thistest
 
 
 class MatchKind(enum.Enum):
@@ -320,13 +320,11 @@ class ReportChecker:
         self.__register(rpieces=[rpEnd])
 
     def __process_one_test(self, qde: QDentry) -> None:
-        frame(
-            text=(
-                "report check for xfile = %s\n" % qde.xfile
-                + "drivers = %s" % str(qde.drivers)
-            ),
+        thistest.log_frame(
+            f"report check for xfile = {qde.xfile}",
+            f"drivers = {qde.drivers}",
             char="~",
-        ).display()
+        )
 
         # Count the number of expected exemption regions
         xregions = 0

@@ -50,7 +50,7 @@ from SUITE.control import language_info, language_info_or_error, runtime_info
 from SUITE.cutils import ext, to_list, list_to_file, no_ext, FatalError
 from SUITE.cutils import contents_of, lines_of, unhandled_exception_in
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
+from SUITE.tutils import gprbuild, gprfor, xrun, xcov
 from SUITE.tutils import gprbuild_cargs_with, run_and_log
 from SUITE.tutils import exename_for
 from SUITE.tutils import (
@@ -1039,7 +1039,7 @@ class SCOV_helper(ABC):
         expected coverage marks against what is found in the xcov reports
         for this source."""
 
-        frame("Processing UX for %s" % source, post=0, char="~").display()
+        thistest.log_frame(f"Processing UX for {source}", post=0, char="~")
 
         # Source names in expectations might still contain path indications
         # when they reach here, to indicate that the path components are
@@ -1097,21 +1097,19 @@ class SCOV_helper(ABC):
         ).run(l_discharge_kdict)
 
     def log(self) -> None:
-        frame(
-            "%s/ %s, %s\n%s coverage with %s"
-            % (
-                os.path.relpath(os.getcwd(), thistest.homedir),
-                [no_ext(main) for main in self.drivers],
-                self.xfile,
-                (
-                    self.testcase.category.name
-                    if self.testcase.category
-                    else "generic"
-                ),
-                " ".join(self.covoptions),
-            ),
+        cwd = os.path.relpath(os.getcwd(), thistest.homedir)
+        mains = [no_ext(main) for main in self.drivers]
+        category = (
+            self.testcase.category.name
+            if self.testcase.category
+            else "generic"
+        )
+        covoptions = " ".join(self.covoptions)
+        thistest.log_frame(
+            f"{cwd}/ {mains}, {self.xfile}",
+            f"{category} coverage with {covoptions}",
             char="*",
-        ).display()
+        )
 
     def to_workdir(self, wdir: str) -> None:
         """Switch to work directory WDIR, creating it if necessary. WDIR is
