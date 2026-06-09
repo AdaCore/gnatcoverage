@@ -5,6 +5,7 @@ Expose the RnotesExpander class which constructs a { source -> KnoteDict }
 dictionary of emitted Line Notes from a provided =report outputs.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
 import re
 from typing import override, ClassVar
@@ -805,55 +806,48 @@ class RblockSet:
             rs.check()
 
 
-class RnotesExpander:
-    """Produce list of Enote instances found in a "report" output."""
+def notes_from_report(filename: str) -> dict[str, KnoteDict]:
+    """Parse emitted notes from a coverage report (--annotate=report).
 
-    def __init__(self, report: str):
-        # xcov --annotate=report produces a single report featuring a list of
-        # indications for slocs in all the units.
+    --annotate=report generates a single report featuring a list of indications
+    for slocs in all the units: the result maps source filenames to actual
+    notes.
+    """
+    ernotes: dict[str, KnoteDict[Enote]] = defaultdict(
+        lambda: KnoteDict(erNoteKinds)
+    )
 
-        self.ernotes: dict[str, KnoteDict[Enote]] = {}
-        self.to_enotes(report)
+    # We need to ignore everything not in the report sections of interest, so
+    # until we know we're in ...
+    rset = RblockSet()
+    rs: Rblock | None = None
 
-    def to_enotes(self, report: str) -> None:
-        # We need to ignore everything not in the report sections
-        # of interest, so until we know we're in ...
+    for tline in Tfile(filename):
+        rline = tline.text
 
-        self.rset = RblockSet()
-        self.rs: Rblock | None = None
+        # Check if we are getting in a section of interest. If so, register
+        # that and get to next line.
+        new_rs = rset.starts_with(rline)
+        if new_rs:
+            rs = new_rs
+            continue
 
-        self.report = report
-        for tline in Tfile(self.report):
-            rline = tline.text
+        # Check if we are getting out of the current section of interest...
+        if rs and rs.ends_on(rline):
+            rs = None
 
-            # Check if we are getting in a section of interest. If so, register
-            # that and get to next line.
-            rs = self.rset.starts_with(rline)
-            if rs:
-                self.rs = rs
-                continue
+        # Skip this line if we're out of any section of interest
+        if rs is None:
+            continue
 
-            # Check if we are getting out of the current section of interest...
-            if self.rs and self.rs.ends_on(rline):
-                self.rs = None
+        assert isinstance(rs, (Nblock, SMRchapter))
+        enote = rs.try_parse(rline)
 
-            # Skip this line if we're out of any section of interest
-            if self.rs is None:
-                continue
+        # Some sections produce enotes, some don't (e.g. analysis summary). An
+        # error is issued by the section processing if it should find one but
+        # couldn't.
+        if enote:
+            ernotes[enote.source].register(enote)
 
-            assert isinstance(self.rs, (Nblock, SMRchapter))
-            enote = self.rs.try_parse(rline)
-
-            # Some sections produce enotes, some don't (e.g. analysis summary).
-            # An error is issued by the section processing if it should find
-            # one but couldn't.
-            if enote:
-                self.register(enote)
-
-        self.rset.check()
-
-    def register(self, enote: Enote) -> None:
-        source = enote.source
-        if source not in self.ernotes:
-            self.ernotes[source] = KnoteDict(erNoteKinds)
-        self.ernotes[source].register(enote)
+    rset.check()
+    return ernotes

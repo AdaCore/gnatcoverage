@@ -90,7 +90,7 @@ from .stags import Stag
 
 from .xnexpanders import XnotesExpander
 from .lnexpanders import LnotesExpander
-from .rnexpanders import RnotesExpander
+from .rnexpanders import notes_from_report
 
 
 class WdirControl:
@@ -886,7 +886,7 @@ class SCOV_helper(ABC):
         # Checking that we do have the expected reports will be performed by
         # the regular coverage expectation assessments triggered below.
 
-        self.ernotes = RnotesExpander("test.rep").ernotes
+        self.ernotes = notes_from_report("test.rep")
 
         self.check_unexpected_reports()
 
