@@ -157,12 +157,6 @@ crit_for = {
 class ReportChecker:
     """Whole report checker"""
 
-    def __process_line(self, tline: Tline) -> None:
-        # See what Piece(s) matches TLINE, stopping on request
-        for rpe in self.rpElements:
-            if rpe.check_match(tline) == MATCH_NEXT_LINE:
-                return
-
     def __register(self, rpieces: Iterable[Piece]) -> None:
         self.rpElements.extend(rpieces)
 
@@ -350,7 +344,12 @@ class ReportChecker:
             len(reports) != 1, "expected 1 report, found %d" % len(reports)
         )
 
-        self.report = Tfile(reports[0], self.__process_line)
+        self.report = Tfile(reports[0])
+        for tline in self.report:
+            # See what Piece(s) matches TLINE, stopping on request
+            for rpe in self.rpElements:
+                if rpe.check_match(tline) == MATCH_NEXT_LINE:
+                    break
         for rpe in self.rpElements:
             rpe.check()
 

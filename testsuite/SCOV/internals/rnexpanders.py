@@ -18,7 +18,7 @@ from .cnotes import (
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from, Stag
-from .tfiles import Tfile, Tline
+from .tfiles import Tfile
 
 
 # =========================================
@@ -823,7 +823,32 @@ class RnotesExpander:
         self.rs: Rblock | None = None
 
         self.report = report
-        Tfile(filename=self.report, process=self.process_tline)
+        for tline in Tfile(self.report):
+            rline = tline.text
+
+            # Check if we are getting in a section of interest. If so, register
+            # that and get to next line.
+            rs = self.rset.starts_with(rline)
+            if rs:
+                self.rs = rs
+                continue
+
+            # Check if we are getting out of the current section of interest...
+            if self.rs and self.rs.ends_on(rline):
+                self.rs = None
+
+            # Skip this line if we're out of any section of interest
+            if self.rs is None:
+                continue
+
+            assert isinstance(self.rs, (Nblock, SMRchapter))
+            enote = self.rs.try_parse(rline)
+
+            # Some sections produce enotes, some don't (e.g. analysis summary).
+            # An error is issued by the section processing if it should find
+            # one but couldn't.
+            if enote:
+                self.register(enote)
 
         self.rset.check()
 
@@ -832,36 +857,3 @@ class RnotesExpander:
         if source not in self.ernotes:
             self.ernotes[source] = KnoteDict(erNoteKinds)
         self.ernotes[source].register(enote)
-
-    def process_tline(self, tline: Tline) -> Enote | None:
-        rline = tline.text
-
-        # Check if we are getting in a section of interest. If so, register
-        # that and get to next line.
-
-        rs = self.rset.starts_with(rline)
-        if rs:
-            self.rs = rs
-            return None
-
-        # Check if we are getting out of the current section of interest ...
-
-        if self.rs and self.rs.ends_on(rline):
-            self.rs = None
-
-        # Skip this line if we're out of any section of interest
-
-        if self.rs is None:
-            return None
-
-        assert isinstance(self.rs, (Nblock, SMRchapter))
-        enote = self.rs.try_parse(rline)
-
-        # Some sections produce enotes, some don't (e.g. analysis summary).
-        # An error is issued by the section processing if it should find one
-        # but couldn't.
-
-        if enote:
-            self.register(enote)
-
-        return enote

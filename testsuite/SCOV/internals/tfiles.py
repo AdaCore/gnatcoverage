@@ -5,13 +5,11 @@ This module exposes the Tline and Tfile classes to help managing text files and
 their contents.
 
 Essentially, Tline allows the association of a line number with each line and
-Tfile offers a line hook processing facility.
+Tfile is just a list of Tline.
 """
 
 from dataclasses import dataclass
-from typing import Callable
-
-from .cnotes import Enote
+from typing import Iterator
 
 
 @dataclass(frozen=True)
@@ -23,23 +21,11 @@ class Tline:
 
 
 class Tfile:
-    """
-    Abstract a set of Tlines from a provided filename, each PROCESSed as read
-    at class instanciation time.
-    """
+    """Abstract a set of Tlines from a provided filename."""
 
-    def __init__(
-        self, filename: str, process: Callable[[Tline], Enote | None]
-    ) -> None:
-        self.nlines: int = 0
-        self.process = process
-        self.tlines = [self.new_tline(text) for text in open(filename)]
+    def __init__(self, filename: str) -> None:
+        with open(filename) as f:
+            self.tlines = [Tline(lno, text) for lno, text in enumerate(f, 1)]
 
-    def new_tline(self, text: str) -> Tline:
-        self.nlines += 1
-        tline = Tline(self.nlines, text)
-        self.process(tline)
-        return tline
-
-    def contents(self) -> list[Tline]:
-        return self.tlines
+    def __iter__(self) -> Iterator[Tline]:
+        return iter(self.tlines)
