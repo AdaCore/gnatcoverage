@@ -24,7 +24,7 @@ from .cnotes import (
     transparent_p,
     xNoteKinds,
 )
-from .segments import Line, Section, Segment
+from .segments import Line, Section, Segment, Spoint
 from .stags import Stag_from, Stag
 from .tfiles import Tline
 from SUITE.context import thistest
@@ -71,7 +71,7 @@ class _XnoteP_block(XnoteFactory):
         else:
             thisni = Xnote(xnp=self.notep, block=block, kind=kind)
             thisni.register_match(
-                Section(l0=tline.lno, c0=0, l1=tline.lno, c1=0)
+                Section(Spoint(tline.lno, 0), Spoint(tline.lno, 0))
             )
 
         if thisni:
