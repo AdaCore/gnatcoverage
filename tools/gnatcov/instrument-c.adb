@@ -3609,12 +3609,12 @@ package body Instrument.C is
    begin
       Search_Annotation_Couple
         (UIC           => UIC,
-         Start_Matcher => "GNATCOV_EXEMPT_ON(:? ""(.*)"")?",
+         Start_Matcher => "GNATCOV_EXEMPT_ON(?: ""(.*)"")?",
          End_Matcher   => "GNATCOV_EXEMPT_OFF",
          Process       => Process_Exemption'Access);
       Search_Annotation_Couple
         (UIC           => UIC,
-         Start_Matcher => "GNATCOV_COV_OFF(:? ""(.*)"")?",
+         Start_Matcher => "GNATCOV_COV_OFF(?: ""(.*)"")?",
          End_Matcher   => "GNATCOV_COV_ON",
          Process       => Process_Disable_Cov'Access);
    end Populate_Annotations;
