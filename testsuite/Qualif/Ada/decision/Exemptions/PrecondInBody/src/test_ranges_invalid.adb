@@ -22,7 +22,7 @@ end;
 --  /checkValid/     l+ ## 0
 --  /assignValid/    l+ ## 0
 --  /assignInvalid/  l+ ## 0
---  /preValid/       l* ## x+
+--  /preValid/       l* ## x+:"expect no invalid ranges"
 --  /preValid_if/    l= ## XoF-
 --  /preValid_raise/ l= ## X0
 --  /checkOverlap/   l- ## s-

@@ -310,9 +310,7 @@ class _Xchecker:
         be of the same kind.
         """
         # The emitted note needs to designate a sloc range within the
-        # expected sloc range and separation tags, when any is expected,
-        # must match.
-
+        # expected sloc range.
         if (
             en.segment is None
             or xn.segment is None
@@ -320,13 +318,18 @@ class _Xchecker:
         ):
             return False
 
+        # When any separation tag is specified, both must match
         match (en.stag, xn.stag):
             case (None, None):
-                return True
+                pass
             case (Stag() as en_stag, Stag() as xn_stag):
-                return en_stag.match(xn_stag)
+                if not en_stag.match(xn_stag):
+                    return False
             case _:
                 return False
+
+        # For xBlock* notes, the justifications must match
+        return xn.kind not in xNoteKinds or xn.stext == en.justification
 
     def try_sat_over(self, ekind: NK, xn: Xnote) -> None:
         # See if expected note XN is satisfied by one of the emitted notes of

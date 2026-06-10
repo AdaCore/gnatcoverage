@@ -339,6 +339,9 @@ XNoteKinds = XsNoteKinds + XoNoteKinds + XcNoteKinds
 # Disabled coverage regions
 disabledNoteKinds = (NK.dBlock,)
 
+# Notes for regions with justifications (exemption or disabled coverage)
+justifiedNoteKinds = xNoteKinds + disabledNoteKinds
+
 # Anti-expectations
 rAntiKinds = (NK.r0, NK.r0c)
 
@@ -543,6 +546,12 @@ class Xnote(Cnote):
         self.nmatches += 1
         self.segment = segment
 
+    def image(self) -> str:
+        result = super().image()
+        if self.stext and self.kind in justifiedNoteKinds:
+            result += f" (justification: {self.stext})"
+        return result
+
     def satisfied(self) -> bool:
         """Tell whether this [anti-]expectation is satisfied at this point."""
         if anti_p(self.kind):
@@ -560,13 +569,23 @@ class Enote(Cnote):
         segment: Section,
         source: str,
         stag: Stag | None = None,
+        justification: str | None = None,
     ):
         Cnote.__init__(self, kind)
         self.segment = segment  # The line segment it designates
         self.source = source  # The corresponding source name
         self.stag = stag  # The separation tag it contains
 
+        # Justification message, for xBlock* notes
+        self.justification = justification
+
         self.discharges: Xnote | None = None  # The Xnote it discharges
+
+    def image(self) -> str:
+        result = super().image()
+        if self.justification:
+            result += f" (justification: {self.justification})"
+        return result
 
 
 class KnoteDict[Note: Cnote](dict[NK, list[Note]]):

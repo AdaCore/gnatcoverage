@@ -743,8 +743,13 @@ class XnotesExpander:
         self.xrnotes: dict[str, KnoteDict[Xnote]] = {}
         self.abspaths: dict[str, str] = {}
 
-        for ux in self.__parse_scovdata(self.__get_scovdata(xfile)):
-            self.__expose(ux)
+        try:
+            for ux in self.__parse_scovdata(self.__get_scovdata(xfile)):
+                self.__expose(ux)
+        except FatalError as exc:
+            raise FatalError(
+                f"error while parsing scovdata in {xfile}: {exc}"
+            ) from exc
 
     def __expose(self, ux: UnitCX) -> None:
         # A '+' prefix on the source reference means we expect

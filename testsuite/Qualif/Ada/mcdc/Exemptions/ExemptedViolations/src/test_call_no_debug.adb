@@ -9,7 +9,7 @@ begin
 end Test_Call_No_Debug;
 
 --# exemptions.adb
--- /ex/          l* ## x+
+-- /ex/          l* ## x+:"Exempted"
 -- /ex_if_neg/   l= ## XoT-
 -- /ex_error/    l= ## Xs-
 -- /ex_if_debug/ l= ## s=>X0, dmu=>XoT-

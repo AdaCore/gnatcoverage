@@ -11,7 +11,7 @@ begin
 end;
 
 --# exemptions.adb
--- /ex/          l* ## x+
+-- /ex/          l* ## x+:"Exempted"
 -- /ex_if_neg/   l= ## Xs-
 -- /ex_error/    l= ## Xs-
 -- /ex_if_debug/ l= ## Xs-

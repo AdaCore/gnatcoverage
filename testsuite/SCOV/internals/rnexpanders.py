@@ -16,6 +16,7 @@ from .cnotes import (
     Enote,
     KnoteDict,
     erNoteKinds,
+    justifiedNoteKinds,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from, Stag
@@ -822,6 +823,7 @@ def notes_from_report(filename: str) -> dict[str, KnoteDict]:
     rset = RblockSet()
     rs: Rblock | None = None
 
+    last_enote: Enote | None = None
     for tline in Tfile(filename):
         rline = tline.text
 
@@ -848,6 +850,12 @@ def notes_from_report(filename: str) -> dict[str, KnoteDict]:
         # couldn't.
         if enote:
             ernotes[enote.source].register(enote)
+
+        # xBlock* notes are always followed by a 1-line justification message
+        elif last_enote is not None and last_enote.kind in justifiedNoteKinds:
+            last_enote.justification = rline.rstrip()
+
+        last_enote = enote
 
     rset.check()
     return ernotes

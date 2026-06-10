@@ -17,15 +17,15 @@ end;
 -- /dcl/               l+ ## 0
 -- /1_if/              l+ ## 0
 -- /1_flag/            l+ ## 0
--- /1_exem/            l# ## x0
+-- /1_exem/            l# ## x0:"exemption section #1"
 -- /stmt/              l+ ## 0
 -- /2_if/              l+ ## 0
 -- /2_flag/            l- ## s-
--- /2_exem/            l* ## x+
+-- /2_exem/            l* ## x+:"exemption section #2"
 -- /2_exem_v1/         l= ## Xs-
 -- /3_if/              l- ## s-
 -- /3_flag/            l- ## s-
--- /3_exem/            l* ## x+
+-- /3_exem/            l* ## x+:"exemption section #3"
 -- /3_exem_v1/         l= ## Xs-
 -- /h_flag/            l+ ## 0
--- /h_exem/            l# ## x0
+-- /h_exem/            l# ## x0:"exemption section #4"

@@ -11,10 +11,10 @@ end;
 -- /op_case/     l- ## s-
 -- /op_push/     l- ## s-
 -- /op_pop/      l- ## s-
--- /op_oflow/    l* ## x+
+-- /op_oflow/    l* ## x+:"no overflow"
 -- /op_oflow_v1/ l= ## Xs-
 -- /op_oflow_v2/ l= ## Xs-
--- /op_uflow/    l* ## x+
+-- /op_uflow/    l* ## x+:"no underflow"
 -- /op_uflow_v1/ l= ## Xs-
 -- /op_uflow_v2/ l= ## Xs-
 -- /op_handler/  l- ## s-

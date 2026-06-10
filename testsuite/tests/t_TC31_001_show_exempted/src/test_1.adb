@@ -12,11 +12,11 @@ end Test_1;
 -- /inc_1/           l+ ## 0
 -- /if_2/            l! ## dT-
 -- /inc_2/           l- ## s-
--- /exempt1/         l* ## x+
+-- /exempt1/         l* ## x+:"Exempt 1"
 -- /exempt1_if1/     l= ## XoT-
 -- /exempt1_inc1/    l= ## Xs-
 -- /exempt1_inc2/    l= ## Xs-
--- /exempt2/         l* ## x+
+-- /exempt2/         l* ## x+:"Exempt 2"
 -- /exempt2_if2/     l= ## XoT-
 -- /exempt2_inc3/    l= ## Xs-
 -- /exempt2_inc4/    l= ## Xs-

@@ -22,7 +22,7 @@ from .cnotes import (
     Xnote,
     block_p,
     transparent_p,
-    xNoteKinds,
+    justifiedNoteKinds,
 )
 from .segments import Line, Section, Segment, Spoint
 from .stags import Stag_from, Stag
@@ -304,11 +304,11 @@ class XnoteP:
 
         self.stext = stext
 
-        # We could require and use stext to store expected justification text
-        # for exemptions. We don't handle that as of today.
+        # Require and use stext to store expected justification text for
+        # exemptions.
 
         thistest.stop_if(
-            False and self.stext is None and self.kind in xNoteKinds,
+            self.stext is None and self.kind in justifiedNoteKinds,
             FatalError("expected justification text required for %s" % text),
         )
 
