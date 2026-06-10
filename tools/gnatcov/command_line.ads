@@ -89,6 +89,7 @@ package Command_Line is
       Opt_GNAT_Pragmas,
       Opt_Show_MCDC_Vectors,
       Opt_Show_Condition_Vectors,
+      Opt_Postcond_Only,
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
       Opt_Boolean_Short_Circuit_And_Or,
@@ -709,6 +710,15 @@ package Command_Line is
              "If set, show MCDC and ATCC evaluation vectors"
              & " encountered for decisions where there is at least a"
              & " MCDC or ATCC violation on one of the conditions.",
+           Commands  => (Cmd_Coverage => True, others => False),
+           Internal  => False),
+
+      Opt_Postcond_Only                =>
+        Create
+          (Long_Name => "--postcond-only",
+           Help      =>
+             "If set and any assertion level is activated, assertion coverage"
+           & " analysis will only be performed on postconditions.",
            Commands  => (Cmd_Coverage => True, others => False),
            Internal  => False),
 

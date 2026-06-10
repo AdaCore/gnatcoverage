@@ -156,6 +156,10 @@ package Switches is
    --  If True, show the evaluation vectors for each decision where there is
    --  an MCDC or ATCC violation.
 
+   Postcond_Only : Boolean := False;
+   --  If True and any assertion level is enabled, coverage analysis of
+   --  assertions shall only be performed on postconditions.
+
    Timezone : Any_Timezone := Local_Time;
    --  Control the date display format (either in local time, or UTC time)
 
