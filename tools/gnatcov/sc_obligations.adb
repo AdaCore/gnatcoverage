@@ -4071,7 +4071,8 @@ package body SC_Obligations is
    function Is_Postcond_Aspect (SCO : SCO_Id) return Boolean is
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
-      return SCOD.Kind = Decision
+      return
+        SCOD.Kind = Decision
         and then SCOD.D_Kind in Aspect
         and then SCOD.Aspect_Name = Aspect_Post;
    end Is_Postcond_Aspect;

@@ -718,7 +718,7 @@ package Command_Line is
           (Long_Name => "--postcond-only",
            Help      =>
              "If set and any assertion level is activated, assertion coverage"
-           & " analysis will only be performed on postconditions.",
+             & " analysis will only be performed on postconditions.",
            Commands  => (Cmd_Coverage => True, others => False),
            Internal  => False),
 
