@@ -56,6 +56,9 @@ include:
       cpus: 16
       disk: 80
 
+  - project: eng/gitlab-templates
+    file: "/ci-templates-shared/anod-ci.yml"
+
 workflow:
   rules:
     # Run the CI on merge requests only
@@ -253,10 +256,15 @@ test_qualkit:
     - cpu:16
     - mem:16
   stage: test
+  needs: ["build:linux"]
+  variables:
+    # Variables required by .anod-ci-setup
+    _CI_FRAGMENTS_BRANCH: main
+    _PLAN: $CI_PROJECT_DIR/.gitlab-ci.plan
+    _SAVE_ANOD_LOGS: "false"
+    _GENERIC_ANOD_CI_ARGS: ""
   script:
-    - generic_anod_ci
-    - cat /tmp/ci_env.sh
-    - . /tmp/ci_env.sh
+    - !reference [.anod-ci-setup]
 
     # Use the gnatcov-qualrun and gnatcov-qualkit specs to run the
     # qualification testsuite and create a qualification kit
