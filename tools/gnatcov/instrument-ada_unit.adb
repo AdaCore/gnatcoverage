@@ -476,6 +476,13 @@ package body Instrument.Ada_Unit is
    function "+" (Sloc : Source_Location) return Slocs.Local_Source_Location
    is ((Natural (Sloc.Line), Natural (Sloc.Column)));
 
+   function Unit_File_Index (N : Ada_Node'Class) return Source_File_Index
+   is (Get_Index_From_Generic_Name
+         (N.Unit.Get_Filename, Kind => Files_Table.Source_File));
+
+   function Sloc (N : Ada_Node'Class) return Slocs.Source_Location
+   is ((Source_File => Unit_File_Index (N), L => +Sloc (N)));
+
    function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
    is (Kind
        in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr | Ada_Decl_Expr);
@@ -595,36 +602,18 @@ package body Instrument.Ada_Unit is
      (UIC  : Ada_Unit_Inst_Context'Class;
       Node : Ada_Node'Class;
       Msg  : String;
-      Kind : Report_Kind := Diagnostics.Error)
-   is
-      LAL_Loc : constant Source_Location := Sloc (Node);
+      Kind : Report_Kind := Diagnostics.Error) is
    begin
       Diagnostics.Report
-        ((Source_File => UIC.SFI,
-          L           =>
-            (Line   => Integer (LAL_Loc.Line),
-             Column => Integer (LAL_Loc.Column))),
-         Msg,
-         Kind);
+        ((Source_File => UIC.SFI, L => +Sloc (Node)), Msg, Kind);
    end Report;
 
    procedure Report
      (Node : Ada_Node'Class;
       Msg  : String;
-      Kind : Report_Kind := Diagnostics.Error)
-   is
-      SFI     : constant Source_File_Index :=
-        Get_Index_From_Generic_Name
-          (Node.Unit.Get_Filename, Kind => Files_Table.Source_File);
-      LAL_Loc : constant Source_Location := Sloc (Node);
+      Kind : Report_Kind := Diagnostics.Error) is
    begin
-      Diagnostics.Report
-        ((Source_File => SFI,
-          L           =>
-            (Line   => Integer (LAL_Loc.Line),
-             Column => Integer (LAL_Loc.Column))),
-         Msg,
-         Kind);
+      Diagnostics.Report (Sloc (Node), Msg, Kind);
    end Report;
 
    -------------------------------------
