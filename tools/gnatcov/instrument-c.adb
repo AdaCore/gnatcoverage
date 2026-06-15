@@ -3703,7 +3703,6 @@ package body Instrument.C is
       if UIC_Copy.TU /= null then
          Dispose_Translation_Unit (UIC_Copy.TU);
       end if;
-
    end Record_PP_Info;
 
    ---------------------
@@ -5890,7 +5889,16 @@ package body Instrument.C is
             Cur     : Cursor;
             New_Arg : Unbounded_String;
 
-            Macro_Name : constant String := "__STDC_VERSION__";
+            Std_Version_Macro_Name : constant String := "__STDC_VERSION__";
+
+            Gnu_C : constant Boolean :=
+              Has_Element (Find (Self.Builtin_Macros, "__GNUC__"));
+            --  Whether the compiler supports GNU extensions
+
+            Strict_Ansi : constant Boolean :=
+              Has_Element (Find (Self.Builtin_Macros, "__STRICT_ANSI__"));
+            --  Whether strict ANSI is required
+
          begin
             for Arg of Self.Compiler_Switches loop
                if Has_Prefix (+Arg, "-std") then
@@ -5901,25 +5909,28 @@ package body Instrument.C is
 
             if not Found then
                Sources_Trace.Trace
-                 ("No -std compiler switch: looking for macro " & Macro_Name);
-               Cur := Find (Self.Builtin_Macros, Macro_Name);
+                 ("No -std compiler switch: looking for macro "
+                  & Std_Version_Macro_Name);
+               Cur := Find (Self.Builtin_Macros, Std_Version_Macro_Name);
                if Has_Element (Cur) then
                   declare
-                     Value : constant String :=
+                     C_Or_Gnu : constant String :=
+                       (if not Strict_Ansi and then Gnu_C then "gnu" else "c");
+                     Value    : constant String :=
                        Ada.Strings.Fixed.Trim
                          (+Self.Builtin_Macros.Element (Cur).Value,
                           Side => Ada.Strings.Both);
                   begin
                      Sources_Trace.Trace
-                       ("Found " & Macro_Name & " = " & Value);
+                       ("Found " & Std_Version_Macro_Name & " = " & Value);
                      if Value = "199901L" then
-                        New_Arg := +"-std=c99";
+                        New_Arg := +"-std=" & C_Or_Gnu & "99";
                      elsif Value = "201112L" then
-                        New_Arg := +"-std=c11";
+                        New_Arg := +"-std=" & C_Or_Gnu & "11";
                      elsif Value = "201710L" then
-                        New_Arg := +"-std=c17";
+                        New_Arg := +"-std=" & C_Or_Gnu & "17";
                      elsif Value = "202311L" then
-                        New_Arg := +"-std=c23";
+                        New_Arg := +"-std=" & C_Or_Gnu & "23";
                      else
                         Sources_Trace.Trace
                           ("It designates an unknown C standard version");
@@ -5927,7 +5938,8 @@ package body Instrument.C is
                   end;
                else
                   Sources_Trace.Trace
-                    (Macro_Name & " is not defined: crossing fingers...");
+                    (Std_Version_Macro_Name
+                     & " is not defined: crossing fingers...");
                end if;
             end if;
 
