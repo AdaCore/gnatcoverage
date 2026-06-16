@@ -397,7 +397,7 @@ class CheckpointFile:
     cu_vector: dict[int, CUInfo]
     bdd_vector: dict[int, BDDNode]
     sco_vector: dict[int, SCODescriptor | None]
-    instrumented_unit_to_cu: dict[CompilationUnitPart, int]
+    instrumented_unit_to_cu: dict[bytes, int]
     pp_cmds: dict[int, Command]
     sci_vector: dict[int, SourceCoverageInfo]
     trace_files: list[TraceFileElement]
@@ -480,7 +480,7 @@ class CheckpointFile:
 
         instrumented_unit_to_cu = read_map(
             fp,
-            CompilationUnitPart.read,
+            read_string,
             read_cu_id,
             "instrumented unit to CU",
         )
@@ -1044,38 +1044,6 @@ class UnitPart(enum.Enum):
     @classmethod
     def read(cls, fp: ByteStreamDecoder, label: str) -> UnitPart:
         return UnitPart(read_u8(fp, label))
-
-
-@dataclasses.dataclass(frozen=True)
-class CompilationUnitPart:
-
-    @classmethod
-    def read(cls, fp: ByteStreamDecoder, label: str) -> CompilationUnitPart:
-        with fp.label_context(label):
-            kind = LanguageKind.read(fp, "kind")
-            match kind:
-                case LanguageKind.unit_based:
-                    return UnitBasedCompilationUnitPart(
-                        tuple(read_vector(fp, read_string, "unit")),
-                        UnitPart.read(fp, "part"),
-                    )
-                case LanguageKind.file_based:
-                    return FileBasedCompilationUnitPart(
-                        read_string(fp, "filename")
-                    )
-                case _:
-                    raise AssertionError
-
-
-@dataclasses.dataclass(frozen=True)
-class UnitBasedCompilationUnitPart(CompilationUnitPart):
-    unit: tuple[bytes, ...]
-    part: UnitPart
-
-
-@dataclasses.dataclass(frozen=True)
-class FileBasedCompilationUnitPart(CompilationUnitPart):
-    filename: bytes
 
 
 @dataclasses.dataclass
