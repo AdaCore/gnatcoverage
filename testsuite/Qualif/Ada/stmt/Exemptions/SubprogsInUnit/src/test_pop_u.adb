@@ -11,7 +11,7 @@ begin
 end;
 
 --# stacks.adb
--- /xregion/      l* ## x+
+-- /xregion/       l* ## x+:"we only care about push and pop"
 -- /xregion_02/    l= ## Xs-
 -- /xregion_03/    l= ## Xs-
 -- /xregion_04/    l= ## Xs-

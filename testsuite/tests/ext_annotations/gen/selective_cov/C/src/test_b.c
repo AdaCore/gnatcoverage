@@ -10,8 +10,8 @@ main ()
 
 //# pkg.h
 //
-//  /cov-off-a/ lD ## dB
-//  /cov-off-b/ lD ## dB
+//  /cov-off-a/ lD ## dB:"No justification"
+//  /cov-off-b/ lD ## dB:"No justification"
 //  /cov-on/    l- ## s-
 //
 //# test_b.c

@@ -24,7 +24,7 @@ begin
 end;
 
 --# stacks.adb
--- /xregion/   l# ## x0
+-- /xregion/   l# ## x0:"we only care about push and pop"
 
 -- /push_decl/ l+ ## 0
 -- /push_body/ l+ ## 0

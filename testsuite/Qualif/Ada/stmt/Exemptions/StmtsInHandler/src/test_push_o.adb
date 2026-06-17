@@ -21,7 +21,7 @@ end;
 -- /op_oflow/   l+ ## 0
 -- /test_uflow/ l- ## s-
 -- /op_uflow/   l- ## s-
--- /op_handler/ l# ## x0
+-- /op_handler/ l# ## x0:"exception handler"
 
 -- /push_decl/ l+ ## 0
 -- /push_body/ l+ ## 0

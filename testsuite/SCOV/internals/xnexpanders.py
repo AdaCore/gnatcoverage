@@ -427,7 +427,13 @@ class UnitCX:
         self.current_srules: NKSubstDict | None = {}
 
         assert sref.spath
-        self.tfile = Tfile(filename=sref.spath, process=self.process_tline)
+        for tline in Tfile(sref.spath):
+            self.check_srules_on(tline)
+            for lx in self.LXset:
+                if re.search(lx.lre, tline.text):
+                    self.instanciate_notes_for(
+                        lx, tline, self.current_block, self.current_srules
+                    )
 
         self.sref = sref
 
@@ -526,16 +532,6 @@ class UnitCX:
             self.current_srules = {}
             for sim in m.group(1).split(","):
                 self.current_srules.update(self.subst_tuples_for[sim])
-
-    # Toplevel processing
-
-    def process_tline(self, tline: Tline) -> None:
-        self.check_srules_on(tline)
-        for lx in self.LXset:
-            if re.search(lx.lre, tline.text):
-                self.instanciate_notes_for(
-                    lx, tline, self.current_block, self.current_srules
-                )
 
 
 class UXgroup:
@@ -747,8 +743,13 @@ class XnotesExpander:
         self.xrnotes: dict[str, KnoteDict[Xnote]] = {}
         self.abspaths: dict[str, str] = {}
 
-        for ux in self.__parse_scovdata(self.__get_scovdata(xfile)):
-            self.__expose(ux)
+        try:
+            for ux in self.__parse_scovdata(self.__get_scovdata(xfile)):
+                self.__expose(ux)
+        except FatalError as exc:
+            raise FatalError(
+                f"error while parsing scovdata in {xfile}: {exc}"
+            ) from exc
 
     def __expose(self, ux: UnitCX) -> None:
         # A '+' prefix on the source reference means we expect
@@ -1156,10 +1157,7 @@ class XnotesExpander:
         # exactly one instantiation per tagged line.
 
         def __ilines_for(sp: str) -> list[Tline]:
-            tf = Tfile(filename=sp, process=lambda tl: None)
-            return [
-                tl for tl in tf.contents() if "# %s" % self.imark in tl.text
-            ]
+            return [tl for tl in Tfile(sp) if "# %s" % self.imark in tl.text]
 
         spaths = [sref.spath for uxg in uxgroups for sref in uxg.srlist]
         # TODO: get rid of assert

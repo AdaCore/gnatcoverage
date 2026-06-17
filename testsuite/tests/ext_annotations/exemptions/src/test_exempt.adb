@@ -20,24 +20,24 @@ end Test_Exempt;
 
 --# pkg.adb
 --
--- /exempt_1/   l* ## x+
+-- /exempt_1/   l* ## x+:"defensive code, not to be triggered (on)"
 -- /exempt_1_d/ l= ## XoT-
 -- /exempt_1_s/ l= ## Xs-
--- /exempt_2/   l* ## x+
+-- /exempt_2/   l* ## x+:"defensive code, not to be triggered (region)"
 -- /exempt_2_d/ l= ## XoT-
 -- /exempt_2_s/ l= ## Xs-
 -- /ok/         l+ ## 0
 
 --# foo.h
 --
--- /exempt_h/   l* ## x+
+-- /exempt_h/   l* ## x+:"defensive code, not to be triggered (region)"
 -- /exempt_h_d/ l= ## XoT-
 -- /exempt_h_s/ l= ## Xs-
 -- /ok/         l+ ## 0
 
 --# foo.c
 --
--- /exempt_c/   l* ## x+
+-- /exempt_c/   l* ## x+:"garbage code, not to be triggered (on)"
 -- /exempt_c_d/ l= ## XoT-
 -- /exempt_c_s/ l= ## Xs-
 -- /ok/         l+ ## 0

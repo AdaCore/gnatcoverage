@@ -22,9 +22,9 @@ from .cnotes import (
     Xnote,
     block_p,
     transparent_p,
-    xNoteKinds,
+    justifiedNoteKinds,
 )
-from .segments import Line, Section, Segment
+from .segments import Line, Section, Segment, Spoint
 from .stags import Stag_from, Stag
 from .tfiles import Tline
 from SUITE.context import thistest
@@ -71,7 +71,7 @@ class _XnoteP_block(XnoteFactory):
         else:
             thisni = Xnote(xnp=self.notep, block=block, kind=kind)
             thisni.register_match(
-                Section(l0=tline.lno, c0=0, l1=tline.lno, c1=0)
+                Section(Spoint(tline.lno, 0), Spoint(tline.lno, 0))
             )
 
         if thisni:
@@ -304,11 +304,11 @@ class XnoteP:
 
         self.stext = stext
 
-        # We could require and use stext to store expected justification text
-        # for exemptions. We don't handle that as of today.
+        # Require and use stext to store expected justification text for
+        # exemptions.
 
         thistest.stop_if(
-            False and self.stext is None and self.kind in xNoteKinds,
+            self.stext is None and self.kind in justifiedNoteKinds,
             FatalError("expected justification text required for %s" % text),
         )
 

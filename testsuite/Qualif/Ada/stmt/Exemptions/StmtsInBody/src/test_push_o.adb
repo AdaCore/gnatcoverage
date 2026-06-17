@@ -17,8 +17,8 @@ end;
 --# stacks.adb
 -- /op_push/     l+ ## 0
 -- /op_pop/      l- ## s-
--- /op_oflow/    l# ## x0
--- /op_uflow/    l* ## x+
+-- /op_oflow/    l# ## x0:"no overflow"
+-- /op_uflow/    l* ## x+:"no underflow"
 -- /op_uflow_v1/ l= ## Xs-
 -- /op_uflow_v2/ l= ## Xs-
 -- /op_handler/  l+ ## 0

@@ -17,7 +17,7 @@ from .cnotes import (
     elNoteKinds,
 )
 from .segments import Line
-from .tfiles import Tfile, Tline
+from .tfiles import Tfile
 
 
 class LnotesExpander:
@@ -34,21 +34,22 @@ class LnotesExpander:
         "@": NK.lx2,
     }
 
-    def process_tline(self, tline: Tline) -> None:
-        m = re.match(r"\s*([0-9]+) (.):", tline.text)
-        if m:
-            self.elnotes[self.source].register(
-                Enote(
-                    kind=self.NK_for[m.group(2)],
-                    segment=Line(int(m.group(1))),
-                    source=self.source,
-                )
-            )
+    pattern = re.compile(r"\s*([0-9]+) (.):")
 
     def listing_to_enotes(self, dotxcov: str) -> None:
         self.source = dotxcov.rsplit(".", 1)[0]
         self.elnotes[self.source] = KnoteDict(elNoteKinds)
-        Tfile(filename=dotxcov, process=self.process_tline)
+
+        for tline in Tfile(dotxcov):
+            m = self.pattern.match(tline.text)
+            if m:
+                self.elnotes[self.source].register(
+                    Enote(
+                        kind=self.NK_for[m.group(2)],
+                        segment=Line(int(m.group(1))),
+                        source=self.source,
+                    )
+                )
 
     def __init__(self, dotxcov_pattern: str):
         # xcov --annotate=xcov produces a set of .xcov annotated unit sources,

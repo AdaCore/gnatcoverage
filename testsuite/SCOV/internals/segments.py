@@ -9,6 +9,8 @@ This is essentially used to determine if what an emitted coverage indication
 designates discharges some expected coverage expectation.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import ClassVar, Self
 
@@ -17,6 +19,7 @@ import re
 from SUITE.control import LANGINFO
 
 
+@dataclass
 class Spoint:
     """
     Internal helper which materializes a line:col coordinate and knows to
@@ -29,9 +32,8 @@ class Spoint:
     the end of it.
     """
 
-    def __init__(self, line: int, col: int):
-        self.lineno = line
-        self.c = col
+    lineno: int
+    c: int
 
     def pastoreq(self, other: Self) -> bool:
         return self.lineno > other.lineno or (
@@ -44,18 +46,14 @@ class Spoint:
         )
 
 
-def Spoint_from(text: str) -> Spoint:
-    items = text.split(":", 1)
-    return Spoint(line=int(items[0]), col=int(items[1]))
-
-
 # Now the concrete classes. Each features a __str__ method for displays by the
-# testuite (in error messages for example) and a "_from (text)" method to
-# construct an instance from text known to be properly formed, coming from
-# gnatcov outputs. The _str_ images do not need to match the format expected
-# by their _from sibling in the same class.
+# testuite (in error messages for example) and a "parse" method to construct an
+# instance from text known to be properly formed, coming from gnatcov outputs.
+# The __str__ images do not need to match the format expected by their "parse"
+# sibling in the same class.
 
 
+@dataclass
 class Section:
     """
     A Section is the association of two slocs to materialize the start and the
@@ -75,9 +73,8 @@ class Section:
     #               c1
     #  3:1-7:5
 
-    def __init__(self, l0: int, c0: int, l1: int, c1: int):
-        self.sp0 = Spoint(line=l0, col=c0)
-        self.sp1 = Spoint(line=l1, col=c1)
+    sp0: Spoint
+    sp1: Spoint
 
     def within(self, other: Self) -> bool:
         return self.sp0.pastoreq(other.sp0) and self.sp1.beforeq(other.sp1)
@@ -90,17 +87,15 @@ class Section:
             self.sp1.c,
         )
 
-
-def Section_from(text: str) -> Section:
-    topitems = text.split("-", 1)
-    subitems0 = topitems[0].split(":", 1)
-    subitems1 = topitems[1].split(":", 1)
-    return Section(
-        l0=int(subitems0[0]),
-        c0=int(subitems0[1]),
-        l1=int(subitems1[0]),
-        c1=int(subitems1[1]),
-    )
+    @staticmethod
+    def parse(text: str) -> Section:
+        topitems = text.split("-", 1)
+        subitems0 = topitems[0].split(":", 1)
+        subitems1 = topitems[1].split(":", 1)
+        return Section(
+            sp0=Spoint(int(subitems0[0]), int(subitems0[1])),
+            sp1=Spoint(int(subitems1[0]), int(subitems1[1])),
+        )
 
 
 class Segment(Section):
@@ -110,33 +105,33 @@ class Segment(Section):
     """
 
     def __init__(self, lno: int, clo: int, chi: int):
-        Section.__init__(self, l0=lno, c0=clo, l1=lno, c1=chi)
+        super().__init__(Spoint(lno, clo), Spoint(lno, chi))
 
     def __str__(self) -> str:
         return "segment %d:%d-%d" % (self.sp0.lineno, self.sp0.c, self.sp1.c)
 
-
-def Segment_from(text: str) -> Segment:
-    topitems = text.split(":", 1)
-    subitems = topitems[1].split("-", 1)
-    return Segment(
-        lno=int(topitems[0]), clo=int(subitems[0]), chi=int(subitems[1])
-    )
+    @staticmethod
+    def parse(text: str) -> Segment:
+        topitems = text.split(":", 1)
+        subitems = topitems[1].split("-", 1)
+        return Segment(
+            lno=int(topitems[0]), clo=int(subitems[0]), chi=int(subitems[1])
+        )
 
 
 class Line(Segment):
     """A Line is a Segment spanning from first to last column."""
 
     def __init__(self, lno: int):
-        Segment.__init__(self, lno=lno, clo=0, chi=0)
+        super().__init__(lno=lno, clo=0, chi=0)
 
     def __str__(self) -> str:
         return "line %d" % self.sp0.lineno
 
-
-def Line_from(text: str) -> Line:
-    items = text.split(":", 1)
-    return Line(lno=int(items[0]))
+    @staticmethod
+    def parse(text: str) -> Line:
+        items = text.split(":", 1)
+        return Line(int(items[0]))
 
 
 class Point(Segment):
@@ -145,15 +140,15 @@ class Point(Segment):
     """
 
     def __init__(self, lno: int, col: int):
-        Segment.__init__(self, lno=lno, clo=col, chi=col)
+        super().__init__(lno=lno, clo=col, chi=col)
 
     def __str__(self) -> str:
         return "sloc %d:%d" % (self.sp0.lineno, self.sp0.c)
 
-
-def Point_from(text: str) -> Point:
-    items = text.split(":", 1)
-    return Point(lno=int(items[0]), col=int(items[1]))
+    @staticmethod
+    def parse(text: str) -> Point:
+        items = text.split(":", 1)
+        return Point(lno=int(items[0]), col=int(items[1]))
 
 
 def Section_within(text: str) -> Section | None:
@@ -167,19 +162,19 @@ def Section_within(text: str) -> Section | None:
 
     m = re.search(r"(\d+:\d+-\d+:\d+)", text)
     if m:
-        return Section_from(m.group(1))
+        return Section.parse(m.group(1))
 
     m = re.search(r"(\d+:\d+-\d+)", text)
     if m:
-        return Segment_from(m.group(1))
+        return Segment.parse(m.group(1))
 
     m = re.search(r"(\d+:\d+)", text)
     if m:
-        return Point_from(m.group(1))
+        return Point.parse(m.group(1))
 
     m = re.search(r"(\d+:)", text)
     if m:
-        return Line_from(m.group(1))
+        return Line.parse(m.group(1))
 
     return None
 
