@@ -45,14 +45,13 @@ To illustrate, let us consider a common assertion control procedure in Ada:
    end Eassert;
 
 For C code, disabled coverage regions are defined using comment markers to
-delimit the region
+delimit the region:
 
-- Any comment containing the string ``GNATCOV_COV_OFF`` followed by a string in
-  double quotes starts a region, the string within the double quotes being used
-  as justification text that will be recalled in coverage reports.
+- Comments matching ``GNATCOV_COV_OFF`` or ``GNATCOV_COV_OFF("my
+  justification")`` start a region, the string within the double quotes being
+  used as justification text that will be recalled in coverage reports.
 
-- Any comment containing the string ``GNATCOV_COV_ON`` closes the current
-  region.
+- Comments matching ``GNATCOV_COV_ON`` close the current region.
 
 The following assert function illustrates the definition of a disabled coverage
 region:
@@ -61,7 +60,7 @@ region:
 
   void
   assert (bool x){
-   // GNATCOV_COV_OFF "my justification"
+   // GNATCOV_COV_OFF("my justification")
     if (!x)
       abort();
    // GNATCOV_COV_ON

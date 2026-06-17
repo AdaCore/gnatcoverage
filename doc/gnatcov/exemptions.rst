@@ -47,12 +47,11 @@ For C code, exemptions are only supported with
 :term:`source traces<Source Trace>` and are defined using comment markers to
 delimit the exempted regions:
 
-- Any comment containing the string ``GNATCOV_EXEMPT_ON`` followed by a string
-  in double quotes starts a region, the string within the double quotes being
+- Comments matching ``GNATCOV_EXEMPT_ON`` or ``GNATCOV_EXEMPT_ON("my
+  justification")`` start a region, the string within the double quotes being
   used as justification text that will be recalled in coverage reports.
 
-- Any comment containing the string ``GNATCOV_EXEMPT_OFF`` closes the current
-  exemption region.
+- Comments matching ``GNATCOV_EXEMPT_OFF`` close the current region.
 
 The following assert function illustrates the definition of an exemption
 block:
@@ -61,7 +60,7 @@ block:
 
   void
   assert (bool x){
-   // GNATCOV_EXEMPT_ON "assert condition never to be False"
+   // GNATCOV_EXEMPT_ON("assert condition never to be False")
     if (!x)
       abort();
    // GNATCOV_EXEMPT_OFF
@@ -77,7 +76,7 @@ to exempt a decision only partially:
 
 .. code-block:: C
 
-  if(a && /*GNATCOV_EXEMPT_ON "justification"*/ b /*GNATCOV_EXEMPT_OFF*/){
+  if(a && /*GNATCOV_EXEMPT_ON("justification")*/ b /*GNATCOV_EXEMPT_OFF*/){
     ...
   }
 

@@ -28,7 +28,7 @@ annotations = [
 # List of comments that we plan to add to "foo.c"
 comments = [
     (4, 1, "First coverage unrelated comment"),
-    (5, 2, 'GNATCOV_EXEMPT_ON "this is fine"'),
+    (5, 2, 'GNATCOV_EXEMPT_ON("this is fine")'),
     (6, 2, "GNATCOV_EXEMPT_OFF"),
     (8, 1, "Second coverage unrelated comment"),
 ]

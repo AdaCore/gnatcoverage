@@ -1277,15 +1277,33 @@ package body Instrument.Ada_Unit is
    --  aspect or from the convention specified in the Export aspect. If no
    --  convention is defined, return No_Identifier.
 
+   procedure Parse_Annotation
+     (N         : Ada_Node'Class;
+      Prag_Args : Base_Assoc_List;
+      Handled   : out Boolean;
+      Result    : out ALI_Annotation;
+      Silent    : Boolean := False);
+   --  Parse an Annotate pragma.
+   --
+   --  N is the pragma node, and Prag_Args is its list of arguments.
+   --
+   --  If this is not an Xcov annotation, set Handled to False and return.
+   --
+   --  If this is an Xcov annotation, decode it: on success, set Handled to
+   --  True and Result to the decoded annotation. On failure, set Handled to
+   --  False, and emit a warning (unless Silent is True).
+
    procedure Process_Annotation
      (UIC       : in out Ada_Unit_Inst_Context;
-      N         : Ada_Node;
+      N         : Ada_Node'Class;
       Prag_Args : Base_Assoc_List)
    with
      Pre =>
        N.Kind = Ada_Pragma_Node
        and then Pragma_Name (N.As_Pragma_Node) = Name_Annotate;
    --  Handle an Annotate pragma.
+   --
+   --  N is the pragma node, and Prag_Args is its list of arguments.
    --
    --  If this is not an Xcov annotation, do nothing. Otherwise, decode it and
    --  add it to our internal tables. If the pragma is not correctly formatted
@@ -3427,15 +3445,19 @@ package body Instrument.Ada_Unit is
       return No_Identifier;
    end Get_Convention;
 
-   ------------------------
-   -- Process_Annotation --
-   ------------------------
+   ----------------------
+   -- Parse_Annotation --
+   ----------------------
 
-   procedure Process_Annotation
-     (UIC       : in out Ada_Unit_Inst_Context;
-      N         : Ada_Node;
-      Prag_Args : Base_Assoc_List)
+   procedure Parse_Annotation
+     (N         : Ada_Node'Class;
+      Prag_Args : Base_Assoc_List;
+      Handled   : out Boolean;
+      Result    : out ALI_Annotation;
+      Silent    : Boolean := False)
    is
+      SFI : constant Source_File_Index := Unit_File_Index (N);
+
       function Get_Arg
         (Prag_Args : Base_Assoc_List; I : Natural) return Symbol_Type
       is (if Prag_Arg_Expr (Prag_Args, I).Kind
@@ -3446,11 +3468,73 @@ package body Instrument.Ada_Unit is
       --  it is not an identifier, return null. Else, return the identifier
       --  as a symbol.
 
+      procedure Iterate
+        (Self    : Base_Assoc_List;
+         Process :
+           access procedure
+             (Sloc : Slocs.Source_Location; Name : String; Value : Expr));
+      --  Callback for Parse_Annotation
+
+      function Parse_String (Self : Expr) return String;
+      --  Callback for Parse_Annotation
+
       procedure Safe_String_Eval
         (E : Expr; Result : out Unbounded_Text_Type; Success : out Boolean);
       --  Evaluate the given Expr E and set Result to the evaluated string
       --  and Success to True if it could be evaluated, otherwise set
       --  Success to False.
+
+      -------------
+      -- Iterate --
+      -------------
+
+      procedure Iterate
+        (Self    : Base_Assoc_List;
+         Process :
+           access procedure
+             (Sloc : Slocs.Source_Location; Name : String; Value : Expr)) is
+      begin
+         for I in 3 .. Self.Children_Count loop
+            declare
+               A    : constant Pragma_Argument_Assoc :=
+                 Self.Child (I).As_Pragma_Argument_Assoc;
+               Name : Identifier := No_Identifier;
+            begin
+               if not A.F_Name.Is_Null
+                 and then A.F_Name.Kind /= Libadalang.Common.Ada_Identifier
+               then
+                  Report (A.F_Name, "identifier expected", Warning);
+                  return;
+               else
+                  Name := A.F_Name.As_Identifier;
+               end if;
+
+               Process.all
+                 (Sloc  => (SFI, +Sloc (A)),
+                  Name  =>
+                    (if Name.Is_Null
+                     then ""
+                     else
+                       To_UTF8 (To_Lower (To_Text (Name.P_Canonical_Text)))),
+                  Value => A.F_Expr);
+            end;
+         end loop;
+      end Iterate;
+
+      ------------------
+      -- Parse_String --
+      ------------------
+
+      function Parse_String (Self : Expr) return String is
+         Result  : Unbounded_Text_Type;
+         Success : Boolean;
+      begin
+         Safe_String_Eval (Self, Result, Success);
+         if not Success then
+            Report (Self, "Static string expression expected", Warning);
+         end if;
+         return To_UTF8 (To_Text (Result));
+      end Parse_String;
 
       ----------------------
       -- Safe_String_Eval --
@@ -3480,16 +3564,26 @@ package body Instrument.Ada_Unit is
             Success := False;
       end Safe_String_Eval;
 
-      Nb_Children : constant Natural := Prag_Args.Children_Count;
-      Kind        : Symbol_Type;
-      Result      : ALI_Annotation;
+      procedure Parse_Impl is new
+        SC_Obligations.Parse_Annotation
+          (Argument_List => Base_Assoc_List,
+           Argument      => Expr,
+           No_Argument   => No_Expr,
+           Iterate       => Iterate,
+           Parse_String  => Parse_String);
 
-      --  Start of processing for Process_Annotation
+      Nb_Children : constant Natural := Prag_Args.Children_Count;
+      Kind        : Src_Annotation_Kind;
+
+      --  Start of processing for Parse_Annotation
 
    begin
+      Result := (Kind => Exempt_On, others => <>);
+
       --  Ignore all but Xcov annotations
 
       if Get_Arg (Prag_Args, 1) /= As_Symbol (Xcov) then
+         Handled := False;
          return;
       end if;
 
@@ -3497,133 +3591,88 @@ package body Instrument.Ada_Unit is
 
       if Nb_Children = 1 then
          Report (N, "Xcov annotation kind missing", Warning);
+         Handled := False;
          return;
       end if;
 
-      Kind := Get_Arg (Prag_Args, 2);
+      declare
+         Kind_Symbol : constant Symbol_Type := Get_Arg (Prag_Args, 2);
       begin
-         Result.Kind := Src_Annotation_Kind'Value (Image (Kind));
+         Kind := Src_Annotation_Kind'Value (Image (Kind_Symbol));
       exception
          when Constraint_Error =>
             Report
               (N,
                "Invalid Xcov annotation kind"
-               & (if Kind /= No_Symbol then ": " & Image (Kind) else ""),
+               & (if Kind_Symbol /= No_Symbol
+                  then ": " & Image (Kind_Symbol)
+                  else ""),
                Warning);
+            Handled := False;
             return;
       end;
-
-      --  Check whether the buffer annotations are in a statement sequence.
-      --  If not, silently ignore it, it will be reported by the pass dedicated
-      --  to them. Otherwise, end the statement block.
-
-      if Result.Kind in Dump_Buffers | Reset_Buffers then
-         if N.Parent.Kind in Ada_Stmt_List then
-            End_Statement_Block (UIC);
-            Start_Statement_Block (UIC);
-         else
-            return;
-         end if;
-      end if;
 
       --  Now that the annotation kind is known, validate the remaining
       --  arguments expected for that kind.
 
+      begin
+         Parse_Impl (Kind, Prag_Args, Sloc (N), Result, Silent);
+      exception
+         when Invalid_Annotation_Argument_Error =>
+            Handled := False;
+            return;
+      end;
+
+      Handled := True;
+   end Parse_Annotation;
+
+   ------------------------
+   -- Process_Annotation --
+   ------------------------
+
+   procedure Process_Annotation
+     (UIC       : in out Ada_Unit_Inst_Context;
+      N         : Ada_Node'Class;
+      Prag_Args : Base_Assoc_List)
+   is
+      Handled : Boolean;
+      Result  : ALI_Annotation;
+   begin
+      Parse_Annotation
+        (N, Prag_Args, Silent => False, Handled => Handled, Result => Result);
+      if not Handled then
+         return;
+      end if;
+
       case Result.Kind is
-         when Exempt_On | Cov_Off =>
+         when Dump_Buffers | Reset_Buffers =>
 
-            --  Expected formats:
-            --  * (Xcov, <Annotation_Kind>)
-            --  * (Xcov, <Annotation_Kind>, "Justification")
+            --  Check whether the buffer annotations are in a statement
+            --  sequence.  If not, silently ignore it, it will be reported by
+            --  the pass dedicated to them. Otherwise, end the statement block.
 
-            if Result.Kind = Cov_Off then
-               UIC.Disable_Coverage := True;
+            if N.Parent.Kind in Ada_Stmt_List then
+               End_Statement_Block (UIC);
+               Start_Statement_Block (UIC);
             end if;
-            case Nb_Children is
-               when 2      =>
-                  if Result.Kind = Exempt_On then
-                     Report
-                       (N,
-                        "No justification given for exempted region",
-                        Warning);
-                  elsif Result.Kind = Cov_Off then
-                     Report
-                       (N,
-                        "No justification given for disabled coverage region",
-                        Warning);
-                  end if;
-                  UIC.Annotations.Append
-                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
-               when 3      =>
-                  declare
-                     String_Value : Unbounded_Text_Type;
-                     Success      : Boolean;
-                  begin
-                     Safe_String_Eval
-                       (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
-                     if not Success then
-                        Report
-                          (N,
-                           "Invalid justification argument: static string"
-                           & " expression expected",
-                           Warning);
-                        return;
-                     end if;
-                     Result.Message :=
-                       new String'(To_UTF8 (To_Text (String_Value)));
+            --  Return before adding this annotation to this unit: buffer
+            --  control annotations are taken into account in a separate pass
+            --  (Replace_Manual_Indications).
 
-                     UIC.Annotations.Append
-                       (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-                  end;
+            return;
 
-               when others =>
-                  Report (N, "At most 3 pragma arguments allowed", Warning);
-                  return;
-            end case;
+         when Cov_Off                      =>
+            UIC.Disable_Coverage := True;
 
-         when Exempt_Off          =>
-            if Nb_Children > 2 then
-               Report (N, "At most 2 pragma arguments allowed", Warning);
-               return;
-            end if;
-            UIC.Annotations.Append
-              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-         when Cov_On              =>
-            if Nb_Children > 2 then
-               Report (N, "At most 2 pragma arguments allowed", Warning);
-               return;
-            end if;
+         when Cov_On                       =>
             UIC.Disable_Coverage := False;
-            UIC.Annotations.Append
-              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
-         when Dump_Buffers        =>
-
-            --  Expected formats:
-            --  * (Xcov, Dump_Buffers)
-            --  * (Xcov, Dump_Buffers, Prefix)
-
-            case Nb_Children is
-               when 2 | 3  =>
-
-                  --  TODO??? check that the Prefix expression is a string
-                  --  type when eng/libadalang/libadalang#1360 is dealt
-                  --  with.
-                  null;
-
-               when others =>
-                  Report (N, "At most 3 pragma arguments allowed", Warning);
-                  return;
-            end case;
-
-         when Reset_Buffers       =>
-            if Nb_Children /= 2 then
-               Report (N, "At most 2 pragma arguments allowed", Warning);
-               return;
-            end if;
+         when others                       =>
+            null;
       end case;
+
+      UIC.Annotations.Append (Annotation_Couple'(Sloc (N), Result));
    end Process_Annotation;
 
    -----------------------------------------
@@ -9918,8 +9967,10 @@ package body Instrument.Ada_Unit is
          else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
         Get_From_File (Self, File_To_Search, Reparse => True);
-      Rewriter              : Ada_Source_Rewriter;
-      External_Annotations  : Instr_Annotation_Map;
+
+      Rewriting_Started    : Boolean := False;
+      Rewriter             : Ada_Source_Rewriter;
+      External_Annotations : Instr_Annotation_Map;
 
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Searching manual indications in " & Source_Filename);
@@ -9935,134 +9986,125 @@ package body Instrument.Ada_Unit is
 
       function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
       is
-         function Is_Expected_Argument
-           (Args : Base_Assoc_List; Idx : Positive; Arg : All_Symbols)
-            return Boolean
-         is ((As_Symbol
-                (Args.Child (Idx)
-                   .As_Pragma_Argument_Assoc
-                   .F_Expr
-                   .As_Identifier)
-              = As_Symbol (Arg)));
-         --  Check if the argument of Prag_N at Index matches Arg
-
+         Prag_Args : Base_Assoc_List;
+         Handled   : Boolean;
+         Result    : ALI_Annotation;
       begin
-         if N.Kind = Ada_Pragma_Node then
-            declare
-               Prag_N    : constant Pragma_Node := N.As_Pragma_Node;
-               Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
-            begin
-               if Pragma_Name (Prag_N) = Name_Annotate
-                 and then Prag_Args.Children_Count in 2 .. 3
-                 and then Is_Expected_Argument (Prag_Args, 1, Xcov)
-                 and then
-                   (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
-                    or else Is_Expected_Argument (Prag_Args, 2, Reset_Buffers))
-               then
-                  --  First, check that we are in a statement list, no point in
-                  --  generating invalid code.
-
-                  if Prag_N.Parent.Kind not in Ada_Stmt_List then
-                     Report
-                       (Prag_N,
-                        "Incorrect placement for a buffer dump/reset"
-                        & " annotation, the pragma should be placed in a"
-                        & " statement sequence.",
-                        Warning);
-                     return Over;
-                  end if;
-
-                  --  The pragma statement to be replaced by the actual call
-                  --  to Dump_Buffers / Reset_Buffers has been found.
-
-                  if not (Has_Dump_Indication or else Has_Reset_Indication)
-                  then
-                     Start_Rewriting (Rewriter, Self, Prj, Unit);
-                  end if;
-
-                  declare
-                     RH         : constant Rewriting_Handle := Rewriter.Handle;
-                     With_Unit  : constant Node_Rewriting_Handle :=
-                       To_Nodes (RH, Create_Manual_Helper_Unit_Name (Prj));
-                     Dump_Call  : constant Node_Rewriting_Handle :=
-                       To_Nodes
-                         (RH,
-                          To_Qualified_Name (To_String (Dump_Procedure_Name)));
-                     Dump_Args  : constant Node_Rewriting_Handle :=
-                       (if Prag_Args.Children_Count = 3
-                        then Detach (Prag_Args.Child (3))
-                        else
-                          Create_Token_Node
-                            (RH,
-                             Kind => Ada_String_Literal,
-                             Text =>
-                               To_Text
-                                 ("""" & (To_Ada (Prj.Prj_Name)) & """")));
-                     Reset_Call : constant Node_Rewriting_Handle :=
-                       To_Nodes
-                         (RH,
-                          To_Qualified_Name
-                            (To_String (Reset_Procedure_Name)));
-                  begin
-                     --  Add the with clause only once in the file
-
-                     if not (Has_Dump_Indication or else Has_Reset_Indication)
-                     then
-                        Insert_Last
-                          (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
-                           Create_From_Template
-                             (RH,
-                              Template  => "with {};",
-                              Arguments => (1 => With_Unit),
-                              Rule      => With_Clause_Rule));
-                     end if;
-
-                     if Is_Expected_Argument (Prag_Args, 2, Dump_Buffers) then
-
-                        --  Insert the call to the dump procedure
-
-                        if Switches.Misc_Trace.Is_Active then
-                           Switches.Misc_Trace.Trace
-                             ("Found buffer dump indication at "
-                              & Image (N.Full_Sloc_Image));
-                        end if;
-
-                        Replace
-                          (Handle (N),
-                           Create_From_Template
-                             (RH,
-                              "{}.{} ({});",
-                              Arguments =>
-                                (1 => With_Unit,
-                                 2 => Dump_Call,
-                                 3 => Dump_Args),
-                              Rule      => Call_Stmt_Rule));
-                        Has_Dump_Indication := True;
-                     else
-
-                        --  Insert the call to the reset procedure
-
-                        if Switches.Misc_Trace.Is_Active then
-                           Switches.Misc_Trace.Trace
-                             ("Found buffer reset indication at "
-                              & Image (N.Full_Sloc_Image));
-                        end if;
-
-                        Replace
-                          (Handle (N),
-                           Create_From_Template
-                             (RH,
-                              "{}.{};",
-                              Arguments => (1 => With_Unit, 2 => Reset_Call),
-                              Rule      => Call_Stmt_Rule));
-                        Has_Reset_Indication := True;
-                     end if;
-                  end;
-                  return Over;
-               end if;
-            end;
+         if N.Kind /= Ada_Pragma_Node then
+            return Into;
+         elsif Pragma_Name (N.As_Pragma_Node) /= Name_Annotate then
+            return Over;
          end if;
-         return Into;
+         Prag_Args := N.As_Pragma_Node.F_Args;
+
+         --  If we are processing an already instrumented file, do not emit
+         --  warnings for issues in pragmas, as these were already flagged
+         --  during the regular instrumentation.
+
+         Parse_Annotation
+           (N, Prag_Args, Handled, Result, Silent => Instrumented_Exists);
+         if not Handled or else Result.Kind not in Dump_Buffers | Reset_Buffers
+         then
+            return Over;
+         end if;
+
+         --  Check that we are in a statement list: no point in generating
+         --  invalid code.
+
+         if N.Parent.Kind not in Ada_Stmt_List then
+            Report
+              (N,
+               "Incorrect placement for a buffer dump/reset annotation, the"
+               & " pragma should be placed in a statement sequence.",
+               Warning);
+            return Over;
+         end if;
+
+         --  The pragma statement to be replaced by the actual call to
+         --  Dump_Buffers / Reset_Buffers has been found.
+
+         if not Rewriting_Started then
+            Start_Rewriting (Rewriter, Self, Prj, Unit);
+         end if;
+
+         declare
+            RH         : constant Rewriting_Handle := Rewriter.Handle;
+            With_Unit  : constant Node_Rewriting_Handle :=
+              To_Nodes (RH, Create_Manual_Helper_Unit_Name (Prj));
+            Dump_Call  : constant Node_Rewriting_Handle :=
+              To_Nodes
+                (RH, To_Qualified_Name (To_String (Dump_Procedure_Name)));
+            Dump_Args  : constant Node_Rewriting_Handle :=
+              (if Prag_Args.Children_Count = 3
+               then Detach (Prag_Args.Child (3))
+               else
+                 Create_Token_Node
+                   (RH,
+                    Kind => Ada_String_Literal,
+                    Text => To_Text ("""" & (To_Ada (Prj.Prj_Name)) & """")));
+            Reset_Call : constant Node_Rewriting_Handle :=
+              To_Nodes
+                (RH, To_Qualified_Name (To_String (Reset_Procedure_Name)));
+         begin
+            --  Add the with clause only once in the file
+
+            if not Rewriting_Started then
+               Insert_Last
+                 (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
+                  Create_From_Template
+                    (RH,
+                     Template  => "with {};",
+                     Arguments => (1 => With_Unit),
+                     Rule      => With_Clause_Rule));
+            end if;
+
+            case Result.Kind is
+               when Dump_Buffers  =>
+
+                  --  Insert the call to the dump procedure
+
+                  if Switches.Misc_Trace.Is_Active then
+                     Switches.Misc_Trace.Trace
+                       ("Found buffer dump indication at "
+                        & Image (N.Full_Sloc_Image));
+                  end if;
+
+                  Replace
+                    (Handle (N),
+                     Create_From_Template
+                       (RH,
+                        "{}.{} ({});",
+                        Arguments =>
+                          (1 => With_Unit, 2 => Dump_Call, 3 => Dump_Args),
+                        Rule      => Call_Stmt_Rule));
+                  Has_Dump_Indication := True;
+
+               when Reset_Buffers =>
+
+                  --  Insert the call to the reset procedure
+
+                  if Switches.Misc_Trace.Is_Active then
+                     Switches.Misc_Trace.Trace
+                       ("Found buffer reset indication at "
+                        & Image (N.Full_Sloc_Image));
+                  end if;
+
+                  Replace
+                    (Handle (N),
+                     Create_From_Template
+                       (RH,
+                        "{}.{};",
+                        Arguments => (1 => With_Unit, 2 => Reset_Call),
+                        Rule      => Call_Stmt_Rule));
+                  Has_Reset_Indication := True;
+
+               when others        =>
+                  raise Program_Error with "unreachable code";
+            end case;
+
+            Rewriting_Started := True;
+         end;
+         return Over;
       end Find_And_Replace_Pragma;
 
    begin
@@ -10090,7 +10132,7 @@ package body Instrument.Ada_Unit is
 
       Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
 
-      if Has_Dump_Indication or else Has_Reset_Indication then
+      if Rewriting_Started then
          Ada.Directories.Create_Path (+Prj.Output_Dir);
          Rewriter.Apply;
       end if;

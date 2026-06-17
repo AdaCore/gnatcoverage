@@ -30,7 +30,7 @@ c_func (int a, int b)
   t = MCDC_Violation (f, f);
   t = MCDC_Violation (t, f);
 
-  /* GNATCOV_EXEMPT_ON "c_justification"*/
+  /* GNATCOV_EXEMPT_ON("c_justification") */
   if (!t)
     {
       t = false;

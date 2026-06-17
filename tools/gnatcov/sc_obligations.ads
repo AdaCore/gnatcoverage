@@ -239,6 +239,66 @@ package SC_Obligations is
    --  Since these counters are computed during report generation, we need to
    --  reset the counters between each generated report.
 
+   ----------------------------
+   -- Parsing of annotations --
+   ----------------------------
+
+   Invalid_Annotation_Argument_Error : exception;
+   --  Exception raised by Parse_Annotation or its Process callback when
+   --  attempting to parse an invalid annotation.
+
+   generic
+      type Argument_List (<>) is private;
+      --  A list of annotation arguments
+
+      type Argument is private;
+      --  A single annotation argument value
+
+      No_Argument : Argument;
+      --  Marker for the absence of an argument value
+
+      with
+        procedure Iterate
+          (Self    : Argument_List;
+           Process :
+             access procedure
+               (Sloc : Source_Location; Name : String; Value : Argument));
+      --  Call Process on all arguments in the given list.
+      --
+      --  Sloc is the source location for the argument (used to emit
+      --  diagnostics, if needed).
+      --
+      --  Name is the name of the argument (if provided, empty string for
+      --  positional arguments), and Value is the passed value (never
+      --  No_Argument).
+      --
+      --  Process may raise an Invalid_Annotation_Argument_Error exception if
+      --  the argument is for some reason invalid.
+
+      with function Parse_String (Self : Argument) return String;
+      --  Try to parse an argument as a string literal, and return the
+      --  string value it denotes. Raise an Invalid_Annotation_Argument_Error
+      --  exception if the argument is not a string literal.
+
+     procedure Parse_Annotation
+     (Kind       : Src_Annotation_Kind;
+      Args       : Argument_List;
+      Sloc       : Source_Location;
+      Annotation : out ALI_Annotation;
+      Silent     : Boolean := False);
+   --  Parse the list of arguments in Args for the given annotation Kind.
+   --
+   --  On success, set Annotation to the corresponding annotation. Otherwise,
+   --  raise an Invalid_Annotation_Argument_Error exception (Sloc is used to
+   --  emit the corresponding diagnostics).
+   --
+   --  No diagnostics are emitted if Silent is True. This is useful to avoid
+   --  duplicate diagnostics when the same annotation is parsed multiple times.
+
+   --------------
+   -- Load_ALI --
+   --------------
+
    procedure Load_ALI (ALI_Filename : String);
    --  Load ALI information for Filename, without SCOs
 
