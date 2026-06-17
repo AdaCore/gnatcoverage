@@ -34,12 +34,14 @@ class LnotesExpander:
         "@": NK.lx2,
     }
 
+    pattern = re.compile(r"\s*([0-9]+) (.):")
+
     def listing_to_enotes(self, dotxcov: str) -> None:
         self.source = dotxcov.rsplit(".", 1)[0]
         self.elnotes[self.source] = KnoteDict(elNoteKinds)
 
         for tline in Tfile(dotxcov):
-            m = re.match(r"\s*([0-9]+) (.):", tline.text)
+            m = self.pattern.match(tline.text)
             if m:
                 self.elnotes[self.source].register(
                     Enote(
