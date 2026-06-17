@@ -1,2 +1,0 @@
-native DEAD testing --target interactions, no --target at all for native.
-src-traces DEAD test specific to gnatcov run
