@@ -1083,6 +1083,7 @@ procedure GNATcov_Bits_Specific is
         (Args.Bool_Args (Opt_Show_MCDC_Vectors) or else All_Messages);
       Show_Condition_Vectors :=
         (Args.Bool_Args (Opt_Show_Condition_Vectors) or else All_Messages);
+      Postcond_Only := Args.Bool_Args (Opt_Postcond_Only);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Short_Circuit_And_Or :=
         Args.Bool_Args (Opt_Boolean_Short_Circuit_And_Or);

@@ -4030,6 +4030,10 @@ package body SC_Obligations is
 
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
+      if Switches.Postcond_Only then
+         return Is_Postcond_Aspect (SCO);
+      end if;
+
       if SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement then
          return Is_Pragma_Stmt_To_Cover (SCOD);
 
@@ -4059,6 +4063,19 @@ package body SC_Obligations is
          return False;
       end if;
    end Is_Assertion_To_Cover;
+
+   ------------------------
+   -- Is_Postcond_Aspect --
+   ------------------------
+
+   function Is_Postcond_Aspect (SCO : SCO_Id) return Boolean is
+      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+   begin
+      return
+        SCOD.Kind = Decision
+        and then SCOD.D_Kind in Aspect
+        and then SCOD.Aspect_Name = Aspect_Post;
+   end Is_Postcond_Aspect;
 
    -------------------
    -- Is_Expression --

@@ -812,6 +812,9 @@ package SC_Obligations is
    --  * Precondition
    --  * Type_Invariant.
 
+   function Is_Postcond_Aspect (SCO : SCO_Id) return Boolean;
+   --  True if SCO is a postcondtion expressed as an aspect
+
    function Is_If_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is the decision of an IF expression
 
