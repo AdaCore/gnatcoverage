@@ -28,7 +28,6 @@ with Ada.Containers.Multiway_Trees;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
-with GNAT.Strings; use GNAT.Strings;
 
 with Namet;
 with Types; use Types;
@@ -177,30 +176,46 @@ package SC_Obligations is
      Any_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
    --  Annotation kinds to perform coverage buffers control
 
-   type ALI_Annotation is record
-      Kind : Src_Annotation_Kind;
-      --  On or Off, Dump or Reset coverage buffers
+   type ALI_Annotation
+     (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)
+   is record
+      case Kind is
+         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+            Justification : Unbounded_String;
+            --  Justification message for the exemption/deactivation. Empty
+            --  string if no justification is given.
 
-      Message : String_Access;
-      --  When Kind = Exempt_On, justification message for the exemption.
-      --  This is null if no justification is given (i.e. this is never an
-      --  access to an empty string).
+            case Kind is
+               when Exempt_On =>
+                  Violation_Count : Natural := 0;
+                  --  When Kind = Exempt_On, this counts the violation "hits"
+                  --  on this exemption:
+                  --
+                  --  * exempted violation messages if generating a report,
+                  --
+                  --  * exempted non/partially covered lines otherwise.
 
-      Violation_Count : Natural := 0;
-      --  When Kind = Exempt_On, this counts the violation "hits" on this
-      --  exemption:
-      --
-      --  * exempted violation messages if generating a report,
-      --
-      --  * exempted non/partially covered lines otherwise.
+                  Undetermined_Cov_Count : Natural := 0;
+                  --  When Kind = Exempt_On, this counts the number of "hits"
+                  --  for undetermined coverage items: currently exempted
+                  --  non-instrumented messages when generating a report, or
+                  --  lines marked as non instrumented otherwise.
+                  --
+                  --  This is relevant only for source trace based coverage
+                  --  analysis.
 
-      Undetermined_Cov_Count : Natural := 0;
-      --  When Kind = Exempt_On, this counts the number of "hits" for
-      --  undetermined coverage items: currently exempted non-instrumented
-      --  messages when generating a report, or lines marked as
-      --  non instrumented otherwise.
-      --
-      --  This is relevant only for source trace based coverage analysis.
+               when others =>
+                  null;
+            end case;
+
+         when Dump_Buffers =>
+            Prefix : Unbounded_String;
+            --  Source code for the expression that yields the string used as a
+            --  filename prefix to dump buffers.
+
+         when Reset_Buffers =>
+            null;
+      end case;
    end record;
 
    package ALI_Annotation_Maps is new

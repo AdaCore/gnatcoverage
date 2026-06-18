@@ -19,8 +19,7 @@
 with Ada.Containers.Vectors;
 with Ada.Directories; use Ada.Directories;
 
-with GNAT.Regpat;  use GNAT.Regpat;
-with GNAT.Strings; use GNAT.Strings;
+with GNAT.Regpat; use GNAT.Regpat;
 
 with Clang.Index;    use Clang.Index;
 with GNATCOLL.Utils; use GNATCOLL.Utils;
@@ -666,7 +665,11 @@ package body Instrument.C_Annotations is
                   Warning);
                return;
          end;
-         Result.Kind := Kind;
+         declare
+            A : ALI_Annotation (Kind);
+         begin
+            Result := A;
+         end;
 
          --  Now that the annotation kind is known, validate the remaining
          --  arguments expected for that kind.
@@ -686,10 +689,9 @@ package body Instrument.C_Annotations is
                   & Justification
                   & """)",
                   Warning);
-               Result.Message :=
-                 (if Justification = ""
-                  then null
-                  else new String'(Justification));
+               if Result.Kind in Exempt_On | Cov_Off then
+                  Result.Justification := +Justification;
+               end if;
             end;
 
          elsif Kind = Dump_Buffers then
@@ -698,7 +700,7 @@ package body Instrument.C_Annotations is
             --  argument. We cannot reasonably parse it here, so we have to
             --  resort to a special case to analyze this annotation.
 
-            Result.Message := new String'(Get (Matches (3)));
+            Result.Prefix := +Get (Matches (3));
 
          else
             declare
@@ -951,7 +953,7 @@ package body Instrument.C_Annotations is
               Instr_Annotation_Maps.Key (Cur);
             Instr_A : constant Instr_Annotation :=
               Instr_Annotation_Maps.Element (Cur);
-            ALI_A   : ALI_Annotation := (Kind => Instr_A.Kind, others => <>);
+            ALI_A   : ALI_Annotation (Instr_A.Kind);
             Index   : constant Natural := Slocs_To_Index (Sloc);
          begin
             if Index = 0 then
@@ -967,10 +969,10 @@ package body Instrument.C_Annotations is
             end if;
             case Buffers_Annotation_Kind (Instr_A.Kind) is
                when Dump_Buffers  =>
-                  ALI_A.Message :=
+                  ALI_A.Prefix :=
                     (if Instr_A.Trace_Prefix = ""
-                     then null
-                     else new String'(+Instr_A.Trace_Prefix));
+                     then Null_Unbounded_String
+                     else Instr_A.Trace_Prefix);
 
                when Reset_Buffers =>
                   null;
@@ -1011,16 +1013,15 @@ package body Instrument.C_Annotations is
                --  prefix otherwise.
 
                declare
-                  Prefix : constant String_Access :=
+                  Prefix : constant Unbounded_String :=
                     (if Matches (Buffer_Dump_Prefix_Group) = No_Match
-                     then null
+                     then Null_Unbounded_String
                      else
-                       new String'
-                         (Buffer
-                            (Matches (Buffer_Dump_Prefix_Group).First
-                             .. Matches (Buffer_Dump_Prefix_Group).Last)));
+                       +Buffer
+                          (Matches (Buffer_Dump_Prefix_Group).First
+                           .. Matches (Buffer_Dump_Prefix_Group).Last));
                begin
-                  A := (Kind => Dump_Buffers, Message => Prefix, others => <>);
+                  A := (Kind => Dump_Buffers, Prefix => Prefix);
                end;
 
             else
@@ -1028,7 +1029,7 @@ package body Instrument.C_Annotations is
                Switches.Misc_Trace.Trace
                  ("Found buffer reset indication in file " & Filename);
 
-               A := (Kind => Reset_Buffers, others => <>);
+               A := (Kind => Reset_Buffers);
             end if;
 
             Annotations.Insert

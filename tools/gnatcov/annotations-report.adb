@@ -531,8 +531,8 @@ package body Annotations.Report is
          end if;
 
          Put_Line (Output.all, ", justification:");
-         if E.Message /= null then
-            Put_Line (Output.all, E.Message.all);
+         if E.Justification /= "" then
+            Put_Line (Output.all, +E.Justification);
          else
             Put_Line (Output.all, "No justification");
          end if;
@@ -600,8 +600,8 @@ package body Annotations.Report is
             Put (Output.all, "-<eof>");
          end if;
          Put_Line (Output.all, ", justification:");
-         if E.Message /= null then
-            Put_Line (Output.all, E.Message.all);
+         if E.Justification /= "" then
+            Put_Line (Output.all, +E.Justification);
          else
             Put_Line (Output.all, "No justification");
          end if;

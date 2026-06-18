@@ -18,8 +18,6 @@
 
 with Ada.Text_IO;
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Binary_Files;          use Binary_Files;
 with Coverage;
 with Coverage_Options;      use Coverage_Options;
@@ -287,7 +285,7 @@ private
    --  in the current Gnatcov execution.
 
    function Get_Exemption_Message
-     (Sloc : Source_Location) return String_Access;
+     (Sloc : Source_Location) return Unbounded_String;
    --  For a Sloc denoting an Exempt_On annotation, return the descriptive
    --  message justifying the exemption.
 

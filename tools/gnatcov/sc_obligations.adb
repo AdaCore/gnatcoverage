@@ -22,14 +22,15 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
-
-with GNATCOLL.VFS;
 with Interfaces;
 
-with Aspects;     use Aspects;
+with GNAT.Regpat;  use GNAT.Regpat;
+with GNAT.Strings; use GNAT.Strings;
+with GNATCOLL.VFS;
+
+with Aspects; use Aspects;
 with Get_SCOs;
-with GNAT.Regpat; use GNAT.Regpat;
-with Namet;       use Namet;
+with Namet;   use Namet;
 with SCOs;
 with Snames;
 
@@ -1481,20 +1482,30 @@ package body SC_Obligations is
    end Read;
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation) is
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation)
+   is
+      Kind : constant Src_Annotation_Kind :=
+        Src_Annotation_Kind'Val (CLS.Read_U8);
+      V    : ALI_Annotation (Kind);
    begin
-      Value.Kind := ALI_Annotation_Kind'Val (CLS.Read_U8);
+      case Kind is
+         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+            V.Justification := CLS.Read_Unbounded_String;
+            if Kind = Exempt_On then
+               V.Violation_Count := 0;
+               V.Undetermined_Cov_Count := 0;
+            end if;
 
-      declare
-         Msg : constant String := CLS.Read_String;
-      begin
-         if Msg'Length > 0 then
-            Value.Message := new String'(Msg);
-         end if;
-      end;
+         when Dump_Buffers | Reset_Buffers              =>
+            declare
+               Ignored : constant Unbounded_String :=
+                 CLS.Read_Unbounded_String;
+            begin
+               null;
+            end;
+      end case;
 
-      Value.Violation_Count := 0;
-      Value.Undetermined_Cov_Count := 0;
+      Value := V;
    end Read;
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean is
@@ -2767,9 +2778,11 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation)
    is
    begin
-      CSS.Write_U8 (ALI_Annotation_Kind'Pos (Value.Kind));
-      CSS.Write_Unbounded
-        (if Value.Message = null then "" else Value.Message.all);
+      CSS.Write_U8 (Src_Annotation_Kind'Pos (Value.Kind));
+      CSS.Write
+        (if Value.Kind in Exempt_On | Exempt_Off | Cov_Off | Cov_On
+         then Value.Justification
+         else Null_Unbounded_String);
    end Write;
 
    ----------
@@ -6019,8 +6032,8 @@ package body SC_Obligations is
                Has_Relevant_Annotation := True;
                Update_Hash (Hash_Ctx, Image (Sloc));
                Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
-               if Ann.Message /= null then
-                  Update_Hash (Hash_Ctx, Ann.Message.all);
+               if Ann.Kind = Cov_Off and then Ann.Justification /= "" then
+                  Update_Hash (Hash_Ctx, +Ann.Justification);
                end if;
             end if;
 
@@ -6464,8 +6477,10 @@ package body SC_Obligations is
             declare
                A : ALI_Annotation renames CU.ALI_Annotations.Reference (Cur);
             begin
-               A.Violation_Count := 0;
-               A.Undetermined_Cov_Count := 0;
+               if A.Kind = Exempt_On then
+                  A.Violation_Count := 0;
+                  A.Undetermined_Cov_Count := 0;
+               end if;
             end;
          end loop;
       end loop;
@@ -6652,7 +6667,11 @@ package body SC_Obligations is
 
       --  Initialize Annotation with the requested kind
 
-      Annotation := (Kind => Kind, others => <>);
+      declare
+         A : ALI_Annotation (Kind);
+      begin
+         Annotation := A;
+      end;
 
       --  Now decode arguments and initialize the annotation
 
@@ -6670,8 +6689,8 @@ package body SC_Obligations is
                      Warning);
                end if;
             else
-               Annotation.Message :=
-                 new String'(Parse_String (Arg_Values (Index_Justification)));
+               Annotation.Justification :=
+                 +Parse_String (Arg_Values (Index_Justification));
             end if;
 
          when Exempt_Off | Cov_On =>
@@ -6679,8 +6698,7 @@ package body SC_Obligations is
 
          when Dump_Buffers        =>
             if Arg_Values (Index_Prefix) /= No_Argument then
-               Annotation.Message :=
-                 new String'(Parse_String (Arg_Values (Index_Prefix)));
+               Annotation.Prefix := +Parse_String (Arg_Values (Index_Prefix));
             end if;
 
          when Reset_Buffers       =>
@@ -6772,24 +6790,10 @@ package body SC_Obligations is
       procedure Skipc;
       --  Skip one character in Line
 
-      function Check_Message (M1, M2 : String_Access) return Boolean;
-      --  Return True if either M1 or M2 is null or designates an empty string,
+      function Check_Message (M1, M2 : Unbounded_String) return Boolean
+      is (M1 = "" or else M2 = "" or else M1 = M2);
+      --  Return True if either M1 or M2 designates an empty string,
       --  else return True if M1 and M2 designate identical strings.
-
-      -------------------
-      -- Check_Message --
-      -------------------
-
-      function Check_Message (M1, M2 : String_Access) return Boolean is
-      begin
-         return
-           False
-           or else M1 = null
-           or else M1.all = ""
-           or else M2 = null
-           or else M2.all = ""
-           or else M1.all = M2.all;
-      end Check_Message;
 
       ----------
       -- Getc --
@@ -6903,7 +6907,7 @@ package body SC_Obligations is
       --  Set True if unit has been compiled with -fprofile-arcs
 
       Expected_Annotation_Kind : ALI_Annotation_Kind;
-      Expected_Annotation_Msg  : String_Access;
+      Expected_Annotation_Msg  : Unbounded_String;
       --  Variables for checking of annotation validity: annotations must
       --  come in (Exempt_On, Exempt_Off) pairs, nesting forbidden, and
       --  the Exempt_Off message must be either empty or identical to the
@@ -6960,7 +6964,7 @@ package body SC_Obligations is
       SCOs_Trace.Trace ("Loading SCOs from " & ALI_Filename);
 
       Expected_Annotation_Kind := Exempt_On;
-      Expected_Annotation_Msg := null;
+      Expected_Annotation_Msg := Null_Unbounded_String;
 
       Scan_ALI : while not End_Of_File (ALI_File) loop
          loop
@@ -7034,9 +7038,11 @@ package body SC_Obligations is
 
             when 'N'    =>
                declare
-                  Annotation : ALI_Annotation;
-                  Valid      : Boolean;
-                  Sloc       : Source_Location;
+                  Annotation    : ALI_Annotation;
+                  Valid         : Boolean;
+                  Sloc          : Source_Location;
+                  Kind          : Src_Annotation_Kind;
+                  Justification : Unbounded_String;
                begin
                   Match (N_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
@@ -7066,21 +7072,25 @@ package body SC_Obligations is
 
                      Valid := True;
 
-                     declare
-                        Msg : constant String := Match (6);
                      begin
-                        Annotation :=
-                          (Kind    => ALI_Annotation_Kind'Value (Match (4)),
-                           Message =>
-                             (if Msg'Length > 0
-                              then new String'(Msg)
-                              else null),
-                           others  => <>);
+                        Kind := ALI_Annotation_Kind'Value (Match (4));
                      exception
                         when Constraint_Error =>
                            Report (Sloc, "bad annotation " & Match (4));
                            Valid := False;
                      end;
+
+                     declare
+                        A : ALI_Annotation (Kind);
+                     begin
+                        Annotation := A;
+                     end;
+                     if Annotation.Kind
+                        in Exempt_On | Exempt_Off | Cov_Off | Cov_On
+                     then
+                        Justification := +Match (6);
+                        Annotation.Justification := Justification;
+                     end if;
 
                      if Valid then
                         if Annotation.Kind /= Expected_Annotation_Kind then
@@ -7089,34 +7099,33 @@ package body SC_Obligations is
                               "unexpected "
                               & Annotation.Kind'Img
                               & " "
-                              & Annotation.Message.all
+                              & (+Justification)
                               & " (expected "
                               & Expected_Annotation_Kind'Img
                               & ")");
                         elsif not Check_Message
-                                    (Annotation.Message,
-                                     Expected_Annotation_Msg)
+                                    (Justification, Expected_Annotation_Msg)
                         then
                            Report
                              (Sloc,
                               "unexpected EXEMPT_OFF "
-                              & Annotation.Message.all
+                              & (+Justification)
                               & " (expected "
-                              & Expected_Annotation_Msg.all
+                              & (+Expected_Annotation_Msg)
                               & ")");
                         end if;
 
                         if Annotation.Kind = Exempt_On then
-                           if Annotation.Message = null then
+                           if Justification = "" then
                               Report (Sloc, "empty message for EXEMPT_ON");
                            end if;
 
                            Expected_Annotation_Kind := Exempt_Off;
-                           Expected_Annotation_Msg := Annotation.Message;
+                           Expected_Annotation_Msg := Justification;
 
                         else
                            Expected_Annotation_Kind := Exempt_On;
-                           Expected_Annotation_Msg := null;
+                           Expected_Annotation_Msg := Null_Unbounded_String;
                         end if;
 
                         ALI_Annotations.Insert
@@ -7143,7 +7152,8 @@ package body SC_Obligations is
               Element (Last_Ann_Cursor);
          begin
             Report
-              (Last_Ann_Sloc, "missing Exempt_Off " & Last_Ann.Message.all);
+              (Last_Ann_Sloc,
+               "missing Exempt_Off " & (+Last_Ann.Justification));
          end;
       end if;
 

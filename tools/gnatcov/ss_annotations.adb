@@ -356,10 +356,7 @@ package body SS_Annotations is
          Justification : constant Unbounded_String :=
            TOML_Utils.Get_Or_Null (Match.Annotation, "justification");
 
-         Annot : constant ALI_Annotation :=
-           (Kind    => Kind,
-            Message => new String'(+Justification),
-            others  => <>);
+         Annot : ALI_Annotation (Kind);
 
          Sloc           : constant Slocs.Source_Location :=
            To_Sloc
@@ -370,15 +367,20 @@ package body SS_Annotations is
          Cur            : Cursor := Get_Annotation (Sloc);
          Existing_Annot : ALI_Annotation;
       begin
-         if Kind = Exempt_On and then Justification = Null_Unbounded_String
-         then
-            Warn
-              (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
-               & ": Missing or empty justification for external exemption"
-               & " annotation """
-               & (+Match.Identifier)
-               & """");
-            return;
+         if Kind = Exempt_On then
+            Annot.Justification := Justification;
+            if Justification = Null_Unbounded_String then
+               Warn
+                 (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
+                  & ": Missing or empty justification for external"
+                  & " exemption annotation """
+                  & (+Match.Identifier)
+                  & """");
+               return;
+            end if;
+
+            Annot.Violation_Count := 0;
+            Annot.Undetermined_Cov_Count := 0;
          end if;
 
          --  Check if the new annotations don't already contain an annotation
@@ -401,7 +403,7 @@ package body SS_Annotations is
             if Existing_Annot.Kind /= Annot.Kind
               or else
                 (Kind = Exempt_On
-                 and then Existing_Annot.Message.all /= Annot.Message.all)
+                 and then Existing_Annot.Justification /= Annot.Justification)
             then
                Warn
                  (Slocs.Image (Sloc)
@@ -697,11 +699,8 @@ package body SS_Annotations is
                      Success := False;
                   elsif Kind = Cov_Off then
                      Success :=
-                       (if Element (Cur).Message in null
-                        then US.Length (New_Annotation.Justification) = 0
-                        else
-                          Element (Cur).Message.all
-                          = (+New_Annotation.Justification));
+                       Element (Cur).Justification
+                       = New_Annotation.Justification;
                   end if;
 
                   if not Success then

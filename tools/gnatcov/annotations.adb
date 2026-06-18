@@ -165,7 +165,7 @@ package body Annotations is
               and then LI.Exemption.L.Line = Index
             then
                declare
-                  Justification : constant String_Access :=
+                  Justification : constant Unbounded_String :=
                     Get_Exemption_Message (LI.Exemption);
                   M             : constant Message :=
                     (Kind           => Diagnostics.Notice,
@@ -176,8 +176,8 @@ package body Annotations is
                      SCO            => No_SCO_Id,
                      Msg            =>
                        +("Exempted region justification: "
-                         & (if Justification /= null
-                            then """" & Justification.all & """"
+                         & (if Justification /= ""
+                            then """" & (+Justification) & """"
                             else "<NO JUSTIFICATION>")));
                begin
                   Pp.Pretty_Print_Message (M);
@@ -640,15 +640,23 @@ package body Annotations is
    -- Get_Exemption_Message --
    ---------------------------
 
-   function Get_Exemption_Message (Sloc : Source_Location) return String_Access
+   function Get_Exemption_Message
+     (Sloc : Source_Location) return Unbounded_String
    is
       use ALI_Annotation_Maps;
       Cur : constant Cursor := Get_Annotation (Sloc);
    begin
       if Has_Element (Cur) then
-         return Element (Cur).Message;
+         declare
+            A : constant ALI_Annotation := Element (Cur);
+         begin
+            return
+              (if A.Kind = Exempt_On
+               then A.Justification
+               else Null_Unbounded_String);
+         end;
       else
-         return null;
+         return Null_Unbounded_String;
       end if;
    end Get_Exemption_Message;
 
