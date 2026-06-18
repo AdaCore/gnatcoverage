@@ -9,5 +9,5 @@ end;
 
 --# gcom.adb
 -- /init_body/           l- ## s-
--- /init_call/           l* ## x+
+-- /init_call/           l* ## x+:"auto init off"
 -- /init_call_violation/ l= ## Xs-

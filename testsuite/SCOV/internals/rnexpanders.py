@@ -5,6 +5,7 @@ Expose the RnotesExpander class which constructs a { source -> KnoteDict }
 dictionary of emitted Line Notes from a provided =report outputs.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
 import re
 from typing import override, ClassVar
@@ -15,10 +16,11 @@ from .cnotes import (
     Enote,
     KnoteDict,
     erNoteKinds,
+    justifiedNoteKinds,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from, Stag
-from .tfiles import Tfile, Tline
+from .tfiles import Tfile
 
 
 # =========================================
@@ -805,63 +807,55 @@ class RblockSet:
             rs.check()
 
 
-class RnotesExpander:
-    """Produce list of Enote instances found in a "report" output."""
+def notes_from_report(filename: str) -> dict[str, KnoteDict]:
+    """Parse emitted notes from a coverage report (--annotate=report).
 
-    def __init__(self, report: str):
-        # xcov --annotate=report produces a single report featuring a list of
-        # indications for slocs in all the units.
+    --annotate=report generates a single report featuring a list of indications
+    for slocs in all the units: the result maps source filenames to actual
+    notes.
+    """
+    ernotes: dict[str, KnoteDict[Enote]] = defaultdict(
+        lambda: KnoteDict(erNoteKinds)
+    )
 
-        self.ernotes: dict[str, KnoteDict[Enote]] = {}
-        self.to_enotes(report)
+    # We need to ignore everything not in the report sections of interest, so
+    # until we know we're in ...
+    rset = RblockSet()
+    rs: Rblock | None = None
 
-    def to_enotes(self, report: str) -> None:
-        # We need to ignore everything not in the report sections
-        # of interest, so until we know we're in ...
-
-        self.rset = RblockSet()
-        self.rs: Rblock | None = None
-
-        self.report = report
-        Tfile(filename=self.report, process=self.process_tline)
-
-        self.rset.check()
-
-    def register(self, enote: Enote) -> None:
-        source = enote.source
-        if source not in self.ernotes:
-            self.ernotes[source] = KnoteDict(erNoteKinds)
-        self.ernotes[source].register(enote)
-
-    def process_tline(self, tline: Tline) -> Enote | None:
+    last_enote: Enote | None = None
+    for tline in Tfile(filename):
         rline = tline.text
 
         # Check if we are getting in a section of interest. If so, register
         # that and get to next line.
+        new_rs = rset.starts_with(rline)
+        if new_rs:
+            rs = new_rs
+            continue
 
-        rs = self.rset.starts_with(rline)
-        if rs:
-            self.rs = rs
-            return None
-
-        # Check if we are getting out of the current section of interest ...
-
-        if self.rs and self.rs.ends_on(rline):
-            self.rs = None
+        # Check if we are getting out of the current section of interest...
+        if rs and rs.ends_on(rline):
+            rs = None
 
         # Skip this line if we're out of any section of interest
+        if rs is None:
+            continue
 
-        if self.rs is None:
-            return None
+        assert isinstance(rs, (Nblock, SMRchapter))
+        enote = rs.try_parse(rline)
 
-        assert isinstance(self.rs, (Nblock, SMRchapter))
-        enote = self.rs.try_parse(rline)
-
-        # Some sections produce enotes, some don't (e.g. analysis summary).
-        # An error is issued by the section processing if it should find one
-        # but couldn't.
-
+        # Some sections produce enotes, some don't (e.g. analysis summary). An
+        # error is issued by the section processing if it should find one but
+        # couldn't.
         if enote:
-            self.register(enote)
+            ernotes[enote.source].register(enote)
 
-        return enote
+        # xBlock* notes are always followed by a 1-line justification message
+        elif last_enote is not None and last_enote.kind in justifiedNoteKinds:
+            last_enote.justification = rline.rstrip()
+
+        last_enote = enote
+
+    rset.check()
+    return ernotes

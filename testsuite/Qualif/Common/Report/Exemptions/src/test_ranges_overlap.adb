@@ -39,7 +39,7 @@ end;
 --  /checkValid/    l! ## dT-
 --  /assignValid/   l+ ## 0
 --  /assignInvalid/ l- ## s-
---  /preValid/      l* ## x+
+--  /preValid/      l* ## x+:"expect no invalid ranges"
 --  /preValid_if/   l= ## XoT-
 --  /preValid_inc/  l= ## Xs-
 --  /preValid_ret/  l= ## Xs-

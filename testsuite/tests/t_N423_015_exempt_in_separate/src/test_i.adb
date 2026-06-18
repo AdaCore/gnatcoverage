@@ -11,4 +11,4 @@ end;
 
 --# pck-check.adb
 --  /valids/   l- ## s-
---  /invalids/ l# ## x0
+--  /invalids/ l# ## x0:"Invalids unexpected"

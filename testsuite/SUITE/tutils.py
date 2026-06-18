@@ -1331,37 +1331,6 @@ def do(command: list[str] | str) -> str:
     return p.out
 
 
-class frame:
-    def __init__(
-        self,
-        text: str,
-        char: str = "o",
-        pre: int = 1,
-        post: int = 1,
-    ):
-        self.pre = pre
-        self.post = post
-        self.char = char
-
-        self.width = 0
-        self.lines = text.split("\n")
-        for text in self.lines:
-            self.register(text)
-
-    def register(self, text: str) -> None:
-        if len(text) > self.width:
-            self.width = len(text)
-
-    def display(self) -> None:
-        thistest.log("\n" * self.pre + self.char * (self.width + 6))
-        for text in self.lines:
-            thistest.log(
-                "%s %s %s"
-                % (self.char * 2, text.center(self.width), self.char * 2)
-            )
-        thistest.log(self.char * (self.width + 6) + "\n" * self.post)
-
-
 @dataclass
 class Ext_Annotation:
     """Base external annotation"""

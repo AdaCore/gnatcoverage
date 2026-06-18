@@ -11,4 +11,4 @@ end Test_Reset;
 
 --# reset.adb
 --
--- /st/ l# ## x0
+-- /st/ l# ## x0:"dummy exemption"

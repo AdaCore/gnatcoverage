@@ -214,6 +214,32 @@ class Test:
         """Calls self.report.log."""
         self.report.log(text, new_line)
 
+    def log_frame(
+        self,
+        *lines: str,
+        char: str = "o",
+        pre: int = 1,
+        post: int = 1,
+    ) -> None:
+        """
+        Wrapper around ``log`` to write the given lines with a frame built from
+        the given character.
+
+        :param lines: Text lines to output.
+        :param char: Character to use to build the frame.
+        :param pre: Number of line breaks to output before the frame.
+        :param post: Number of line breaks to output after the frame.
+        """
+        assert len(char) == 1
+        width = max([0] + [len(s) for s in lines])
+        frame_line = char * (width + 6)
+
+        self.log("\n" * pre + frame_line)
+        for text in lines:
+            frame_col = char * 2
+            thistest.log(f"{frame_col} {text.center(width)} {frame_col}")
+        self.log(frame_line + "\n" * post)
+
     def flush(self) -> None:
         """Calls self.report.flush."""
         self.report.flush()

@@ -29,14 +29,16 @@ thistest.fail_if(
     p.status == 0,
     "'gnatcov setup' did not reject the invalid target",
 )
-thistest.fail_if_no_match(
+thistest.fail_if_not_equal(
     "Unexpectect 'gnatcov setup' output",
-    regexp=(
+    expected=(
         "kb: info: can't find a toolchain for the following configuration:"
         " language 'Ada', target 'INVALID', default runtime\n"
         "kb: info: can't find a toolchain for the following configuration:"
         " language 'C', target 'INVALID', default runtime\n"
-        "gnatcov: Cannot get library support for this configuration"
+        "gnatcov_rts.gpr: error: libraries are not supported on this"
+        " platform\n"
+        "gnatcov: Could not load the coverage runtime project file"
     ),
     actual=contents_of(setup_log).strip(),
 )

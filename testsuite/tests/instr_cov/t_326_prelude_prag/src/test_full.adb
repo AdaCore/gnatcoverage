@@ -9,8 +9,8 @@ end Test_Full;
 
 --# selective.ads
 --
--- /cov/ lD ## dB
+-- /cov/ lD ## dB:"Useless unit"
 
 --# exemptions.adb
 --
--- /exempt/ l# ## x0
+-- /exempt/ l# ## x0:"Useless unit"

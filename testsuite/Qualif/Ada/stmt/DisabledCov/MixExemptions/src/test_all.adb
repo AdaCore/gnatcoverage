@@ -10,5 +10,5 @@ end Test_All;
 
 --# disabled.adb
 --  /disabled/ lD ## 0
---  /dis-ex/   lD ## x0
---  /exempted/ l# ## x0
+--  /dis-ex/   lD ## x0:"Exempted region"
+--  /exempted/ l# ## x0:"Exempted region"

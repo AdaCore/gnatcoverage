@@ -80,8 +80,8 @@ class Unit:
     # SID file in which this unit was found
     sid_filename: str
 
-    # Name of the unit (as found in the source trace file)
-    name: bytes
+    # Filename of the instrumented source
+    cu_filename: bytes
 
     # Source fingerprint for this unit. Used to make sure we keep at most one
     # unit per instrumented source file (i.e. we de-duplicate redundant units
@@ -94,9 +94,6 @@ class Unit:
     stmt_bit_count: int
     dc_bit_count: int
     mcdc_bit_count: int
-
-    language_kind: ckptlib.LanguageKind
-    unit_part: UnitPart
 
     fingerprint: bytes
     bit_maps_fingerprint: bytes
@@ -116,39 +113,18 @@ class Unit:
         # Create one Unit instance per SID_Info record recorded in this SID
         # file.
         result = []
-        for cu_part, cu_id in ckpt.instrumented_unit_to_cu.items():
-            match cu_part:
-                case ckptlib.UnitBasedCompilationUnitPart():
-                    language_kind = ckptlib.LanguageKind.unit_based
-                    name = b".".join(cu_part.unit)
-                    match cu_part.part:
-                        case ckptlib.UnitPart.body:
-                            unit_part = UnitPart.unit_body
-                        case ckptlib.UnitPart.spec:
-                            unit_part = UnitPart.unit_spec
-                        case ckptlib.UnitPart.separate:
-                            unit_part = UnitPart.unit_separate
-                        case _:
-                            raise AssertionError
-                case ckptlib.FileBasedCompilationUnitPart():
-                    language_kind = ckptlib.LanguageKind.file_based
-                    name = cu_part.filename
-                    unit_part = UnitPart.not_applicable_part
-                case _:
-                    raise AssertionError
-
+        for cu_filename, cu_id in ckpt.instrumented_unit_to_cu.items():
             cu = ckpt.cu_vector[cu_id]
+            assert isinstance(cu, ckptlib.InstrumenterCUInfo)
             for fingerprint, sidinfo in cu.sids_info.items():
                 result.append(
                     Unit(
                         filename,
-                        name,
+                        cu_filename,
                         cu.source_fingerprint,
                         len(sidinfo.stmt_bit_map),
                         len(sidinfo.dc_bit_map),
                         len(sidinfo.mcdc_bit_map),
-                        language_kind,
-                        unit_part,
                         fingerprint,
                         sidinfo.bit_maps_fingerprint,
                         sidinfo.annotations_fingerprint,
@@ -177,9 +153,7 @@ def write_trace_file(
         ],
         entries=[
             srctracelib.TraceEntry(
-                u.language_kind.name,
-                u.unit_part.name.removeprefix("unit_"),
-                u.name,
+                u.cu_filename,
                 u.fingerprint,
                 u.bit_maps_fingerprint,
                 u.annotations_fingerprint,
@@ -229,7 +203,7 @@ def main() -> None:
     # Find all units for which we will generate fake coverage buffers to be
     # included in the traces to create.
     units = []
-    unit_by_fingerprint = {}
+    unit_by_fingerprint: dict[bytes, Unit] = {}
 
     def load_unit(filename: str) -> None:
         try:
@@ -244,24 +218,12 @@ def main() -> None:
             # Ignore duplicated units, but warn when we find an inconstency
             # between two redundant units.
             if other_u is not None:
-                unit_id = (u.name, u.language_kind, u.unit_part)
-                other_unit_id = (
-                    other_u.name,
-                    other_u.language_kind,
-                    other_u.unit_part,
-                )
-                unit_label = (
-                    f"[{u.language_kind}] {u.name}/{u.unit_part}"
-                    f" (from {other_u.sid_filename})"
-                )
-                if unit_id != other_unit_id:
+                unit_id = repr(u.cu_filename)
+                other_unit_id = repr(other_u.cu_filename)
+                if unit_id != unit_id:
                     print("Same fingerprint for different units:")
-                    print(
-                        f"  [{other_u.language_kind}]"
-                        f" {other_u.name}/{other_u.unit_part}"
-                        f" (from {other_u.sid_filename})"
-                    )
-                    print(f"  {unit_label}")
+                    print(f"  {other_unit_id} (from {other_u.sid_filename})")
+                    print(f"  {unit_id}")
                 elif u.source_fingerprint != other_u.source_fingerprint:
                     print(f"Different source fingerprint for {unit_id}")
                     print(f"  Other came from {other_u.sid_filename}")
@@ -354,8 +316,8 @@ def main() -> None:
 
         # Generate the unique traces
         i = 0
-        for buffers in traces:
-            write_trace_file(trace_filename(i), units, buffers)
+        for trace_buffers in traces:
+            write_trace_file(trace_filename(i), units, trace_buffers)
             i += 1
 
         # Create symlinks for the other traces

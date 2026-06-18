@@ -23,6 +23,6 @@ end;
 --  /checkValid/    l! ## dT-
 --  /assignValid/   l+ ## 0
 --  /assignInvalid/ l- ## s-
---  /preValid/      l* ## x+
+--  /preValid/      l* ## x+:"expect no invalid ranges"
 --  /preValid_cond/ l= ## XoF-
 --  /checkOverlap/  l! ## eT-

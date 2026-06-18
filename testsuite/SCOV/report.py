@@ -14,6 +14,7 @@ Intended mode of use is like:
 from __future__ import annotations
 
 from collections.abc import Iterable
+import enum
 import os.path
 import re
 
@@ -24,11 +25,14 @@ from SCOV.internals.driver import SCOV_helper
 from SCOV.internals.tfiles import Tfile, Tline
 from SCOV.tc import TestCase
 from SUITE.qdata import QDentry
-from SUITE.tutils import thistest, frame
+from SUITE.tutils import thistest
 
 
-# What the whole report checker should do
-MATCH_NEXT_PIECE, MATCH_NEXT_LINE = range(2)
+class MatchKind(enum.Enum):
+    """What the whole report checker should do."""
+
+    next_piece = enum.auto()
+    next_line = enum.auto()
 
 
 class Piece:
@@ -71,14 +75,14 @@ class Piece:
     def full(self) -> bool:
         return self.bounded and len(self.matches) == self.nexpected
 
-    def check_match(self, tline: Tline) -> int:
+    def check_match(self, tline: Tline) -> MatchKind:
         """Called for self on every report line."""
 
         # If this is a bounded Piece that has hit all it's expected matches
         # already, just skip it: don't record an extra match and keep looking
         # for other Piece candidates for that text
         if self.full():
-            return MATCH_NEXT_PIECE
+            return MatchKind.next_piece
 
         # Otherwise, check if the provided line matches this Piece. If it
         # does, record and check if that fills this possibly bounded Piece.
@@ -89,9 +93,9 @@ class Piece:
         if re.search(self.pattern, tline.text):
             self.matches.append(tline)
             if self.full():
-                return MATCH_NEXT_LINE
+                return MatchKind.next_line
 
-        return MATCH_NEXT_PIECE
+        return MatchKind.next_piece
 
     def __first_match(self) -> Tline | None:
         return self.matches[0] if self.matches else None
@@ -156,12 +160,6 @@ crit_for = {
 
 class ReportChecker:
     """Whole report checker"""
-
-    def __process_line(self, tline: Tline) -> None:
-        # See what Piece(s) matches TLINE, stopping on request
-        for rpe in self.rpElements:
-            if rpe.check_match(tline) == MATCH_NEXT_LINE:
-                return
 
     def __register(self, rpieces: Iterable[Piece]) -> None:
         self.rpElements.extend(rpieces)
@@ -322,13 +320,11 @@ class ReportChecker:
         self.__register(rpieces=[rpEnd])
 
     def __process_one_test(self, qde: QDentry) -> None:
-        frame(
-            text=(
-                "report check for xfile = %s\n" % qde.xfile
-                + "drivers = %s" % str(qde.drivers)
-            ),
+        thistest.log_frame(
+            f"report check for xfile = {qde.xfile}",
+            f"drivers = {qde.drivers}",
             char="~",
-        ).display()
+        )
 
         # Count the number of expected exemption regions
         xregions = 0
@@ -350,7 +346,12 @@ class ReportChecker:
             len(reports) != 1, "expected 1 report, found %d" % len(reports)
         )
 
-        self.report = Tfile(reports[0], self.__process_line)
+        self.report = Tfile(reports[0])
+        for tline in self.report:
+            # See what Piece(s) matches TLINE, stopping on request
+            for rpe in self.rpElements:
+                if rpe.check_match(tline) == MatchKind.next_line:
+                    break
         for rpe in self.rpElements:
             rpe.check()
 

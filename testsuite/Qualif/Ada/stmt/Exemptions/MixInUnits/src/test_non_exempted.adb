@@ -26,17 +26,17 @@ end Test_Non_Exempted;
 
 --# exemptions.ads
 -- /decl/              l+ ## 0
--- /xdecl/             l# ## x0
+-- /xdecl/             l# ## x0:"exemption on global declaration"
 -- /negI/              l+ ## 0
 
 --# exemptions.adb
--- /xswap/             l* ## x+
+-- /xswap/             l* ## x+:"exemption on declarations"
 -- /xswap_vio/         l= ## Xs-
 -- /swap_stmt/         l- ## s-
 
 -- /factorial/         l+ ## 0
 -- /1_factorial/       l+ ## 0
--- /xfactorial/        l* ## x+
+-- /xfactorial/        l* ## x+:"exemption on statements in function"
 -- /xfactorial_vio/    l= ## Xs-
 -- /elsif_factorial/   l+ ## 0
 -- /rec_factorial/     l+ ## 0
@@ -48,6 +48,6 @@ end Test_Non_Exempted;
 -- /in_if_a_f/         l- ## s-
 -- /handler_a_f/       l- ## s-
 
--- /xelab_1/           l# ## x0
+-- /xelab_1/           l# ## x0:"exemption on elaboration code - 1"
 -- /elab/              l+ ## 0
--- /xelab_2/           l# ## x0
+-- /xelab_2/           l# ## x0:"exemption on elaboration code - 2"

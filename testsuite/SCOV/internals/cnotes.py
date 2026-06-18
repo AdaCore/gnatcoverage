@@ -339,6 +339,9 @@ XNoteKinds = XsNoteKinds + XoNoteKinds + XcNoteKinds
 # Disabled coverage regions
 disabledNoteKinds = (NK.dBlock,)
 
+# Notes for regions with justifications (exemption or disabled coverage)
+justifiedNoteKinds = xNoteKinds + disabledNoteKinds
+
 # Anti-expectations
 rAntiKinds = (NK.r0, NK.r0c)
 
@@ -421,9 +424,13 @@ def transparent_p(nkind: int) -> bool:
     """
     TRANSPARENT expectations are those that should not produce an expected note
     to be matched. It is relevant for exempted regions. For an exempted region,
-    we have one _line_ note emitted for each line of the block, one _report_
-    block note emitted for the entire region and one _report_ note for each
-    exempted violation within the region. For example:
+    we have:
+
+    * one _line_ note emitted for each line of the block
+    * one _report_ block note emitted for the entire region
+    * one _report_ note for each exempted violation within the region.
+
+    For example:
 
     foo.adb.xcov:
         2 *:   pragma Annotate (Exempt_On, "comment"); -- # ex-region
@@ -454,8 +461,8 @@ def transparent_p(nkind: int) -> bool:
     expectations that would never be discharged. On our example, this would be
     achieved with:
 
-    --# /ex-region-test l= ## dT-
-    --# /ex-region-bump l= ## s-
+    --# /ex-region-test/ l= ## dT-
+    --# /ex-region-bump/ l= ## s-
 
     where the "l=" expectation is "transparent".
     """
@@ -539,6 +546,12 @@ class Xnote(Cnote):
         self.nmatches += 1
         self.segment = segment
 
+    def image(self) -> str:
+        result = super().image()
+        if self.stext and self.kind in justifiedNoteKinds:
+            result += f" (justification: {self.stext})"
+        return result
+
     def satisfied(self) -> bool:
         """Tell whether this [anti-]expectation is satisfied at this point."""
         if anti_p(self.kind):
@@ -556,13 +569,23 @@ class Enote(Cnote):
         segment: Section,
         source: str,
         stag: Stag | None = None,
+        justification: str | None = None,
     ):
         Cnote.__init__(self, kind)
         self.segment = segment  # The line segment it designates
         self.source = source  # The corresponding source name
         self.stag = stag  # The separation tag it contains
 
+        # Justification message, for xBlock* notes
+        self.justification = justification
+
         self.discharges: Xnote | None = None  # The Xnote it discharges
+
+    def image(self) -> str:
+        result = super().image()
+        if self.justification:
+            result += f" (justification: {self.justification})"
+        return result
 
 
 class KnoteDict[Note: Cnote](dict[NK, list[Note]]):
