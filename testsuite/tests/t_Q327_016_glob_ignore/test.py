@@ -24,6 +24,7 @@ build_run_and_coverage(
     mains=["main"],
     ignored_source_files=["@" + ignore_list],
     extra_coverage_args=["-a", "xcov", "--output-dir=."],
+    tolerate_instrument_messages="All of the parts for the unit of interest",
     tolerate_coverage_messages="no SID file found for unit",
 )
 

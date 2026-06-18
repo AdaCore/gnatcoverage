@@ -913,6 +913,23 @@ package body Project is
       end if;
    end Enumerate_Sources;
 
+   -----------------------------------
+   -- Enumerate_Sources_Of_Interest --
+   -----------------------------------
+
+   procedure Enumerate_Sources_Of_Interest
+     (Callback :
+        access procedure
+          (Project : GPR2.Project.View.Object;
+           File    : GPR2.Build.Source.Object)) is
+   begin
+      for Lang in Src_Supported_Language loop
+         if Src_Enabled_Languages (Lang) then
+            Enumerate_Sources (Callback, Lang, Mode => Only_UOI_Closures);
+         end if;
+      end loop;
+   end Enumerate_Sources_Of_Interest;
+
    ----------------------
    -- Find_Source_File --
    ----------------------
