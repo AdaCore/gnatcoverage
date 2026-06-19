@@ -80,6 +80,9 @@ CURRENT_DIR := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 GPR_PROJECT_PATH := $(CURRENT_DIR)/gpr_stubs$(PSEP)$(GPR_PROJECT_PATH)
 endif
 
+# Make it possible to build only one gnatcov part (build all if left empty)
+PART=""
+
 #####################################################################
 # Targets to build the core tool and the trace adapters, optionally #
 #####################################################################
@@ -178,23 +181,19 @@ ifdef INSTRUMENTED
 	# use the version that was not instrumented as a main to compile
 	# gnatcov32, running gnatcov32 will not dump execution traces.
 
-	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov64
-	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=gnatcov64
-
-	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov32
-	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=gnatcov32
-
-	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=driver
-	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=driver
-
-	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=compiler
-	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=compiler
+	set -e; for part in gnatcov64 gnatcov32 driver compiler; do \
+	  if [ -z "$(PART)" ] || [ "$(PART)" = $$part ]; then \
+	    gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=$$part; \
+	    $(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=$$part; \
+	  fi; \
+	done
 else
 	# Start with the 64-bit gnatcov, which has the largest closure
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler
+	set -e; for part in gnatcov64 gnatcov32 driver compiler; do \
+	  if [ -z "$(PART)" ] || [ "$(PART)" = $$part ]; then \
+	    $(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=$$part; \
+	  fi; \
+	done
 endif
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
