@@ -137,11 +137,8 @@ package Checkpoints is
 
    procedure Set_SFI_Map
      (Relocs                 : Checkpoint_Relocations;
-      Source_SFI, Target_SFI : Valid_Source_File_Index)
-   with Pre => not SFI_Ignored (Relocs, Source_SFI);
-   --  Associate Source_SFI to Target_SFI in the relocations map.
-   --  Source_SFI must not have been previously marked as ignored with
-   --  Ignore_SFI.
+      Source_SFI, Target_SFI : Valid_Source_File_Index);
+   --  Associate Source_SFI to Target_SFI in the relocations map
 
    procedure Set_SFI_Simple_Name
      (Relocs      : Checkpoint_Relocations;
@@ -172,9 +169,10 @@ package Checkpoints is
    --  Relase allocated maps in Relocs
 
    function Remap_SFI
-     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
-      return Source_File_Index
-   with Pre => not SFI_Ignored (Relocs, CP_SFI);
+     (Relocs         : Checkpoint_Relocations;
+      CP_SFI         : Source_File_Index;
+      Accept_Ignored : Boolean := False) return Source_File_Index
+   with Pre => Accept_Ignored or else not SFI_Ignored (Relocs, CP_SFI);
    --  Remap one source file index.
    --
    --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
@@ -209,8 +207,10 @@ package Checkpoints is
    --  the current run.
 
    procedure Remap_SFI
-     (Relocs : Checkpoint_Relocations; CP_SFI : in out Source_File_Index)
-   with Pre => not SFI_Ignored (Relocs, CP_SFI);
+     (Relocs         : Checkpoint_Relocations;
+      CP_SFI         : in out Source_File_Index;
+      Accept_Ignored : Boolean := False)
+   with Pre => Accept_Ignored or else not SFI_Ignored (Relocs, CP_SFI);
    --  Remap one source file index.
    --
    --  If CP_SFI is No_Source_File then it's returned unchanged. If it is

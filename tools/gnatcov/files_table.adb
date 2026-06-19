@@ -2451,10 +2451,7 @@ package body Files_Table is
 
                --  But mark it as always ignored
 
-               Consolidate_Ignore_Status (SFI, Always);
-               if FE.Unit.Known then
-                  Consolidate_Source_File_Unit (SFI, FE.Unit.Name);
-               end if;
+               FE.Ignore_Status := Always;
 
             else
                if FE.Kind = Library_File then
@@ -2521,23 +2518,22 @@ package body Files_Table is
                          (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
                   end if;
                end if;
+            end if;
 
-               Set_SFI_Map (Relocs, CP_SFI, SFI);
-               if FE.Kind = Source_File then
-                  Consolidate_Ignore_Status (SFI, FE.Ignore_Status);
-                  if FE.Unit.Known then
-                     Consolidate_Source_File_Unit (SFI, FE.Unit.Name);
-                  end if;
+            Set_SFI_Map (Relocs, CP_SFI, SFI);
+            Files_Table_Trace.Trace
+              ("Remap "
+               & FE.Name.all
+               & ":"
+               & CP_SFI'Img
+               & " ->"
+               & Remap_SFI (Relocs, CP_SFI, Accept_Ignored => True)'Img);
+
+            if FE.Kind = Source_File then
+               Consolidate_Ignore_Status (SFI, FE.Ignore_Status);
+               if FE.Unit.Known then
+                  Consolidate_Source_File_Unit (SFI, FE.Unit.Name);
                end if;
-
-               Set_SFI_Map (Relocs, CP_SFI, SFI);
-               Files_Table_Trace.Trace
-                 ("Remap "
-                  & FE.Name.all
-                  & ":"
-                  & CP_SFI'Img
-                  & " ->"
-                  & Remap_SFI (Relocs, CP_SFI)'Img);
             end if;
          end;
       end loop;
