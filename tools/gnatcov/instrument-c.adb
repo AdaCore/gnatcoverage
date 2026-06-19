@@ -123,6 +123,35 @@ package body Instrument.C is
    --  location to that offset to obtain the actual offset in Str
    --  that corresponds to LINE:COL in Filename.
 
+   type Annotation_Index is record
+      Buffer_First : Positive;
+      Priority     : Natural;
+      Buffer_Next  : Natural;
+   end record;
+   --  Identifier for a source slice that an annotation covers.
+   --
+   --  The ``Buffer_First .. Buffer_Next - 1`` index range covers the source
+   --  exerpt that should be replaced:
+   --
+   --  * For in-source annotations, this is the range that covers the comment
+   --    that materializes the annotation.
+   --  * For external annotations, this is an empty range (Buffer_First =
+   --    Buffer_Next) and the code is inserted right before the byte at
+   --    Buffer_First.
+   --
+   --  Priority is used to allow multiple annotations at the same location.
+
+   function "<" (Left, Right : Annotation_Index) return Boolean
+   is (Left.Buffer_First < Right.Buffer_First
+       or else
+         (Left.Buffer_First = Right.Buffer_First
+          and then Left.Priority < Right.Priority));
+
+   package Index_To_Annotation_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Annotation_Index,
+        Element_Type => ALI_Annotation);
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -4750,7 +4779,6 @@ package body Instrument.C is
    is
       Ignore_Check    : constant Boolean := Check_Compiler_Driver (Prj, Self);
       PP_Filename     : Unbounded_String;
-      Matches         : Match_Array (0 .. 4);
       Dump_Procedure  : constant String :=
         Dump_Procedure_Symbol
           (Main => "", Manual => True, Prj_Name => Prj.Prj_Name);
@@ -4758,15 +4786,10 @@ package body Instrument.C is
         Reset_Procedure_Symbol (Prj.Prj_Name);
       Extern_Prefix   : constant String :=
         C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
-
-      Annots : constant Instr_Annotation_Map :=
-        Get_Buffer_Annotations (+Source.Full_Name);
-
-      Annot_Mapping : Sloc_To_Index_Maps.Map;
-      --  Mapping from source locations of the annotations in the
-      --  non-preprocessed file to the index in the preprocessed file buffer.
-
    begin
+      Has_Dump_Indication := False;
+      Has_Reset_Indication := False;
+
       --  Preprocess the source, keeping the comment to look for the manual
       --  dump indication later.
 
@@ -4797,99 +4820,66 @@ package body Instrument.C is
          --  binary file, as we are going to write contents retrieved
          --  through mmap (thus binary Str) to it.
 
-         Index : Positive := 1;
-         --  Starting index, or last index of the previous annotation in the
-         --  original file.
-
-         Next_Ext_Annot : aliased Natural;
-         Next_Src_Annot : aliased Natural;
-         --  Next index for each of the annotations. Should be set to
-         --  Natural'Last if there are no more valid annotations.
-
-         type Idx_Acc is access all Natural;
-
-         Next_Annotation : Idx_Acc;
-         --  Pointer to the next annotation (in source or external) to be
-         --  processed.
-
-         Ext_Annot_Cur : Cursor;
-
+         Annotations : Index_To_Annotation_Maps.Map;
+         First       : Boolean := True;
+         Last_Index  : Natural := 1;
       begin
-         --  Create the sloc to index mapping for external annotations
+         --  Populate the Annotations map from external annotations
 
-         for Annot_Cur in Annots.Iterate loop
-            Annot_Mapping.Insert (Instr_Annotation_Maps.Key (Annot_Cur), 0);
-         end loop;
-         Remap_Locations (Str, +Source.Full_Name, Annot_Mapping);
-         Ext_Annot_Cur := Annot_Mapping.First;
+         declare
+            Ext_Annotations : constant Instr_Annotation_Map :=
+              Get_Buffer_Annotations (+Source.Full_Name);
+            Slocs_To_Index  : Sloc_To_Index_Maps.Map;
+         begin
+            for Cur in Ext_Annotations.Iterate loop
+               Slocs_To_Index.Insert (Instr_Annotation_Maps.Key (Cur), 0);
+            end loop;
+            Remap_Locations (Str, +Source.Full_Name, Slocs_To_Index);
 
-         Has_Dump_Indication := False;
-         Has_Reset_Indication := False;
+            for Cur in Ext_Annotations.Iterate loop
+               declare
+                  Instr_A : constant Instr_Annotation :=
+                    Instr_Annotation_Maps.Element (Cur);
+                  ALI_A   : ALI_Annotation :=
+                    (Kind => Instr_A.Kind, others => <>);
+                  Index   : constant Positive :=
+                    Slocs_To_Index (Instr_Annotation_Maps.Key (Cur));
+               begin
+                  case Buffers_Annotation_Kind (Instr_A.Kind) is
+                     when Dump_Buffers  =>
+                        ALI_A.Message :=
+                          (if Instr_A.Trace_Prefix = ""
+                           then null
+                           else new String'(+Instr_A.Trace_Prefix));
 
-         Match (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
+                     when Reset_Buffers =>
+                        null;
+                  end case;
+                  Annotations.Insert
+                    ((Buffer_First => Index,
+                      Priority     => Natural (Annotations.Length),
+                      Buffer_Next  => Index),
+                     ALI_A);
+               end;
+            end loop;
+         end;
 
-         --  Initialize the indices
+         --  Then populate it from directives found in the source code
 
-         Next_Ext_Annot :=
-           (if not Has_Element (Ext_Annot_Cur)
-              or else Element (Ext_Annot_Cur) = 0
-            then Natural'Last
-            else Element (Ext_Annot_Cur));
-         Next_Src_Annot :=
-           (if Matches (0) = No_Match
-            then Natural'Last
-            else Matches (0).First);
+         declare
+            Index   : Positive := Str'First;
+            Matches : Match_Array (0 .. 4);
+            A       : ALI_Annotation;
+         begin
+            loop
+               Match
+                 (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
+               exit when Matches (0) = No_Match;
 
-         --  Iterate over all the annotations, forwarding the original text in
-         --  between.
+               --  Move the index forward so that we are ready for the next
+               --  match.
 
-         while Index in Str'Range loop
-
-            --  Find the index of the next annotation to be processed
-
-            Next_Annotation :=
-              (if Next_Src_Annot <= Next_Ext_Annot
-               then Next_Src_Annot'Access
-               else Next_Ext_Annot'Access);
-
-            --  No matches, and no more or invalid ext annotations,
-            --  nothing left to do.
-
-            exit when Next_Annotation.all = Natural'Last;
-
-            --  Open the output file if this is the first match we find,
-            --  then forward the source code that appear before the match
-            --  unchanged.
-
-            if not (Has_Dump_Indication or else Has_Reset_Indication) then
-               Create (Output_File, Out_File, Tmp_Filename);
-               S := Stream (Output_File);
-
-               --  Put an external decl for the buffers dump and reset
-               --  functions.
-               --
-               --  The external decl for the dump procedure takes a const
-               --  char * to avoid any warnings when using a string literal
-               --  as the trace prefix.
-
-               String'Write
-                 (S,
-                  Extern_Prefix
-                  & "void "
-                  & Dump_Procedure
-                  & "(const char *prefix);");
-               String'Write
-                 (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
-            end if;
-
-            --  Forward the content between the previous annotation and the
-            --  next one
-
-            String'Write (S, Str (Index .. Next_Annotation.all - 1));
-
-            --  Process whatever annotation source comes first
-
-            if Next_Annotation = Next_Src_Annot'Access then
+               Index := Matches (0).Last + 1;
 
                if Matches (Buffer_Dump_Group) /= No_Match then
                   Switches.Misc_Trace.Trace
@@ -4901,17 +4891,18 @@ package body Instrument.C is
                   --  prefix otherwise.
 
                   declare
-                     Prefix : constant String :=
+                     Prefix : constant String_Access :=
                        (if Matches (Buffer_Dump_Prefix_Group) = No_Match
-                        then """" & To_Ada (Prj.Prj_Name) & """"
+                        then null
                         else
-                          Str
-                            (Matches (Buffer_Dump_Prefix_Group).First
-                             .. Matches (Buffer_Dump_Prefix_Group).Last));
+                          new String'
+                            (Str
+                               (Matches (Buffer_Dump_Prefix_Group).First
+                                .. Matches (Buffer_Dump_Prefix_Group).Last)));
                   begin
-                     String'Write (S, Dump_Procedure & "(" & Prefix & ");");
+                     A :=
+                       (Kind => Dump_Buffers, Message => Prefix, others => <>);
                   end;
-                  Has_Dump_Indication := True;
 
                else
                   pragma Assert (Matches (Buffer_Reset_Group) /= No_Match);
@@ -4919,84 +4910,87 @@ package body Instrument.C is
                     ("Found buffer reset indication in file "
                      & (+Source.Full_Name));
 
-                  String'Write (S, Reset_Procedure & "();");
-                  Has_Reset_Indication := True;
+                  A := (Kind => Reset_Buffers, others => <>);
                end if;
 
-               --  Move the index forward, and search for the next match
-
-               Index := Matches (0).Last + 1;
-               Match
-                 (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
-               Next_Src_Annot :=
-                 (if Matches (0) /= No_Match
-                  then Matches (0).First
-                  else Natural'Last);
-
-            else
-               declare
-                  Annot :
-                    constant Instr_Annotation_Maps.Constant_Reference_Type :=
-                      Annots.Constant_Reference (Key (Ext_Annot_Cur));
-               begin
-                  case Annot.Kind is
-                     when Dump_Buffers     =>
-                        Has_Dump_Indication := True;
-                        String'Write
-                          (S,
-                           Dump_Procedure
-                           & "("
-                           & (if Length (Annot.Trace_Prefix) /= 0
-                              then +Annot.Trace_Prefix
-                              else """" & To_Ada (Prj.Prj_Name) & """")
-                           & ");");
-
-                     when Reset_Buffers    =>
-                        Has_Reset_Indication := True;
-                        String'Write (S, Reset_Procedure & "();");
-
-                     when Cov_On | Cov_Off =>
-                        raise Program_Error with "Not reachable";
-                  end case;
-                  Next (Ext_Annot_Cur);
-                  Index := Next_Annotation.all;
-                  Next_Ext_Annot :=
-                    (if Has_Element (Ext_Annot_Cur)
-                       and then Element (Ext_Annot_Cur) /= 0
-                     then Element (Ext_Annot_Cur)
-                     else Natural'Last);
-               end;
-            end if;
-         end loop;
-
-         --  If we have some external annotations we were not able to re-locate
-         --  in the preprocessed file, warn about it.
-
-         if Has_Element (Ext_Annot_Cur) then
-            Warning_Or_Error
-              ("Some external annotations could not be re-mapped in the"
-               & " preprocessed version of "
-               & (+Source.Full_Name)
-               & ", They have been ignored. Use -v for more details.");
-            while Has_Element (Ext_Annot_Cur) loop
-               declare
-                  Annot : constant Instr_Annotation :=
-                    Annots.Element (Key (Ext_Annot_Cur));
-               begin
-                  Switches.Misc_Trace.Trace
-                    ("Could not remap "
-                     & Annot.Kind'Image
-                     & " at "
-                     & Slocs.Image (Key (Ext_Annot_Cur)));
-               end;
-               Next (Ext_Annot_Cur);
+               Annotations.Insert
+                 ((Buffer_First => Matches (0).First,
+                   Priority     => Natural (Annotations.Length),
+                   Buffer_Next  => Index),
+                  A);
             end loop;
-         end if;
+         end;
+
+         --  Now iterate on all annotations in source order to insert source
+         --  code corresponding to annotations.
+
+         for Cur in Annotations.Iterate loop
+            declare
+               I : constant Annotation_Index :=
+                 Index_To_Annotation_Maps.Key (Cur);
+               A : constant ALI_Annotation :=
+                 Index_To_Annotation_Maps.Element (Cur);
+            begin
+               --  Open the output file if this is the first match we find,
+               --  then forward the source code that appear before the match
+               --  unchanged.
+
+               if First then
+                  Create (Output_File, Out_File, Tmp_Filename);
+                  S := Stream (Output_File);
+
+                  --  Put an external decl for the buffers dump and reset
+                  --  functions.
+                  --
+                  --  The external decl for the dump procedure takes a const
+                  --  char * to avoid any warnings when using a string literal
+                  --  as the trace prefix.
+
+                  String'Write
+                    (S,
+                     Extern_Prefix
+                     & "void "
+                     & Dump_Procedure
+                     & "(const char *prefix);");
+                  String'Write
+                    (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
+
+                  First := False;
+               end if;
+
+               --  Forward the content between the previous annotation and this
+               --  one.
+
+               String'Write (S, Str (Last_Index .. I.Buffer_First - 1));
+
+               case Buffers_Annotation_Kind (A.Kind) is
+                  when Dump_Buffers  =>
+                     String'Write
+                       (S,
+                        Dump_Procedure
+                        & "("
+                        & (if A.Message = null
+                           then """" & To_Ada (Prj.Prj_Name) & """"
+                           else A.Message.all)
+                        & ");");
+                     Has_Dump_Indication := True;
+
+                  when Reset_Buffers =>
+                     String'Write (S, Reset_Procedure & "();");
+                     Has_Reset_Indication := True;
+               end case;
+
+               Last_Index := I.Buffer_Next;
+            end;
+         end loop;
 
          --  If we had a manual indication, and thus wrote a modified source
          --  file, overwrite the original source file with it.
 
-         if Has_Dump_Indication or else Has_Reset_Indication then
+         if First then
+            Free (Region);
+            Close (File);
+         else
             declare
                PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
@@ -5004,7 +4998,7 @@ package body Instrument.C is
             begin
                --  Flush the rest of the file contents
 
-               String'Write (S, Str (Index .. Str'Last));
+               String'Write (S, Str (Last_Index .. Str'Last));
                Close (Output_File);
 
                Free (Region);
@@ -5020,9 +5014,6 @@ package body Instrument.C is
                      & (+Source.Full_Name));
                end if;
             end;
-         else
-            Free (Region);
-            Close (File);
          end if;
       end;
    end Replace_Manual_Indications;
