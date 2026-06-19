@@ -14,6 +14,12 @@ TARGET =
 BOARD =
 
 # ==========================================================
+# Extra -XLIBRARY_SUPPORT to pass to gprbuild
+# ==========================================================
+
+LIBRARY_SUPPORT =
+
+# ==========================================================
 # What --target will we pass to gnatcov
 # ==========================================================
 
@@ -69,6 +75,9 @@ ifneq ($(TARGET),)
 endif
 ifneq ($(BOARD),)
   GPRBUILD_TARGETARGS += -XBOARD=$(BOARD)
+endif
+ifneq ($(LIBRARY_SUPPORT),)
+  GPRBUILD_TARGETARGS += -XLIBRARY_SUPPORT=$(LIBRARY_SUPPORT)
 endif
 GPRBUILD_TARGETARGS += $(GPR_ARGS)
 XCOV_TARGETARGS = $(GPRBUILD_TARGETARGS)
