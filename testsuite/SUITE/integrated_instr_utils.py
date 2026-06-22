@@ -124,7 +124,7 @@ class MakefileCommon(CompileBits):
     tmplt: str = "unimplemented"
 
     # Target dependencies for the build target
-    build_target_deps: list[str]
+    build_target_deps: list[str] = dataclasses.field(default_factory=list)
 
     def template_params(self) -> dict[str, str]:
         return {
@@ -285,6 +285,36 @@ class RunCompiler(Workflow):
             for_pgm=False,
             env=env,
             register_failure=register_failure,
+        )
+
+
+@dataclasses.dataclass(kw_only=True)
+class CMake(CompileBits, LinkBits):
+
+    def build(
+        self,
+        env: dict[str, str],
+        register_failure: bool = True,
+    ) -> Run:
+        cmake_conf = cmdrun(
+            [
+                "cmake",
+                "-G",
+                "Unix Makefiles",
+                f"-DCMAKE_CXX_COMPILER={self.compiler("C++")}",
+                f"-DCMAKE_C_COMPILER={self.compiler("C")}",
+                f"-DCMAKE_C_FLAGS={' '.join(self.compiler_switches)}",
+                f"-DCMAKE_CXX_FLAGS={' '.join(self.compiler_switches)}",
+                "..",
+            ],
+            for_pgm=False,
+            env=env,
+            register_failure=register_failure,
+        )
+        if cmake_conf.status != 0:
+            return cmake_conf
+        return cmdrun(
+            ["make"], for_pgm=False, env=env, register_failure=register_failure
         )
 
 

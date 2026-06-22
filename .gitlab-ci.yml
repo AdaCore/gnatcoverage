@@ -87,6 +87,7 @@ build_docs:
       when: always
   script:
     - generic_anod_ci
+    - . /tmp/ci_env.sh
     - anod build gnatdas-doc -Qwarn-errors --latest
     - DOC_BSN=$(anod eval gnatdas-doc -Qwarn-errors build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$DOC_BSN/install/share/doc/gnatdas/ $CI_PROJECT_DIR

@@ -1818,9 +1818,15 @@ package body SC_Obligations is
             if not Real_CU.PP_Info_Map.Contains (SCO) then
                if Info.Kind = In_Expansion then
                   for Expansion of Info.Expansion_Stack loop
-                     Remap_SFI (Relocs, Expansion.Sloc.Source_File);
+                     Remap_SFI
+                       (Relocs,
+                        Expansion.Sloc.Source_File,
+                        Accept_Ignored => True);
                   end loop;
-                  Remap_SFI (Relocs, Info.Definition_Loc.Sloc.Source_File);
+                  Remap_SFI
+                    (Relocs,
+                     Info.Definition_Loc.Sloc.Source_File,
+                     Accept_Ignored => True);
                end if;
                Remap_SCO_Id (Relocs, SCO);
                Real_CU.PP_Info_Map.Insert (SCO, Info);

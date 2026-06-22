@@ -88,7 +88,6 @@ prepare-images:: gnatcov/Proot.pdf
 gnatcov/Proot.pdf: gnatcov/gen_prjtrees.py gnatcov/prjtree.dot
 	cd gnatcov && python gen_prjtrees.py
 
-
 # -----------------------------------------------------------------
 # Building the doc
 

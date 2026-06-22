@@ -283,7 +283,9 @@ package body Checkpoints is
    ---------------
 
    procedure Remap_SFI
-     (Relocs : Checkpoint_Relocations; CP_SFI : in out Source_File_Index) is
+     (Relocs         : Checkpoint_Relocations;
+      CP_SFI         : in out Source_File_Index;
+      Accept_Ignored : Boolean := False) is
    begin
       if CP_SFI /= No_Source_File then
          CP_SFI := Relocs.SFI_Map (CP_SFI);
@@ -296,8 +298,9 @@ package body Checkpoints is
    ---------------
 
    function Remap_SFI
-     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
-      return Source_File_Index is
+     (Relocs         : Checkpoint_Relocations;
+      CP_SFI         : Source_File_Index;
+      Accept_Ignored : Boolean := False) return Source_File_Index is
    begin
       if CP_SFI /= No_Source_File then
          pragma Assert (Relocs.SFI_Map (CP_SFI) /= No_Source_File);

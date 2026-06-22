@@ -173,6 +173,10 @@ package SC_Obligations is
      Any_Annotation_Kind range Exempt_On .. Exempt_Off;
    --  Annotation kinds that can be found in ALI files
 
+   subtype Buffers_Annotation_Kind is
+     Any_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
+   --  Annotation kinds to perform coverage buffers control
+
    type ALI_Annotation is record
       Kind : Src_Annotation_Kind;
       --  On or Off, Dump or Reset coverage buffers
