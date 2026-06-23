@@ -1297,6 +1297,10 @@ class TestSuite(e3.testsuite.Testsuite):
         if args.RTS:
             libsup_vars.append("RTS={}".format(args.RTS))
 
+        # AAMP does not support libraries
+        if args.target and "aamp" in args.target:
+            libsup_vars.append("LIBRARY_SUPPORT=no")
+
         # QNX + run-cross2 will report an abort as an abnormal program
         # termination, which is not the point of the silent last chance
         # handler. QNX however does provide the exit function, so use that
