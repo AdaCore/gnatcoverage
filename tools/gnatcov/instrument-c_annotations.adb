@@ -805,7 +805,10 @@ package body Instrument.C_Annotations is
          loop
             Next_Line_Index := GNATCOLL.Utils.Next_Line (Str, Next_Line_Index);
 
-            --  Check if we are on a line directive. If so, parse it.
+            --  Parse the line directive, if this line contains one. This
+            --  matches GCC-style directives, for instance:
+            --
+            --     # 9 "foo.c" 2
 
             if Str (Next_Line_Index) = '#'
               and then Next_Line_Index < Str'Last
