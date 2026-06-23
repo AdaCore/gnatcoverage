@@ -70,5 +70,7 @@ package Instrument.C_Annotations is
      (Filename    : String;
       Buffer      : String;
       Annotations : out Index_To_Annotation_Maps.Map);
+   --  Look for exemption and disabling coverage markers in the given buffer
+   --  and in external annotation files, and fill Annotations accordingly.
 
 end Instrument.C_Annotations;

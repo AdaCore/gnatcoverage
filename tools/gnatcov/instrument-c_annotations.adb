@@ -781,7 +781,7 @@ package body Instrument.C_Annotations is
       Next_Sloc : Cursor := Slocs.First;
 
       procedure Get_Next_Line;
-      --  Update Next_Line and Next_Line index to point to the next line of
+      --  Update Next_Line and Next_Line_Index to point to the next line of
       --  Filename in Str, based on the current position in Current_Line
       --  and Current_Line_Index.
 
