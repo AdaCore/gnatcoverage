@@ -612,12 +612,19 @@ is
 
       Args.Append (+"--format=just-symbol");
       Args.Append (Full_Name (Symbol_File));
-      Run_Command
-        (Command             =>
-           +Config.Nms.Element (+Simple_Name (Compiler_Driver)),
-         Arguments           => Args,
-         Origin_Command_Name => "compiler wrapper",
-         Output_File         => Output_Filename);
+      if not Run_Command
+               (Command             =>
+                  +Config.Nms.Element (+Simple_Name (Compiler_Driver)),
+                Arguments           => Args,
+                Origin_Command_Name => "compiler wrapper",
+                Output_File         => Output_Filename,
+                Ignore_Error        => True)
+      then
+         Outputs.Warn
+           ("Could not get coverage buffer symbols from "
+            & (+Symbol_File.Full_Name));
+         return Result;
+      end if;
 
       --  Each line of the output is a symbol
 
@@ -1330,7 +1337,24 @@ begin
                      --
                      --  <lib_basename> => (<load_address>)
 
-                     if GNATCOLL.VFS.Is_Regular_File (Lib_File) then
+                     if GNATCOLL.VFS.Is_Regular_File (Lib_File)
+
+                       --  On Windows, 32-bit programs may be dynamically
+                       --  linked to 64-bit system libraries. Do not try to
+                       --  get coverage symbols from them as running the
+                       --  32-bit "nm" on them will fail, and we are sure they
+                       --  do not contain coverage symbols anyway.
+
+                       and
+                         not (Paths.On_Windows
+                              and then
+                                Fold_Filename_Casing (+Lib_File.Base_Name)
+                                in "ntdll.dll"
+                                 | "wow64.dll"
+                                 | "wow64base.dll"
+                                 | "wow64win.dll"
+                                 | "wow64con.dll")
+                     then
                         Add_Coverage_Buffer_Symbols (Lib_File);
                      end if;
                   end;
