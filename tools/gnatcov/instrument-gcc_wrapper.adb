@@ -634,7 +634,13 @@ is
          declare
             Line : constant Unbounded_String := +Get_Line (Output_File);
          begin
-            if Starts_With (Line, "gnatcov_rts_buffers")
+            --  32-bit Windows programs have symbols prefixed with underscores.
+            --  We need to strip them when they are present, so that the
+            --  symbols mentionned in sources result in the same symbols after
+            --  compilation.
+
+            if (Starts_With (Line, "gnatcov_rts_buffers")
+                or else Starts_With (Line, "_gnatcov_rts_buffers"))
 
               --  The buffer list symbol is also referenced in the link
               --  closure: make sure not to pick it as it is named
@@ -643,7 +649,10 @@ is
 
               and then Ends_With (Line, "_buffers")
             then
-               Result.Insert (Line);
+               Result.Insert
+                 (if US.Element (Line, 1) = '_'
+                  then US.Unbounded_Slice (Line, 2, US.Length (Line))
+                  else Line);
             end if;
          end;
       end loop;
