@@ -17,9 +17,7 @@ comp_wf = CompileSource(source="main.c", compiler_switches=["-invalid-switch"])
 build_run_and_coverage(wfs=[comp_wf], register_failure=False)
 
 output = contents_of(comp_wf.out_file)
-gcc_ext = ""
-if thistest.env.target.os.name == "windows":
-    gcc_ext = ".exe"
+gcc_ext = thistest.env.build.os.exeext
 
 error_msg = (
     f"gcc{gcc_ext}: error: unrecognized command-line option '-invalid-switch'"
