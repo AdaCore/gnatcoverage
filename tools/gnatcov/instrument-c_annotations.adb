@@ -30,6 +30,7 @@ with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common;  use Instrument.Common;
 with Slocs;              use Slocs;
 with SS_Annotations;     use SS_Annotations;
+with Outputs;
 
 package body Instrument.C_Annotations is
 
@@ -946,12 +947,24 @@ package body Instrument.C_Annotations is
 
       for Cur in Ext_Annotations.Iterate loop
          declare
+            Sloc    : constant Local_Source_Location :=
+              Instr_Annotation_Maps.Key (Cur);
             Instr_A : constant Instr_Annotation :=
               Instr_Annotation_Maps.Element (Cur);
             ALI_A   : ALI_Annotation := (Kind => Instr_A.Kind, others => <>);
-            Index   : constant Positive :=
-              Slocs_To_Index (Instr_Annotation_Maps.Key (Cur));
+            Index   : constant Natural := Slocs_To_Index (Sloc);
          begin
+            if Index = 0 then
+               Outputs.Warn
+                 (Filename
+                  & " has no "
+                  & Image (Sloc)
+                  & " location: ignoring"
+                  & " the "
+                  & Instr_A.Kind'Image
+                  & " external annotation");
+               goto Continue;
+            end if;
             case Buffers_Annotation_Kind (Instr_A.Kind) is
                when Dump_Buffers  =>
                   ALI_A.Message :=
@@ -968,6 +981,7 @@ package body Instrument.C_Annotations is
                 Buffer_Next  => Index),
                ALI_A);
          end;
+         <<Continue>>
       end loop;
 
       --  Then populate it from directives found in the source code

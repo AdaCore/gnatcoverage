@@ -1,0 +1,10 @@
+[dump_reset]
+kind="absolute"
+file="main.c"
+[dump_reset.matcher]
+start_line=12
+start_col=1
+end_line=12
+end_col=1
+[[dump_reset.annotations]]
+purpose="xcov.buffers.reset"
