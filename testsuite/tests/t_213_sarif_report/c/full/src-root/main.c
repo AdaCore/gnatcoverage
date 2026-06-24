@@ -20,7 +20,7 @@ main (void)
       f = f && false;
     }
 
-  /* GNATCOV_EXEMPT_ON "justification" */
+  /* GNATCOV_EXEMPT_ON("justification") */
   if (!foo ())
     {
       t = !f;
