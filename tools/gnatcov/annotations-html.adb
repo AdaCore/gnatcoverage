@@ -149,14 +149,14 @@ package body Annotations.Html is
    procedure Generate_Css_File is
       F : File_Type;
 
-      procedure Put_State_Color (S : Any_Line_State; Color : String);
+      procedure Put_State_Color (S : Line_State; Color : String);
       --  Set line color for state S
 
       ---------------------
       -- Put_State_Color --
       ---------------------
 
-      procedure Put_State_Color (S : Any_Line_State; Color : String) is
+      procedure Put_State_Color (S : Line_State; Color : String) is
       begin
          Put_Line
            (F,
@@ -253,7 +253,7 @@ package body Annotations.Html is
       procedure Pi (S : String);
       --  Print S to Pp's index file; new line at the end
 
-      procedure Print_Bar_Legend (S : Any_Line_State);
+      procedure Print_Bar_Legend (S : Line_State);
       --  Print legend for visual bar for state S
 
       --------
@@ -269,7 +269,7 @@ package body Annotations.Html is
       -- Print_Bar_Legend --
       ----------------------
 
-      procedure Print_Bar_Legend (S : Any_Line_State) is
+      procedure Print_Bar_Legend (S : Line_State) is
       begin
          Pi
            ("      <td class=""SumBar"
@@ -674,7 +674,7 @@ package body Annotations.Html is
    is
       use Ada.Integer_Text_IO;
 
-      State : constant Any_Line_State := Aggregated_State (Info.all);
+      State : constant Line_State := Aggregated_State (Info.all);
    begin
       Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
       Wrh (Pp, "  <tr class=""" & State'Img);
@@ -819,10 +819,10 @@ package body Annotations.Html is
       --  Total and Part being a number of lines, print the ratio of the
       --  these two quantities (Part / Total) into a cell.
 
-      procedure Print_Bar (S : Any_Line_State);
+      procedure Print_Bar (S : Line_State);
       --  Print visual bar for the given state
 
-      procedure Print_Bar (S : Any_Line_State) is
+      procedure Print_Bar (S : Line_State) is
          Size : constant Natural := Ratio (Stats (S), Total);
       begin
          if Size /= 0 then

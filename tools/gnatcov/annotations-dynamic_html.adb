@@ -181,7 +181,7 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_Message (Pp : in out Dynamic_Html; M : Message);
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp : in out Dynamic_Html; State : Any_Line_State);
+     (Pp : in out Dynamic_Html; State : Line_State);
 
    procedure Pretty_Print_End_Instruction_Set (Pp : in out Dynamic_Html);
 
@@ -741,7 +741,7 @@ package body Annotations.Dynamic_Html is
    ----------------------------------------
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp : in out Dynamic_Html; State : Any_Line_State)
+     (Pp : in out Dynamic_Html; State : Line_State)
    is
       Insn_Set : constant JSON_Value := Create_Object;
    begin

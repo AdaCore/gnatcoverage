@@ -23,7 +23,7 @@ package Traces_Lines is
 
    --  Coverage state of a source line of code
 
-   type Any_Line_State is
+   type Line_State is
      (Not_Covered,
       --  No instructions executed
 
@@ -61,10 +61,7 @@ package Traces_Lines is
       --  precedence over it.
      );
 
-   subtype Line_State is Any_Line_State range Not_Covered .. Disabled_Coverage;
-   --  Non-exempted line state
-
-   type State_Char_Array is array (Any_Line_State) of Character;
+   type State_Char_Array is array (Line_State) of Character;
    State_Char : constant State_Char_Array;
    --  Characters identifying a Line_State
 
@@ -73,13 +70,13 @@ package Traces_Lines is
 
 private
    State_Char : constant State_Char_Array :=
-     (No_Code                        => '.',
+     (Not_Covered                    => '-',
+      Partially_Covered              => '!',
+      Covered                        => '+',
+      No_Code                        => '.',
       Not_Coverable                  => '0',
       Undetermined_Coverage          => '?',
       Disabled_Coverage              => 'D',
-      Not_Covered                    => '-',
-      Partially_Covered              => '!',
-      Covered                        => '+',
       Exempted_With_Violation        => '*',
       Exempted_With_Undetermined_Cov => '@',
       Exempted_No_Violation          => '#');

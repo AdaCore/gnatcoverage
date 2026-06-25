@@ -82,8 +82,7 @@ package body Annotations is
    ----------------------
 
    function Aggregated_State
-     (Info : Line_Info; Ignore_Exemptions : Boolean := False)
-      return Any_Line_State
+     (Info : Line_Info; Ignore_Exemptions : Boolean := False) return Line_State
    is
       Result : Line_State := No_Code;
    begin
@@ -259,7 +258,7 @@ package body Annotations is
 
       Instruction_Set : Address_Info_Acc;
       Sec_Info        : Address_Info_Acc;
-      Ls              : constant Any_Line_State := Aggregated_State (LI);
+      Ls              : constant Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
 
       --  Start of processing for Disp_Instruction_Sets
@@ -1044,7 +1043,7 @@ package body Annotations is
       for L in From .. Actual_To loop
          declare
             LI : constant Line_Info_Access := Get_Line (FI, L);
-            S  : constant Any_Line_State := Aggregated_State (LI.all);
+            S  : constant Line_State := Aggregated_State (LI.all);
          begin
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.

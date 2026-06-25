@@ -39,6 +39,17 @@ package body Traces_Lines is
                return R;
             end if;
 
+         --  Likewise, exempted code must not mask violations
+
+         when Exempted_With_Violation
+            | Exempted_With_Undetermined_Cov
+            | Exempted_No_Violation                 =>
+            if R in No_Code | Covered | Disabled_Coverage then
+               return L;
+            else
+               return R;
+            end if;
+
          when others                                =>
             case R is
                when No_Code                               =>
@@ -59,6 +70,15 @@ package body Traces_Lines is
 
                when Covered                               =>
                   return Line_State'Max (L, Partially_Covered);
+
+               when Exempted_With_Violation
+                  | Exempted_With_Undetermined_Cov
+                  | Exempted_No_Violation                 =>
+                  if R in Covered | Disabled_Coverage then
+                     return L;
+                  else
+                     return R;
+                  end if;
             end case;
       end case;
    end "*";
