@@ -7,12 +7,21 @@ current source instrumentation data.
 
 import os
 import os.path
+import re
 
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
+
+
+def no_justif_re(sloc: str) -> str:
+    return re.escape(
+        f"*** {sloc}: warning: No justification given for disabled coverage"
+        " region"
+    )
+
 
 Wdir("tmp_")
 
@@ -32,6 +41,7 @@ trace_a = os.path.abspath(
         gpr_exe_dir="..",
         extra_coverage_args=[],
         trace_mode="src",
+        tolerate_instrument_messages=no_justif_re("pkg.c:5:3"),
     )[-1]
 )
 tmp_a.to_homedir()
@@ -48,6 +58,7 @@ trace_b = os.path.abspath(
         trace_mode="src",
         gpr_exe_dir="..",
         extra_coverage_args=[],
+        tolerate_instrument_messages=no_justif_re("pkg.c:10:3"),
     )[-1]
 )
 tmp_b.to_homedir()

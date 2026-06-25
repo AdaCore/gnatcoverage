@@ -29,6 +29,7 @@ with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.Strings;   use GNAT.Strings;
+with GNAT.Regpat;    use GNAT.Regpat;
 with GNATCOLL.Iconv; use GNATCOLL.Iconv;
 
 limited with Checkpoints;
@@ -139,6 +140,31 @@ package Strings is
    --  Strings_List (case-insensitively). Every item not matched is removed
    --  from Strings_List. Also, each pattern that matched at least once is
    --  removed from Patterns_Not_Covered.
+
+   --------------------------------
+   -- GNAT.Regpat.Match wrappers --
+   --------------------------------
+
+   --  The following subprogram wrap the similar subprogram from GNAT.Regpat,
+   --  but taking Unbounded_String directly, saving the caller from doing the
+   --  complex dance of extracting the underlying string without doing costly
+   --  (and potentially unsafe for the secondary stack, in case of big strings)
+   --  copy.
+
+   procedure Match
+     (Self       : Pattern_Matcher;
+      Data       : Unbounded_String;
+      Matches    : out Match_Array;
+      Data_First : Integer := -1;
+      Data_Last  : Positive := Positive'Last);
+
+   function Slice
+     (Data : Unbounded_String; Match : Match_Location) return String
+   is (Slice (Data, Match.First, Match.Last));
+
+   -------------
+   -- Streams --
+   -------------
 
    type Unbounded_String_Stream (S : access Unbounded_String) is
      new Ada.Streams.Root_Stream_Type

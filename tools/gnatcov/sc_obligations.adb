@@ -6471,6 +6471,223 @@ package body SC_Obligations is
       end loop;
    end Reset_Exemption_Counters;
 
+   --  Descriptors for annotation kinds and their parameters
+
+   type Annotation_Param is record
+      Name     : Unbounded_String;
+      Optional : Boolean;
+   end record;
+   type Annotation_Param_Access is access constant Annotation_Param;
+   --  Descriptor for a single annotation parameter
+
+   type Annotation_Param_Index is new Positive;
+   type Annotation_Param_List is
+     array (Annotation_Param_Index range <>) of Annotation_Param_Access;
+   --  List of parameters for a given annotation kind
+
+   type Annotation_Spec_Access is access constant Annotation_Param_List;
+   type Annotation_Spec_Array is
+     array (Src_Annotation_Kind) of Annotation_Spec_Access;
+   --  Mapping of parameters for each annotation
+
+   Justification_Spec : aliased constant Annotation_Param :=
+     (Name => +"justification", Optional => True);
+   Prefix_Spec        : aliased constant Annotation_Param :=
+     (Name => +"prefix", Optional => True);
+
+   Index_Justification : constant Annotation_Param_Index := 1;
+   Index_Prefix        : constant Annotation_Param_Index := 1;
+
+   Region_Begin_Spec : aliased constant Annotation_Param_List :=
+     (Index_Justification => Justification_Spec'Access);
+   Region_End_Spec   : aliased constant Annotation_Param_List :=
+     (1 .. 0 => <>);
+
+   Dump_Buffers_Spec  : aliased constant Annotation_Param_List :=
+     (Index_Prefix => Prefix_Spec'Access);
+   Reset_Buffers_Spec : aliased constant Annotation_Param_List :=
+     (1 .. 0 => <>);
+
+   Annotation_Specs : constant Annotation_Spec_Array :=
+     (Exempt_On     => Region_Begin_Spec'Access,
+      Exempt_Off    => Region_End_Spec'Access,
+      Dump_Buffers  => Dump_Buffers_Spec'Access,
+      Reset_Buffers => Reset_Buffers_Spec'Access,
+      Cov_On        => Region_End_Spec'Access,
+      Cov_Off       => Region_Begin_Spec'Access);
+
+   ----------------------
+   -- Parse_Annotation --
+   ----------------------
+
+   procedure Parse_Annotation
+     (Kind       : Src_Annotation_Kind;
+      Args       : Argument_List;
+      Sloc       : Source_Location;
+      Annotation : out ALI_Annotation;
+      Silent     : Boolean := False)
+   is
+
+      procedure Warn (Sloc : Source_Location; Message : String)
+      with No_Return;
+      --  If not in silent mode, emit a diagnostic.
+      --
+      --  Raise an Invalid_Annotation_Argument_Error in all cases.
+
+      type Argument_Array is
+        array (Annotation_Param_Index range <>) of Argument;
+
+      procedure Process_Argument_List
+        (Args       : Argument_List;
+         Spec       : Annotation_Param_List;
+         Arg_Values : out Argument_Array)
+      with
+        Pre =>
+          Spec'First = Arg_Values'First and then Spec'Last = Arg_Values'Last;
+      --  Parse the argument list Args according to the parameter list
+      --  specification Spec. Assign the argument values to the corresponding
+      --  entries in Arg_Values.
+
+      ----------
+      -- Warn --
+      ----------
+
+      procedure Warn (Sloc : Source_Location; Message : String) is
+      begin
+         if not Silent then
+            Report (Sloc, Message, Warning);
+         end if;
+         raise Invalid_Annotation_Argument_Error;
+      end Warn;
+
+      ---------------------------
+      -- Process_Argument_List --
+      ---------------------------
+
+      procedure Process_Argument_List
+        (Args       : Argument_List;
+         Spec       : Annotation_Param_List;
+         Arg_Values : out Argument_Array)
+      is
+         Next_Arg : Annotation_Param_Index := Arg_Values'First;
+         --  Index of the parameter for the next positional argument
+
+         procedure Process
+           (Sloc : Source_Location; Name : String; Value : Argument);
+         --  Callback for Iterate (to process a new argument)
+
+         -------------
+         -- Process --
+         -------------
+
+         procedure Process
+           (Sloc : Source_Location; Name : String; Value : Argument)
+         is
+            Index : Annotation_Param_Index;
+            Found : Boolean := False;
+         begin
+            if Name = "" then
+
+               --  Empty names denote positional arguments
+
+               if Next_Arg not in Arg_Values'Range then
+                  Warn (Sloc, "Too many arguments");
+               end if;
+               Index := Next_Arg;
+               Next_Arg := Next_Arg + 1;
+
+            else
+               --  Look for the parameter whose name matches
+
+               for Candidate_Index in Spec'Range loop
+                  if Spec (Candidate_Index).Name = Name then
+                     Index := Candidate_Index;
+                     Found := True;
+                     exit;
+                  end if;
+               end loop;
+               if not Found then
+                  Warn (Sloc, "Invalid argument name: " & Name);
+               end if;
+            end if;
+
+            --  Assign the argument to the corresponding param
+
+            if Arg_Values (Index) = No_Argument then
+               Arg_Values (Index) := Value;
+            else
+               Warn
+                 (Sloc, "Argument is passed twice: " & (+Spec (Index).Name));
+            end if;
+         end Process;
+
+         --  Start of processing for Process_Argument_List
+      begin
+         --  Assign all arguments in Args to the corresponding entries in
+         --  Arg_Values.
+
+         Arg_Values := (others => No_Argument);
+         Iterate (Args, Process'Access);
+
+         --  Check that all required arguments were passed
+
+         for Index in Spec'Range loop
+            if not Spec (Index).Optional
+              and then Arg_Values (Index) = No_Argument
+            then
+               Warn
+                 (Sloc, "Missing required argument: " & (+Spec (Index).Name));
+            end if;
+         end loop;
+      end Process_Argument_List;
+
+      --  Parse the arguments for this annotation
+
+      Spec       : Annotation_Param_List renames Annotation_Specs (Kind).all;
+      Arg_Values : Argument_Array (Spec'Range);
+
+      --  Start of processing for Parse_Annotation
+   begin
+      Process_Argument_List (Args, Spec, Arg_Values);
+
+      --  Initialize Annotation with the requested kind
+
+      Annotation := (Kind => Kind, others => <>);
+
+      --  Now decode arguments and initialize the annotation
+
+      case Kind is
+         when Exempt_On | Cov_Off =>
+            if Arg_Values (Index_Justification) = No_Argument then
+               if not Silent then
+                  Report
+                    (Sloc,
+                     "No justification given for "
+                     & (if Kind = Exempt_On
+                        then "exempted"
+                        else "disabled coverage")
+                     & " region",
+                     Warning);
+               end if;
+            else
+               Annotation.Message :=
+                 new String'(Parse_String (Arg_Values (Index_Justification)));
+            end if;
+
+         when Exempt_Off | Cov_On =>
+            null;
+
+         when Dump_Buffers        =>
+            if Arg_Values (Index_Prefix) /= No_Argument then
+               Annotation.Message :=
+                 new String'(Parse_String (Arg_Values (Index_Prefix)));
+            end if;
+
+         when Reset_Buffers       =>
+            null;
+      end case;
+   end Parse_Annotation;
+
    --------------
    -- Load_ALI --
    --------------

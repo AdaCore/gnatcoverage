@@ -21,6 +21,10 @@ with Ada.Strings.Hash;
 with Ada.Strings.Maps;
 with Ada.Strings.Maps.Constants;
 
+pragma Warnings (Off, "* is an internal GNAT unit");
+with Ada.Strings.Unbounded.Aux; use Ada.Strings.Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
+
 with GNAT.Regexp;
 
 with Checkpoints; use Checkpoints;
@@ -335,6 +339,24 @@ package body Strings is
       Strings_List := Matching_Strings;
 
    end Match_Pattern_List;
+
+   -----------
+   -- Match --
+   -----------
+
+   procedure Match
+     (Self       : Pattern_Matcher;
+      Data       : Unbounded_String;
+      Matches    : out Match_Array;
+      Data_First : Integer := -1;
+      Data_Last  : Positive := Positive'Last)
+   is
+      S : Big_String_Access;
+      L : Natural;
+   begin
+      Get_String (Data, S, L);
+      Match (Self, S.all (1 .. L), Matches, Data_First, Data_Last);
+   end Match;
 
    ------------------------
    -- Append_From_String --

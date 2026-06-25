@@ -30,7 +30,7 @@ cpp_func (int a)
   MCDC_Violation (f, f);
   MCDC_Violation (t, f);
 
-  /* GNATCOV_EXEMPT_ON "cpp justification"*/
+  /* GNATCOV_EXEMPT_ON("cpp justification") */
   if (!t)
     {
       t = false;
