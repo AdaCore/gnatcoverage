@@ -582,7 +582,7 @@ package SC_Obligations is
    --  Exception raised by Parse_Annotation or its Process callback when
    --  attempting to parse an invalid annotation.
 
-   type Annotation_Value_Kind is (String_Value);
+   type Annotation_Value_Kind is (String_Value, Arbitrary_Expr);
    type Annotation_Value
      (Kind : Annotation_Value_Kind := Annotation_Value_Kind'First)
    is record
@@ -590,6 +590,9 @@ package SC_Obligations is
       case Kind is
          when String_Value =>
             String_Value : Unbounded_String;
+
+         when Arbitrary_Expr =>
+            Expr : Unbounded_String;
       end case;
    end record;
    type Annotation_Value_Array is

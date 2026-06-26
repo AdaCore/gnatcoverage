@@ -6556,7 +6556,10 @@ package body SC_Obligations is
 
          when Dump_Buffers        =>
             if Has_Next then
-               Annotation.Prefix := Args (Next).String_Value;
+
+               --  Callers are supposed to pick the prefix arguments as is and
+               --  forward it to code generation.
+
                Next := Next + 1;
             end if;
 

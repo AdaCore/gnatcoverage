@@ -3535,26 +3535,25 @@ package body Instrument.Ada_Unit is
                   Report (A.F_Name, "Identifier not allowed here", Warning);
                   return;
                elsif not A.F_Expr.P_Is_Static_Expr then
-                  Report (A.F_Expr, "Static expression expected", Warning);
-                  return;
+                  Args (I) := (Arbitrary_Expr, Sloc, +To_UTF8 (A.F_Expr.Text));
+               else
+                  declare
+                     use Libadalang.Expr_Eval;
+                     Value : constant Eval_Result := Expr_Eval (A.F_Expr);
+                  begin
+                     case Value.Kind is
+                        when String_Lit =>
+                           Args (I) :=
+                             (String_Value,
+                              Sloc,
+                              +To_UTF8 (To_Text (As_String (Value))));
+
+                        when others     =>
+                           Report (A.F_Expr, "String expected", Warning);
+                           return;
+                     end case;
+                  end;
                end if;
-
-               declare
-                  use Libadalang.Expr_Eval;
-                  Value : constant Eval_Result := Expr_Eval (A.F_Expr);
-               begin
-                  case Value.Kind is
-                     when String_Lit =>
-                        Args (I) :=
-                          (String_Value,
-                           Sloc,
-                           +To_UTF8 (To_Text (As_String (Value))));
-
-                     when others     =>
-                        Report (A.F_Expr, "String expected", Warning);
-                        return;
-                  end case;
-               end;
             end;
          end loop;
 
