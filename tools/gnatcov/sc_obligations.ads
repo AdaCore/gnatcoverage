@@ -582,46 +582,26 @@ package SC_Obligations is
    --  Exception raised by Parse_Annotation or its Process callback when
    --  attempting to parse an invalid annotation.
 
-   generic
-      type Argument_List (<>) is private;
-      --  A list of annotation arguments
+   type Annotation_Value_Kind is (String_Value);
+   type Annotation_Value
+     (Kind : Annotation_Value_Kind := Annotation_Value_Kind'First)
+   is record
+      Sloc : Source_Location;
+      case Kind is
+         when String_Value =>
+            String_Value : Unbounded_String;
+      end case;
+   end record;
+   type Annotation_Value_Array is
+     array (Positive range <>) of Annotation_Value;
 
-      type Argument is private;
-      --  A single annotation argument value
-
-      No_Argument : Argument;
-      --  Marker for the absence of an argument value
-
-      with
-        procedure Iterate
-          (Self    : Argument_List;
-           Process :
-             access procedure
-               (Sloc : Source_Location; Name : String; Value : Argument));
-      --  Call Process on all arguments in the given list.
-      --
-      --  Sloc is the source location for the argument (used to emit
-      --  diagnostics, if needed).
-      --
-      --  Name is the name of the argument (if provided, empty string for
-      --  positional arguments), and Value is the passed value (never
-      --  No_Argument).
-      --
-      --  Process may raise an Invalid_Annotation_Argument_Error exception if
-      --  the argument is for some reason invalid.
-
-      with function Parse_String (Self : Argument) return String;
-      --  Try to parse an argument as a string literal, and return the
-      --  string value it denotes. Raise an Invalid_Annotation_Argument_Error
-      --  exception if the argument is not a string literal.
-
-     procedure Parse_Annotation
+   procedure Parse_Annotation
      (Kind       : Src_Annotation_Kind;
-      Args       : Argument_List;
       Sloc       : Source_Location;
+      Args       : Annotation_Value_Array;
       Annotation : out ALI_Annotation;
       Silent     : Boolean := False);
-   --  Parse the list of arguments in Args for the given annotation Kind.
+   --  Parse the list of arguments Args for the given annotation Kind.
    --
    --  On success, set Annotation to the corresponding annotation. Otherwise,
    --  raise an Invalid_Annotation_Argument_Error exception (Sloc is used to

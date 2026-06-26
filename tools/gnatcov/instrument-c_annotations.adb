@@ -99,9 +99,7 @@ package body Instrument.C_Annotations is
       Kind  : Token_Kind;
       Match : Match_Location;
    end record;
-   type Any_Token_Index is new Natural;
-   subtype Token_Index is Any_Token_Index range 1 .. Any_Token_Index'Last;
-   No_Token : constant Any_Token_Index := 0;
+   type Token_Index is new Positive;
    package Token_Vectors is new
      Ada.Containers.Vectors (Token_Index, Token_Data);
 
@@ -156,7 +154,6 @@ package body Instrument.C_Annotations is
             Aggregate_First : Any_Syntax_Index;
 
          when Aggregate_Assoc =>
-            Assoc_Name : Any_Token_Index;
             Assoc_Expr : Syntax_Index;
             Assoc_Next : Any_Syntax_Index;
       end case;
@@ -182,6 +179,10 @@ package body Instrument.C_Annotations is
    --
    --  On failure, emit a warning and raise an
    --  Invalid_Annotation_Argument_Error.
+
+   function Aggregate_Length
+     (Syntax : Syntax_Vectors.Vector; Self : Syntax_Index) return Natural;
+   --  Retun the number of associations in the aggregate Self
 
    Buffer_Command_Pattern : constant Pattern_Matcher :=
      Compile
@@ -406,7 +407,6 @@ package body Instrument.C_Annotations is
                        (Syntax_Data'
                           (Kind       => Aggregate_Assoc,
                            Token      => Index,
-                           Assoc_Name => No_Token,
                            Assoc_Expr => <>,
                            Assoc_Next => No_Syntax));
                      if Current /= No_Syntax then
@@ -416,16 +416,6 @@ package body Instrument.C_Annotations is
                      if First = No_Syntax then
                         First := Current;
                         Syntax (Result).Aggregate_First := First;
-                     end if;
-
-                     --  If this association is named, capture the name and
-                     --  move on to the association expression.
-
-                     if Matches (Tokens, Index, Identifier)
-                       and then Matches (Tokens, Index + 1, Equal)
-                     then
-                        Syntax (Current).Assoc_Name := Index;
-                        Index := Index + 2;
                      end if;
 
                      --  Parse the association expression
@@ -496,6 +486,23 @@ package body Instrument.C_Annotations is
       end if;
    end Parse_Expression;
 
+   ----------------------
+   -- Aggregate_Length --
+   ----------------------
+
+   function Aggregate_Length
+     (Syntax : Syntax_Vectors.Vector; Self : Syntax_Index) return Natural
+   is
+      Cursor : Any_Syntax_Index := Syntax (Self).Aggregate_First;
+   begin
+      return Result : Natural := 0 do
+         while Cursor /= No_Syntax loop
+            Result := Result + 1;
+            Cursor := Syntax (Cursor).Assoc_Next;
+         end loop;
+      end return;
+   end Aggregate_Length;
+
    --------------------------
    -- Populate_Annotations --
    --------------------------
@@ -530,86 +537,12 @@ package body Instrument.C_Annotations is
       is (Slice_Sloc (Tokens (Syntax (Self).Token).Match));
       --  Likewise, for a given syntax node
 
-      procedure Iterate
-        (Self    : Any_Syntax_Index;
-         Process :
-           access procedure
-             (Sloc  : Source_Location;
-              Name  : String;
-              Value : Any_Syntax_Index));
-      --  Callback for Parse_Annotation
-
-      function Parse_String (Self : Any_Syntax_Index) return String;
-      --  Callback for Parse_Annotation
-
-      procedure Parse_Annotation is new
-        SC_Obligations.Parse_Annotation
-          (Argument_List => Any_Syntax_Index,
-           Argument      => Any_Syntax_Index,
-           No_Argument   => No_Syntax,
-           Iterate       => Iterate,
-           Parse_String  => Parse_String);
-
       procedure Process_Token (Token : Token_T);
       --  Try to parse an annotation in the given token
 
       Last_Cov_Off : Source_Location := Slocs.No_Location;
       --  Track the source location of the previous GNATCOV_COV_OFF annotation.
       --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
-
-      -------------
-      -- Iterate --
-      -------------
-
-      procedure Iterate
-        (Self    : Any_Syntax_Index;
-         Process :
-           access procedure
-             (Sloc : Source_Location; Name : String; Value : Any_Syntax_Index))
-      is
-         Current : Any_Syntax_Index;
-      begin
-         if Self = No_Syntax then
-            return;
-         elsif Syntax (Self).Kind /= Aggregate then
-            Report (Syntax_Sloc (Self), "Aggregate expected", Warning);
-            raise Invalid_Annotation_Argument_Error;
-         end if;
-
-         Current := Syntax (Self).Aggregate_First;
-         while Current /= No_Syntax loop
-            declare
-               S    : Syntax_Data renames Syntax (Current);
-               Name : constant String :=
-                 (if S.Assoc_Name = No_Token
-                  then ""
-                  else Get (Tokens (S.Assoc_Name).Match));
-            begin
-               Process.all (Syntax_Sloc (Current), Name, S.Assoc_Expr);
-               Current := S.Assoc_Next;
-            end;
-         end loop;
-      end Iterate;
-
-      ------------------
-      -- Parse_String --
-      ------------------
-
-      function Parse_String (Self : Any_Syntax_Index) return String is
-         S : Syntax_Data renames Syntax (Self);
-         T : Token_Data;
-      begin
-         if S.Kind /= String_Literal then
-            Report (Syntax_Sloc (Self), "String expected", Warning);
-            raise Invalid_Annotation_Argument_Error;
-         end if;
-
-         --  Return the content of the string without the surrounding double
-         --  quotes.
-
-         T := Tokens (S.Token);
-         return Get ((T.Match.First + 1, T.Match.Last - 1));
-      end Parse_String;
 
       -------------------
       -- Process_Token --
@@ -711,15 +644,59 @@ package body Instrument.C_Annotations is
                if Matches (3) /= No_Match then
                   Parse_Expression
                     (Comment, Sloc, Matches (3), Tokens, Syntax, Root);
+                  if Syntax (Root).Kind /= Aggregate then
+                     Report
+                       (Syntax_Sloc (Root), "Aggregate expected", Warning);
+                     return;
+                  end if;
                end if;
 
-               --  Then extract annotation data from it
+               --  Then decode individual arguments
 
-               Parse_Annotation
-                 (Kind       => Kind,
-                  Args       => Root,
-                  Sloc       => Sloc,
-                  Annotation => Result);
+               declare
+                  Args_Count : constant Natural :=
+                    (if Root = No_Syntax
+                     then 0
+                     else Aggregate_Length (Syntax, Root));
+                  Args       : Annotation_Value_Array (1 .. Args_Count);
+                  Next       : Any_Syntax_Index :=
+                    (if Root = No_Syntax
+                     then No_Syntax
+                     else Syntax (Root).Aggregate_First);
+               begin
+                  for I in Args'Range loop
+                     declare
+                        E : constant Syntax_Index := Syntax (Next).Assoc_Expr;
+                        S : constant Source_Location := Syntax_Sloc (E);
+                        T : Token_Data;
+                     begin
+                        if Syntax (E).Kind = String_Literal then
+
+                           --  Get the content of the string without the
+                           --  surrounding double quotes.
+
+                           T := Tokens (Syntax (E).Token);
+                           Args (I) :=
+                             (String_Value,
+                              S,
+                              +Get ((T.Match.First + 1, T.Match.Last - 1)));
+
+                        else
+                           Report (S, "String expected", Warning);
+                           return;
+                        end if;
+                     end;
+                     Next := Syntax (Next).Assoc_Next;
+                  end loop;
+
+                  --  Finally, extract annotation data from them
+
+                  Parse_Annotation
+                    (Kind       => Kind,
+                     Sloc       => Sloc,
+                     Args       => Args,
+                     Annotation => Result);
+               end;
             exception
                when Invalid_Annotation_Argument_Error =>
                   return;

@@ -3481,110 +3481,6 @@ package body Instrument.Ada_Unit is
       --  it is not an identifier, return null. Else, return the identifier
       --  as a symbol.
 
-      procedure Iterate
-        (Self    : Base_Assoc_List;
-         Process :
-           access procedure
-             (Sloc : Slocs.Source_Location; Name : String; Value : Expr));
-      --  Callback for Parse_Annotation
-
-      function Parse_String (Self : Expr) return String;
-      --  Callback for Parse_Annotation
-
-      procedure Safe_String_Eval
-        (E : Expr; Result : out Unbounded_Text_Type; Success : out Boolean);
-      --  Evaluate the given Expr E and set Result to the evaluated string
-      --  and Success to True if it could be evaluated, otherwise set
-      --  Success to False.
-
-      -------------
-      -- Iterate --
-      -------------
-
-      procedure Iterate
-        (Self    : Base_Assoc_List;
-         Process :
-           access procedure
-             (Sloc : Slocs.Source_Location; Name : String; Value : Expr)) is
-      begin
-         for I in 3 .. Self.Children_Count loop
-            declare
-               A    : constant Pragma_Argument_Assoc :=
-                 Self.Child (I).As_Pragma_Argument_Assoc;
-               Name : Identifier := No_Identifier;
-            begin
-               if not A.F_Name.Is_Null
-                 and then A.F_Name.Kind /= Libadalang.Common.Ada_Identifier
-               then
-                  Report (A.F_Name, "identifier expected", Warning);
-                  return;
-               else
-                  Name := A.F_Name.As_Identifier;
-               end if;
-
-               Process.all
-                 (Sloc  => (SFI, +Sloc (A)),
-                  Name  =>
-                    (if Name.Is_Null
-                     then ""
-                     else
-                       To_UTF8 (To_Lower (To_Text (Name.P_Canonical_Text)))),
-                  Value => A.F_Expr);
-            end;
-         end loop;
-      end Iterate;
-
-      ------------------
-      -- Parse_String --
-      ------------------
-
-      function Parse_String (Self : Expr) return String is
-         Result  : Unbounded_Text_Type;
-         Success : Boolean;
-      begin
-         Safe_String_Eval (Self, Result, Success);
-         if not Success then
-            Report (Self, "Static string expression expected", Warning);
-         end if;
-         return To_UTF8 (To_Text (Result));
-      end Parse_String;
-
-      ----------------------
-      -- Safe_String_Eval --
-      ----------------------
-
-      procedure Safe_String_Eval
-        (E : Expr; Result : out Unbounded_Text_Type; Success : out Boolean)
-      is
-         use Libadalang.Expr_Eval;
-      begin
-         --  TODO??? Check for P_Is_Static_Expr prior to evaluating
-         --  when eng/libadalang/libadalang#1359 is implemented instead of
-         --  using exception handling.
-
-         declare
-            String_Expr_Eval : constant Eval_Result := Expr_Eval (E);
-         begin
-            if String_Expr_Eval.Kind /= String_Lit then
-               Success := False;
-               return;
-            end if;
-            Result := As_String (String_Expr_Eval);
-            Success := True;
-         end;
-      exception
-         when Property_Error =>
-            Success := False;
-      end Safe_String_Eval;
-
-      procedure Parse_Impl is new
-        SC_Obligations.Parse_Annotation
-          (Argument_List => Base_Assoc_List,
-           Argument      => Expr,
-           No_Argument   => No_Expr,
-           Iterate       => Iterate,
-           Parse_String  => Parse_String);
-
       Nb_Children : constant Natural := Prag_Args.Children_Count;
       Kind        : Src_Annotation_Kind;
 
@@ -3592,11 +3488,11 @@ package body Instrument.Ada_Unit is
 
    begin
       Result := (Kind => Exempt_On, others => <>);
+      Handled := False;
 
       --  Ignore all but Xcov annotations
 
       if Get_Arg (Prag_Args, 1) /= As_Symbol (Xcov) then
-         Handled := False;
          return;
       end if;
 
@@ -3604,7 +3500,6 @@ package body Instrument.Ada_Unit is
 
       if Nb_Children = 1 then
          Report (N, "Xcov annotation kind missing", Warning);
-         Handled := False;
          return;
       end if;
 
@@ -3621,19 +3516,57 @@ package body Instrument.Ada_Unit is
                   then ": " & Image (Kind_Symbol)
                   else ""),
                Warning);
-            Handled := False;
             return;
       end;
 
-      --  Now that the annotation kind is known, validate the remaining
-      --  arguments expected for that kind.
+      --  Decode annotation arguments
 
+      declare
+         Args : Annotation_Value_Array (3 .. Nb_Children);
       begin
-         Parse_Impl (Kind, Prag_Args, Sloc (N), Result, Silent);
-      exception
-         when Invalid_Annotation_Argument_Error =>
-            Handled := False;
-            return;
+         for I in Args'Range loop
+            declare
+               A    : constant Pragma_Argument_Assoc :=
+                 Prag_Args.Child (I).As_Pragma_Argument_Assoc;
+               Sloc : constant Slocs.Source_Location :=
+                 (SFI, +Instrument.Ada_Unit.Sloc (A));
+            begin
+               if not A.F_Name.Is_Null then
+                  Report (A.F_Name, "Identifier not allowed here", Warning);
+                  return;
+               elsif not A.F_Expr.P_Is_Static_Expr then
+                  Report (A.F_Expr, "Static expression expected", Warning);
+                  return;
+               end if;
+
+               declare
+                  use Libadalang.Expr_Eval;
+                  Value : constant Eval_Result := Expr_Eval (A.F_Expr);
+               begin
+                  case Value.Kind is
+                     when String_Lit =>
+                        Args (I) :=
+                          (String_Value,
+                           Sloc,
+                           +To_UTF8 (To_Text (As_String (Value))));
+
+                     when others     =>
+                        Report (A.F_Expr, "String expected", Warning);
+                        return;
+                  end case;
+               end;
+            end;
+         end loop;
+
+         --  Finally, turn the kind and arguments into an annotation
+
+         begin
+            SC_Obligations.Parse_Annotation
+              (Kind, Sloc (N), Args, Result, Silent);
+         exception
+            when Invalid_Annotation_Argument_Error =>
+               return;
+         end;
       end;
 
       Handled := True;
