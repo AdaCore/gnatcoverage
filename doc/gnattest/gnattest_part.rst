@@ -933,23 +933,190 @@ GNATcoverage, analyze individual trace files, and finally aggregate them:
 
 For more details about using GNATtest with GNATcoverage see :ref:`Integration_Part`.
 
+.. _Harness_Structure:
+
+Structure of the Generated Harness
+----------------------------------
+
+``gnattest`` generates a number of artifacts. Understanding what each one is
+for, and in particular which ones are *regenerated* on every run versus
+*created once and then owned by the user*, is essential both for customizing the
+harness and for deciding what to put under version control.
+
+The artifacts fall into two broad families: the **harness** (the test driver
+infrastructure) and the **test code** (the skeletons you fill in). A typical
+layout, using the default object-directory locations, looks like this::
+
+  <object-dir>/gnattest/
+    harness/                       <- test driver infrastructure
+      test_driver.gpr              regenerated   project to build/run the driver
+      gnattest_common.gpr          created once  shared build options (user-owned)
+      test_runner.adb              regenerated   driver main
+      suite_*.ad[bs]               regenerated   AUnit suite aggregation
+      Makefile                     regenerated   GNATcoverage integration driver
+      coverage_settings.mk         created once  gnatcov switches (user-owned)
+      units.list                   regenerated   unit(s) under test, per driver
+      test_drivers.list            regenerated   list of driver executables
+    tests/                         <- test code
+      <u>-test_data.ad[bs]         body owned    Set_Up / Tear_Down
+      <u>-test_data-tests.ads      regenerated   test package spec
+      <u>-test_data-tests.adb      owned         your test routine bodies
+
+Responsibilities of the harness components
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* *test_driver.gpr*
+    The entry point of the harness: the project file used to build and run the
+    test driver (``gprbuild -P<harness-dir>/test_driver``). It is regenerated on
+    every run. With ``--separate-drivers``, one such project is generated per
+    unit (or per test) under test, each in its own subdirectory.
+
+* *gnattest_common.gpr*
+    A project file, imported by every generated test driver project, that holds
+    build options *shared* across the harness (compiler and linker switches,
+    extra source directories, global configuration pragmas, etc.). It is created
+    once if absent and **never overwritten**, so it is the intended place for the
+    user to customize how the harness is compiled. See for instance
+    :ref:`gnattest_spark_instrument` for using it to pass a configuration pragma
+    file for SPARK code.
+
+* *test_runner* and *suite_\** files
+    The generated main and the AUnit suite-aggregation packages. They are fully
+    automatic, regenerated on every run, and should not be edited.
+
+* *Makefile*
+    Automates the production of a coverage report with GNATcoverage (see
+    :ref:`Gnatcov_Integration`). It is **regenerated on every invocation** of
+    ``gnattest`` and should not be edited.
+
+* *coverage_settings.mk*
+    A secondary makefile, included by ``Makefile``, holding the switches passed
+    to the various ``gnatcov`` commands. Its values are extracted from the root
+    project when first generated, but unlike ``Makefile`` it is **created once
+    and not regenerated**, so it is the intended place to adjust GNATcoverage
+    settings that are not expressed in the project file. See
+    :ref:`Gnattest_Makefile` for details.
+
+* *units.list*
+    Generated alongside each ``test_driver.gpr`` (with separate drivers); lists
+    the unit under test so that ``gnatcov`` can be told which unit is of interest
+    and avoid incidental coverage. Regenerated on every run.
+
+* *test_drivers.list*
+    The list of test driver executables consumed by the
+    :ref:`test execution mode <Test_Execution_Mode>`. It is generated
+    automatically but may be hand-edited to add or remove tests; it is also safe
+    to let ``gnattest`` regenerate it.
+
+Files the user is expected to modify
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Most of the harness is disposable, but two harness files are deliberately
+**created once and never regenerated** so that the user can adapt the harness to
+the project's needs:
+
+* ``gnattest_common.gpr`` — to customize how the harness is *built*.
+* ``coverage_settings.mk`` — to customize the ``gnatcov`` switches used by the
+  generated ``Makefile`` (only relevant when using the GNATcoverage
+  integration).
+
+Because they are preserved across regenerations and hold project-specific
+settings, both of these files are good candidates for version control (see
+:ref:`Putting_Tests_under_Version_Control`).
+
+The following table summarizes, for each generated artifact, whether it is
+regenerated, whether it is meant to be edited, and whether it should be put
+under version control:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 12 14 16
+
+   * - File
+     - Regenerated?
+     - User-editable?
+     - Version control?
+   * - ``test_driver.gpr``
+     - Yes
+     - No
+     - No
+   * - ``gnattest_common.gpr``
+     - No (created once)
+     - Yes
+     - Yes
+   * - ``test_runner``, ``suite_*``
+     - Yes
+     - No
+     - No
+   * - ``Makefile``
+     - Yes
+     - No
+     - No
+   * - ``coverage_settings.mk``
+     - No (created once)
+     - Yes
+     - Yes (with GNATcov integration)
+   * - ``units.list``
+     - Yes
+     - No
+     - No
+   * - ``test_drivers.list``
+     - Yes
+     - Yes (optional)
+     - Optional
+   * - ``*-test_data.adb``
+     - No (preserved)
+     - Yes
+     - Yes
+   * - ``*-test_data.ads``
+     - Yes
+     - No
+     - No
+   * - ``*-test_data-tests.adb``
+     - No (preserved)
+     - Yes
+     - Yes
+   * - ``*-test_data-tests.ads``
+     - Yes
+     - No
+     - No
+   * - stub / stub-data bodies (``--stub``)
+     - No (preserved)
+     - Yes
+     - Yes
+
+
 .. _Putting_Tests_under_Version_Control:
 
 Putting Tests under Version Control
 -----------------------------------
 
 As has been stated earlier, ``gnattest`` generates two different types
-of code, test skeletons and harness. The harness is generated completely
-automatically each time, does not require manual changes and therefore should
-not be put under version control.
-It makes sense to put under version control files containing test data packages,
-both specs and bodies, and files containing bodies of test packages. Note that
-test package specs are also generated automatically each time and should not be
-put under version control.
+of code, test skeletons and harness. With the exception of the two user-owned
+files noted below, the harness is generated completely automatically each time,
+does not require manual changes and therefore should not be put under version
+control.
+It makes sense to put under version control files containing test data packages
+bodies, and files containing bodies of test packages. Note that
+test package specs, as well as test data packages specs, are also generated
+automatically each time and should not be put under version control.
 
 Additionally, if stubbing is enabled with ``--stub``, it also makes sense to
 put the stubbed bodies, as well as the stub-data bodies under source control,
 as gnattest will preserve modifications made to these files.
+
+Two files located in the harness directory are an exception to the rule above:
+they are created once and never overwritten, are meant to be adapted by the
+user, and should therefore be put under version control:
+
+* ``gnattest_common.gpr``, which holds the build options shared by the harness
+  projects;
+* ``coverage_settings.mk``, which holds the ``gnatcov`` switches used by the
+  generated ``Makefile``, when the :ref:`GNATcoverage integration
+  <Gnatcov_Integration>` is used.
+
+See :ref:`Harness_Structure` for a description of all the generated artifacts
+and a summary of which ones should be put under version control.
 
 Option ``--omit-sloc`` may be useful when putting test packages under version control.
 
