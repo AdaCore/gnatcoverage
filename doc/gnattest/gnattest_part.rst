@@ -1221,6 +1221,18 @@ environment variable:
   # Make it available to other tools
   export GPR_PROJECT_PATH=/tmp/tgen_rts_install/share/gpr:$GPR_PROJECT_PATH
 
+.. note::
+
+   Test generation is only supported for projects built as static libraries or
+   as standalone executables. It is **not** supported when the project under
+   test is a shared library, i.e. when its ``Library_Kind`` attribute is set to
+   ``relocatable``. The test generation runtime and the support library
+   generated for the project are only ever provided as static libraries, so a
+   relocatable library cannot be linked against them, and building the harness
+   will fail at link time. To use test generation on such a project, build it as
+   a static library (``Library_Kind`` set to ``static``, or ``static-pic`` if
+   position-independent code is required).
+
 Generating test inputs
 ^^^^^^^^^^^^^^^^^^^^^^
 
