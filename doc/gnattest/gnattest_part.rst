@@ -643,6 +643,46 @@ Passing it to the driver generated on the first example:
 makes both tests pass, even the unimplemented one.
 
 
+.. _Selecting_Tests_to_Run:
+
+Selecting Tests to Run
+----------------------
+
+By default the generated test driver runs every test it contains. It also
+accepts a :switch:`--routines` switch to run only the tests associated with
+selected subprograms, which is convenient to re-run a single test during
+development (this switch is, for instance, what the GNAT Studio and VS Code
+extensions use to run an individual test).
+
+A subprogram is designated by the source location of its *declaration*, given
+as the simple name of its spec file and the line number, separated by a colon:
+
+  ::
+
+      $ test_runner --routines=my_unit.ads:7
+
+This runs all the tests associated with the subprogram declared at line 7 of
+:file:`my_unit.ads`. The selection follows the test type hierarchy, so any
+inherited, overridden, or per-instance tests derived from that subprogram are
+run as well.
+
+The switch may be repeated to select several subprograms:
+
+  ::
+
+      $ test_runner --routines=my_unit.ads:7 --routines=other.ads:10
+
+The list of source locations may also be read from a file, one ``file:line``
+entry per line, by prefixing its name with ``@``:
+
+  ::
+
+      $ test_runner --routines=@selected.txt
+
+If no subprogram corresponds to a given source location, the driver reports an
+error such as ``no subprogram corresponds to sloc my_unit.ads:7`` and aborts.
+
+
 .. _Testing_Primitive_Operations_of_Tagged_Types:
 
 Testing Primitive Operations of Tagged Types
