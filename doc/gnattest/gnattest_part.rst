@@ -897,7 +897,10 @@ Individual Test Drivers
 By default, ``gnattest`` generates a monolithic test driver that
 aggregates the individual tests into a single executable. It is also possible
 to generate separate executables for each test or each unit under test, by
-passing the switch ``--separate-drivers`` with corresponding parameter. This
+passing the switch ``--separate-drivers[={val}]``. The parameter ``val``
+selects the granularity: ``unit`` (the default, also used when ``val`` is
+omitted) generates one test driver per unit under test, while ``test``
+generates one test driver per individual test. This
 approach scales better for large testing campaigns, especially involving target
 architectures with limited resources typical for embedded development. It can
 also provide a major performance benefit on multi-core systems by allowing
