@@ -8328,34 +8328,15 @@ package body Instrument.Ada_Unit is
    --------------
 
    function Is_Ghost
-     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean
-   is
-      Decl : Basic_Decl := D;
+     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean is
    begin
-      --  We are looking for a Ghost aspect for the given expression function.
-      --  If this expression function has a declaration, the aspect must be
-      --  there.
-
       begin
-         Decl := Decl.P_Canonical_Part;
+         return D.P_Has_Aspect (T_Ghost);
       exception
          when Exc : Property_Error =>
             Report
               (UIC,
-               Decl,
-               "Failed to look for a previous declaration of this expression"
-               & " function: "
-               & Switches.Exception_Info (Exc),
-               Warning);
-      end;
-
-      begin
-         return Decl.P_Has_Aspect (T_Ghost);
-      exception
-         when Exc : Property_Error =>
-            Report
-              (UIC,
-               Decl,
+               D,
                "Failed to look for a Ghost aspect for this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
