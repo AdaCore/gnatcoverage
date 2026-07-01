@@ -16,9 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package GPR2.Build.Actions.Instrument_Source.Ada is
+package Instrument.Actions.Instrument_Source.Ada is
 
-   type Object is new GPR2.Build.Actions.Instrument_Source.Object with private;
+   type Object is new Instrument.Actions.Instrument_Source.Object with private;
 
    overriding
    procedure Compute_Signature
@@ -36,7 +36,7 @@ package GPR2.Build.Actions.Instrument_Source.Ada is
 
 private
 
-   type Object is new GPR2.Build.Actions.Instrument_Source.Object
+   type Object is new Instrument.Actions.Instrument_Source.Object
    with null record;
 
-end GPR2.Build.Actions.Instrument_Source.Ada;
+end Instrument.Actions.Instrument_Source.Ada;

@@ -32,8 +32,6 @@ with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with GPR2;
-with GPR2.Build.Actions.Process.Instrument_Source;
-with GPR2.Build.Actions.Thread.Instrument_Source;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Actions_Scheduler;
 with GPR2.Build.Source;
@@ -53,6 +51,8 @@ with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Handling;      use Files_Handling;
 with Files_Table;         use Files_Table;
+with Instrument.Actions.Instrument_Source.Process;
+with Instrument.Actions.Instrument_Source.Thread;
 with Instrument.Ada_Preprocessing;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.Ada_Unit_Provider;
@@ -807,7 +807,7 @@ begin
          if Parallelism_Level = 1 then
             declare
                Inst_Action :
-                 GPR2.Build.Actions.Thread.Instrument_Source.Object;
+                 Instrument.Actions.Instrument_Source.Thread.Object;
             begin
                Inst_Action.Initialize
                  (LU_Info      => LU_Info,
@@ -823,7 +823,7 @@ begin
          else
             declare
                Inst_Action :
-                 GPR2.Build.Actions.Process.Instrument_Source.Object;
+                 Instrument.Actions.Instrument_Source.Process.Object;
             begin
                Inst_Action.Initialize
                  (LU_Info      => LU_Info,

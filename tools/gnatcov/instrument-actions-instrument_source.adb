@@ -25,7 +25,6 @@ with GPR2.Build.Artifacts;
 with GPR2.Build.Artifacts.Key_Value;
 with GPR2.Build.Makefile_Parser;
 with GPR2.Build.Source;
-with GPR2.Path_Name;
 with GPR2.Project;
 with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
@@ -38,7 +37,7 @@ with Switches_GPR; use Switches_GPR;
 with Text_Files;
 with Version;
 
-package body GPR2.Build.Actions.Instrument_Source is
+package body Instrument.Actions.Instrument_Source is
 
    package PRA renames GPR2.Project.Registry.Attribute;
    package PAI renames GPR2.Project.Attribute_Index;
@@ -97,7 +96,8 @@ package body GPR2.Build.Actions.Instrument_Source is
 
          --  Add the SID file
 
-         Self.Artifacts.Include (Artifacts.Files.Create (Self.SID_Path));
+         Self.Artifacts.Include
+           (GPR2.Build.Artifacts.Files.Create (Self.SID_Path));
       end if;
 
       --  Add other instrumentation artifacts
@@ -107,7 +107,7 @@ package body GPR2.Build.Actions.Instrument_Source is
           (Self.LU_Info.Main_Part_Src, Self.Prj_Info.Desc)
       loop
          Self.Artifacts.Include
-           (Artifacts.Files.Create (GPR2.Path_Name.Create (VF)));
+           (GPR2.Build.Artifacts.Files.Create (GPR2.Path_Name.Create (VF)));
       end loop;
    end Initialize;
 
@@ -138,7 +138,8 @@ package body GPR2.Build.Actions.Instrument_Source is
                end if;
 
             elsif not Signature.Add_Input
-                        (Artifacts.Files.Create (Path), Check_Checksums)
+                        (GPR2.Build.Artifacts.Files.Create (Path),
+                         Check_Checksums)
             then
                Signature.Clear;
                return;
@@ -162,7 +163,7 @@ package body GPR2.Build.Actions.Instrument_Source is
 
       for Arg of Switches.Args.String_List_Args (Opt_Ext_Annotations) loop
          if not Signature.Add_Output
-                  (Artifacts.Files.Create (Filename_Type (+Arg)),
+                  (GPR2.Build.Artifacts.Files.Create (Filename_Type (+Arg)),
                    Check_Checksums)
          then
             Signature.Clear;
@@ -173,7 +174,7 @@ package body GPR2.Build.Actions.Instrument_Source is
       --  Add the gnatcov version as a signature input artifact
 
       if not Signature.Add_Input
-               (Artifacts.Key_Value.Create
+               (GPR2.Build.Artifacts.Key_Value.Create
                   (Key   => Value_Type'("gnatcov_version"),
                    Value => Value_Type'(Version.Xcov_Version)),
                 Check_Checksums)
@@ -202,7 +203,7 @@ package body GPR2.Build.Actions.Instrument_Source is
          --  source as an input.
 
          if not Signature.Add_Input
-                  (Artifacts.Files.Create
+                  (GPR2.Build.Artifacts.Files.Create
                      (Self.LU_Info.Main_Part_Src.Path_Name))
          then
             Signature.Clear;
@@ -303,7 +304,7 @@ package body GPR2.Build.Actions.Instrument_Source is
 
    function Post_Execution
      (Self   : in out Object;
-      Status : Execution_Status;
+      Status : GPR2.Build.Actions.Execution_Status;
       Stdout : US.Unbounded_String := US.Null_Unbounded_String;
       Stderr : US.Unbounded_String := US.Null_Unbounded_String) return Boolean
    is
@@ -315,7 +316,7 @@ package body GPR2.Build.Actions.Instrument_Source is
           (Self.LU_Info.Main_Part_Src, Self.Prj_Info.Desc)
       loop
          Self.Artifacts.Include
-           (Artifacts.Files.Create (GPR2.Path_Name.Create (VF)));
+           (GPR2.Build.Artifacts.Files.Create (GPR2.Path_Name.Create (VF)));
       end loop;
 
       --  Write the list of files instrumented in the context of this source
@@ -329,8 +330,8 @@ package body GPR2.Build.Actions.Instrument_Source is
    -- UID --
    ---------
 
-   function UID (Self : Object) return Actions.Action_Id'Class is
-      Result : constant GPR2.Build.Actions.Instrument_Source.Instrument_Id :=
+   function UID (Self : Object) return GPR2.Build.Actions.Action_Id'Class is
+      Result : constant Instrument.Actions.Instrument_Source.Instrument_Id :=
         (Name_Len => Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name'Length,
          Lang     => To_Language_Id (Self.LU_Info.Language),
          Ctxt     => Self.LU_Info.Instr_Project,
@@ -395,4 +396,4 @@ package body GPR2.Build.Actions.Instrument_Source is
       end if;
    end Unit_Name;
 
-end GPR2.Build.Actions.Instrument_Source;
+end Instrument.Actions.Instrument_Source;

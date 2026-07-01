@@ -16,9 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GPR2.Build.Actions.Instrument_Source.Ada;
+with GPR2.Build.Artifacts.Key_Value;
 
-package body GPR2.Build.Actions.Process.Instrument_Source is
+with Instrument.Actions.Instrument_Source.Ada;
+with Instrument.Source;
+
+package body Instrument.Actions.Instrument_Source.Thread is
 
    ----------------
    -- Initialize --
@@ -32,14 +35,14 @@ package body GPR2.Build.Actions.Process.Instrument_Source is
       Prj_Info     : Project_Info_Access;
       Dump_Config  : Any_Dump_Config) is
    begin
-      Self.Ctxt := LU_Info.Instr_Project;
+      Self.Set_View (LU_Info.Instr_Project);
       if LU_Info.Language = Switches.Ada_Language then
          Self.Instrument_Object :=
-           new GPR2.Build.Actions.Instrument_Source.Ada.Object;
+           new Instrument.Actions.Instrument_Source.Ada.Object;
       elsif LU_Info.Language in Switches.C_Language | Switches.CPP_Language
       then
          Self.Instrument_Object :=
-           new GPR2.Build.Actions.Instrument_Source.Object;
+           new Instrument.Actions.Instrument_Source.Object;
       else
          raise Program_Error;
       end if;
@@ -65,24 +68,24 @@ package body GPR2.Build.Actions.Process.Instrument_Source is
 
    overriding
    procedure Compute_Signature
-     (Self : in out Object; Check_Checksums : Boolean) is
+     (Self : in out Object; Check_Checksums : Boolean)
+   is
+      Command_Line_Key : constant String := "command_line";
+      Ignored          : Boolean;
+      Signature        : GPR2.Build.Signature.Object := Self.Signature;
    begin
-      Self.Instrument_Object.Compute_Signature
-        (Self.Signature, Check_Checksums);
+      Self.Instrument_Object.Compute_Signature (Signature, Check_Checksums);
+
+      --  Also add the command line to the signature
+
+      Ignored :=
+        Signature.Add_Input
+          (GPR2.Build.Artifacts.Key_Value.Create
+             (Command_Line_Key,
+              Self.Instrument_Object.Compute_Command.Signature),
+           Check_Checksums);
+      Self.Set_Signature (Signature);
    end Compute_Signature;
-
-   ---------------------
-   -- Compute_Command --
-   ---------------------
-
-   procedure Compute_Command
-     (Self           : in out Object;
-      Slot           : Positive;
-      Cmd_Line       : in out GPR2.Build.Command_Line.Object;
-      Signature_Only : Boolean) is
-   begin
-      Cmd_Line := Self.Instrument_Object.Compute_Command;
-   end Compute_Command;
 
    --------------------
    -- Post_Execution --
@@ -91,7 +94,7 @@ package body GPR2.Build.Actions.Process.Instrument_Source is
    overriding
    function Post_Execution
      (Self   : in out Object;
-      Status : Execution_Status;
+      Status : GPR2.Build.Actions.Execution_Status;
       Stdout : US.Unbounded_String := US.Null_Unbounded_String;
       Stderr : US.Unbounded_String := US.Null_Unbounded_String) return Boolean
    is
@@ -99,4 +102,32 @@ package body GPR2.Build.Actions.Process.Instrument_Source is
       return Self.Instrument_Object.Post_Execution (Status, Stdout, Stderr);
    end Post_Execution;
 
-end GPR2.Build.Actions.Process.Instrument_Source;
+   --------------
+   -- Execute --
+   --------------
+
+   function Execute
+     (Self   : in out Object;
+      Stdout : in out US.Unbounded_String;
+      Stderr : in out US.Unbounded_String) return Integer
+   is
+      Instr_Obj : Instrument.Actions.Instrument_Source.Object_Acc renames
+        Self.Instrument_Object;
+   begin
+      Instrument.Source
+        (Unit_Name         => Instr_Obj.Unit_Name,
+         SID_Name          => String (Instr_Obj.SID_Path.Value),
+         Instrumenter      => Instr_Obj.Instrumenter.all,
+         Files_Of_Interest => Instr_Obj.IC.Files_Of_Interest,
+         Prj_Actual        => Instr_Obj.Prj_Info.Desc,
+         Is_UOI            => Instr_Obj.LU_Info.Is_UOI,
+         Is_Main           => Instr_Obj.LU_Info.Is_Main,
+         Dump_Config       => Instr_Obj.Dump_Config);
+
+      --  If Instrument.Source executed without raising an exception, consider
+      --  the action execution successful.
+
+      return 0;
+   end Execute;
+
+end Instrument.Actions.Instrument_Source.Thread;

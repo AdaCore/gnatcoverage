@@ -25,7 +25,7 @@ with GPR2.Project.View.Set;
 with Files_Table; use Files_Table;
 with Text_Files;
 
-package body GPR2.Build.Actions.Instrument_Source.Ada is
+package body Instrument.Actions.Instrument_Source.Ada is
 
    -----------------------
    -- Compute_Signature --
@@ -185,4 +185,4 @@ package body GPR2.Build.Actions.Instrument_Source.Ada is
       Close (F);
    end Write_Instrumented_Files_List;
 
-end GPR2.Build.Actions.Instrument_Source.Ada;
+end Instrument.Actions.Instrument_Source.Ada;
