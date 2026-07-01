@@ -503,9 +503,12 @@ package body Instrument.Ada_Unit is
    --  to evaluate the expression.
 
    function Is_Ghost
-     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean;
+     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl; Assertion_Level : out Expr)
+      return Boolean;
    --  Return whether the given expression function is ghost (EF or its
-   --  canonical declaration has a Ghost aspect).
+   --  canonical declaration has a Ghost aspect). If it is ghost, set
+   --  Assertion_Level to the assertion level associated to it (it may be
+   --  No_Expr).
 
    function Is_Generic
      (UIC : Ada_Unit_Inst_Context; Decl : Basic_Decl'Class) return Boolean;
@@ -2885,6 +2888,8 @@ package body Instrument.Ada_Unit is
           Augmented_Expr_Function_Needs_Decl (Common_Nodes.N.As_Expr_Function);
 
       Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
+
+      Assertion_Level : Expr;
    begin
       --  Create the new augmented function. Attach the original aspects to
       --  it if necessary, i.e. if they were not already attached to a previous
@@ -3026,20 +3031,24 @@ package body Instrument.Ada_Unit is
       end if;
 
       --  If the original expression function is ghost, so must be the
-      --  augmented one.
+      --  augmented one. Make it ghost with the same assertion level.
 
       if Is_Ghost
            (UIC,
             (if Common_Nodes.N.Kind = Ada_Expr_Function
              then Common_Nodes.N.As_Expr_Function.As_Basic_Decl
-             else Common_Nodes.N.As_Basic_Decl))
+             else Common_Nodes.N.As_Basic_Decl),
+            Assertion_Level)
       then
          declare
             Ghost_Aspect : constant Node_Rewriting_Handle :=
               Create_Aspect_Assoc
-                (RC,
-                 Make_Identifier (UIC.Rewriting_Context, "Ghost"),
-                 No_Node_Rewriting_Handle);
+                (Handle => RC,
+                 F_Id   => Make_Identifier (UIC.Rewriting_Context, "Ghost"),
+                 F_Expr =>
+                   (if Assertion_Level.Is_Null
+                    then No_Node_Rewriting_Handle
+                    else Clone (Handle (Assertion_Level))));
 
             Aspects : constant Node_Rewriting_Handle :=
               Create_Regular_Node (RC, Ada_Aspect_Spec, (1 => Ghost_Aspect));
@@ -8328,10 +8337,15 @@ package body Instrument.Ada_Unit is
    --------------
 
    function Is_Ghost
-     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean is
+     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl; Assertion_Level : out Expr)
+      return Boolean
+   is
+      A : LAL.Aspect;
    begin
+      Assertion_Level := No_Expr;
+
       begin
-         return D.P_Has_Aspect (T_Ghost);
+         A := D.P_Get_Aspect (T_Ghost);
       exception
          when Exc : Property_Error =>
             Report
@@ -8342,6 +8356,12 @@ package body Instrument.Ada_Unit is
                Warning);
             return False;
       end;
+
+      return Result : constant Boolean := Exists (A) do
+         if Result then
+            Assertion_Level := Value (A).As_Expr;
+         end if;
+      end return;
    end Is_Ghost;
 
    ----------------
