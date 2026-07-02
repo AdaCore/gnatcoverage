@@ -10014,17 +10014,8 @@ package body Instrument.Ada_Unit is
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
-      Instrumented_Filename : constant String :=
-        Create_From_Dir (Prj.Output_Dir, Source.Base_Name).Display_Full_Name;
-      Source_Filename       : constant String := +Source.Full_Name;
-      Instrumented_Exists   : constant Boolean :=
-        Ada.Directories.Exists (Instrumented_Filename);
-      File_To_Search        : constant String :=
-        (if Instrumented_Exists
-         then Instrumented_Filename
-         else Source_Filename);
-      Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
-        Get_From_File (Self, File_To_Search, Reparse => True);
+      Unit : constant Libadalang.Analysis.Analysis_Unit :=
+        Get_From_File (Self, Source.Display_Full_Name, Reparse => True);
 
       Rewriting_Started    : Boolean := False;
       Rewriter             : Ada_Source_Rewriter;
@@ -10061,7 +10052,11 @@ package body Instrument.Ada_Unit is
          --  during the regular instrumentation.
 
          Parse_Annotation
-           (N, Prag_Args, Handled, Result, Silent => Instrumented_Exists);
+           (N,
+            Prag_Args,
+            Handled,
+            Result,
+            Silent => Is_Instrumented_File (Prj, Source));
          if not Handled or else Result.Kind not in Dump_Buffers | Reset_Buffers
          then
             return Over;
