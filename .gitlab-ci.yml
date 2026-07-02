@@ -31,7 +31,8 @@ include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
     inputs:
       job-name: build
-      anod-args: build --smart-rebuild gnatcov -Qinstr
+      anod-args: build --smart-rebuild gnatcov -Qinstr $ANOD_BUILD_DATE_ARG
+      anod-latest: false
       cpus: 16
       image: pe-base
       save-component: true
@@ -41,7 +42,8 @@ include:
     inputs:
       job-name: build-community
       stage: test
-      anod-args: build --smart-rebuild gnatcov -Qno-c
+      anod-args: build --smart-rebuild gnatcov -Qno-c $ANOD_BUILD_DATE_ARG
+      anod-latest: false
       cpus: 16
       image: pe-base
 
@@ -49,7 +51,8 @@ include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/test@~latest
     inputs:
       linux: false # we provide our own runnable jobs
-      anod-args: test gnatcov --minimal $TARGET_ARGS -Q$TEST_QUALIFIER
+      anod-args: test gnatcov --minimal $TARGET_ARGS -Q$TEST_QUALIFIER $ANOD_BUILD_DATE_ARG
+      anod-latest: false
       generic-anod-ci-args: --add-dep eng/das/cov/gnatcoverage-extra
       needs: ["build:linux"]
       image: pe-base
@@ -69,6 +72,9 @@ variables:
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
    CLANG_FORMAT_DATE: !reference [.dates, clang-format]
    GNATFORMAT_DATE: !reference [.dates, gnatformat]
+   # Set to --build-date=YYYYMMDD on days where there is a QA incident, so that
+   # the CI works with components from a previous date.
+   ANOD_BUILD_DATE_ARG: ""
 
 stages:
   - build
@@ -88,7 +94,7 @@ build_docs:
   script:
     - generic_anod_ci
     - . /tmp/ci_env.sh
-    - anod build gnatdas-doc -Qwarn-errors --latest
+    - anod build gnatdas-doc -Qwarn-errors $ANOD_BUILD_DATE_ARG
     - DOC_BSN=$(anod eval gnatdas-doc -Qwarn-errors build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$DOC_BSN/install/share/doc/gnatdas/ $CI_PROJECT_DIR
   artifacts:
@@ -269,8 +275,8 @@ test_qualkit:
 
     # Use the gnatcov-qualrun and gnatcov-qualkit specs to run the
     # qualification testsuite and create a qualification kit
-    - anod test gnatcov-qualrun --minimal -Qci
-    - anod build gnatcov-qualkit --minimal -Qci
+    - anod test gnatcov-qualrun --minimal -Qci $ANOD_BUILD_DATE_ARG
+    - anod build gnatcov-qualkit --minimal -Qci $ANOD_BUILD_DATE_ARG
     - QUALKIT_BSN=$(anod eval --primitive=build gnatcov-qualkit -Qci build_space_name)
     - QUALRUN_BSN=$(anod eval --primitive=test gnatcov-qualrun -Qci build_space_name)
     - mkdir $CI_PROJECT_DIR/qualkits
