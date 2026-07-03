@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 21;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 22;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -66,6 +66,7 @@ package Checkpoints is
    --  20 -- Rework Scope_Entity to identify scopes by their Start/End_Sloc
    --        rather than their Start/End_SCO.
    --  21 -- Remove unit names (keep only filenames, no matter the language).
+   --  22 -- Add fine grained exemptions.
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
@@ -340,6 +341,8 @@ package Checkpoints is
 
    type U8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
 
+   function Read_Any_Annotation_Kind
+     (Self : in out Checkpoint_Load_State) return Any_Annotation_Kind;
    function Read_BDD_Node
      (Self : in out Checkpoint_Load_State) return BDD_Node_Id;
    function Read_Bit_Id
@@ -478,6 +481,8 @@ package Checkpoints is
    --  Also define generic procedures to write containers (maps, multiway
    --  trees, sets, vectors).
 
+   procedure Write_Any_Annotation_Kind
+     (Self : in out Checkpoint_Save_State; Value : Any_Annotation_Kind);
    procedure Write_BDD_Node
      (Self : in out Checkpoint_Save_State; Value : BDD_Node_Id);
    procedure Write_Bit_Id

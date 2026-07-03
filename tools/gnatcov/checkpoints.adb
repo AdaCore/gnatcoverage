@@ -663,6 +663,16 @@ package body Checkpoints is
    --  compatibility, except maybe for endianity. For now, gnatcov is supported
    --  on little-endian platforms only, so we should be fine.
 
+   ------------------------------
+   -- Read_ALI_Annotation_Kind --
+   ------------------------------
+
+   function Read_Any_Annotation_Kind
+     (Self : in out Checkpoint_Load_State) return Any_Annotation_Kind is
+   begin
+      return ALI_Annotation_Kind'Val (Self.Read_U8);
+   end Read_Any_Annotation_Kind;
+
    -------------------
    -- Read_BDD_Node --
    -------------------
@@ -1146,6 +1156,16 @@ package body Checkpoints is
          Set_String (Value, Length, Set'Access);
       end if;
    end Read;
+
+   -------------------------------
+   -- Write_Any_Annotation_Kind --
+   -------------------------------
+
+   procedure Write_Any_Annotation_Kind
+     (Self : in out Checkpoint_Save_State; Value : Any_Annotation_Kind) is
+   begin
+      Self.Write_U8 (Any_Annotation_Kind'Pos (Value));
+   end Write_Any_Annotation_Kind;
 
    --------------------
    -- Write_BDD_Node --

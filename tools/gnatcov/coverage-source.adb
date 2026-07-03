@@ -632,10 +632,17 @@ package body Coverage.Source is
    ------------------------
 
    procedure Compute_Line_State
-     (Line_Num  : Positive;
-      Line_Info : Line_Info_Access;
-      ST        : in out Scope_Traversal_Type)
+     (Line_Num   : Positive;
+      Line_Info  : Line_Info_Access;
+      ST         : in out Scope_Traversal_Type;
+      Exemptions : Exemption_Maps.Map)
    is
+      function Report_Violation
+        (SCO : Exemptable_SCO; Msg : String) return Boolean;
+      --  Wrapper around Diagnostics.Report_Coverage that creates a Violation
+      --  or an Exempted_Violation diagnostic depending on whether SCO is
+      --  exempted. Return whether the violation was indeed exempted.
+
       procedure Compute_Condition_Level_Line_State
         (SCO       : SCO_Id;
          SCO_State : Line_State;
@@ -656,6 +663,28 @@ package body Coverage.Source is
       --  Appropriately report the case in which a SCO is not sufficiently
       --  instrumented to compute its coverage for MCDC or ATCC level.
 
+      ----------------------
+      -- Report_Violation --
+      ----------------------
+
+      function Report_Violation
+        (SCO : Exemptable_SCO; Msg : String) return Boolean
+      is
+         use Exemption_Maps;
+         Cur : constant Cursor := Exemptions.Find (SCO);
+      begin
+         if Has_Element (Cur) then
+            Report_Coverage
+              (SCO  => SCO.SCO,
+               Msg  => Msg & " (exempted: " & (+Element (Cur)) & ")",
+               Kind => Exempted_Violation);
+            return True;
+         else
+            Report_Coverage (SCO => SCO.SCO, Msg => Msg, Kind => Violation);
+            return False;
+         end if;
+      end Report_Violation;
+
       ----------------------------------------
       -- Compute_Condition_Level_Line_State --
       ----------------------------------------
@@ -667,7 +696,9 @@ package body Coverage.Source is
          SCI       : Source_Coverage_Info;
          Level     : Coverage_Level) is
       begin
-         if SCO_State = Covered then
+         if SCO_State
+            in Covered | Exempted_With_Violation | Exempted_No_Violation
+         then
 
             --  Complete computation of MC/DC/ATCC coverage state if SCO
             --  is covered for decision/ATC coverage.
@@ -947,14 +978,21 @@ package body Coverage.Source is
                      --  In this case, we chose to report the violation,
                      --  because if you have a static decision in your code
                      --  that may change depending on the build context, then
-                     --  you SHOULD get it covered
+                     --  you SHOULD get it covered.
 
-                     SCO_State := Not_Covered;
-                     Report_Violation
-                       (SCO,
-                        "outcome "
-                        & To_Boolean (Decision_Outcome (SCO))'Image
-                        & " never exercised");
+                     declare
+                        Outcome : constant Boolean :=
+                          To_Boolean (Decision_Outcome (SCO));
+                     begin
+                        SCO_State :=
+                          (if Report_Violation
+                                ((Decision_Outcome, SCO, Outcome),
+                                 "outcome "
+                                 & Outcome'Image
+                                 & " never exercised")
+                           then Exempted_With_Violation
+                           else Not_Covered);
+                     end;
                      Update_Line_State (Decision);
 
                   elsif Report_If_Excluded (SCO) then
@@ -974,7 +1012,12 @@ package body Coverage.Source is
                   --  Here for a decision whose both outcomes have been
                   --  exercised.
 
-                  SCO_State := Covered;
+                  SCO_State :=
+                    (if Decision_Outcome_Exempted (Exemptions, SCO, False)
+                       or else
+                         Decision_Outcome_Exempted (Exemptions, SCO, True)
+                     then Exempted_No_Violation
+                     else Covered);
 
                elsif SCI.Outcome_Taken /= No_Outcome_Taken
                  or else SCI.Known_Outcome_Taken /= No_Outcome_Taken
@@ -986,14 +1029,24 @@ package body Coverage.Source is
                      --  False. Therefore once they have been exercised and
                      --  found to be True, they are covered.
 
-                     if SCI.Outcome_Taken (True)
-                       or else SCI.Known_Outcome_Taken (True)
-                     then
-                        SCO_State := Covered;
-                     else
-                        SCO_State := Not_Covered;
-                        Report_Violation (SCO, "outcome TRUE never exercised");
-                     end if;
+                     SCO_State :=
+                       (if SCI.Outcome_Taken (True)
+                          or else SCI.Known_Outcome_Taken (True)
+                        then
+                          --  Do not forget to mark the SCO as exempted if
+                          --  appropriate.
+
+                           (if Decision_Outcome_Exempted
+                                 (Exemptions, SCO, True)
+                            then Exempted_No_Violation
+                            else Covered)
+
+                        elsif Report_Violation
+                                ((Decision_Outcome, SCO, True),
+                                 "outcome TRUE never exercised")
+                        then Exempted_With_Violation
+
+                        else Not_Covered);
 
                   else
                      --  Here if at least one outcome has been exercised,
@@ -1025,11 +1078,19 @@ package body Coverage.Source is
                              (SCO, "not exercised in both directions");
 
                         else
-                           Report_Violation
-                             (SCO,
-                              "outcome "
-                              & Missing_Outcome'Img
-                              & " never exercised");
+                           declare
+                              Outcome : constant Boolean :=
+                                To_Boolean (Missing_Outcome);
+                           begin
+                              SCO_State :=
+                                (if Report_Violation
+                                      ((Decision_Outcome, SCO, Outcome),
+                                       "outcome "
+                                       & Outcome'Img
+                                       & " never exercised")
+                                 then Exempted_With_Violation
+                                 else Partially_Covered);
+                           end;
                         end if;
                      end;
                   end if;
@@ -1091,7 +1152,24 @@ package body Coverage.Source is
 
                               SCO_State := No_Code;
                            end if;
+
+                        --  Past this point, we know that no outcome was
+                        --  reached. Consider that the decision is exempted if
+                        --  its two outcomes are exempted (regular decisions),
+                        --  or if its True outcome is exempted (assertions).
+
+                        elsif Assertion_Coverage
+                          or else
+                            Decision_Outcome_Exempted (Exemptions, SCO, True)
+                        then
+                           SCO_State :=
+                             (if Report_Violation
+                                   ((Decision_Outcome, SCO, True),
+                                    "never evaluated")
+                              then Exempted_With_Violation
+                              else Not_Covered);
                         else
+                           SCO_State := Not_Covered;
                            Report_Violation (SCO, "never evaluated");
                         end if;
                      end if;

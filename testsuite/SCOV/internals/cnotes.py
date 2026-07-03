@@ -128,6 +128,7 @@
 # cPartCov : independent effect of condition not demonstrated (=report)
 
 # aNoCov    : assertion never evaluated (=report)
+# aUndetCov : contract expression not instrumented for ATCC (=report)
 # atNoCov   : assertion expression outcome TRUE never evaluated (=report)
 # acPartCov : assertion condition was never evaluated during an evaluation of
 #             the decision to True (=report)
@@ -164,7 +165,7 @@
 # found in exempted regions. The relevant notes are:
 #
 # XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov,
-# XoPartCov, XoNoCov, XcPartCov, r0, r0c
+# XoPartCov, XoNoCov, XaNoCov, XcPartCov, r0, r0c
 
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
@@ -230,10 +231,12 @@ class NK(IntEnum):
     XofNoCov = auto()
     XoPartCov = auto()
     XoNoCov = auto()
+    XaNoCov = auto()
     XcPartCov = auto()
     Xr0 = auto()
     Xr0c = auto()
     aNoCov = auto()
+    aUndetCov = auto()
     atNoCov = auto()
     acPartCov = auto()
     fNoCov = auto()
@@ -307,7 +310,7 @@ cNoteKinds = (
 
 # Assertion violations
 atcNoteKinds = (NK.aNoCov, NK.atNoCov)
-atccNoteKinds = (NK.acPartCov,)
+atccNoteKinds = (NK.acPartCov, NK.aUndetCov)
 aNoteKinds = atcNoteKinds + atccNoteKinds
 
 # Function and call coverage violations
@@ -328,7 +331,7 @@ XsNoteKinds = (
     NK.XsUndetCov,
 )
 
-XoNoteKinds = (NK.XotNoCov, NK.XofNoCov, NK.XoPartCov, NK.XoNoCov)
+XoNoteKinds = (NK.XotNoCov, NK.XofNoCov, NK.XoPartCov, NK.XoNoCov, NK.XaNoCov)
 
 XcNoteKinds = (NK.XcPartCov,)
 

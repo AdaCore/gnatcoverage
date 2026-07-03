@@ -1,0 +1,2 @@
+- 7:7 - 7:7; id: foo; kind: Exempt_Decision_Outcome; Outcome: FALSE; Justification: Message 1
+- 7:7 - 7:7; id: foo; kind: Exempt_Decision_Outcome; Outcome: TRUE; Decision: 1; Justification: Message 2

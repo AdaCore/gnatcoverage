@@ -379,6 +379,17 @@ class OERsection(Nsection):
         return None
 
 
+class FGXchapter(Nchapter):
+    """Fine grained exemptions chapter."""
+
+    def __init__(self, re_start: str, re_notes: ReNotes):
+        super().__init__(
+            re_start=re_start,
+            re_end=r"(\d+) fine grained exempted item[s]?\.$",
+            re_notes=re_notes,
+        )
+
+
 class XREchapter(Nchapter):
     """Exemptions Regions chapter."""
 
@@ -719,6 +730,7 @@ class RblockSet:
             " coverage": NK.dUndetCov,
             "decision was not instrumented for MCDC": NK.eUndetCov,
             "decision was not instrumented for UC_MCDC": NK.eUndetCov,
+            "contract expression was not instrumented for ATCC": NK.aUndetCov,
             "function was not instrumented": NK.fUndetCov,
             "call was not instrumented": NK.cUndetCov,
             "guarded_expr was not instrumented": NK.gUndetCov,
@@ -727,6 +739,20 @@ class RblockSet:
         self.noteblocks.append(
             UCIchapter(
                 re_start="UNDETERMINED COVERAGE ITEMS", re_notes=ni_notes
+            )
+        )
+
+        # Fine grained exempted violations
+
+        self.noteblocks.append(
+            FGXchapter(
+                re_start="FINE GRAINED EXEMPTED VIOLATIONS",
+                re_notes={
+                    "decision outcome FALSE never": NK.XofNoCov,
+                    "decision outcome TRUE never": NK.XotNoCov,
+                    "decision never evaluated": NK.XoNoCov,
+                    "contract expression never evaluated": NK.XaNoCov,
+                },
             )
         )
 

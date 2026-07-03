@@ -24,62 +24,38 @@ package body Traces_Lines is
 
    function "*" (L, R : Line_State) return Line_State is
    begin
+      --  In order to reduce code duplication and ensure that this function is
+      --  commutative, ensure that L <= R.
+
+      if L > R then
+         return R * L;
+      end if;
+
+      --  We don't want non instrumented code/not coverable code/exempted code
+      --  to mask any confirmed violations, but we still want them to show up
+      --  if gnatcov does not detect any violation.
+
       case L is
-         when No_Code                               =>
+         when Not_Covered                                    =>
+            return
+              (if R in Partially_Covered | Covered
+               then Partially_Covered
+               else L);
+
+         when Partially_Covered                              =>
+            return Partially_Covered;
+
+         when Covered                                        =>
+            return (if R in Covered | No_Code then L else R);
+
+         when No_Code                                        =>
             return R;
 
-         --  We don't want non instrumented code / Not_Coverable code to mask
-         --  any confirmed violations, but we still want them to show up if
-         --  gnatcov does not detect any violation.
+         when Not_Coverable                                  =>
+            return (if R = Covered then L else R);
 
-         when Not_Coverable | Undetermined_Coverage =>
-            if R in No_Code | Covered then
-               return L;
-            else
-               return R;
-            end if;
-
-         --  Likewise, exempted code must not mask violations
-
-         when Exempted_With_Violation
-            | Exempted_With_Undetermined_Cov
-            | Exempted_No_Violation                 =>
-            if R in No_Code | Covered | Disabled_Coverage then
-               return L;
-            else
-               return R;
-            end if;
-
-         when others                                =>
-            case R is
-               when No_Code                               =>
-                  return L;
-
-               when Undetermined_Coverage | Not_Coverable =>
-                  if L = Covered then
-                     return R;
-                  else
-                     return L;
-                  end if;
-
-               when Not_Covered                           =>
-                  return Line_State'Min (L, Partially_Covered);
-
-               when Partially_Covered | Disabled_Coverage =>
-                  return R;
-
-               when Covered                               =>
-                  return Line_State'Max (L, Partially_Covered);
-
-               when Exempted_With_Violation
-                  | Exempted_With_Undetermined_Cov
-                  | Exempted_No_Violation                 =>
-                  if R in Covered | Disabled_Coverage then
-                     return L;
-                  else
-                     return R;
-                  end if;
-            end case;
+         when Undetermined_Coverage .. Exempted_No_Violation =>
+            return L;
       end case;
    end "*";
 

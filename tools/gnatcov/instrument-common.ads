@@ -363,6 +363,10 @@ package Instrument.Common is
       --  Annotations created during the instrumentation process, to insert in
       --  CU_Info.ALI_Annotations afterwards.
 
+      Fine_Grained_Exemptions : Exemption_Request_Maps.Map;
+      --  Fine grained exemptions created during the instrumentation process,
+      --  to insert in CU_Info.Fine_Grained_Exemptions afterwards.
+
       Disable_Instrumentation : Boolean := False;
       --  Set to True to deactivate instrumentation and prevent any code
       --  rewriting.

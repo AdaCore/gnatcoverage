@@ -164,6 +164,8 @@ package Command_Line is
       Opt_Start_Location,
       Opt_End_Location,
       Opt_Justification,
+      Opt_Outcome,
+      Opt_Decision,
       Opt_SS_Backend,
       Opt_Source_Encoding,
       Opt_Ada_Default_Charset);
@@ -1602,6 +1604,28 @@ package Command_Line is
            Help         =>
              "Justification for the exemption annotations. Required for the"
              & " ""exempt.on"" and ""exempt.region"" annotation kinds.",
+           Commands     => (Cmd_Add_Annotation => True, others => False),
+           At_Most_Once => False,
+           Internal     => False),
+      Opt_Outcome                =>
+        Create
+          (Long_Name    => "--outcome",
+           Pattern      => "false|true",
+           Help         =>
+             "Target valuation for the outcome decision exemption annotations."
+             & " Required for the ""exempt.decision_outcome"" annotation"
+             & " kind.",
+           Commands     => (Cmd_Add_Annotation => True, others => False),
+           At_Most_Once => False,
+           Internal     => False),
+      Opt_Decision               =>
+        Create
+          (Long_Name    => "--decision",
+           Pattern      => "OFFSET",
+           Help         =>
+             "Decision offset for the outcome decision exemption annotations."
+             & " Optional, for the ""exempt.decision_outcome"" annotation"
+             & " kind.",
            Commands     => (Cmd_Add_Annotation => True, others => False),
            At_Most_Once => False,
            Internal     => False),

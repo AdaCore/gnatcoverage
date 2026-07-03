@@ -469,6 +469,112 @@ package SC_Obligations is
    subtype Valid_BDD_Node_Id is
      BDD_Node_Id range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
 
+   -----------------------------
+   -- Fine grained exemptions --
+   -----------------------------
+
+   --  We distinguish exemption requests (found in source code and external
+   --  annotations) from actual exemptions (produced during the resolution of
+   --  exemption requests).
+   --
+   --  Exemption requests are produced during source code instrumentation and
+   --  when loading external annotations, and are stored in SIDs/checkpoints.
+   --  Actual exemptions however are created just before computing coverage
+   --  reports.
+   --
+   --  Exemption requests are rooted at a given location in the source code
+   --  (location in the source code (location of the annotation itself in the
+   --  source, or target location external annotations), whereas actual
+   --  exemptions refer directly to a source coverage obligation (SCO_Id).
+
+   type Exemption_Request_Kind is (Decision_Outcome);
+
+   SCO_Kind_For : constant array (Exemption_Request_Kind) of SCO_Kind :=
+     (Decision_Outcome => Decision);
+
+   type Exemption_Request
+     (Kind : Exemption_Request_Kind := Exemption_Request_Kind'First)
+   is record
+      Sloc : Source_Location;
+
+      case Kind is
+         when Decision_Outcome =>
+            Decision_Offset : Natural;
+            --  Number of decisions to skip after this annotation to reach the
+            --  decision that is exempted.
+
+            Outcome : Boolean;
+            --  Decision outcome that is exempted
+      end case;
+   end record;
+
+   function "<" (Left, Right : Exemption_Request) return Boolean;
+   function Image (Self : Exemption_Request) return String;
+
+   package Exemption_Request_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Exemption_Request,
+        Element_Type => Unbounded_String);
+
+   procedure Insert_Fine_Grained_Exemption
+     (Exemptions    : in out Exemption_Request_Maps.Map;
+      Request       : Exemption_Request;
+      Justification : Unbounded_String);
+   --  Try to insert a fine grained exemption into Exemptions. Emit a warning
+   --  if there is already an equivalent exemption with a different
+   --  justification.
+
+   procedure Warn_Duplicate_Fine_Grained_Exemption
+     (Request       : Exemption_Request;
+      Justification : Unbounded_String;
+      Existing      : Unbounded_String);
+   --  Emit a diagnostic to warn that two requests try to exempt the same
+   --  obligation with different justifications.
+
+   procedure Set_Fine_Grained_Exemptions
+     (Exemptions : Exemption_Request_Maps.Map);
+   --  Store the given exemptions requests to the relevant compilation unit
+   --  (CU_Id) maps.
+
+   type Exemptable_SCO_Kind is (Decision_Outcome);
+
+   type Exemptable_SCO
+     (Kind : Exemptable_SCO_Kind := Exemptable_SCO_Kind'First)
+   is record
+      SCO : SCO_Id;
+
+      case Kind is
+         when Decision_Outcome =>
+            Outcome : Boolean;
+      end case;
+   end record;
+
+   function "<" (Left, Right : Exemptable_SCO) return Boolean;
+
+   --  Fine grained exemption containers: mappings from exemptable SCOs to the
+   --  exemption justification.
+
+   package Exemption_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Exemptable_SCO,
+        Element_Type => Unbounded_String);
+
+   procedure Resolve_Fine_Grained_Annotations
+     (Requests   : Exemption_Request_Maps.Map;
+      Exemptions : out Exemption_Maps.Map);
+   --  Resolve exemption requests in Requests and store the resulting fine
+   --  grained exemptions in Exemptions.
+
+   procedure Resolve_Fine_Grained_Annotations
+     (CU : CU_Id; Exemptions : out Exemption_Maps.Map);
+   --  Resolve exemption requests associated to CU and store the resulting fine
+   --  grained exemptions in Exemptions.
+
+   function Decision_Outcome_Exempted
+     (Exemptions : Exemption_Maps.Map; SCO : SCO_Id; Outcome : Boolean)
+      return Boolean
+   is (Exemptions.Contains ((Decision_Outcome, SCO, Outcome)));
+
    -------------------------------
    -- ALI files and annotations --
    -------------------------------
@@ -478,6 +584,7 @@ package SC_Obligations is
       Exempt_Region,
       Exempt_On,
       Exempt_Off,
+      Exempt_Decision_Outcome,
       Dump_Buffers,
       Reset_Buffers,
       Cov_On,
@@ -496,11 +603,20 @@ package SC_Obligations is
      Any_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
    --  Annotation kinds to perform coverage buffers control
 
+   subtype Fine_Grained_Annotation_Kind is
+     Any_Annotation_Kind
+       range Exempt_Decision_Outcome .. Exempt_Decision_Outcome;
+
    type ALI_Annotation
      (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)
    is record
       case Kind is
-         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+         when Exempt_On
+            | Exempt_Off
+            | Fine_Grained_Annotation_Kind
+            | Cov_Off
+            | Cov_On
+         =>
             Justification : Unbounded_String;
             --  Justification message for the exemption/deactivation. Empty
             --  string if no justification is given.
@@ -523,6 +639,10 @@ package SC_Obligations is
                   --
                   --  This is relevant only for source trace based coverage
                   --  analysis.
+
+               when Fine_Grained_Annotation_Kind =>
+                  Exemption_Req : Exemption_Request;
+                  --  Fine grained exemption request details
 
                when others =>
                   null;
@@ -582,12 +702,19 @@ package SC_Obligations is
    --  Exception raised by Parse_Annotation or its Process callback when
    --  attempting to parse an invalid annotation.
 
-   type Annotation_Value_Kind is (String_Value, Arbitrary_Expr);
+   type Annotation_Value_Kind is
+     (Boolean_Value, Integer_Value, String_Value, Arbitrary_Expr);
    type Annotation_Value
      (Kind : Annotation_Value_Kind := Annotation_Value_Kind'First)
    is record
       Sloc : Source_Location;
       case Kind is
+         when Boolean_Value =>
+            Boolean_Value : Boolean;
+
+         when Integer_Value =>
+            Integer_Value : Integer;
+
          when String_Value =>
             String_Value : Unbounded_String;
 
