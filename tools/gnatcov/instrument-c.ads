@@ -412,6 +412,29 @@ package Instrument.C is
    --  root of each tree is the scope corresponding to the file itself in which
    --  all its scopes are stored.
 
+   type Relocated_SCO_Info is record
+      LL_SCO : Nat;
+      --  Low level SCO that was relocated
+
+      Start_Loc, End_Loc : Source_Location_T;
+      --  Clang locations for the first and last tokens of the SCO, in the
+      --  included file.
+
+      SFI : Source_File_Index;
+      --  File containing the parent scope, to which the SCO was relocated
+
+      Line : Natural;
+      --  Line, in SFI, of the inclusion directive through which the SCO was
+      --  relocated.
+   end record;
+   --  Information about a low level SCO relocated to the inclusion point of
+   --  its parent scope, pending the deferred column assignment. See the
+   --  documentation of Instrument.C.Relocate_SCO for the rationale, and
+   --  Squash_Relocated_SCO_Columns for the column assignment logic.
+
+   package Relocated_SCO_Info_Vectors is new
+     Ada.Containers.Vectors (Positive, Relocated_SCO_Info);
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context
    with record
       TU       : Translation_Unit_T;
@@ -433,8 +456,16 @@ package Instrument.C is
       Pass : Pass_Kind_Acc;
       --  Current pass. See the Pass_Kind documentation for more details.
 
-      LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
-      --  Preprocessing information for low level SCOs
+      LL_Macro_Info_Map : LL_SCO_PP_Info_Maps.Map;
+      --  Macro information for low level SCOs
+
+      LL_Include_Info_Map : LL_SCO_PP_Info_Maps.Map;
+      --  Inclusion information for low level SCOs
+
+      Relocated_SCOs : Relocated_SCO_Info_Vectors.Vector;
+      --  Low level SCOs relocated to the inclusion point of their parent
+      --  scope, for which columns are assigned after the traversal, see
+      --  Squash_Relocated_SCO_Columns.
 
       Files_Of_Interest        : File_Sets.Set;
       Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
@@ -458,7 +489,7 @@ package Instrument.C is
       --  after preprocessing. This is needed in order to keep track of
       --  which scope was originally opened in which file.
 
-      Current_File_Scope : Scopes_In_Files_Map.Cursor;
+      Current_File_Scope : Source_File_Index;
       --  Source file in which the last scope encountered was opened
 
       Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;

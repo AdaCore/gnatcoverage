@@ -55,7 +55,7 @@
                   "uri": "foo.cpp"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 9
                 }
               }
@@ -97,7 +97,7 @@
                   "uri": "lib.cpp"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 6
                 }
               }
@@ -223,7 +223,7 @@
                   "uri": "main.cpp"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 24
                 }
               }
