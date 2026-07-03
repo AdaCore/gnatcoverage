@@ -4159,11 +4159,27 @@ package body Instrument.Ada_Unit is
          end if;
 
          Decision := P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name));
-         if not Decision.Is_Null then
+         if Decision.Is_Null then
+            return;
+         end if;
 
-            --  For MCDC, we may need to create locals when instrumenting the
-            --  decision: these locals cannot go to the scope that contains D.
+         --  Contracts can associate one decision per assertion level:
+         --
+         --     (Level_1 => Decision_1, Level_2 => Decision_2)
+         --
+         --  or they can provide a single expression that acts as a decision
+         --  for the default assertion level.
+         --
+         --  For MCDC, we may need to create locals when instrumenting a
+         --  decision: these locals cannot go to the scope that contains D, so
+         --  call Process_Standalone_Expression.
 
+         if Decision.Kind = Ada_Aggregate then
+            for Assoc of Decision.As_Aggregate.F_Assocs loop
+               Process_Standalone_Expression
+                 (UIC, Assoc.As_Aggregate_Assoc.F_R_Expr, 'A');
+            end loop;
+         else
             Process_Standalone_Expression (UIC, Decision, 'A');
          end if;
       end Process_Contract;
@@ -7252,7 +7268,27 @@ package body Instrument.Ada_Unit is
                   Loc := Sloc (Parent (E));
 
                   if T in 'a' | 'A' then
-                     Nam := Aspect_Assoc_Name (E.Parent.As_Aspect_Assoc);
+
+                     --  See Process_Contracts: the parent node for this
+                     --  decision is either the aspect association (default
+                     --  assertion level), or an aggregate that provides one
+                     --  decision per assertion level.
+
+                     declare
+                        N : Ada_Node;
+                     begin
+                        N := E.Parent;
+                        if E.Parent.Kind /= Ada_Aspect_Assoc then
+                           pragma Assert (N.Kind = Ada_Aggregate_Assoc);
+                           N := N.Parent;
+                           pragma Assert (N.Kind = Ada_Assoc_List);
+                           N := N.Parent;
+                           pragma Assert (N.Kind = Ada_Aggregate);
+                           N := N.Parent;
+                           pragma Assert (N.Kind = Ada_Aspect_Assoc);
+                        end if;
+                        Nam := Aspect_Assoc_Name (N.As_Aspect_Assoc);
+                     end;
                   end if;
 
                when 'G'                         =>
