@@ -770,6 +770,10 @@ package body Coverage.Source is
             SCO_State : Line_State := No_Code;
             SCI       : Source_Coverage_Info renames SCI_Vector (SCO).all;
 
+            Assertion_Coverage : constant Boolean :=
+              Kind (SCO) = Decision
+              and then Decision_Requires_Assertion_Coverage (SCO);
+
             procedure Update_Line_State (Level : Coverage_Level);
             --  Shortcut for the library level Update_Line_State
 
@@ -897,8 +901,7 @@ package body Coverage.Source is
                --  computed for the first line, and then cached in the SCI and
                --  reused for subsequent lines.
 
-               if Decision_Requires_Assertion_Coverage (SCO) then
-
+               if Assertion_Coverage then
                   SCO_State := SCI.State (ATC);
                   Update_Line_State (ATC);
 
@@ -906,6 +909,7 @@ package body Coverage.Source is
                      SCO_State := SCI.State (ATCC);
                      Update_Line_State (ATCC);
                   end if;
+
                else
                   if Enabled (Decision) then
                      SCO_State := SCI.State (Decision);
@@ -922,7 +926,7 @@ package body Coverage.Source is
               and then
                 ((Decision_Requires_Coverage (SCO)
                   and then (Enabled (Decision) or else MCDC_Coverage_Enabled))
-                 or else Decision_Requires_Assertion_Coverage (SCO))
+                 or else Assertion_Coverage)
             then
                --  Compute decision coverage state for this decision. Note that
                --  the decision coverage information is also included in MC/DC
@@ -975,9 +979,7 @@ package body Coverage.Source is
                elsif SCI.Outcome_Taken /= No_Outcome_Taken
                  or else SCI.Known_Outcome_Taken /= No_Outcome_Taken
                then
-                  --  Assertion coverage
-
-                  if Decision_Requires_Assertion_Coverage (SCO) then
+                  if Assertion_Coverage then
                      --  Contract coverage level "Assertion True Coverage"
 
                      --  Assertions are never supposed to be evaluated to
@@ -1099,7 +1101,7 @@ package body Coverage.Source is
                --  Update the state of the line for all enabled source coverage
                --  levels.
 
-               if Decision_Requires_Assertion_Coverage (SCO) then
+               if Assertion_Coverage then
 
                   --  If the SCO is in an assertion, update its state for the
                   --  relevant assertion coverage levels...
@@ -1122,9 +1124,7 @@ package body Coverage.Source is
 
                   --  Compute and update the SCO state for MCDC level
 
-                  if MCDC_Coverage_Enabled
-                    and then not Decision_Requires_Assertion_Coverage (SCO)
-                  then
+                  if MCDC_Coverage_Enabled and then not Assertion_Coverage then
                      Compute_Condition_Level_Line_State
                        (SCO, SCO_State, Line_Info, SCI, MCDC_Level);
                   end if;
