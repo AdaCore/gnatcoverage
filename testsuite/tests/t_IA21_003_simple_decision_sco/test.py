@@ -16,8 +16,8 @@ from SUITE.tutils import (
 
 Wdir("tmp_")
 
-gprbuild(gprfor(srcdirs=["../src"], mains=["p.adb"]))
-xrun(exepath_to("p"))
+gprbuild(gprfor(srcdirs=["../src"], mains=["hello.adb"]))
+xrun(exepath_to("hello"))
 
 xcov(["map-routines", "--scos=obj/pack.ali"])
 xcov(
@@ -28,7 +28,7 @@ xcov(
         "--scos=obj/pack.ali",
         "-o",
         "out",
-        tracename_for("p"),
+        tracename_for("hello"),
     ]
 )
 thistest.fail_if(
