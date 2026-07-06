@@ -163,15 +163,17 @@ write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 
 /* See gnatcov_rts_c-traces-output.h.  */
 int
-gnatcov_rts_generic_write_trace_file (
+gnatcov_rts_generic_write_trace_file_list (
   void *output,
-  const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
+  const struct gnatcov_rts_coverage_buffers_group_array_list
+    *buffers_groups_list,
   struct gnatcov_rts_string program_name, uint64_t exec_date,
   struct gnatcov_rts_string user_data,
   gnatcov_rts_write_bytes_callback write_bytes)
 {
+  const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups;
   const struct gnatcov_rts_coverage_buffers_group *group;
-  unsigned i_group, i_buffer;
+  unsigned i_array, i_group, i_buffer;
 
   struct info_entry program_name_entry;
   program_name_entry.length = program_name.length;
@@ -192,12 +194,35 @@ gnatcov_rts_generic_write_trace_file (
               &user_data_entry);
   write_info (write_bytes, output, GNATCOV_RTS_INFO_END, &end_entry);
 
-  for (i_group = 0; i_group < buffers_groups->length; ++i_group)
+  for (i_array = 0; i_array < buffers_groups_list->length; ++i_array)
     {
-      group = buffers_groups->groups[i_group];
-      for (i_buffer = 0; i_buffer < group->length; ++i_buffer)
-        write_entry (write_bytes, output, group->buffers[i_buffer]);
+      buffers_groups = buffers_groups_list->arrays[i_array];
+      for (i_group = 0; i_group < buffers_groups->length; ++i_group)
+        {
+          group = buffers_groups->groups[i_group];
+          for (i_buffer = 0; i_buffer < group->length; ++i_buffer)
+            write_entry (write_bytes, output, group->buffers[i_buffer]);
+        }
     }
 
   return 0;
+}
+
+/* See gnatcov_rts_c-traces-output.h.  */
+int
+gnatcov_rts_generic_write_trace_file (
+  void *output,
+  const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
+  struct gnatcov_rts_string program_name, uint64_t exec_date,
+  struct gnatcov_rts_string user_data,
+  gnatcov_rts_write_bytes_callback write_bytes)
+{
+  struct gnatcov_rts_coverage_buffers_group_array_list buffers_groups_list;
+
+  buffers_groups_list.length = 1;
+  buffers_groups_list.arrays = &buffers_groups;
+
+  return gnatcov_rts_generic_write_trace_file_list (
+    output, &buffers_groups_list, program_name, exec_date, user_data,
+    write_bytes);
 }

@@ -54,13 +54,24 @@ package GNATcov_RTS.Traces.Output.Files is
    --  gnatcov_rts_c-traces-output-files.h for more information.
 
    procedure Write_Trace_File
+     (Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
+      Filename            : chars_ptr := Default_Trace_Filename;
+      Program_Name        : String := "unknown";
+      Exec_Date           : Time := Clock;
+      User_Data           : String := "");
+   --  Write a trace file in Filename to contain the data for all the
+   --  coverage buffers group arrays in Buffers_Groups_List. If the source
+   --  trace file creation fails, print an error message on the standard
+   --  error.
+
+   procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
       Exec_Date      : Time := Clock;
       User_Data      : String := "");
-   --  Write a trace file in Filename to contain the data in Buffers_Groups.
-   --  If the source trace file creation fails, print an error message on the
-   --  standard error.
+   --  Likewise, for a single coverage buffers group array. This is a
+   --  compatibility overload, kept so that code written against previous
+   --  versions of this runtime keeps working.
 
 end GNATcov_RTS.Traces.Output.Files;

@@ -745,7 +745,16 @@ is
       Buffers_List_Unit : constant Virtual_File :=
         Create
           (GNATCOLL.VFS."+"
-             (+Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj)
+             (+Instrumenter.Emit_Buffers_List_Unit
+                 (Buffer_Symbols,
+                  Prj,
+
+                  --  The integrated instrumentation scheme is not
+                  --  project-aware, so there is no externally built
+                  --  project whose buffers group array should be
+                  --  aggregated here.
+
+                  Ext_Array_Syms => String_Sets.Empty_Set)
                  .Unit_Name));
 
       Args_Compilation : String_Vectors.Vector;
