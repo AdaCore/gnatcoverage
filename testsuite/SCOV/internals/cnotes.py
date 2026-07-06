@@ -165,7 +165,7 @@
 # found in exempted regions. The relevant notes are:
 #
 # XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov,
-# XoPartCov, XoNoCov, XaNoCov, XcPartCov, r0, r0c
+# XoPartCov, XoNoCov, XaNoCov, XacPartCov, XcPartCov, r0, r0c
 
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
@@ -232,6 +232,7 @@ class NK(IntEnum):
     XoPartCov = auto()
     XoNoCov = auto()
     XaNoCov = auto()
+    XacPartCov = auto()
     XcPartCov = auto()
     Xr0 = auto()
     Xr0c = auto()
@@ -331,7 +332,14 @@ XsNoteKinds = (
     NK.XsUndetCov,
 )
 
-XoNoteKinds = (NK.XotNoCov, NK.XofNoCov, NK.XoPartCov, NK.XoNoCov, NK.XaNoCov)
+XoNoteKinds = (
+    NK.XotNoCov,
+    NK.XofNoCov,
+    NK.XoPartCov,
+    NK.XoNoCov,
+    NK.XaNoCov,
+    NK.XacPartCov,
+)
 
 XcNoteKinds = (NK.XcPartCov,)
 

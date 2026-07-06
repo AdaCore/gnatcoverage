@@ -1563,9 +1563,15 @@ package body SC_Obligations is
       Value.Sloc := CLS.Read_Source_Location;
 
       case Kind is
-         when Decision_Outcome =>
+         when Decision_Outcome | Decision_Condition =>
             Value.Decision_Offset := CLS.Read_Integer;
-            Value.Outcome := CLS.Read_Boolean;
+            case Kind is
+               when Decision_Outcome   =>
+                  Value.Outcome := CLS.Read_Boolean;
+
+               when Decision_Condition =>
+                  Value.Condition := CLS.Read_Condition;
+            end case;
       end case;
    end Read;
 
@@ -1612,14 +1618,20 @@ package body SC_Obligations is
       end if;
 
       case Left.Kind is
-         when Decision_Outcome =>
+         when Decision_Outcome | Decision_Condition =>
             if Left.Decision_Offset < Right.Decision_Offset then
                return True;
             elsif Right.Decision_Offset < Left.Decision_Offset then
                return False;
             end if;
 
-            return Left.Outcome < Right.Outcome;
+            case Left.Kind is
+               when Decision_Outcome   =>
+                  return Left.Outcome < Right.Outcome;
+
+               when Decision_Condition =>
+                  return Left.Condition < Right.Condition;
+            end case;
       end case;
    end "<";
 
@@ -1638,8 +1650,11 @@ package body SC_Obligations is
       end if;
 
       case Left.Kind is
-         when Decision_Outcome =>
+         when Decision_Outcome   =>
             return Left.Outcome < Right.Outcome;
+
+         when Decision_Condition =>
+            return False;
       end case;
    end "<";
 
@@ -2939,9 +2954,16 @@ package body SC_Obligations is
       CSS.Write (Value.Sloc);
 
       case Value.Kind is
-         when Decision_Outcome =>
+         when Decision_Outcome | Decision_Condition =>
             CSS.Write_Integer (Value.Decision_Offset);
-            CSS.Write (Value.Outcome);
+
+            case Value.Kind is
+               when Decision_Outcome   =>
+                  CSS.Write (Value.Outcome);
+
+               when Decision_Condition =>
+                  CSS.Write_Condition (Value.Condition);
+            end case;
       end case;
    end Write;
 
@@ -4057,8 +4079,17 @@ package body SC_Obligations is
    begin
       Append (Result, "exemption at " & Image (Self.Sloc) & " ");
       case Self.Kind is
-         when Decision_Outcome =>
-            Append (Result, "for outcome " & Self.Outcome'Image);
+         when Decision_Outcome | Decision_Condition =>
+            case Self.Kind is
+               when Decision_Outcome   =>
+                  Append (Result, "for outcome " & Self.Outcome'Image);
+
+               when Decision_Condition =>
+                  Append
+                    (Result,
+                     "for condition " & Img (Natural (Self.Condition)));
+            end case;
+
             Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
       end case;
       return +Result;
@@ -6681,6 +6712,9 @@ package body SC_Obligations is
       --
       --  Raise an Invalid_Annotation_Argument_Error in all cases.
 
+      procedure Parse_Decision_Offset (Req : in out Exemption_Request);
+      --  Common handling code for "decision offset" annotation arguments
+
       ----------
       -- Warn --
       ----------
@@ -6692,6 +6726,18 @@ package body SC_Obligations is
          end if;
          raise Invalid_Annotation_Argument_Error;
       end Warn;
+
+      ---------------------------
+      -- Parse_Decision_Offset --
+      ---------------------------
+
+      procedure Parse_Decision_Offset (Req : in out Exemption_Request) is
+      begin
+         if Has_Next and then Args (Next).Kind = Integer_Value then
+            Req.Decision_Offset := Args (Next).Integer_Value;
+            Next := Next + 1;
+         end if;
+      end Parse_Decision_Offset;
 
       --  Start of processing for Parse_Annotation
    begin
@@ -6706,7 +6752,10 @@ package body SC_Obligations is
       --  Now decode arguments and initialize the annotation
 
       case Kind is
-         when Exempt_On | Exempt_Decision_Outcome | Cov_Off =>
+         when Exempt_On
+            | Exempt_Decision_Outcome
+            | Exempt_Decision_Condition
+            | Cov_Off             =>
 
             if Kind = Exempt_Decision_Outcome then
 
@@ -6725,11 +6774,30 @@ package body SC_Obligations is
                   Req.Outcome := Args (Next).Boolean_Value;
                   Next := Next + 1;
 
-                  if Has_Next and then Args (Next).Kind = Integer_Value then
-                     Req.Decision_Offset := Args (Next).Integer_Value;
-                     Next := Next + 1;
-                  end if;
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
 
+            elsif Kind = Exempt_Decision_Condition then
+
+               --  Require an integer argument, followed by an optional integer
+               --  argument.
+
+               declare
+                  Req : Exemption_Request := (Decision_Condition, Sloc, 0, 0);
+               begin
+                  if not Has_Next then
+                     Warn (Sloc, "Too few arguments");
+                  elsif Args (Next).Kind /= Integer_Value
+                    or else Args (Next).Integer_Value < 1
+                  then
+                     Warn (Args (Next).Sloc, "Positive integer expected");
+                  end if;
+                  Req.Condition :=
+                    Condition_Index (Args (Next).Integer_Value - 1);
+                  Next := Next + 1;
+
+                  Parse_Decision_Offset (Req);
                   Annotation.Exemption_Req := Req;
                end;
             end if;
@@ -6754,10 +6822,10 @@ package body SC_Obligations is
                Next := Next + 1;
             end if;
 
-         when Exempt_Off | Cov_On                           =>
+         when Exempt_Off | Cov_On =>
             null;
 
-         when Dump_Buffers                                  =>
+         when Dump_Buffers        =>
             if Has_Next then
 
                --  Callers are supposed to pick the prefix arguments as is and
@@ -6766,7 +6834,7 @@ package body SC_Obligations is
                Next := Next + 1;
             end if;
 
-         when Reset_Buffers                                 =>
+         when Reset_Buffers       =>
             null;
       end case;
 
@@ -7504,26 +7572,43 @@ package body SC_Obligations is
             E          :
               Exemptable_SCO
                 (case UE.Kind is
-                   when Decision_Outcome => Decision_Outcome);
+                   when Decision_Outcome   => Decision_Outcome,
+                   when Decision_Condition => Decision_Condition);
             Insert_Cur : Exemption_Maps.Cursor;
             Inserted   : Boolean;
          begin
             E.SCO := Lookup_Decision (UE.Sloc.L, UE.Decision_Offset);
             if E.SCO = No_SCO_Id then
                goto Continue;
+            elsif UE.Kind = Decision_Condition then
+               if UE.Condition > Last_Cond_Index (E.SCO) then
+                  Report
+                    (UE.Sloc,
+                     "Could not find condition #"
+                     & Img (Natural (UE.Condition) + 1)
+                     & " of "
+                     & Image (E.SCO)
+                     & " while processing exemption annotation",
+                     Warning);
+                  goto Continue;
+               end if;
+               E.SCO := Condition (E.SCO, UE.Condition);
             end if;
 
             --  Finalize the initialization of E from UE
 
             case UE.Kind is
-               when Decision_Outcome =>
+               when Decision_Outcome   =>
                   E.Outcome := UE.Outcome;
+
+               when Decision_Condition =>
+                  null;
             end case;
 
             --  Ignore SCOs that make no sense
 
             case UE.Kind is
-               when Decision_Outcome =>
+               when Decision_Outcome   =>
                   if not E.Outcome and then Is_Assertion_To_Cover (E.SCO) then
                      Report
                        (UE.Sloc,
@@ -7533,6 +7618,9 @@ package body SC_Obligations is
                         Warning);
                      goto Continue;
                   end if;
+
+               when Decision_Condition =>
+                  null;
             end case;
 
             --  Try to insert E in the map of resolved exemptions

@@ -487,10 +487,10 @@ package SC_Obligations is
    --  source, or target location external annotations), whereas actual
    --  exemptions refer directly to a source coverage obligation (SCO_Id).
 
-   type Exemption_Request_Kind is (Decision_Outcome);
+   type Exemption_Request_Kind is (Decision_Outcome, Decision_Condition);
 
    SCO_Kind_For : constant array (Exemption_Request_Kind) of SCO_Kind :=
-     (Decision_Outcome => Decision);
+     (Decision_Outcome => Decision, Decision_Condition => Condition);
 
    type Exemption_Request
      (Kind : Exemption_Request_Kind := Exemption_Request_Kind'First)
@@ -498,13 +498,20 @@ package SC_Obligations is
       Sloc : Source_Location;
 
       case Kind is
-         when Decision_Outcome =>
+         when Decision_Outcome | Decision_Condition =>
             Decision_Offset : Natural;
             --  Number of decisions to skip after this annotation to reach the
             --  decision that is exempted.
 
-            Outcome : Boolean;
-            --  Decision outcome that is exempted
+            case Kind is
+               when Decision_Outcome =>
+                  Outcome : Boolean;
+                  --  Decision outcome that is exempted
+
+               when Decision_Condition =>
+                  Condition : Condition_Index;
+                  --  Index of the condition that is exempted
+            end case;
       end case;
    end record;
 
@@ -536,7 +543,7 @@ package SC_Obligations is
    --  Store the given exemptions requests to the relevant compilation unit
    --  (CU_Id) maps.
 
-   type Exemptable_SCO_Kind is (Decision_Outcome);
+   type Exemptable_SCO_Kind is (Decision_Outcome, Decision_Condition);
 
    type Exemptable_SCO
      (Kind : Exemptable_SCO_Kind := Exemptable_SCO_Kind'First)
@@ -546,6 +553,9 @@ package SC_Obligations is
       case Kind is
          when Decision_Outcome =>
             Outcome : Boolean;
+
+         when Decision_Condition =>
+            null;
       end case;
    end record;
 
@@ -575,6 +585,10 @@ package SC_Obligations is
       return Boolean
    is (Exemptions.Contains ((Decision_Outcome, SCO, Outcome)));
 
+   function Decision_Condition_Exempted
+     (Exemptions : Exemption_Maps.Map; SCO : SCO_Id) return Boolean
+   is (Exemptions.Contains ((Decision_Condition, SCO)));
+
    -------------------------------
    -- ALI files and annotations --
    -------------------------------
@@ -585,6 +599,7 @@ package SC_Obligations is
       Exempt_On,
       Exempt_Off,
       Exempt_Decision_Outcome,
+      Exempt_Decision_Condition,
       Dump_Buffers,
       Reset_Buffers,
       Cov_On,
@@ -605,7 +620,7 @@ package SC_Obligations is
 
    subtype Fine_Grained_Annotation_Kind is
      Any_Annotation_Kind
-       range Exempt_Decision_Outcome .. Exempt_Decision_Outcome;
+       range Exempt_Decision_Outcome .. Exempt_Decision_Condition;
 
    type ALI_Annotation
      (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)

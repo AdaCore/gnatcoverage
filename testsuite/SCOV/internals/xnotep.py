@@ -262,6 +262,7 @@ class XnoteP:
         "Xo!": NK.XoPartCov,
         "Xo-": NK.XoNoCov,
         "Xa-": NK.XaNoCov,
+        "Xac!": NK.XacPartCov,
         "Xc!": NK.XcPartCov,
         "X0": NK.Xr0,
         "X0c": NK.Xr0c,

@@ -156,6 +156,13 @@ package body Coverage.Source is
 
    SCI_Vector : SCI_Vectors.Vector;
 
+   function Report_Violation
+     (Exemptions : Exemption_Maps.Map; SCO : Exemptable_SCO; Msg : String)
+      return Boolean;
+   --  Wrapper around Diagnostics.Report_Coverage that creates a Violation or
+   --  an Exempted_Violation diagnostic depending on whether SCO is exempted.
+   --  Return whether the violation was indeed exempted.
+
    --  MC/DC evaluation stack
 
    Evaluation_Stack : Evaluation_Vectors.Vector;
@@ -166,11 +173,15 @@ package body Coverage.Source is
    --  current decision evaluation.
 
    function Compute_MCDC_State
-     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State;
+     (SCO        : SCO_Id;
+      SCI        : Source_Coverage_Info;
+      Exemptions : Exemption_Maps.Map) return Line_State;
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
    function Compute_ATCC_State
-     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State;
+     (SCO        : SCO_Id;
+      SCI        : Source_Coverage_Info;
+      Exemptions : Exemption_Maps.Map) return Line_State;
    --  Compute the ATCC state of SCO, which is already covered for ATC
 
    function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean;
@@ -638,10 +649,8 @@ package body Coverage.Source is
       Exemptions : Exemption_Maps.Map)
    is
       function Report_Violation
-        (SCO : Exemptable_SCO; Msg : String) return Boolean;
-      --  Wrapper around Diagnostics.Report_Coverage that creates a Violation
-      --  or an Exempted_Violation diagnostic depending on whether SCO is
-      --  exempted. Return whether the violation was indeed exempted.
+        (SCO : Exemptable_SCO; Msg : String) return Boolean
+      is (Report_Violation (Exemptions, SCO, Msg));
 
       procedure Compute_Condition_Level_Line_State
         (SCO       : SCO_Id;
@@ -662,28 +671,6 @@ package body Coverage.Source is
         (SCO : SCO_Id; Level : Coverage_Level; Line_Info : Line_Info_Access);
       --  Appropriately report the case in which a SCO is not sufficiently
       --  instrumented to compute its coverage for MCDC or ATCC level.
-
-      ----------------------
-      -- Report_Violation --
-      ----------------------
-
-      function Report_Violation
-        (SCO : Exemptable_SCO; Msg : String) return Boolean
-      is
-         use Exemption_Maps;
-         Cur : constant Cursor := Exemptions.Find (SCO);
-      begin
-         if Has_Element (Cur) then
-            Report_Coverage
-              (SCO  => SCO.SCO,
-               Msg  => Msg & " (exempted: " & (+Element (Cur)) & ")",
-               Kind => Exempted_Violation);
-            return True;
-         else
-            Report_Coverage (SCO => SCO.SCO, Msg => Msg, Kind => Violation);
-            return False;
-         end if;
-      end Report_Violation;
 
       ----------------------------------------
       -- Compute_Condition_Level_Line_State --
@@ -711,8 +698,8 @@ package body Coverage.Source is
                   SCO,
                   Level,
                   (if Level in MCDC_Coverage_Level
-                   then Compute_MCDC_State (SCO, SCI)
-                   else Compute_ATCC_State (SCO, SCI)));
+                   then Compute_MCDC_State (SCO, SCI, Exemptions)
+                   else Compute_ATCC_State (SCO, SCI, Exemptions)));
             end if;
 
          elsif SCO_State not in No_Code | Undetermined_Coverage then
@@ -1285,7 +1272,9 @@ package body Coverage.Source is
    ------------------------
 
    function Compute_MCDC_State
-     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State
+     (SCO        : SCO_Id;
+      SCI        : Source_Coverage_Info;
+      Exemptions : Exemption_Maps.Map) return Line_State
    is
       use Evaluation_Sets;
 
@@ -1434,11 +1423,20 @@ package body Coverage.Source is
 
       for J in Indep'Range loop
          if not Indep (J) then
-            Update_State
-              (SCO_State, Condition (SCO, J), MCDC_Level, Not_Covered);
-            Report_Violation
-              (SCO => Condition (SCO, J),
-               Msg => "has no independent influence pair, MC/DC not achieved");
+            declare
+               New_State : constant Line_State :=
+                 (if Report_Violation
+                       (Exemptions,
+                        SCO => (Decision_Condition, Condition (SCO, J)),
+                        Msg =>
+                          "has no independent influence pair, MC/DC not"
+                          & " achieved")
+                  then Exempted_With_Violation
+                  else Not_Covered);
+            begin
+               Update_State
+                 (SCO_State, Condition (SCO, J), MCDC_Level, New_State);
+            end;
 
             if (Switches.Show_MCDC_Vectors
                 or else Switches.Show_Condition_Vectors)
@@ -1465,7 +1463,17 @@ package body Coverage.Source is
             end if;
 
          else
-            Update_State (SCO_State, Condition (SCO, J), MCDC_Level, Covered);
+            declare
+               Cond : constant SCO_Id := Condition (SCO, J);
+            begin
+               Update_State
+                 (SCO_State,
+                  Cond,
+                  MCDC_Level,
+                  (if Decision_Condition_Exempted (Exemptions, Cond)
+                   then Exempted_No_Violation
+                   else Covered));
+            end;
          end if;
       end loop;
 
@@ -1486,7 +1494,9 @@ package body Coverage.Source is
    ------------------------
 
    function Compute_ATCC_State
-     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State
+     (SCO        : SCO_Id;
+      SCI        : Source_Coverage_Info;
+      Exemptions : Exemption_Maps.Map) return Line_State
    is
 
       function Emit_Evaluation_Vector_Message return String;
@@ -1553,12 +1563,19 @@ package body Coverage.Source is
 
       for I in Condition_Evaluated_Array'Range loop
          if not Condition_Evaluated (I) then
-            Update_State (SCO_State, Condition (SCO, I), ATCC, Not_Covered);
-            Report_Violation
-              (SCO => Condition (SCO, I),
-               Msg =>
-                 "was never evaluated during an evaluation of the "
-                 & "decision to True, ATCC not achieved");
+            declare
+               New_State : constant Line_State :=
+                 (if Report_Violation
+                       (Exemptions,
+                        SCO => (Decision_Condition, Condition (SCO, I)),
+                        Msg =>
+                          "was never evaluated during an evaluation of"
+                          & " the decision to True, ATCC not achieved")
+                  then Exempted_With_Violation
+                  else Not_Covered);
+            begin
+               Update_State (SCO_State, Condition (SCO, I), ATCC, New_State);
+            end;
 
             if Switches.Show_Condition_Vectors
               and then I = Last_Cond_Not_Evaluated
@@ -1573,7 +1590,17 @@ package body Coverage.Source is
                   Kind => Info);
             end if;
          else
-            Update_State (SCO_State, Condition (SCO, I), ATCC, Covered);
+            declare
+               Cond : constant SCO_Id := Condition (SCO, I);
+            begin
+               Update_State
+                 (SCO_State,
+                  Cond,
+                  ATCC,
+                  (if Decision_Condition_Exempted (Exemptions, Cond)
+                   then Exempted_No_Violation
+                   else Covered));
+            end;
          end if;
       end loop;
 
@@ -2307,6 +2334,29 @@ package body Coverage.Source is
          end if;
       end loop;
    end Compute_Source_Coverage;
+
+   ----------------------
+   -- Report_Violation --
+   ----------------------
+
+   function Report_Violation
+     (Exemptions : Exemption_Maps.Map; SCO : Exemptable_SCO; Msg : String)
+      return Boolean
+   is
+      use Exemption_Maps;
+      Cur : constant Cursor := Exemptions.Find (SCO);
+   begin
+      if Has_Element (Cur) then
+         Report_Coverage
+           (SCO  => SCO.SCO,
+            Msg  => Msg & " (exempted: " & (+Element (Cur)) & ")",
+            Kind => Exempted_Violation);
+         return True;
+      else
+         Report_Coverage (SCO => SCO.SCO, Msg => Msg, Kind => Violation);
+         return False;
+      end if;
+   end Report_Violation;
 
    -------------------------
    -- Condition_Evaluated --

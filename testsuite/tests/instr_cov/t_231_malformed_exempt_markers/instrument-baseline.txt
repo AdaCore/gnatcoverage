@@ -10,6 +10,9 @@
 *** main_2.adb:10:5: warning: Too few arguments
 *** main_2.adb:11:53: warning: Boolean expected
 *** main_2.adb:12:59: warning: String expected
+*** main_2.adb:13:5: warning: Too few arguments
+*** main_2.adb:14:55: warning: Positive integer expected
+*** main_2.adb:15:55: warning: Positive integer expected
 *** main_3.c:4:5: warning: Invalid Xcov annotation kind: GNATCOV_INVALID_KIND
 *** main_3.c:5:23: warning: Invalid syntax
 *** main_3.c:6:24: warning: Invalid syntax

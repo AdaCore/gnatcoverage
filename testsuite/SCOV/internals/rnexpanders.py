@@ -752,6 +752,11 @@ class RblockSet:
                     "decision outcome TRUE never": NK.XotNoCov,
                     "decision never evaluated": NK.XoNoCov,
                     "contract expression never evaluated": NK.XaNoCov,
+                    "condition has no independent influence pair": (
+                        NK.XcPartCov
+                    ),
+                    "condition was never evaluated during an evaluation of the"
+                    " decision to True": NK.XacPartCov,
                 },
             )
         )

@@ -86,6 +86,26 @@ check_args(
     ],
     "gnatcov: Invalid argument for --decision: A",
 )
+check_args(
+    "args_missing_condition",
+    [
+        "--kind=Exempt_Decision_Condition",
+        "--location=7:7",
+        "--justification=Message",
+    ],
+    "gnatcov: --condition missing for a --kind=Exempt_Decision_Condition"
+    " annotation",
+)
+check_args(
+    "args_bad_condition",
+    [
+        "--kind=Exempt_Decision_Condition",
+        "--location=7:7",
+        "--justification=Message",
+        "--condition=notanint",
+    ],
+    "gnatcov: Invalid argument for --condition: notanint",
+)
 
 
 def check_validate(filename: str, expected_error: str) -> None:
@@ -129,6 +149,11 @@ check_validate(
 )
 check_validate("err_decision_outcome_3.toml", invalid_msg("decision offset"))
 check_validate("err_decision_outcome_4.toml", invalid_msg("decision offset"))
+
+for i in range(1, 4):
+    check_validate(
+        f"err_decision_condition_{i}.toml", missing_or_invalid_msg("condition")
+    )
 
 
 thistest.log("== show_annotation ==")

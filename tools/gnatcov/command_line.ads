@@ -166,6 +166,7 @@ package Command_Line is
       Opt_Justification,
       Opt_Outcome,
       Opt_Decision,
+      Opt_Condition,
       Opt_SS_Backend,
       Opt_Source_Encoding,
       Opt_Ada_Default_Charset);
@@ -1624,8 +1625,18 @@ package Command_Line is
            Pattern      => "OFFSET",
            Help         =>
              "Decision offset for the outcome decision exemption annotations."
-             & " Optional, for the ""exempt.decision_outcome"" annotation"
-             & " kind.",
+             & " Optional, for the ""exempt.decision_outcome"" and"
+             & " ""exempt.decision_condition"" annotation kinds.",
+           Commands     => (Cmd_Add_Annotation => True, others => False),
+           At_Most_Once => False,
+           Internal     => False),
+      Opt_Condition              =>
+        Create
+          (Long_Name    => "--condition",
+           Pattern      => "INDEX",
+           Help         =>
+             "Condition index for the decision condition exemption"
+             & " annotations.",
            Commands     => (Cmd_Add_Annotation => True, others => False),
            At_Most_Once => False,
            Internal     => False),
