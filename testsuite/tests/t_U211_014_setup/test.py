@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os.path
+import re
 
 from e3.os.process import Run
 
@@ -244,7 +245,7 @@ thistest.fail_if(
 )
 thistest.fail_if_no_match(
     log_file,
-    '.*foo.adb:.*"gnatcov_rts.ads" not found.*',
+    re.compile('.*foo.adb:.*"gnatcov_rts.ads" not found.*', re.DOTALL),
     contents_of(log_file),
 )
 
