@@ -389,6 +389,7 @@ def gprbuild(
     out: PIPE_VALUE | str | Path = "gprbuild.out",
     register_failure: bool = True,
     auto_config_args: bool = True,
+    no_gprclean: bool = False,
 ) -> Run:
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
@@ -410,6 +411,8 @@ def gprbuild(
     REGISTER_FAILURE is True. Return the process descriptor otherwise.
 
     If AUTO_CONFIG_ARGS is False, do not pass the --config argument.
+
+    If NO_GPRCLEAN is True, do not run gprclean before gprbuild.
     """
 
     # Fetch options, from what is requested specifically here
@@ -432,7 +435,7 @@ def gprbuild(
     # TODO (gpr-issues#241) Temporary workaround for the gprclean problem
     # As gpr2clean currently deletes .sid files, we should not call
     # gprclean between the instrumentation and the build.
-    if effective_trace_mode(trace_mode) == "bin":
+    if not no_gprclean and effective_trace_mode(trace_mode) == "bin":
         thistest.cleanup(project, common_args)
 
     # lookup the hook for the executable name without extension
