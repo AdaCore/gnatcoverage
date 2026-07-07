@@ -88,10 +88,13 @@ package body Instrument.Ada_Unit_Provider is
          while not End_Of_File (F) loop
             declare
                Unit_Name      : constant String := Get_Line (F);
+               Key            : constant String := To_Lower (Unit_Name);
                Dummy_Basename : constant String := Get_Line (F);
                File_Fullname  : constant String := Get_Line (F);
             begin
-               Provider.Unit_Map.Include (To_Lower (Unit_Name), File_Fullname);
+               if not Provider.Unit_Map.Contains (Key) then
+                  Provider.Unit_Map.Insert (Key, File_Fullname);
+               end if;
             end;
          end loop;
       exception

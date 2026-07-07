@@ -23,7 +23,8 @@ with Ada.Strings;     use Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
-with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with Files_Handling;          use Files_Handling;
 with Files_Table;             use Files_Table;
@@ -31,6 +32,7 @@ with Instrument.C;            use Instrument.C;
 with Instrument.Common;       use Instrument.Common;
 with Instrument.Setup_Config; use Instrument.Setup_Config;
 with Instrument.Source;
+with JSON;
 with Outputs;
 with Paths;                   use Paths;
 with Strings;                 use Strings;
@@ -221,7 +223,7 @@ is
    procedure Emit_Buffers_List_Object
      (Context             : Parsing_Context;
       Instr_Config        : Instrumentation_Config;
-      Prj                 : Prj_Desc;
+      Prj                 : in out Prj_Desc;
       Buffers_List_Object : Virtual_File;
       Buffer_Symbols      : String_Sets.Set);
    --  Emit the object file containing the given list of Buffer_Symbols
@@ -728,7 +730,7 @@ is
    procedure Emit_Buffers_List_Object
      (Context             : Parsing_Context;
       Instr_Config        : Instrumentation_Config;
-      Prj                 : Prj_Desc;
+      Prj                 : in out Prj_Desc;
       Buffers_List_Object : Virtual_File;
       Buffer_Symbols      : String_Sets.Set)
    is
@@ -784,7 +786,7 @@ is
 
    Context : Parsing_Context;
 
-   Instrumented_Files : String_Sets.Set;
+   Instrumented_Files : File_Sets.Set;
    --  List of instrumented files (files of interest / main files / both)
 
    Files_Of_Interest : File_Sets.Set;
@@ -844,7 +846,7 @@ begin
    --  default spec / body suffixes.
 
    Prj.Prj_Name := To_Qualified_Name ("main");
-   Prj.Output_Dir := +Instr_Dir.Directory_Name;
+   Prj.Output_Dir := GNATCOLL.VFS.Create (+Instr_Dir.Directory_Name);
    Prj.Naming_Scheme :=
      (Spec_Suffix     =>
         (C_Language => +".h", CPP_Language => +".hh", others => <>),
@@ -881,127 +883,135 @@ begin
                 raise Program_Error
                   with "Unsupported language for integrated instrumentation");
 
-         Fullname    : constant String := +Comp_Command.File.Full_Name;
-         Simple_Name : constant String := +Comp_Command.File.Base_Name;
-         Instr_Name  : constant String := (+Prj.Output_Dir) / Simple_Name;
+         Fullname : constant String := +Comp_Command.File.Full_Name;
+
+         Is_UOI : constant Boolean :=
+           Every_File_Of_Interest
+           or else Instr_Config.File_To_SID.Contains (Comp_Command.File);
+         --  Whether the file is a unit of interest
+
+         Is_Main : constant Boolean :=
+           Instrumenter.Has_Main (Filename => Comp_Command.File, Prj => Prj);
+         --  Whether the file is a main or not
+
+         --  If every file is of interest, then compute the SID name according
+         --  to the basename + the hash of the fullname. This has the downside
+         --  of making the SID name system-dependent, but a typical use case
+         --  across systems would involve using checkpoint, thus removing this
+         --  worry.
+
+         SID_Name : constant String :=
+           (if Every_File_Of_Interest
+            then
+              Ada.Directories.Base_Name (Fullname)
+              & Img (Full_Name_Hash (Comp_Command.File))
+              & Ada.Directories.Extension (Fullname)
+              & ".sid"
+            elsif Is_UOI
+            then +Instr_Config.File_To_SID.Element (Comp_Command.File)
+            else "");
       begin
-         --  Start by instrumenting the file as a source, if it is a unit of
-         --  interest.
+         --  Pick as the trace name prefix the base name of the main
+         --  filename
 
-         if Every_File_Of_Interest
-           or else Instr_Config.File_To_SID.Contains (Comp_Command.File)
-         then
-            declare
-               --  If every file is of interest, then compute the SID name
-               --  according to the basename + the hash of the fullname.
-               --  This has the downside of making the SID name system-
-               --  dependent, but a typical use case across systems would
-               --  involve using checkpoint, thus removing this worry.
-
-               SID_Name : constant String :=
-                 (if Every_File_Of_Interest
-                  then
-                    Ada.Directories.Base_Name (Fullname)
-                    & Img (Full_Name_Hash (Comp_Command.File))
-                    & Ada.Directories.Extension (Fullname)
-                    & ".sid"
-                  else +Instr_Config.File_To_SID.Element (Comp_Command.File));
-            begin
-
-               --  Pass the compiler switches through the project description
-
-               Instrument.Source
-                 (Unit_Name         => Fullname,
-                  SID_Name          => Compiler_Wrapper_Dir / SID_Name,
-                  Instrumenter      => Instrumenter,
-                  Files_Of_Interest => Files_Of_Interest,
-                  Prj               => Prj);
-
-               Comp_Command_Ref.Instrumentation_Sources.Append
-                 (Instrumenter.Buffer_Unit
-                    (Compilation_Unit'
-                       (File_Based_Language, Full_Name (Comp_Command.File)),
-                     Prj)
-                    .Unit_Name);
-               Instrumented_Files.Include (+Fullname);
-            end;
+         if Instr_Config.Dump_Config.Channel = Binary_File then
+            Instr_Config.Dump_Config.Filename_Prefix :=
+              +Ada.Directories.Base_Name (Fullname);
          end if;
 
-         if Instr_Config.Dump_Config.Manual_Trigger then
-            --  When in manual dump trigger mode, check if the current file is
-            --  expected to contain a manual dump/reset indication.
+         --  Pass the compiler switches through the project description.
+         --
+         --  Even though the file has already been preprocessed by Has_Main,
+         --  pass the original unit name to record preprocessing information.
 
-            declare
-               V_File               : constant Virtual_File :=
-                 Create_From_UTF8 (Fullname);
-               Has_Dump_Indication  : Boolean := False;
-               Has_Reset_Indication : Boolean := False;
-            begin
-               if Instr_Config.Dump_Config.Manual_Indication_Files.Contains
-                    (V_File)
-               then
-                  --  If the file is expected to contain indications, run the
-                  --  substitution engine and find out if substitutions where
-                  --  indeed made.
+         Instrument.Source
+           (Unit_Name         => Comp_Command.File.Display_Full_Name,
+            SID_Name          =>
+              (if Is_UOI then Compiler_Wrapper_Dir / SID_Name else ""),
+            Instrumenter      => Instrumenter,
+            Files_Of_Interest => Files_Of_Interest,
+            Prj_Actual        => Prj,
+            Is_UOI            => Is_UOI,
+            Is_Main           => Is_Main,
+            Dump_Config       => Instr_Config.Dump_Config);
 
-                  Instrumenter.Replace_Manual_Indications
-                    (Prj, V_File, Has_Dump_Indication, Has_Reset_Indication);
+         --  If the source is a unit of interest, then add it to the
+         --  instrumented files, and add the buffer unit as an
+         --  instrumentation artifact.
 
-                  if Has_Dump_Indication or else Has_Reset_Indication then
-                     if not Manual_Dump_Helper_Generated then
-
-                        --  Compute the dump helper file name.
-
-                        Manual_Dump_Helper_Unit_Name :=
-                          Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
-
-                        --  Generate the dump helper file.
-
-                        Instrumenter.Emit_Dump_Helper_Unit_Manual
-                          (Instr_Config.Dump_Config, Prj);
-
-                        --  Set the Manual_Dump_Helper_Generated flag to avoid
-                        --  re-emitting the dump helper.
-
-                        Manual_Dump_Helper_Generated := True;
-                     end if;
-
-                     Comp_Command_Ref.Instrumentation_Sources.Append
-                       (Manual_Dump_Helper_Unit_Name);
-                  end if;
-
-                  Instrumented_Files.Include (+Fullname);
-               end if;
-            end;
+         if Is_UOI then
+            Comp_Command_Ref.Instrumentation_Sources.Append
+              (Instrumenter.Buffer_Unit
+                 (Compilation_Unit'
+                    (File_Based_Language,
+                     +Comp_Command.File.Display_Full_Name),
+                  Prj)
+                 .Unit_Name);
+            Instrumented_Files.Include (Comp_Command.File);
          end if;
 
-         if Instr_Config.Dump_Config.Auto_Trigger /= None
-           and then Instrumenter.Has_Main (Fullname, Prj)
-         then
-            --  Then, instrument it as a main if it is one
+         --  If the source is a main instrumented for atexit / main-end, then
+         --  add it to the instrumented files, and add the dump helper unit as
+         --  an instrumentation artifact.
 
-            --  Pick as the trace name prefix the base name of the main
-            --  filename
-
-            if Instr_Config.Dump_Config.Channel = Binary_File then
-               Instr_Config.Dump_Config.Filename_Prefix :=
-                 +Ada.Directories.Base_Name (Fullname);
-            end if;
-
-            Instrumenter.Auto_Dump_Buffers_In_Main
-              (Instr_Name, Instr_Config.Dump_Config, Prj);
-
+         if Is_Main and then Instr_Config.Dump_Config.Auto_Trigger /= None then
             declare
                Unit_Name : constant Unbounded_String :=
                  Instrumenter.Dump_Helper_Unit
-                   (Compilation_Unit'(File_Based_Language, +Instr_Name), Prj)
+                   (Compilation_Unit'(File_Based_Language, +Fullname), Prj)
                    .Unit_Name;
             begin
                Comp_Command_Ref.Instrumentation_Sources.Append (Unit_Name);
             end;
+            Instrumented_Files.Include (Comp_Command.File);
+         end if;
 
-            Instrumented_Files.Include (+Fullname);
+         --  If the source was instrumented for manual dump replacement, then
+         --  add it to the instrumented files and add the dump helper unit as
+         --  an instrumentation artifact.
 
+         if Instr_Config.Dump_Config.Manual_Trigger then
+            declare
+               Unit_Instr_Info_JSON : constant JSON_Value :=
+                 JSON.Read_File
+                   (Files_Instrumentation_Info_File
+                      (Prj, Comp_Command.File.Display_Base_Name)
+                      .Display_Full_Name);
+
+               Had_Dump_Indication  : constant Boolean :=
+                 Length
+                   (JSON_Array'(Unit_Instr_Info_JSON.Get ("dump_indications")))
+                 > 0;
+               Had_Reset_Indication : constant Boolean :=
+                 Length
+                   (JSON_Array'
+                      (Unit_Instr_Info_JSON.Get ("reset_indications")))
+                 > 0;
+            begin
+               if Had_Dump_Indication or else Had_Reset_Indication then
+                  if not Manual_Dump_Helper_Generated then
+
+                     --  Compute the dump helper file name.
+
+                     Manual_Dump_Helper_Unit_Name :=
+                       Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
+
+                     --  Generate the dump helper file.
+
+                     Instrumenter.Emit_Dump_Helper_Unit_Manual
+                       (Instr_Config.Dump_Config, Prj);
+
+                     --  Set the Manual_Dump_Helper_Generated flag to avoid
+                     --  re-emitting the dump helper.
+
+                     Manual_Dump_Helper_Generated := True;
+                  end if;
+
+                  Comp_Command_Ref.Instrumentation_Sources.Append
+                    (Manual_Dump_Helper_Unit_Name);
+               end if;
+               Instrumented_Files.Include (Comp_Command.File);
+            end;
          end if;
       end;
    end loop;
@@ -1012,7 +1022,7 @@ begin
 
    if Has_Link_Command then
       Buffers_List_Object :=
-        Create (GNATCOLL.VFS."+" (New_File (Prj, +"gcvrtc-main" & ".o")));
+        Instrumentation_File (Prj, Create (+("gcvrtc-main" & ".o")));
       Emit_Buffers_List_Object
         (Context,
          Instr_Config,
@@ -1025,7 +1035,7 @@ begin
    --  original compiler driver command.
 
    declare
-      Output_Dir : constant String := +Prj.Output_Dir;
+      Output_Dir : constant String := +Prj.Output_Dir.Full_Name;
       New_Args   : String_Vectors.Vector;
    begin
       --  Filter out preprocessing switch that should not be passed to the
@@ -1075,10 +1085,18 @@ begin
             end;
             if Exists then
                declare
-                  Base     : constant String := Simple_Name (+Arg);
-                  Fullname : constant String := Full_Name (+Arg);
+                  --  TODO (eng/toolchain/gnat#603)???
+                  --  Ada.Directories.Simple_Name fails in edge cases.
+                  --  Use GNATCOLL.VFS instead for more reliable results.
+
+                  VF       : constant GNATCOLL.VFS.Virtual_File :=
+                    GNATCOLL.VFS.Create (+(+Arg));
+                  Base     : constant String := VF.Display_Base_Name;
+                  Fullname : constant String := VF.Display_Full_Name;
                begin
-                  if Instrumented_Files.Contains (+Fullname) then
+                  if Instrumented_Files.Contains
+                       (GNATCOLL.VFS.Create (+Fullname))
+                  then
                      New_Args.Replace_Element (I, +(Output_Dir / Base));
                   end if;
                end;
@@ -1111,18 +1129,20 @@ begin
 
                for Instr_Artifact of Comp_Command.Instrumentation_Sources loop
                   declare
-                     Args_Compilation           : String_Vectors.Vector;
-                     Instr_Artifact_Object_Name : constant String :=
-                       New_File
+                     Args_Compilation      : String_Vectors.Vector;
+                     Instr_Artifact_Object : constant Virtual_File :=
+                       Instrumentation_File
                          (Prj,
-                          Ada.Directories.Base_Name (+Instr_Artifact) & ".o");
+                          Create
+                            (Filesystem_String ((+Instr_Artifact) & ".o")));
                   begin
                      Args_Compilation.Append (+"-c");
                      Args_Compilation.Append
                        ("-I" & Instr_Config.GNATcov_RTS_Include_Dir);
                      Args_Compilation.Append (Instr_Artifact);
                      Args_Compilation.Append (+"-o");
-                     Args_Compilation.Append (+Instr_Artifact_Object_Name);
+                     Args_Compilation.Append
+                       (+Instr_Artifact_Object.Display_Full_Name);
                      for Switch of Context.Compiler_Driver_Arch_Switches loop
                         Args_Compilation.Append (Switch);
                      end loop;
@@ -1130,7 +1150,7 @@ begin
 
                      Context.Instrumentation_Objects.Reference
                        (Comp_Command.File)
-                       .Append (+Instr_Artifact_Object_Name);
+                       .Append (+Instr_Artifact_Object.Display_Full_Name);
                   end;
                end loop;
             end if;
@@ -1153,12 +1173,14 @@ begin
                     Context.Source_Mapping.Element (Assembly_Command.Filename);
                   Instr_Objects : constant String_Vectors.Vector :=
                     Context.Instrumentation_Objects.Element (Orig_Source);
-                  Packaged_Name : constant String :=
-                    New_File
+                  Packaged_File : constant Virtual_File :=
+                    Instrumentation_File
                       (Prj,
-                       "instr_"
-                       & Filename_Slug (+Orig_Source.Full_Name)
-                       & ".a");
+                       Create
+                         (Filesystem_String
+                            ("instr_"
+                             & Filename_Slug (+Orig_Source.Full_Name)
+                             & ".a")));
                begin
                   if not Instr_Objects.Is_Empty then
                      declare
@@ -1168,7 +1190,7 @@ begin
                         Args_Ld.Append_Vector (Instr_Objects);
                         Args_Ld.Append (Full_Name (Assembly_Command.Target));
                         Args_Ld.Append (+"-o");
-                        Args_Ld.Append (+Packaged_Name);
+                        Args_Ld.Append (+Packaged_File.Display_Full_Name);
                         for Switch of Context.Compiler_Driver_Arch_Switches
                         loop
                            Args_Ld.Append (Switch);
@@ -1184,7 +1206,7 @@ begin
                         --  instrumented source and its coverage buffer.
 
                         Copy_File
-                          (From => Packaged_Name,
+                          (From => Packaged_File.Display_Full_Name,
                            To   => +Assembly_Command.Target.Full_Name);
                      end;
                   end if;
@@ -1226,7 +1248,7 @@ begin
                Buffer_Symbols.Union
                  (Coverage_Buffer_Symbols
                     (Symbol_File     => Symbol_File,
-                     Tmp_Dir         => +Prj.Output_Dir,
+                     Tmp_Dir         => +Prj.Output_Dir.Full_Name,
                      Compiler_Driver => Compiler_Exec,
                      Config          => Instr_Config));
             end Add_Coverage_Buffer_Symbols;
@@ -1238,7 +1260,7 @@ begin
             procedure Inspect_Dynamic_Deps is
                Args         : String_Vectors.Vector;
                Ldd_Filename : constant String :=
-                 (+Prj.Output_Dir)
+                 (+Prj.Output_Dir.Full_Name)
                  / ("ldd_"
                     & Filename_Slug (+Comp_DB.Link_Command.Target.Full_Name));
                Ldd_File     : File_Type;

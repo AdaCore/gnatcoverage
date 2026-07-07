@@ -50,15 +50,22 @@
 --    buffers for the unit.
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
+with GNAT.Regexp; use GNAT.Regexp;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Project.View;
+
+with GPR2.Build.Source;
+with GPR2.Path_Name;
 
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;
@@ -167,10 +174,14 @@ package Instrument.Common is
    --  the same executable.
 
    function Project_Output_Dir
-     (Project : GPR2.Project.View.Object) return String;
+     (Project : GPR2.Project.View.Object; In_Extending : Boolean := True)
+      return GNATCOLL.VFS.Virtual_File;
    --  Return the directory in which we must create instrumented sources for
    --  Project. This returns an empty string for projects that do not have an
    --  object directory.
+   --
+   --  If In_Extending is False, return systematically the instrumentation
+   --  directory for Project, otherwise consider the most extending project.
 
    function Format_Fingerprint
      (Fingerprint : SC_Obligations.Fingerprint_Type; Opening, Closing : String)
@@ -459,6 +470,8 @@ package Instrument.Common is
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
+   type Language_Instrumenter_Acc is access all Language_Instrumenter'Class;
+
    function Language
      (Self : Language_Instrumenter) return Src_Supported_Language
    is abstract;
@@ -468,10 +481,11 @@ package Instrument.Common is
    is (Image (Self.Language));
 
    procedure Instrument_Unit
-     (Self              : in out Language_Instrumenter;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set)
+     (Self               : in out Language_Instrumenter;
+      Unit_Name          : String;
+      Prj                : in out Prj_Desc;
+      Files_Of_Interest  : File_Sets.Set;
+      Instrumented_Files : File_Sets.Set)
    is null;
    --  Instrument a single source file for the language that Self supports.
    --
@@ -481,21 +495,27 @@ package Instrument.Common is
    --  instrumentation of the unit. Files_Of_Interest provides the list of
    --  files of interest, to ignore e.g. part of the unit (e.g. a separate)
    --  when instrumenting it.
+   --
+   --  Instrumented indicates whether the unit was already instrumented or not.
+   --  Practically speaking, this only happens for C/C++ units when using the
+   --  manual dump trigger.
 
    procedure Auto_Dump_Buffers_In_Main
      (Self        : in out Language_Instrumenter;
-      Filename    : String;
+      Filename    : GNATCOLL.VFS.Virtual_File;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Try to instrument the Filename source file (whose language is assumed
    --  to be Self's) to insert a call to dump the list of coverage buffers,
    --  assumed to be named after Prj.Prj_Name. Do nothing if not successful.
+   --  Instrumented is set to True when the source was instrumented for
+   --  source instrumentation purposes.
 
    procedure Emit_Buffers_List_Unit
      (Self        : Language_Instrumenter;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Emit in the root project a unit (in Self's language) to contain the list
    --  of coverage buffers for the given instrumented files.
@@ -508,8 +528,7 @@ package Instrument.Common is
    function Emit_Buffers_List_Unit
      (Self           : Language_Instrumenter;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : Prj_Desc) return Compilation_Unit
-   is (No_Compilation_Unit);
+      Prj            : in out Prj_Desc) return Compilation_Unit;
    --  Same as above except Buffer_Symbols contains the list of C symbols
    --  holding coverage buffers for units of interest. Return the buffers list
    --  compilation unit.
@@ -518,7 +537,8 @@ package Instrument.Common is
      (Self : Language_Instrumenter; CU : Compilation_Unit; Prj : Prj_Desc)
       return Compilation_Unit
    is (No_Compilation_Unit);
-   --  Return the compilation unit holding coverage buffers
+   --  Return the compilation unit holding coverage buffers. This is especially
+   --  useful for integrated instrumentation.
 
    function Dump_Manual_Helper_Unit
      (Self : Language_Instrumenter; Prj : Prj_Desc) return Compilation_Unit
@@ -531,15 +551,17 @@ package Instrument.Common is
    --  Return the compilation unit holding the dump helper subprogram
 
    function Has_Main
-     (Self : in out Language_Instrumenter; Filename : String; Prj : Prj_Desc)
-      return Boolean
-   is (False);
+     (Self     : in out Language_Instrumenter;
+      Filename : GNATCOLL.VFS.Virtual_File;
+      Prj      : in out Prj_Desc) return Boolean;
    --  Return whether the given file is a main or not
+   --
+   --  Note that for C/C++, it preprocesses the file.
 
    procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out Language_Instrumenter;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc)
+      Prj         : in out Prj_Desc)
    is null;
    --  Emit the dump helper unit with the appropriate content to allow for a
    --  simple call to a procedure dumping the coverage buffers to be made in
@@ -573,16 +595,41 @@ package Instrument.Common is
    --  Emit in the root project a file that exposes live coverage observability
    --  features, such as the number of bits set in the buffers.
 
-   function New_File (Prj : Prj_Desc; Name : String) return String;
-   --  Compute the path to the file to create in Self.Output_Dir
+   function Instrumentation_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Compute the path to the file to create in the instrumentation directory
+   --  of the given File.
+
+   function Is_Instrumented_File
+     (Prj : Prj_Desc; File : GNATCOLL.VFS.Virtual_File) return Boolean;
+   --  Return whether the given file identified by its fullname is in the
+   --  instrumentation directory.
+
+   function Get_Main_File
+     (Self : Language_Instrumenter; Unit_Name : String) return Virtual_File
+   is (GNATCOLL.VFS.No_File);
+   --  Retrieve the main file for the given unit, i.e. the body if it exists,
+   --  the specification otherwise.
+
+   procedure For_All_Part
+     (Self      : in out Language_Instrumenter;
+      Unit_Name : String;
+      Process   : access procedure (Filename : Virtual_File))
+   is null;
+   --  Call process for every part of the given unit, including separates
 
    procedure Create_File
-     (Prj : Prj_Desc; File : in out Text_Files.File_Type; Name : String);
+     (Prj  : in out Prj_Desc;
+      File : in out Text_Files.File_Type;
+      Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
    --  Prj.Output_Dir.
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in Prj.Output_Dir.
+   --
+   --  In addition to that, the file is added to Prj.Instrumentation_Artifacts.
 
    type Macro_Definition (Define : Boolean := True) is record
       Name : Unbounded_String;
@@ -642,6 +689,10 @@ package Instrument.Common is
       Clang_Needs_M32 : Boolean := False;
       --  Wether we need to pass -m32 to libclang's parsing commands. This is
       --  only the case when the compiler driver is a native 32 bit compiler.
+
+      Dep_File_Options : String_Vectors.Vector;
+      --  Options to generate a dependency file, for incremental
+      --  instrumentation.
 
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
@@ -750,4 +801,182 @@ package Instrument.Common is
    --  Populate the Annotations and Disabled_Cov_Regions of UIC with the
    --  annotations in Annots. The resulting annotations are tied to SFI.
 
+   function Dependency_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Return the dependency filename for the given file
+
+   function Instrumented_Files_File
+     (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
+      return GNATCOLL.VFS.Virtual_File;
+   --  Return the file containing the list of instrumented files when
+   --  instrumenting the given file / main unit part.
+
+   function Files_Instrumentation_Info_File
+     (Prj : Prj_Desc; Unit_Name : String) return GNATCOLL.VFS.Virtual_File;
+   --  Files containing instrumentation information for the given Unit_Name.
+   --
+   --  This is used in the context of manual dump trigger instrumentation, to
+   --  indicate whether the source contains dump / reset annotations or not.
+
+   use type GPR2.Path_Name.Object;
+
+   function Less (L, R : GPR2.Build.Source.Object) return Boolean
+   is (L.Path_Name < R.Path_Name);
+   function Equal (L, R : GPR2.Build.Source.Object) return Boolean
+   is (L.Path_Name = R.Path_Name);
+
+   package Source_Sets is new
+     Ada.Containers.Indefinite_Ordered_Sets
+       (Element_Type => GPR2.Build.Source.Object,
+        "<"          => Less,
+        "="          => Equal);
+
+   type Project_Info is record
+      Project : GPR2.Project.View.Object;
+      --  Project that this record describes
+
+      Externally_Built : Boolean;
+      --  Whether this project is externally built. In that case, we assume its
+      --  units of interest have already been instrumented.
+
+      Desc : Prj_Desc;
+      --  Description containing all the project information needed for
+      --  instrumentation purposes.
+
+   end record;
+
+   type Project_Info_Access is access all Project_Info;
+
+   package Project_Info_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Unbounded_String,
+        Element_Type    => Project_Info_Access,
+        Equivalent_Keys => "=",
+        Hash            => Strings.Hash);
+   --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
+   --  Project_Info records. Project_Info records are owned by this map, and
+   --  thus must be deallocated when maps are deallocated.
+
+   type Inst_Context is limited record
+      Ada_Default_Charset : Unbounded_String;
+      --  Default charset to analyze Ada source code
+
+      Mapping_File : Unbounded_String;
+      --  File that describes the mapping of units to source files for all Ada
+      --  units.
+
+      Config_Pragmas_Mapping : Unbounded_String;
+      --  File that describes the mapping of Ada source files to configuration
+      --  pragma files. See the Save_Config_Pragmas_Mapping and
+      --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
+      --  more information.
+
+      Sources_Of_Interest_Response_File : Unbounded_String;
+      --  File containing the list of units of interest, identified by their
+      --  fullname. This is passed on to gnatcov instrument-source invokations
+      --  (for Ada), to know which part of a unit (spec / body / separate) must
+      --  be instrumented.
+
+      Ada_Preprocessor_Data_File : Unbounded_String;
+      --  JSON file that contains the preprocessor data necessary to analyze
+      --  Ada sources (see Instrument.Ada_Unit.Create_Preprocessor_Data_File).
+
+      Excluded_Source_Files_Present : Boolean;
+      Excluded_Source_Files         : GNAT.Regexp.Regexp;
+      --  If present, instrumentation will ignore files whose names match the
+      --  accessed pattern.
+
+      Project_Info_Map : Project_Info_Maps.Map;
+      --  For each project that contains units of interest, this tracks a
+      --  Project_Info record.
+
+      Files_Of_Interest : File_Sets.Set;
+      --  List of files of interest.
+      --
+      --  This is passed on to instrument-source invocations when instrumenting
+      --  an Ada file (to know which part of a compilation unit must be
+      --  instrumented, i.e. spec / body / separates). It is also passed to
+      --  instrument-main invocations to know the full list of instrumented
+      --  sources.
+
+      Tag : Unbounded_String;
+      --  Tag relative to the current instrumentation run
+
+   end record;
+
+   type Inst_Context_Acc is access all Inst_Context;
+
+   function Load_Naming_Scheme
+     (Prj : GPR2.Project.View.Object) return Naming_Scheme_Desc;
+   --  Retrieve the naming scheme from the given project Prj
+
+   type Library_Unit_Info is record
+      Main_Part_Src : GPR2.Build.Source.Object;
+      --  Main part for this compilation unit
+
+      Is_UOI : Boolean;
+      --  Whether the unit is a unit of interest
+
+      Is_Main : Boolean;
+      --  Whether the unit is a main
+
+      Instr_Project : GPR2.Project.View.Object;
+      --  Project in which instrumentation artifacts for this unit are
+      --  generated.
+
+      Language_Kind : Supported_Language_Kind;
+      --  Higher level representation of a language (unit-based or file-based)
+
+      Language : Src_Supported_Language;
+      --  Actual language representation
+
+      Spec_Project, Body_Project : GPR2.Project.View.Object;
+      --  Track the owning project of this unit's spec source file (if present)
+      --  and body source file (likewise).
+
+      Sources : Source_Sets.Set;
+      --  Set of sources that belong to this unit
+
+   end record;
+
+   package Unit_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps (String, Library_Unit_Info);
+   --  Map to unit names to unit info of files implementing this unit. For
+   --  file-based languages, the unit name is the full name (to simplify
+   --  dealing with homonym in different projects).
+
+   function SID_Filename
+     (Main_Part_Src : GPR2.Build.Source.Object; In_Library_Dir : Boolean)
+      return String;
+   --  Return the filename of the SID file to create for the given compilation
+   --  unit. If In_Library_Dir is True and the the unit lives in a library
+   --  project, then return a filename located in the project library
+   --  directory. Otherwise, the filename is located in the object directory.
+
+   function Compilation_Unit_Options
+     (IC   : Inst_Context;
+      Prj  : Prj_Desc;
+      Lang : Src_Supported_Language;
+      Src  : GPR2.Build.Source.Object) return Command_Line_Args;
+   --  Return the list of options to pass to a gnatcov instrument-source /
+   --  instrument-main for the given compilation unit Unit_Name, belonging to
+   --  the project Prj.
+
+   function Load_From_Project (Prj : GPR2.Project.View.Object) return Prj_Desc;
+   --  Load the project description from the given project
+
+   function Get_Or_Create_Project_Info
+     (Context : in out Inst_Context; Project : GPR2.Project.View.Object)
+      return Project_Info_Access;
+   --  Return the Project_Info record corresponding to Project. Create it if it
+   --  does not exist.
+
+   function Instrumentation_Artifacts
+     (Main_Part_Src : GPR2.Build.Source.Object; Prj : Prj_Desc)
+      return File_Sets.Set;
+   --  Return the list of instrumentation artifacts generated by the source
+   --  instrumentation of Unit. This is used by incremental instrumentation,
+   --  to clean up instrumentation artifacts not needed by the current
+   --  instrumentation run.
 end Instrument.Common;

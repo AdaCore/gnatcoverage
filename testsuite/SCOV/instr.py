@@ -19,7 +19,6 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import (
     RUNTIME_INFO,
     GNATCOV_INFO,
-    gpr_common_args,
     locate_gpr_file,
     xcov,
 )
@@ -160,15 +159,6 @@ def xcov_instrument(
 
     if thistest.options.block:
         args.append("--instrument-block")
-
-    # TODO (gpr-issues#241) temporary workaround.
-    # Since gpr2clean deletes .sid files for the moment, we need to
-    # clean the project before instrumenting (this used to be done before the
-    # invocation of gprbuild).
-    thistest.cleanup(
-        gprsw.root_project,
-        gpr_common_args(gprsw.root_project, auto_config_args),
-    )
 
     # When no message is to be tolerated, fallback to an actual regexp
     # that will never match:

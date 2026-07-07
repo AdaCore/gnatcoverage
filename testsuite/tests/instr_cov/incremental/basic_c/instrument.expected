@@ -1,0 +1,3 @@
+[GPR.ACTIONS_SCHEDULER] Starting the graph iterator
+[GPR.ACTIONS_SCHEDULER] Signature is valid, do not execute the job '[C Instrument] main.c (gen.gpr)'
+[GPR.ACTIONS_SCHEDULER] Signature is valid, do not execute the job '[C Instrument] pkg.c (gen.gpr)'

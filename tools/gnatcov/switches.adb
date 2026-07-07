@@ -348,13 +348,13 @@ package body Switches is
    --------------------
 
    function Unparse_Config
-     (Dump_Config : Any_Dump_Config) return String_Vectors.Vector
+     (Dump_Config : Any_Dump_Config) return Command_Line_Args
    is
-      Result : String_Vectors.Vector;
+      Result : Command_Line_Args;
    begin
       if Dump_Config.Auto_Trigger /= None then
          Result.Append
-           (+("--dump-trigger=" & Image (Dump_Config.Auto_Trigger)));
+           (Create ("--dump-trigger=" & Image (Dump_Config.Auto_Trigger)));
       end if;
 
       if Dump_Config.Manual_Trigger then
@@ -366,27 +366,31 @@ package body Switches is
                  Manual_Trigger_Str & "," & Dump_File.Display_Full_Name;
             end loop;
 
-            Result.Append (Manual_Trigger_Str);
+            Result.Append (Create (+Manual_Trigger_Str));
          end;
       end if;
 
       case Dump_Config.Channel is
          when Binary_File            =>
-            Result.Append (+"--dump-channel=bin-file");
+            Result.Append (Create ("--dump-channel=bin-file"));
             if Dump_Config.Filename_Simple then
-               Result.Append (+"--dump-filename-simple");
+               Result.Append (Create ("--dump-filename-simple"));
             end if;
             if Dump_Config.Filename_Env_Var /= "" then
                Result.Append
-                 ("--dump-filename-env-var=" & Dump_Config.Filename_Env_Var);
+                 (Create
+                    ("--dump-filename-env-var="
+                     & (+Dump_Config.Filename_Env_Var)));
             end if;
             if Dump_Config.Filename_Prefix /= "" then
                Result.Append
-                 (+"--dump-filename-prefix=" & Dump_Config.Filename_Prefix);
+                 (Create
+                    ("--dump-filename-prefix="
+                     & (+Dump_Config.Filename_Prefix)));
             end if;
 
          when Base64_Standard_Output =>
-            Result.Append (+"--dump-channel=base64-stdout");
+            Result.Append (Create ("--dump-channel=base64-stdout"));
       end case;
       return Result;
    end Unparse_Config;
@@ -518,55 +522,92 @@ package body Switches is
       end if;
    end Value;
 
+   Common_Switches_Cache : Command_Line_Arg_Vectors_Maps.Map;
+
    ---------------------
    -- Common_Switches --
    ---------------------
 
    function Common_Switches
-     (Cmd : Command_Line.Command_Type) return String_Vectors.Vector
+     (Cmd : Command_Line.Command_Type) return Command_Line_Args
    is
+      Cmd_Img    : constant String := Command_Type'Image (Cmd);
       Has_Config : constant Boolean :=
         Is_Present (Args, Option_Reference'(String_Opt, Opt_Config));
       --  Whether the --config flag is on the command line. If this is the
       --  case, do not pass the --target and --RTS flags (they will be parsed
       --  from the config).
 
-      Result : String_Vectors.Vector;
+      Result : Command_Line_Args;
 
-      procedure Process (Option : Option_Reference);
+      procedure Process
+        (Opt         : Option_Reference;
+         Opt_Name    : Unbounded_String;
+         Opt_Args    : String_Vectors.Vector;
+         Incremental : Boolean);
       --  Add the command line value of Option to Result if Cmd supports it
 
       -------------
       -- Process --
       -------------
 
-      procedure Process (Option : Option_Reference) is
+      procedure Process
+        (Opt         : Option_Reference;
+         Opt_Name    : Unbounded_String;
+         Opt_Args    : String_Vectors.Vector;
+         Incremental : Boolean)
+      is
+         Mode : constant GPR2.Build.Command_Line.Signature_Mode :=
+           (if Incremental
+            then GPR2.Build.Command_Line.In_Signature
+            else GPR2.Build.Command_Line.Ignore);
       begin
-         if Is_Present (Args, Option)
-           and then Supports (Arg_Parser, Cmd, Option)
-         then
-            Result.Append_Vector (Unparse (Arg_Parser, Args, Option));
+         if Supports (Arg_Parser, Cmd, Opt) then
+            Result.Append (Create (+Opt_Name, Mode));
+            for Opt_Arg of Opt_Args loop
+               Result.Append (Create (+Opt_Arg, Mode));
+            end loop;
          end if;
       end Process;
 
    begin
+      if Common_Switches_Cache.Contains (Cmd_Img) then
+         return Common_Switches_Cache.Element (Cmd_Img);
+      end if;
+
       --  Unfortunately, we can't avoid the code duplication. Deal with all
       --  kind of options: boolean, string and strings list. Do not pass
       --  the --target and --RTS flags if there is a --config flag.
 
       for Opt in Bool_Options loop
-         Process (Option_Reference'(Bool_Opt, Opt));
+         Process_Option
+           (Arg_Parser,
+            Args,
+            Option_Reference'(Bool_Opt, Opt),
+            Process'Access);
       end loop;
 
       for Opt in String_Options loop
          if not Has_Config or else Opt not in Opt_Target | Opt_Runtime then
-            Process (Option_Reference'(String_Opt, Opt));
+            Process_Option
+              (Arg_Parser,
+               Args,
+               Option_Reference'(String_Opt, Opt),
+               Process'Access);
          end if;
       end loop;
 
       for Opt in String_List_Options loop
-         Process (Option_Reference'(String_List_Opt, Opt));
+         Process_Option
+           (Arg_Parser,
+            Args,
+            Option_Reference'(String_List_Opt, Opt),
+            Process'Access);
       end loop;
+
+      --  Save in the cache then return
+
+      Common_Switches_Cache.Insert (Cmd_Img, Result);
       return Result;
    end Common_Switches;
 

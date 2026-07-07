@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2024, AdaCore                     --
+--                        Copyright (C) 2026, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,9 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-procedure Instrument.Clean_Objdirs (Keep_Going : Boolean := False);
---  Delete instrumentation output directories.
---
---  If Keep_Going if true, deletion errors are not fatal. This is necessary
---  when performing the cleaning precisely because a fatal error has already
---  occurred, and we are cleaning up object directories following it.
+package Instrument.Actions is
+
+   --  Namespace for units implementing instrumentation actions
+
+end Instrument.Actions;

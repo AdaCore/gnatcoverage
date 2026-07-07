@@ -30,6 +30,7 @@ package Instrument.C is
    --  Common instrumentation primitives for C/C++
 
    type C_Instrumenter_Type is new C_Family_Instrumenter_Type with null record;
+
    --  Instrumentation primitives for C
 
    overriding

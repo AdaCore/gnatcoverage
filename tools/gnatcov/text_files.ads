@@ -88,6 +88,9 @@ package Text_Files is
    with Pre => Self.Is_Open, Inline;
    --  Close the text file that Self references
 
+   function Full_Name (Self : File_Type) return String;
+   --  Return the full name for the given file
+
    procedure Run_GNATformat (Filename : String);
    --  Run "gnatformat" on the given file (i.e. reformat/pretty-print it)
 
@@ -105,5 +108,8 @@ private
 
    overriding
    procedure Finalize (Self : in out File_Type);
+
+   function Full_Name (Self : File_Type) return String
+   is (+Self.Filename);
 
 end Text_Files;

@@ -42,9 +42,7 @@ class Filter(OutputRefiner[str]):
 
     patterns = [
         "info: creating output path.*",
-        "Coverage instrumentation",
-        "Main instrumentation",
-        r"   \[(Ada|C|C\+\+)\].*",
+        r"\[(Ada|C|C\+\+) Instrument\].*",
         pattern_for_log("INSTRUMENT_CLEAN_OBJDIRS", ".*"),
         pattern_for_log(
             "INSTRUMENT_SOURCES",

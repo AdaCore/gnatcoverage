@@ -18,8 +18,6 @@
 
 --  Stub of Instrument.Ada_Unit: see the note about Stubs in gnatcov.gpr
 
-with GNATCOLL.VFS;
-
 with Instrument.Common; use Instrument.Common;
 
 package Instrument.Ada_Unit is

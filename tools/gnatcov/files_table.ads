@@ -352,6 +352,7 @@ package Files_Table is
 
    package Unit_Sets is new
      Ada.Containers.Ordered_Sets (Element_Type => Compilation_Unit);
+   subtype Unit_Set is Unit_Sets.Set;
 
    type Owning_Unit (Known : Boolean := False) is record
       case Known is

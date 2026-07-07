@@ -79,23 +79,24 @@ package Instrument.Ada_Unit is
 
    overriding
    procedure Instrument_Unit
-     (Self              : in out Ada_Instrumenter_Type;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set);
+     (Self               : in out Ada_Instrumenter_Type;
+      Unit_Name          : String;
+      Prj                : in out Prj_Desc;
+      Files_Of_Interest  : File_Sets.Set;
+      Instrumented_Files : File_Sets.Set);
 
    overriding
    procedure Auto_Dump_Buffers_In_Main
      (Self        : in out Ada_Instrumenter_Type;
-      Filename    : String;
+      Filename    : GNATCOLL.VFS.Virtual_File;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
 
    overriding
    procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out Ada_Instrumenter_Type;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
 
    overriding
    function Dump_Manual_Helper_Unit
@@ -106,7 +107,7 @@ package Instrument.Ada_Unit is
    procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : Virtual_File;
+      Source               : GNATCOLL.VFS.Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
@@ -142,11 +143,21 @@ package Instrument.Ada_Unit is
    procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
 
    overriding
    procedure Emit_Observability_Unit
      (Self : in out Ada_Instrumenter_Type; Prj : in out Prj_Desc);
+
+   overriding
+   function Get_Main_File
+     (Self : Ada_Instrumenter_Type; Unit_Name : String) return Virtual_File;
+
+   overriding
+   procedure For_All_Part
+     (Self      : in out Ada_Instrumenter_Type;
+      Unit_Name : String;
+      Process   : access procedure (Filename : Virtual_File));
 
    procedure Save_Config_Pragmas_Mapping (Filename : String);
    --  Create a configuration pragmas mapping for the loaded project and write

@@ -1,21 +1,5 @@
 info: creating output path [TMP]/obj/tests
-[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Mylib
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/mylib.gpr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/mylib/mylib-gnatcov-instr
-[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Mylib_Extended
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/mylib_extended.gpr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] it does not exist
-[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Harness
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/harness.gpr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/harness/harness-gnatcov-instr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] it is an externally built project
-[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Tests
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/tests.gpr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/tests/tests-gnatcov-instr
-   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] it does not exist
-Coverage instrumentation
-   [Ada]           mylib
+[Ada Instrument]  mylib.adb
 [GNATCOV.INSTRUMENT_SOURCES] Instrumenting mylib.ads
 [GNATCOV.INSTRUMENT_SOURCES] Instrumenting mylib.adb
 [GNATCOV.INSTRUMENT_SOURCES] Writing Ada buffer unit GCVRT.B[HASH#1]
@@ -30,29 +14,69 @@ Coverage instrumentation
    [GNATCOV.INSTRUMENT_SOURCES] For units:
    [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib_extended/mylib.ads
    [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib.adb
-   [C]             mylib_ext.c
+[C Instrument]    mylib_ext.c
 [GNATCOV.INSTRUMENT_SOURCES] Writing C buffer unit [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt_b_[HASH#2].c
    [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] For files:
    [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib_ext.c
-Main instrumentation
-   [Ada]           test1
+[Ada Instrument]  test1.adb
 [GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.D[HASH#3]
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
-   [GNATCOV.INSTRUMENT_SOURCES] Spec filename: gcvrt-db_[HASH#3].ads
-   [GNATCOV.INSTRUMENT_SOURCES] Body filename: gcvrt-db_[HASH#3].adb
-   [GNATCOV.INSTRUMENT_SOURCES] For main: test1 body
-   [Ada]           test2
+[Ada Instrument]  test2.adb
 [GNATCOV.INSTRUMENT_SOURCES] Writing Ada dump helper unit GCVRT.D[HASH#4]
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
-   [GNATCOV.INSTRUMENT_SOURCES] Spec filename: gcvrt-db_[HASH#4].ads
-   [GNATCOV.INSTRUMENT_SOURCES] Body filename: gcvrt-db_[HASH#4].adb
-   [GNATCOV.INSTRUMENT_SOURCES] For main: test2 body
-   [C]             test3.c
+[C Instrument]    test3.c
 [GNATCOV.INSTRUMENT_SOURCES] Writing C dump helper unit [TMP]/obj/tests/tests-gnatcov-instr/gcvrt_d_[HASH#5].c
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
    [GNATCOV.INSTRUMENT_SOURCES] Filename: [TMP]/obj/tests/tests-gnatcov-instr/gcvrt_d_[HASH#5].c
-   [GNATCOV.INSTRUMENT_SOURCES] For main: [TMP]/src-tests/test3.c
-[GNATCOV.INSTRUMENT_SOURCES] Writing Ada buffer list unit GCVRT.Tests
    [GNATCOV.INSTRUMENT_SOURCES] Project: Tests
    [GNATCOV.INSTRUMENT_SOURCES] Filename: gcvrt-tests.ads
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Preserving instrumentation artifacts:
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib.sid
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_ext.c.sid
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt-b[HASH#1].ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt-p[HASH#1].ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt_b_[HASH#2].c
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib.adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib.adb.instr_files
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib.ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib.json
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib_ext.c
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib_ext.c.d
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib_ext.c.instr_files
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/mylib_ext.c.json
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-d[HASH#3].adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-d[HASH#3].ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-d[HASH#4].adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-d[HASH#4].ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-tests-observe.adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-tests-observe.ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt-tests.ads
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/gcvrt_d_[HASH#5].c
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test1.adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test1.adb.instr_files
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test1.json
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test2.adb
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test2.adb.instr_files
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test2.json
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test3.c
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test3.c.d
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test3.c.instr_files
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] [TMP]/obj/tests/tests-gnatcov-instr/test3.c.json
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Harness
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/harness.gpr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/harness/harness-gnatcov-instr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] it is an externally built project
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Mylib
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/mylib.gpr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/mylib/mylib-gnatcov-instr
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Mylib_Extended
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/mylib_extended.gpr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Tests
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/tests.gpr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/tests/tests-gnatcov-instr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Deleting [TMP]/obj/tests/tests-gnatcov-instr/.ada-src-mapping
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Deleting [TMP]/obj/tests/tests-gnatcov-instr/.sources_of_interest
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Deleting [TMP]/obj/tests/tests-gnatcov-instr/config-pragmas.json
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Deleting [TMP]/obj/tests/tests-gnatcov-instr/instr-mapping.json
