@@ -166,7 +166,7 @@ Semantics of buffer manipulation annotations
 
 Due to the differences in instrumentation technology used by |gcv| for C/C++ and
 Ada, the external annotations concerning buffer dump/reset have different
-semantics that need to be taken into account when first annotation sources.
+semantics that need to be taken into account when first annotating sources.
 
 For C and C++ sources, |gcv| will insert the buffer dump/reset call at the exact
 location designated by the annotation, without validating if the resulting code
@@ -378,7 +378,7 @@ This depends mainly on the language of the file to be annotated:
   of that construct the annotation will be remapped properly. If the enclosing
   construct is modified, the annotation will be invalidated.
 
-- For Cor C++ sources, the annotations are tied to the inner-most enclosing
+- For C or C++ sources, the annotations are tied to the inner-most enclosing
   named declaration, such as a function declaration for C, or any of a
   namespace declaration, a class declaration or function/method declaration for
   C++.
