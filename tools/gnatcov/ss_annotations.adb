@@ -369,16 +369,6 @@ package body SS_Annotations is
       begin
          if Kind = Exempt_On then
             Annot.Justification := Justification;
-            if Justification = Null_Unbounded_String then
-               Warn
-                 (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
-                  & ": Missing or empty justification for external"
-                  & " exemption annotation """
-                  & (+Match.Identifier)
-                  & """");
-               return;
-            end if;
-
             Annot.Violation_Count := 0;
             Annot.Undetermined_Cov_Count := 0;
          end if;
