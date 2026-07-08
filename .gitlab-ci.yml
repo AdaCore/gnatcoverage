@@ -113,9 +113,12 @@ build_docs:
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
     - !reference [.test:common, script]
+  after_script:
+    # Copy the coverage report file in after_script, so that the copy is done
+    # even if there are test failures.
+    - . /tmp/ci_env.sh
     - TEST_DIR=$(anod info test gnatcov $TARGET_ARGS -Q$TEST_QUALIFIER --show working_dir)
     - mv $TEST_DIR/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-
   artifacts:
     when: always
     paths:
