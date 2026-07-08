@@ -644,11 +644,13 @@ package body Instrument.C_Annotations is
                if Matches (3) /= No_Match then
                   Parse_Expression
                     (Comment, Sloc, Matches (3), Tokens, Syntax, Root);
-                  if Syntax (Root).Kind /= Aggregate then
-                     Report
-                       (Syntax_Sloc (Root), "Aggregate expected", Warning);
-                     return;
-                  end if;
+
+                  --  We parse the expression only if the regular expression
+                  --  matched the comment. This regular expression matches the
+                  --  parens that surround the argument list, so we know that
+                  --  we get an aggregate at the root expression.
+
+                  pragma Assert (Syntax (Root).Kind = Aggregate);
                end if;
 
                --  Then decode individual arguments
