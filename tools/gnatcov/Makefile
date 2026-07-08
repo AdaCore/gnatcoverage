@@ -400,6 +400,9 @@ gnatsas:
 	gnatsas report code-climate -P gnatcov.gpr --root ../.. \
     -o $(GNATSAS_OBJ_DIR)/gnatsas/gnatsas.json $(GNATSAS_ARGS) ;
 
+gnatsas-cleanup:
+	rm -f *.test *.dot libopcodes_bind/*.dot libopcodes_bind/*.test
+
 bump_baseline:
 	gnatsas baseline --bump-baseline -P gnatcov.gpr $(GNATSAS_ARGS)
 	# Remove mentions of absolute paths to avoid baseline variations
