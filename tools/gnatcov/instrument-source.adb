@@ -295,7 +295,7 @@ begin
 
    --  If needed, copy the SID file to the library directory
 
-   if Prj_Actual.Lib_Dir /= No_File then
+   if Is_UOI and then Prj_Actual.Lib_Dir /= No_File then
       Copy_SID_To_Lib_Dir;
    end if;
 end Instrument.Source;
