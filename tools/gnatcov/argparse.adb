@@ -241,46 +241,51 @@ package body Argparse is
       end case;
    end Supports;
 
-   -------------
-   -- Unparse --
-   -------------
+   --------------------
+   -- Process_Option --
+   --------------------
 
-   function Unparse
-     (Parser : Parser_Type; Args : Parsed_Arguments; Option : Option_Reference)
-      return String_Vectors.Vector
+   procedure Process_Option
+     (Parser  : Parser_Type;
+      Args    : Parsed_Arguments;
+      Option  : Option_Reference;
+      Process :
+        access procedure
+          (Opt         : Option_Reference;
+           Opt_Name    : Unbounded_String;
+           Opt_Args    : String_Vectors.Vector;
+           Incremental : Boolean))
    is
-      Result : String_Vectors.Vector;
-
       function Name (Opt : Option_Info'Class) return Unbounded_String
       is (if Opt.Long_Name = "" then Opt.Short_Name else Opt.Long_Name);
       --  Some options such as -P do not defined a long name. In this case,
       --  return the short name.
 
+      Opt_Args : String_Vectors.Vector;
    begin
-      case Option.Kind is
-         when Bool_Opt        =>
-            Result.Append (Name (Parser.Data.Bool_Info (Option.Bool_Option)));
+      if not Is_Present (Args, Option) then
+         return;
+      end if;
 
+      case Option.Kind is
          when String_Opt      =>
-            Result.Append
-              (Name (Parser.Data.String_Info (Option.String_Option)));
-            Result.Append (Args.String_Args (Option.String_Option).Value);
+            Opt_Args.Append (Args.String_Args (Option.String_Option).Value);
 
          when String_List_Opt =>
-            declare
-               Opt_Name : constant Unbounded_String :=
-                 Name
-                   (Parser.Data.String_List_Info (Option.String_List_Option));
-            begin
-               for Arg of Args.String_List_Args (Option.String_List_Option)
-               loop
-                  Result.Append (Opt_Name);
-                  Result.Append (Arg);
-               end loop;
-            end;
+            for Arg of Args.String_List_Args (Option.String_List_Option) loop
+               Opt_Args.Append (Arg);
+            end loop;
+
+         when others          =>
+            null;
       end case;
-      return Result;
-   end Unparse;
+
+      Process
+        (Option,
+         Name (Get_Option (Parser.Data, Option).all),
+         Opt_Args,
+         Get_Option (Parser.Data, Option).Incremental);
+   end Process_Option;
 
    ----------------
    -- Get_Option --
@@ -312,8 +317,9 @@ package body Argparse is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal                    : Boolean) return Bool_Option_Info
-   is ((+Long_Name, +Short_Name, +Help, Commands, Internal));
+      Internal                    : Boolean;
+      Incremental                 : Boolean := False) return Bool_Option_Info
+   is ((+Long_Name, +Short_Name, +Help, Commands, Internal, Incremental));
 
    ------------
    -- Create --
@@ -325,12 +331,14 @@ package body Argparse is
       Internal                    : Boolean;
       At_Most_Once                : Boolean;
       Optional_Value              : Boolean := False;
-      Pattern                     : String := "") return String_Option_Info
+      Pattern                     : String := "";
+      Incremental                 : Boolean := False) return String_Option_Info
    is (+Long_Name,
        +Short_Name,
        +Help,
        Commands,
        Internal,
+       Incremental,
        At_Most_Once,
        Optional_Value,
        +Pattern);
@@ -345,13 +353,15 @@ package body Argparse is
       Internal                    : Boolean;
       Greedy                      : Boolean := False;
       Pattern                     : String := "";
-      Accepts_Comma_Separator     : Boolean := False)
+      Accepts_Comma_Separator     : Boolean := False;
+      Incremental                 : Boolean := False)
       return String_List_Option_Info
    is (+Long_Name,
        +Short_Name,
        +Help,
        Commands,
        Internal,
+       Incremental,
        Greedy,
        +Pattern,
        Accepts_Comma_Separator);

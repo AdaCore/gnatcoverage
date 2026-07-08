@@ -140,4 +140,6 @@ package body Logging is
       end loop;
    end Print_List;
 
+begin
+   No_Trace := Create_Trace ("GNATCOV_NO_TRACE");
 end Logging;

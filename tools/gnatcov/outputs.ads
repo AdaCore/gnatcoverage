@@ -25,10 +25,11 @@ with Ada.Text_IO;    use Ada.Text_IO;
 
 with Types; use Types;
 
-with Files_Table; use Files_Table;
-with Strings;     use Strings;
-with Temp_Dirs;   use Temp_Dirs;
-with Paths;       use Paths;
+with Files_Handling; use Files_Handling;
+with Files_Table;    use Files_Table;
+with Logging;
+with Temp_Dirs;      use Temp_Dirs;
+with Paths;          use Paths;
 
 package Outputs is
 
@@ -190,11 +191,13 @@ package Outputs is
    procedure Clean_Dir
      (Dir           : String;
       Pattern       : String;
-      Ignored_Files : String_Sets.Set := String_Sets.Empty_Set;
-      Keep_Going    : Boolean := False);
+      Ignored_Files : File_Sets.Set := File_Sets.Empty_Set;
+      Keep_Going    : Boolean := False;
+      Trace         : Logging.GNATCOLL_Trace := Logging.No_Trace);
    --  Remove all the files in Dir for which the base name matches Pattern, but
    --  whose the full name is not contained in Ignored_Files. An empty string
-   --  for Pattern will match every file.
+   --  for Pattern will match every file. Trace every deleted file through
+   --  Trace.
    --
    --  If Keep_Going if true, deletion errors are not fatal. This is necessary
    --  when performing the cleaning precisely because a fatal error has already

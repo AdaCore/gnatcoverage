@@ -156,7 +156,8 @@ is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal                    : Boolean) return Bool_Option_Info
+      Internal                    : Boolean;
+      Incremental                 : Boolean := False) return Bool_Option_Info
    with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a boolean option description. Long_Name and Short_Name are
    --  |-separated lists of options names.
@@ -167,7 +168,8 @@ is
       Internal                    : Boolean;
       At_Most_Once                : Boolean;
       Optional_Value              : Boolean := False;
-      Pattern                     : String := "") return String_Option_Info
+      Pattern                     : String := "";
+      Incremental                 : Boolean := False) return String_Option_Info
    with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a single string option description.
    --
@@ -186,7 +188,8 @@ is
       Internal                    : Boolean;
       Greedy                      : Boolean := False;
       Pattern                     : String := "";
-      Accepts_Comma_Separator     : Boolean := False)
+      Accepts_Comma_Separator     : Boolean := False;
+      Incremental                 : Boolean := False)
       return String_List_Option_Info
    with
      Pre =>
@@ -393,18 +396,24 @@ is
       return Boolean;
    --  Return True if Cmd supports Option, False otherwise
 
-   function Unparse
-     (Parser : Parser_Type; Args : Parsed_Arguments; Option : Option_Reference)
-      return String_Vectors.Vector
-   with Pre => Is_Present (Args, Option);
-   --  If Option is present in Args, return a string representation of this
-   --  option that can be passed to a gnatcov invocation.
+   procedure Process_Option
+     (Parser  : Parser_Type;
+      Args    : Parsed_Arguments;
+      Option  : Option_Reference;
+      Process :
+        access procedure
+          (Opt         : Option_Reference;
+           Opt_Name    : Unbounded_String;
+           Opt_Args    : String_Vectors.Vector;
+           Incremental : Boolean));
+   --  Call Process on the given Option when it is present in Args
 
 private
 
    type Command_Info is record
       Name, Pattern, Description : Unbounded_String;
       Internal                   : Boolean;
+
    end record;
 
    type Option_Info is abstract tagged record
@@ -412,6 +421,13 @@ private
       Help                  : Unbounded_String;
       Commands              : Command_Set;
       Internal              : Boolean;
+
+      Incremental : Boolean;
+      --  Whether adding or removing this option should trigger instrumenting
+      --  the file again. Note that this should only be set for the
+      --  switches that can be passed to the "gnatcov instrument-source"
+      --  command.
+
    end record;
 
    type Bool_Option_Info is new Option_Info with null record;

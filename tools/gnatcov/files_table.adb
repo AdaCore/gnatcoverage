@@ -37,7 +37,7 @@ with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;
 with Perf_Counters;         use Perf_Counters;
 with Project_Find_Source_File;
-with Switches;
+with Switches;              use Switches;
 
 package body Files_Table is
 

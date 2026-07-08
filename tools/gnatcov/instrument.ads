@@ -22,6 +22,11 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
+with GNATCOLL.VFS;
+
+with GPR2;
+with GPR2.Build.Source;
+
 with Types; use Types;
 
 with Checkpoints;    use Checkpoints;
@@ -235,9 +240,12 @@ package Instrument is
       Prj_Name : Ada_Qualified_Name;
       --  Name for the project
 
-      Output_Dir : Unbounded_String;
+      Output_Dir : GNATCOLL.VFS.Virtual_File;
       --  Where the instrumented sources and coverage buffer units are
       --  generated.
+
+      Lib_Dir : GNATCOLL.VFS.Virtual_File;
+      --  Library directory if the project is a library project
 
       Naming_Scheme : Naming_Scheme_Desc;
       --  Naming scheme for this project
@@ -252,7 +260,7 @@ package Instrument is
       Compiler_Options_Unit : Files_Handling.File_To_String_Vectors_Maps.Map;
       --  Compiler switches applying to a specific unit
 
-      Search_Paths : String_Vectors.Vector;
+      Search_Paths : C_Lang_Array_Vec;
       --  List of compiler switches to look up the project source directories
 
       Special_Output_Dirs : String_Maps.Map;
@@ -264,6 +272,12 @@ package Instrument is
       --  but compiled in this project. This happens for instance in Ada, when
       --  the spec belongs to project A, and the body belongs to project B
       --  (which depends on A).
+
+      Instr_Artifacts : Files_Handling.File_Sets.Set;
+      --  List of instrumentation artifacts created by the current unit
+      --  instrumentation. Note: this must be reset between unit
+      --  instrumentations.
+
    end record;
    --  This record stores the information that is required from the project
    --  for instrumentation purposes.
@@ -273,11 +287,11 @@ package Instrument is
    function Load_From_Command_Line return Prj_Desc;
 
    function Unparse
-     (Desc      : Prj_Desc;
-      Unit_Name : Unbounded_String;
-      Lang      : Src_Supported_Language) return String_Vectors.Vector;
+     (Desc : Prj_Desc;
+      Src  : GPR2.Build.Source.Object;
+      Lang : Src_Supported_Language) return Command_Line_Args;
    --  Return a list of command line switches holding all the project
-   --  information for the given Unit_Name of the language Lang.
+   --  information for the given Src of the language Lang.
 
    function Instrumentation_Tag return String;
    --  Generate a unique identifier that can be used to tag the current

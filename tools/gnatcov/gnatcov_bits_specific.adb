@@ -66,7 +66,6 @@ with Instrument.Config;
 with Instrument.Debug_Dump;
 with Instrument.Gcc_Wrapper;
 with Instrument.Input_Traces;
-with Instrument.Main;
 with Instrument.Projects;
 with Instrument.Setup_Config;
 with Instrument.Source;
@@ -2123,27 +2122,16 @@ begin
 
       when Cmd_Instrument_Source                          =>
 
-         --  For the instrument-source command, and for the instrument-main,
-         --  we do not check the command-line semantics as these commands are
-         --  internal and spawned by a gnatcov main process. They are thus by
-         --  default well-formed, and if they are not, it is a gnatcov bug.
+         --  For the instrument-source command, we do not check the
+         --  command-line semantics as these commands are internal and spawned
+         --  by a gnatcov main process. They are thus by default well-formed,
+         --  and if they are not, it is a gnatcov bug.
          --
          --  The unit to instrument is the trailing argument
 
          declare
             Instrumenter : Language_Instrumenter'Class := Instrument.Config;
-         begin
-            Instrument.Source
-              (Instrumenter      => Instrumenter,
-               Files_Of_Interest => Switches.Files_Of_Interest,
-               Prj               => Instrument.Load_From_Command_Line,
-               Unit_Name         => +Args.Remaining_Args.First_Element,
-               SID_Name          =>
-                 +Args.String_List_Args (Opt_SID).First_Element);
-         end;
 
-      when Cmd_Instrument_Main                            =>
-         declare
             --  The dump config is loaded from the command line. The
             --  implementation of the main instrumentation process assumes that
             --  it is fully explicited, i.e. that nothing is left as default.
@@ -2151,18 +2139,21 @@ begin
             Dump_Config : constant Any_Dump_Config :=
               Load_Dump_Config (Any_Dump_Config'(others => <>));
 
-            --  Trailing argument is the main to instrument
+            Prj : constant Instrument.Prj_Desc :=
+              Instrument.Load_From_Command_Line;
+            --  Project description for the project source
 
-            Main_Filename : constant String :=
-              +Args.Remaining_Args.First_Element;
-
-            Instrumenter : Language_Instrumenter'Class := Instrument.Config;
          begin
-            Instrument.Main
-              (Instrumenter,
-               Dump_Config,
-               Main_Filename,
-               Instrument.Load_From_Command_Line);
+            Instrument.Source
+              (Instrumenter      => Instrumenter,
+               Files_Of_Interest => Switches.Files_Of_Interest,
+               Prj_Actual        => Prj,
+               Unit_Name         => +Args.Remaining_Args.First_Element,
+               SID_Name          =>
+                 +Args.String_List_Args (Opt_SID).First_Element,
+               Is_UOI            => Args.Bool_Args (Opt_UOI),
+               Is_Main           => Args.Bool_Args (Opt_Main),
+               Dump_Config       => Dump_Config);
          end;
 
       when Cmd_Scan_Objects                               =>

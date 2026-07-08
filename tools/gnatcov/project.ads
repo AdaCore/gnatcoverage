@@ -30,7 +30,7 @@ with GPR2.Project.Tree;
 with GPR2.Project.View;
 with GPR2.Reporter;
 
-with Files_Table;
+with Files_Table;  use Files_Table;
 with Strings;      use Strings;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
@@ -136,10 +136,6 @@ package Project is
    --  Return the gnatcov-style unit name for the given source. For Ada, it is
    --  the actual unit name (same meaning as in GPR2), but for other languages,
    --  it is the file basename.
-
-   function To_Compilation_Unit
-     (Source : GPR2.Build.Source.Object) return Files_Table.Compilation_Unit;
-   --  Return the Compilation_Unit for Info
 
    --------------------------------------
    -- Accessors for project properties --
@@ -312,5 +308,9 @@ package Project is
      (Source : GPR2.Build.Source.Object) return GPR2.Build.Unit_Info.Object;
    --  Assuming that Source has a unit-based language, return the first unit it
    --  contains.
+
+   function To_Compilation_Unit
+     (Source : GPR2.Build.Source.Object) return Compilation_Unit;
+   --  Return the Compilation_Unit for Source
 
 end Project;

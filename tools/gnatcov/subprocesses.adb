@@ -21,12 +21,11 @@ with Ada.Text_IO; use Ada.Text_IO;
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.Mmap;  use GNATCOLL.Mmap;
-with GNATCOLL.OS.FS; use GNATCOLL.OS.FS;
+with GNATCOLL.OS.FS;      use GNATCOLL.OS.FS;
+with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
 with GNATCOLL.OS.Process_Types;
 
 with Outputs; use Outputs;
-with Paths;   use Paths;
 
 package body Subprocesses is
 
@@ -40,10 +39,6 @@ package body Subprocesses is
       Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False) return Process_Handle;
    --  Overload to run asynchronously a command
-
-   function Wait_And_Finalize (Self : in out Process_Pool) return Positive;
-   --  Wait for a process to terminate and handle its output. Return the id in
-   --  Self for the process that terminated.
 
    procedure Print_On_Stderr (Filename : String);
    --  If Filename is not empty, read the content of the given file and forward
@@ -373,186 +368,5 @@ package body Subprocesses is
          return Handle;
       end;
    end Run_Command;
-
-   -----------------------
-   -- Wait_And_Finalize --
-   -----------------------
-
-   function Wait_And_Finalize (Self : in out Process_Pool) return Positive is
-      function Find_Waitable return Positive;
-      --  Wait until one process terminates, then return its index in
-      --  Self.Handle.
-
-      -------------------
-      -- Find_Waitable --
-      -------------------
-
-      function Find_Waitable return Positive is
-         Result : Integer := WAIT_TIMEOUT;
-      begin
-         --  Use a long timeout (one hour) to avoid busy polling instead of
-         --  using INFINITE_TIMEOUT to workaround a GNATCOLL.OS.Process bug.
-
-         while Result = WAIT_TIMEOUT loop
-            Result := Wait_For_Processes (Self.Handles, 3600.0);
-         end loop;
-         pragma Assert (Result in Self.Handles'Range);
-         return Result;
-      end Find_Waitable;
-
-      Id      : constant Positive := Find_Waitable;
-      Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
-      Info    : Process_Info renames Self.Process_Infos (Id);
-
-      --  Start of processing for Wait_And_Finalize
-
-   begin
-      --  Free the pool slot for this terminated process
-
-      Self.Handles (Id) := Invalid_Handle;
-      Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
-
-      --  Dump the output of the process that terminated to stdout if it was
-      --  not redirected to a file.
-
-      if Info.Output_To_Stdout then
-         declare
-            Output_File : Mapped_File;
-            Region      : Mapped_Region;
-            Str         : Str_Access;
-            Str_Last    : Natural;
-         begin
-            Output_File := Open_Read (+Info.Output_File);
-            Region := Read (Output_File);
-            Str := Data (Region);
-            Str_Last := Last (Region);
-
-            --  The finalization of Ada.Text_IO always emits a newline after a
-            --  call to Put. To avoid redundant line breaks in this situation,
-            --  do not pass that newline to Put and call New_Line instead.
-
-            if Str_Last > 0 then
-               if Str (Str_Last) = ASCII.LF then
-                  Str_Last := Str_Last - 1;
-               end if;
-               Put (Str (1 .. Str_Last));
-               New_Line;
-            end if;
-
-            Free (Region);
-            Close (Output_File);
-         end;
-      end if;
-
-      --  If the subprocess terminated with an error, deal with it here
-
-      declare
-         Output_File : constant String :=
-           (if Info.Output_To_Stdout then "" else +Info.Output_File);
-      begin
-         Check_Status
-           (Success,
-            Output_File,
-            Info.Ignore_Error,
-            +Info.Command,
-            +Info.Origin_Command_Name);
-      end;
-      return Id;
-   end Wait_And_Finalize;
-
-   -----------------
-   -- Run_Command --
-   -----------------
-
-   procedure Run_Command
-     (Pool                : in out Process_Pool;
-      Command             : String;
-      Arguments           : String_Vectors.Vector;
-      Origin_Command_Name : String;
-      Environment         : String_Maps.Map := Empty_Environment;
-      Output_File         : String := "";
-      Err_To_Out          : Boolean := True;
-      Out_To_Null         : Boolean := False;
-      In_To_Null          : Boolean := False;
-      Ignore_Error        : Boolean := False)
-   is
-      Id : Positive;
-      --  Identifier of the process in the process pool (i.e. its index in
-      --  the Pool.Handles process array).
-
-   begin
-      --  If the process pool is full, wait for the first completion to occur
-      --  and create the new process to replace it. Otherwise we just started
-      --  to fill it: use the next available slot.
-
-      if Pool.Nb_Running_Processes = Pool.Parallelism_Level then
-         Id := Pool.Wait_And_Finalize;
-      else
-         Id := Pool.Nb_Running_Processes + 1;
-      end if;
-
-      --  Fill the information relative to this command that we will need
-      --  when it terminates.
-
-      Pool.Process_Infos (Id).Ignore_Error := Ignore_Error;
-      Pool.Process_Infos (Id).Output_File := +Output_File;
-      Pool.Process_Infos (Id).Origin_Command_Name := +Origin_Command_Name;
-      Pool.Process_Infos (Id).Command := +Command;
-      if Output_File = "" then
-
-         --  Redirect the output to a temporary file to avoid mangling
-         --  on the standard output. The dump of the output is done in
-         --  Wait_And_Finalize, through a later call to Run_Command, or
-         --  through the finalization of the process pool.
-
-         Pool.Process_Infos (Id).Output_File :=
-           +(Pool.Output_Dir.Directory_Name / "job-"
-             & Strings.Img (Id)
-             & ".txt");
-         Pool.Process_Infos (Id).Output_To_Stdout := True;
-      else
-         Pool.Process_Infos (Id).Output_To_Stdout := False;
-      end if;
-
-      Pool.Handles (Id) :=
-        Run_Command
-          (Command,
-           Arguments,
-           Origin_Command_Name,
-           Environment,
-           +Pool.Process_Infos (Id).Output_File,
-
-           --  TODO??? There will be mangling on the stderr if stdout was
-           --  redirected to an output file.
-
-           Err_To_Out  => Output_File = "",
-           Out_To_Null => Out_To_Null,
-           In_To_Null  => In_To_Null);
-      Pool.Nb_Running_Processes := Pool.Nb_Running_Processes + 1;
-   end Run_Command;
-
-   ----------------
-   -- Initialize --
-   ----------------
-
-   procedure Initialize (Pool : in out Process_Pool) is
-   begin
-      Create_Temporary_Directory (Pool.Output_Dir, "gnatcov_outputs");
-      Pool.Handles := (others => Invalid_Handle);
-      Pool.Nb_Running_Processes := 0;
-   end Initialize;
-
-   --------------
-   -- Finalize --
-   --------------
-
-   overriding
-   procedure Finalize (Self : in out Process_Pool) is
-      Dummy : Positive;
-   begin
-      while Self.Nb_Running_Processes /= 0 loop
-         Dummy := Wait_And_Finalize (Self);
-      end loop;
-   end Finalize;
 
 end Subprocesses;

@@ -63,7 +63,6 @@ package Command_Line is
       Cmd_Setup,
       Cmd_Instrument_Project,
       Cmd_Instrument_Source,
-      Cmd_Instrument_Main,
       Cmd_Setup_Integration,
       Cmd_Gcc_Wrapper,
 
@@ -104,7 +103,9 @@ package Command_Line is
       Opt_No_Stdlib,
       Opt_Split_Extracted_Traces,
       Opt_Suppress_Limitations,
-      Opt_Compiler_Prefix);
+      Opt_Compiler_Prefix,
+      Opt_Main,
+      Opt_UOI);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -116,6 +117,7 @@ package Command_Line is
       Opt_Config,
       Opt_Output,
       Opt_Output_Directory,
+      Opt_Lib_Directory,
       Opt_Tag,
       Opt_Kernel,
       Opt_Coverage_Level,
@@ -201,7 +203,7 @@ package Command_Line is
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is
-     Command_Type range Cmd_Instrument_Project .. Cmd_Instrument_Main;
+     Command_Type range Cmd_Instrument_Project .. Cmd_Instrument_Source;
 
    subtype Cmd_Instrument_With_Setup is
      Command_Type range Cmd_Instrument_Project .. Cmd_Setup_Integration;
@@ -489,15 +491,6 @@ package Command_Line is
              & " same unit.",
            Pattern     => "[FILES]",
            Internal    => True),
-      Cmd_Instrument_Main             =>
-        Create
-          (Name        => "instrument-main",
-           Description =>
-             "Insert dump trigger code in the the given main file,"
-             & " dumping coverage buffers of all of the specified"
-             & " files (through the --files switch).",
-           Pattern     => "--files=<files_of_interest> [MAIN]",
-           Internal    => True),
       Cmd_Setup_Integration           =>
         Create
           (Name        => "setup-integration",
@@ -601,12 +594,13 @@ package Command_Line is
            Internal  => False),
       Opt_All_Decisions                =>
         Create
-          (Long_Name => "--all-decisions",
-           Help      =>
+          (Long_Name   => "--all-decisions",
+           Help        =>
              "Perform decision coverage in stmt+decision mode even"
              & " for decisions outside of control structures.",
            --  TODO??? Is this really supposed to be internal?
-           Internal  => True),
+           Internal    => True,
+           Incremental => True),
       Opt_All_Messages                 =>
         Create
           (Long_Name => "--all-messages",
@@ -724,18 +718,19 @@ package Command_Line is
 
       Opt_Dump_Filename_Simple         =>
         Create
-          (Long_Name => "--dump-filename-simple",
-           Help      =>
+          (Long_Name   => "--dump-filename-simple",
+           Help        =>
              "Valid only when --dump-channel=bin-file. Create simple"
              & " filenames for source trace files (no PID/timestamp"
              & " variations).",
-           Commands  =>
+           Commands    =>
              (Cmd_Setup
               | Cmd_Instrument_Project
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Main => True,
-              others                => False),
-           Internal  => False),
+              | Cmd_Instrument_Source => True,
+              others                  => False),
+           Internal    => False,
+           Incremental => True),
 
       Opt_Allow_Mix_Trace_Kind         =>
         Create
@@ -748,15 +743,16 @@ package Command_Line is
 
       Opt_Boolean_Short_Circuit_And_Or =>
         Create
-          (Long_Name => "--short-circuit-and-or",
-           Help      =>
+          (Long_Name   => "--short-circuit-and-or",
+           Help        =>
              "For Ada sources, consider that boolean operators"
              & " ""and"" and ""or"" have short-circuit semantics and"
              & " instrument them accordingly. This does not modify"
              & " the actual semantics of the operators, which needs"
              & " to be done with the Short_Circuit_And_Or pragma.",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => True),
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => True,
+           Incremental => True),
 
       Opt_Cancel_Annotate              =>
         Create
@@ -777,38 +773,42 @@ package Command_Line is
 
       Opt_Instrument_Ghost             =>
         Create
-          (Long_Name => "--instrument-ghost",
-           Help      => "Enable instrumentation of ghost code.",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => False),
+          (Long_Name   => "--instrument-ghost",
+           Help        => "Enable instrumentation of ghost code.",
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => False,
+           Incremental => True),
 
       Opt_Full_Slugs                   =>
         Create
-          (Long_Name => "--full-slugs",
-           Help      =>
+          (Long_Name   => "--full-slugs",
+           Help        =>
              "Use full unit slugs instead of hashes for buffer units",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => True),
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => True,
+           Incremental => True),
 
       Opt_Warnings_As_Errors           =>
         Create
-          (Long_Name  => "--warnings-as-errors",
-           Short_Name => "-W",
-           Help       =>
+          (Long_Name   => "--warnings-as-errors",
+           Short_Name  => "-W",
+           Help        =>
              "Treat warnings as errors, i.e. exit with a non-zero"
              & " status code if a warning is emitted.",
-           Commands   => (others => True),
-           Internal   => False),
+           Commands    => (others => True),
+           Internal    => True,
+           Incremental => True),
 
       Opt_Instrument_Block             =>
         Create
-          (Long_Name => "--instrument-block",
-           Help      =>
+          (Long_Name   => "--instrument-block",
+           Help        =>
              "Instrument the statements as blocks, i.e. insert a"
              & " single instrumentation counter incrementation for a"
              & " statement block.",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => False),
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => False,
+           Incremental => True),
       Opt_Force                        =>
         Create
           (Long_Name  => "--force",
@@ -870,6 +870,20 @@ package Command_Line is
              "Install the instrumentation runtime in the same prefix as the"
              & " compiler used to compile it.",
            Commands  => (Cmd_Setup => True, others => False),
+           Internal  => False),
+      Opt_UOI                          =>
+        Create
+          (Long_Name => "--uoi",
+           Help      =>
+             "Whether the given unit should be instrumented as a uoi",
+           Commands  => (Cmd_Instrument_Source => True, others => False),
+           Internal  => False),
+      Opt_Main                         =>
+        Create
+          (Long_Name => "--main",
+           Help      =>
+             "Whether the given unit should be instrumented as a main",
+           Commands  => (Cmd_Instrument_Source => True, others => False),
            Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -884,9 +898,8 @@ package Command_Line is
              (Cmd_Print_GPR_Registry
               | Cmd_Setup
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Source
-              | Cmd_Instrument_Main => False,
-              others                => True),
+              | Cmd_Instrument_Source => False,
+              others                  => True),
            At_Most_Once => True,
            Internal     => False),
       Opt_Root_Dir               =>
@@ -982,13 +995,22 @@ package Command_Line is
            Pattern      => "SUBDIR",
            Help         => "Place the output files into SUBDIR.",
            Commands     =>
-             (Cmd_Coverage
-              | Cmd_Instrument_Source
-              | Cmd_Instrument_Main
-              | Cmd_Setup_Integration => True,
-              others                  => False),
+             (Cmd_Coverage | Cmd_Instrument_Source | Cmd_Setup_Integration =>
+                True,
+              others                                                       =>
+                False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
+      Opt_Lib_Directory          =>
+        Create
+          (Long_Name    => "--lib-dir",
+           Pattern      => "SUBDIR",
+           Help         => "Library directory for the instrumented project.",
+           Commands     => (Cmd_Instrument_Source => True, others => False),
+           At_Most_Once => False,
+           Internal     => True,
+           Incremental  => True),
       Opt_Tag                    =>
         Create
           (Long_Name    => "--tag",
@@ -1034,7 +1056,8 @@ package Command_Line is
               others
               => False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
       Opt_Text_Start             =>
         Create
           (Long_Name    => "--text-start",
@@ -1133,11 +1156,12 @@ package Command_Line is
              (Cmd_Setup
               | Cmd_Instrument_Project
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Main => True,
-              others                => False),
+              | Cmd_Instrument_Source => True,
+              others                  => False),
            At_Most_Once => False,
            Internal     => False,
-           Pattern      => "bin-file|base64-stdout"),
+           Pattern      => "bin-file|base64-stdout",
+           Incremental  => True),
       Opt_Dump_Filename_Env_Var  =>
         Create
           (Long_Name    => "--dump-filename-env-var",
@@ -1149,10 +1173,11 @@ package Command_Line is
              (Cmd_Setup
               | Cmd_Instrument_Project
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Main => True,
-              others                => False),
+              | Cmd_Instrument_Source => True,
+              others                  => False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
       Opt_Dump_Filename_Prefix   =>
         Create
           (Long_Name    => "--dump-filename-prefix",
@@ -1163,11 +1188,12 @@ package Command_Line is
              (Cmd_Setup
               | Cmd_Instrument_Project
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Main
+              | Cmd_Instrument_Source
               | Cmd_Add_Annotation => True,
               others               => False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
 
       Opt_Dump_Filename_Tag      =>
         Create
@@ -1179,10 +1205,11 @@ package Command_Line is
              (Cmd_Setup
               | Cmd_Instrument_Project
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Main => True,
-              others                => False),
+              | Cmd_Instrument_Source => True,
+              others                  => False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
 
       Opt_Ada                    =>
         Create
@@ -1197,7 +1224,8 @@ package Command_Line is
              & " Ada 2022 support is in beta phase.",
            Commands     => (Cmd_Instrument => True, others => False),
            At_Most_Once => False,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
 
       Opt_Dump_Units_To          =>
         Create
@@ -1288,7 +1316,8 @@ package Command_Line is
              & " the report.",
            Commands     => (Cmd_Instrument => True, others => False),
            At_Most_Once => True,
-           Internal     => False),
+           Internal     => False,
+           Incremental  => True),
 
       Opt_Install_Name           =>
         Create
@@ -1322,9 +1351,7 @@ package Command_Line is
           (Long_Name    => "--lang",
            Pattern      => "C|C++|Ada",
            Help         => "Language for the given compilation unit",
-           Commands     =>
-             (Cmd_Instrument_Main | Cmd_Instrument_Source => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1348,9 +1375,7 @@ package Command_Line is
              "Compiler driver used to compile the source (e.g. gcc). This is"
              & " used when instrumenting a C/C++ source, to retrieve builtin"
              & " macros that may modify the file preprocessing.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1361,9 +1386,7 @@ package Command_Line is
            Help         =>
              "Body suffix for source files created by the instrumenter for the"
              & " instrumentation of a source",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1374,9 +1397,7 @@ package Command_Line is
            Help         =>
              "Spec suffix for source files created by the instrumenter for the"
              & " instrumentation of a source",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1387,9 +1408,7 @@ package Command_Line is
            Help         =>
              "Dot replacement for source files created by the instrumenter for"
              & " the instrumentation of a source",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1400,9 +1419,7 @@ package Command_Line is
            Help         =>
              "Casing for source files created by the instrumenter for the"
              & " instrumentation of a source.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1413,9 +1430,7 @@ package Command_Line is
            Help         =>
              "Name of the file containing unit dependencies in the GNAT"
              & " format.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1425,9 +1440,7 @@ package Command_Line is
            Pattern      => "NAME",
            Help         =>
              "Name of the file containing the configuration pragmas mapping.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1438,9 +1451,7 @@ package Command_Line is
            Help         =>
              "Name of the file containing preprocessor configuration data for"
              & " Ada.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1450,9 +1461,7 @@ package Command_Line is
            Pattern      => "NAME",
            Help         =>
              "Name of the root project, without its gpr extension.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
 
@@ -1492,9 +1501,8 @@ package Command_Line is
            Commands     =>
              (Cmd_Print_GPR_Registry
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Source
-              | Cmd_Instrument_Main => False,
-              others                => True),
+              | Cmd_Instrument_Source => False,
+              others                  => True),
            At_Most_Once => True,
            Internal     => False),
 
@@ -1600,11 +1608,9 @@ package Command_Line is
            Help         =>
              "Specify the default encoding to use to read Ada source files to"
              & " instrument.",
-           Commands     =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => True,
-           Internal     => True));
+           Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Log                     =>
@@ -1626,21 +1632,21 @@ package Command_Line is
              (Cmd_Print_GPR_Registry
               | Cmd_Setup
               | Cmd_Setup_Integration
-              | Cmd_Instrument_Source
-              | Cmd_Instrument_Main => False,
-              others                => True),
+              | Cmd_Instrument_Source => False,
+              others                  => True),
            Internal  => False),
       Opt_Subp_Of_Interest        =>
         Create
-          (Long_Name => "--subprograms",
-           Pattern   => "FILE:LINE",
-           Help      =>
+          (Long_Name   => "--subprograms",
+           Pattern     => "FILE:LINE",
+           Help        =>
              "Experimental feature: restrict coverage analysis to specific"
              & " subprograms designated by the specification source line for"
              & " Ada, or to specific functions designated by the definition"
              & " source line for C/C++.",
-           Commands  => (Cmd_Coverage => True, others => False),
-           Internal  => False),
+           Commands    => (Cmd_Coverage => True, others => False),
+           Internal    => False,
+           Incremental => True),
       Opt_Scenario_Var            =>
         Create
           (Short_Name => "-X",
@@ -1842,10 +1848,8 @@ package Command_Line is
              "Specify a list of source files of interest by their"
              & " full name.",
            Commands  =>
-             (Cmd_Instrument_Source
-              | Cmd_Instrument_Main
-              | Cmd_Setup_Integration => True,
-              others                  => False),
+             (Cmd_Instrument_Source | Cmd_Setup_Integration => True,
+              others                                        => False),
            Internal  => False),
 
       Opt_Shared_Object           =>
@@ -1907,30 +1911,32 @@ package Command_Line is
 
       Opt_C_Opts                  =>
         Create
-          (Long_Name => "--c-opts",
-           Pattern   => "COMMA-SEPARATED-OPTIONS",
-           Help      =>
-             "List of additional compiler switches to analayze C source"
+          (Long_Name   => "--c-opts",
+           Pattern     => "COMMA-SEPARATED-OPTIONS",
+           Help        =>
+             "List of additional compiler switches to analyze C source"
              & " files.",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => False),
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => False,
+           Incremental => True),
 
       Opt_CPP_Opts                =>
         Create
-          (Long_Name => "--c++-opts",
-           Pattern   => "COMMA-SEPARATED-OPTIONS",
-           Help      =>
-             "List of additional compiler switches to analayze C++ source"
+          (Long_Name   => "--c++-opts",
+           Pattern     => "COMMA-SEPARATED-OPTIONS",
+           Help        =>
+             "List of additional compiler switches to analyze C++ source"
              & " files.",
-           Commands  => (Cmd_Instrument => True, others => False),
-           Internal  => False),
+           Commands    => (Cmd_Instrument => True, others => False),
+           Internal    => False,
+           Incremental => True),
 
       Opt_RTS_Source_Dirs         =>
         Create
           (Long_Name => "--rts-source-dirs",
            Pattern   => "NAME",
            Help      => "Directories containing the coverage runtime sources.",
-           Commands  => (Cmd_Instrument_Main => True, others => False),
+           Commands  => (Cmd_Instrument_Source => True, others => False),
            Internal  => True),
 
       Opt_Compiler_Wrappers       =>
@@ -1950,8 +1956,8 @@ package Command_Line is
 
       Opt_Dump_Trigger            =>
         Create
-          (Long_Name => "--dump-trigger",
-           Help      =>
+          (Long_Name   => "--dump-trigger",
+           Help        =>
              "Select a trigger to dump coverage buffers in the"
              & " instrumented program."
              & ASCII.LF
@@ -1983,23 +1989,25 @@ package Command_Line is
              & " coverage buffers for all units of interest in the"
              & " main closure. The --dump-channel option"
              & " determines the dump procedure.",
-           Commands  =>
+           Commands    =>
              (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
               others                                             => False),
-           Pattern   => "manual|atexit|main-end|ravenscar-task-termination",
-           Internal  => False),
+           Pattern     => "manual|atexit|main-end|ravenscar-task-termination",
+           Internal    => False,
+           Incremental => True),
 
       Opt_Manual_Dump_Files       =>
         Create
-          (Long_Name => "--manual-dump-files",
-           Help      =>
+          (Long_Name   => "--manual-dump-files",
+           Help        =>
              "Specify FILES in which gnatcoverage should look for user-written"
-             & "dump indications when --dump-trigger=manual is provided.",
-           Commands  =>
+             & " dump indications when --dump-trigger=manual is provided.",
+           Commands    =>
              (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
               others                                             => False),
-           Pattern   => "FILES",
-           Internal  => False),
+           Pattern     => "FILES",
+           Internal    => False,
+           Incremental => True),
 
       Opt_Ext_Annotations         =>
         Create
@@ -2026,9 +2034,7 @@ package Command_Line is
              & " instrumented files that must not go to the default output"
              & " directory. Both must be separated by the current platform"
              & " path separator.",
-           Commands  =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Commands  => (Cmd_Instrument_Source => True, others => False),
            Internal  => False));
 
    --  Callbacks to process inter-dependent switches

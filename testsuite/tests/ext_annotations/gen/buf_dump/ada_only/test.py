@@ -77,7 +77,7 @@ cov_args = build_and_run(
 def check_call(file: str) -> None:
     thistest.fail_if_no_match(
         "missing dump buffers procedure call",
-        "(\n|.)*GCVRT.DB_manual_lib2.Dump_Buffers(.*);" "(\n|.)*",
+        "(\n|.)*GCVRT.DB_manual_LIB2.Dump_Buffers(.*);" "(\n|.)*",
         contents_of(file),
     )
 

@@ -57,23 +57,24 @@ package Instrument.C is
 
    overriding
    procedure Instrument_Unit
-     (Self              : in out C_Family_Instrumenter_Type;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set);
+     (Self               : in out C_Family_Instrumenter_Type;
+      Unit_Name          : String;
+      Prj                : in out Prj_Desc;
+      Files_Of_Interest  : File_Sets.Set;
+      Instrumented_Files : File_Sets.Set);
 
    overriding
    procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
-      Filename    : String;
+      Filename    : GNATCOLL.VFS.Virtual_File;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
 
    overriding
    procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : Virtual_File;
+      Source               : GNATCOLL.VFS.Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed
@@ -96,20 +97,20 @@ package Instrument.C is
    procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
    --  Emit the dump helper unit
 
    overriding
    procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc);
+      Prj         : in out Prj_Desc);
 
    overriding
    function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : Prj_Desc) return Compilation_Unit;
+      Prj            : in out Prj_Desc) return Compilation_Unit;
 
    overriding
    function Buffer_Unit
@@ -129,8 +130,18 @@ package Instrument.C is
    overriding
    function Has_Main
      (Self     : in out C_Family_Instrumenter_Type;
-      Filename : String;
-      Prj      : Prj_Desc) return Boolean;
+      Filename : Virtual_File;
+      Prj      : in out Prj_Desc) return Boolean;
+
+   function Get_Main_File
+     (Self : C_Family_Instrumenter_Type; Unit_Name : String)
+      return Virtual_File;
+
+   overriding
+   procedure For_All_Part
+     (Self      : in out C_Family_Instrumenter_Type;
+      Unit_Name : String;
+      Process   : access procedure (Filename : Virtual_File));
 
    function Extern_Prefix (Self : C_Family_Instrumenter_Type) return String
    is ("extern ");
@@ -141,7 +152,7 @@ package Instrument.C is
 
    overriding
    function Language (Self : C_Instrumenter_Type) return Src_Supported_Language
-   is (C_Language);
+   is (Switches.C_Language);
 
    function Create_C_Instrumenter
      (Tag             : Unbounded_String;
@@ -161,7 +172,7 @@ package Instrument.C is
    overriding
    function Language
      (Self : CPP_Instrumenter_Type) return Src_Supported_Language
-   is (CPP_Language);
+   is (Switches.CPP_Language);
 
    overriding
    function Extern_Prefix (Self : CPP_Instrumenter_Type) return String
@@ -368,7 +379,7 @@ package Instrument.C is
    --  Split a comma-separated list of arguments
 
    procedure Import_Options
-     (Self         : out Analysis_Options;
+     (Self         : in out Analysis_Options;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc;
       Filename     : String);
@@ -594,7 +605,7 @@ private
       --  Such declarations must go before being used, so this should
       --  correspond to the first rewritable location.
 
-      Output_Filename : Unbounded_String;
+      Output_Filename : GNATCOLL.VFS.Virtual_File;
    end record;
 
    overriding

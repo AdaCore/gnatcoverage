@@ -25,8 +25,12 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov"],
 )
 
+# Extensions for source instrumentation artifacts
+common_ext = [".json", ".d", ".instr_files"]
+
+ada_ext = common_ext + LANGINFO["Ada"].src_ext
 for f in os.listdir("obj/ada_prj-gnatcov-instr"):
-    if ext(f) not in LANGINFO["Ada"].src_ext:
+    if ext(f) not in ada_ext:
         thistest.failed(
             f"{f} is not an Ada source. Instrumentation "
             "of an Ada project should only produce Ada files."
@@ -44,8 +48,9 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov"],
 )
 
+c_ext = common_ext + LANGINFO["C"].src_ext
 for f in os.listdir("obj/c_prj-gnatcov-instr"):
-    if ext(f) not in LANGINFO["C"].src_ext:
+    if ext(f) not in c_ext:
         thistest.failed(
             f"{f} is not a C source. Instrumentation "
             "of a C project should only produce C files."

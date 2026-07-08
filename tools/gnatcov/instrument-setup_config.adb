@@ -477,6 +477,7 @@ package body Instrument.Setup_Config is
             end if;
 
             --  Handle auto dump trigger
+
             if Dump_Config_JSON.Has_Field ("auto-dump-trigger") then
                declare
                   Auto_Trigger_Str : constant String :=

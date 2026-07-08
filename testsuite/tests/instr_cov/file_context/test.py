@@ -4,6 +4,8 @@ instrumented when it is supposed to: once per source file that triggers an
 error/warning, and once for every file in verbose mode.
 """
 
+import shutil
+
 from e3.fs import mkdir
 
 from SCOV.instr import xcov_instrument
@@ -20,6 +22,8 @@ mkdir("obj")
 
 
 def do_instr(label: str, args: list[str]) -> str:
+    # Remove the object directory to avoid incrementality
+    shutil.rmtree("obj")
     thistest.log(f"== {label} ==")
     output_file = f"{label}.txt"
     p = xcov_instrument(

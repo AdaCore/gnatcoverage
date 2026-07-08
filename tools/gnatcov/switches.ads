@@ -18,10 +18,14 @@
 
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
+
+with GPR2;
+with GPR2.Build.Command_Line;
 
 with Calendar_Utils; use Calendar_Utils;
 with Command_Line;   use Command_Line;
@@ -350,13 +354,36 @@ package Switches is
    --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
    --  and the given --dump-* arguments for source trace dumping.
 
+   type Command_Line_Arg is record
+      Arg  : Unbounded_String;
+      Mode : GPR2.Build.Command_Line.Signature_Mode;
+   end record;
+
+   function Create
+     (Arg  : String;
+      Mode : GPR2.Build.Command_Line.Signature_Mode :=
+        GPR2.Build.Command_Line.In_Signature) return Command_Line_Arg
+   is (+Arg, Mode => Mode);
+
+   package Command_Line_Arg_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Command_Line_Arg);
+   subtype Command_Line_Args is Command_Line_Arg_Vectors.Vector;
+
+   package Command_Line_Arg_Vectors_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Command_Line_Args,
+        "="          => Command_Line_Arg_Vectors."=");
+
    function Unparse_Config
-     (Dump_Config : Any_Dump_Config) return String_Vectors.Vector;
+     (Dump_Config : Any_Dump_Config) return Command_Line_Args;
    --  Return a suitable set of gnatcov command line switches that represent
    --  the given dump config.
 
    function Common_Switches
-     (Cmd : Command_Line.Command_Type) return String_Vectors.Vector;
+     (Cmd : Command_Line.Command_Type) return Command_Line_Args;
    --  Return the unparsed command line arguments supported by the given
    --  Cmd. This is used to propagate a set of switches to a gnatcov
    --  subprocess.
