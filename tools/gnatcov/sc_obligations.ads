@@ -28,7 +28,6 @@ with Ada.Containers.Multiway_Trees;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
-with GNAT.Strings; use GNAT.Strings;
 
 with Namet;
 with Types; use Types;
@@ -149,176 +148,6 @@ package SC_Obligations is
    procedure Report_Units_Without_Code;
    --  Emit an error message for any unit of interest for which no object code
    --  has been seen.
-
-   -------------------------------
-   -- ALI files and annotations --
-   -------------------------------
-
-   type Any_Annotation_Kind is
-     (Unknown,
-      Exempt_Region,
-      Exempt_On,
-      Exempt_Off,
-      Dump_Buffers,
-      Reset_Buffers,
-      Cov_On,
-      Cov_Off);
-
-   subtype Src_Annotation_Kind is
-     Any_Annotation_Kind range Exempt_On .. Cov_Off;
-   --  All annotation kind that can be found in pragma Annotate / comments
-   --  supported by gnatcov.
-
-   subtype ALI_Annotation_Kind is
-     Any_Annotation_Kind range Exempt_On .. Exempt_Off;
-   --  Annotation kinds that can be found in ALI files
-
-   subtype Buffers_Annotation_Kind is
-     Any_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
-   --  Annotation kinds to perform coverage buffers control
-
-   type ALI_Annotation is record
-      Kind : Src_Annotation_Kind;
-      --  On or Off, Dump or Reset coverage buffers
-
-      Message : String_Access;
-      --  When Kind = Exempt_On, justification message for the exemption.
-      --  This is null if no justification is given (i.e. this is never an
-      --  access to an empty string).
-
-      Violation_Count : Natural := 0;
-      --  When Kind = Exempt_On, this counts the violation "hits" on this
-      --  exemption:
-      --
-      --  * exempted violation messages if generating a report,
-      --
-      --  * exempted non/partially covered lines otherwise.
-
-      Undetermined_Cov_Count : Natural := 0;
-      --  When Kind = Exempt_On, this counts the number of "hits" for
-      --  undetermined coverage items: currently exempted non-instrumented
-      --  messages when generating a report, or lines marked as
-      --  non instrumented otherwise.
-      --
-      --  This is relevant only for source trace based coverage analysis.
-   end record;
-
-   package ALI_Annotation_Maps is new
-     Ada.Containers.Ordered_Maps
-       (Key_Type     => Source_Location,
-        Element_Type => ALI_Annotation);
-
-   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map);
-   --  Set annotations. Add them to the right CU_Info according to their
-   --  source location.
-
-   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map;
-   function Get_Annotations
-     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map;
-   --  Return the set of annotations for the given compilation unit / source
-   --  file index.
-
-   function Get_Annotation
-     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor;
-   --  Accessor for the ALI_Annotation_Map, to avoid copying the entire map
-   --  when only a single annotation is needed.
-
-   function Get_All_Annotations return ALI_Annotation_Maps.Map;
-   --  Return all annotations
-
-   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
-   --  Increment the exempted line/message violation counter for exemption at
-   --  Sloc.
-
-   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location);
-   --  Increment the exempted line/message undetermined coverage items counter
-   --  for exemption at Sloc.
-
-   procedure Reset_Exemption_Counters;
-   --  Reset all exemption-related counters in all known compilation units.
-   --  Since these counters are computed during report generation, we need to
-   --  reset the counters between each generated report.
-
-   ----------------------------
-   -- Parsing of annotations --
-   ----------------------------
-
-   Invalid_Annotation_Argument_Error : exception;
-   --  Exception raised by Parse_Annotation or its Process callback when
-   --  attempting to parse an invalid annotation.
-
-   generic
-      type Argument_List (<>) is private;
-      --  A list of annotation arguments
-
-      type Argument is private;
-      --  A single annotation argument value
-
-      No_Argument : Argument;
-      --  Marker for the absence of an argument value
-
-      with
-        procedure Iterate
-          (Self    : Argument_List;
-           Process :
-             access procedure
-               (Sloc : Source_Location; Name : String; Value : Argument));
-      --  Call Process on all arguments in the given list.
-      --
-      --  Sloc is the source location for the argument (used to emit
-      --  diagnostics, if needed).
-      --
-      --  Name is the name of the argument (if provided, empty string for
-      --  positional arguments), and Value is the passed value (never
-      --  No_Argument).
-      --
-      --  Process may raise an Invalid_Annotation_Argument_Error exception if
-      --  the argument is for some reason invalid.
-
-      with function Parse_String (Self : Argument) return String;
-      --  Try to parse an argument as a string literal, and return the
-      --  string value it denotes. Raise an Invalid_Annotation_Argument_Error
-      --  exception if the argument is not a string literal.
-
-     procedure Parse_Annotation
-     (Kind       : Src_Annotation_Kind;
-      Args       : Argument_List;
-      Sloc       : Source_Location;
-      Annotation : out ALI_Annotation;
-      Silent     : Boolean := False);
-   --  Parse the list of arguments in Args for the given annotation Kind.
-   --
-   --  On success, set Annotation to the corresponding annotation. Otherwise,
-   --  raise an Invalid_Annotation_Argument_Error exception (Sloc is used to
-   --  emit the corresponding diagnostics).
-   --
-   --  No diagnostics are emitted if Silent is True. This is useful to avoid
-   --  duplicate diagnostics when the same annotation is parsed multiple times.
-
-   --------------
-   -- Load_ALI --
-   --------------
-
-   procedure Load_ALI (ALI_Filename : String);
-   --  Load ALI information for Filename, without SCOs
-
-   function Load_ALI
-     (ALI_Filename          : String;
-      Excluded_Source_Files : access GNAT.Regexp.Regexp;
-      Units                 : out SFI_Vector;
-      Deps                  : out SFI_Vector;
-      ALI_Annotations       : in out ALI_Annotation_Maps.Map;
-      With_SCOs             : Boolean) return Types.Source_File_Index;
-   --  Load coverage related information (coverage exemptions and, if With_SCOs
-   --  is True, source coverage obligations) from ALI_Filename. Returns the
-   --  source file index for the ALI file. Subsequent calls for the same ALI
-   --  file will return No_Source_File immediately, without reloading the file.
-   --  Units are the units contained in this compilation.
-   --
-   --  Ignore all source obligations according to Excluded_Source_Files (see
-   --  SC_Obligations.Load_SCOs' documentation).
-   --
-   --  Deps are the dependencies of the compilation.
 
    ---------------------------------
    -- Source Coverage Obligations --
@@ -639,6 +468,175 @@ package SC_Obligations is
 
    subtype Valid_BDD_Node_Id is
      BDD_Node_Id range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
+
+   -------------------------------
+   -- ALI files and annotations --
+   -------------------------------
+
+   type Any_Annotation_Kind is
+     (Unknown,
+      Exempt_Region,
+      Exempt_On,
+      Exempt_Off,
+      Dump_Buffers,
+      Reset_Buffers,
+      Cov_On,
+      Cov_Off);
+
+   subtype Src_Annotation_Kind is
+     Any_Annotation_Kind range Exempt_On .. Cov_Off;
+   --  All annotation kind that can be found in pragma Annotate / comments
+   --  supported by gnatcov.
+
+   subtype ALI_Annotation_Kind is
+     Any_Annotation_Kind range Exempt_On .. Exempt_Off;
+   --  Annotation kinds that can be found in ALI files
+
+   subtype Buffers_Annotation_Kind is
+     Any_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
+   --  Annotation kinds to perform coverage buffers control
+
+   type ALI_Annotation
+     (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)
+   is record
+      case Kind is
+         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+            Justification : Unbounded_String;
+            --  Justification message for the exemption/deactivation. Empty
+            --  string if no justification is given.
+
+            case Kind is
+               when Exempt_On =>
+                  Violation_Count : Natural := 0;
+                  --  When Kind = Exempt_On, this counts the violation "hits"
+                  --  on this exemption:
+                  --
+                  --  * exempted violation messages if generating a report,
+                  --
+                  --  * exempted non/partially covered lines otherwise.
+
+                  Undetermined_Cov_Count : Natural := 0;
+                  --  When Kind = Exempt_On, this counts the number of "hits"
+                  --  for undetermined coverage items: currently exempted
+                  --  non-instrumented messages when generating a report, or
+                  --  lines marked as non instrumented otherwise.
+                  --
+                  --  This is relevant only for source trace based coverage
+                  --  analysis.
+
+               when others =>
+                  null;
+            end case;
+
+         when Dump_Buffers =>
+            Prefix : Unbounded_String;
+            --  Source code for the expression that yields the string used as a
+            --  filename prefix to dump buffers.
+
+         when Reset_Buffers =>
+            null;
+      end case;
+   end record;
+
+   package ALI_Annotation_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_Location,
+        Element_Type => ALI_Annotation);
+
+   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map);
+   --  Set annotations. Add them to the right CU_Info according to their
+   --  source location.
+
+   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map;
+   function Get_Annotations
+     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map;
+   --  Return the set of annotations for the given compilation unit / source
+   --  file index.
+
+   function Get_Annotation
+     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor;
+   --  Accessor for the ALI_Annotation_Map, to avoid copying the entire map
+   --  when only a single annotation is needed.
+
+   function Get_All_Annotations return ALI_Annotation_Maps.Map;
+   --  Return all annotations
+
+   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message violation counter for exemption at
+   --  Sloc.
+
+   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message undetermined coverage items counter
+   --  for exemption at Sloc.
+
+   procedure Reset_Exemption_Counters;
+   --  Reset all exemption-related counters in all known compilation units.
+   --  Since these counters are computed during report generation, we need to
+   --  reset the counters between each generated report.
+
+   ----------------------------
+   -- Parsing of annotations --
+   ----------------------------
+
+   Invalid_Annotation_Argument_Error : exception;
+   --  Exception raised by Parse_Annotation or its Process callback when
+   --  attempting to parse an invalid annotation.
+
+   type Annotation_Value_Kind is (String_Value, Arbitrary_Expr);
+   type Annotation_Value
+     (Kind : Annotation_Value_Kind := Annotation_Value_Kind'First)
+   is record
+      Sloc : Source_Location;
+      case Kind is
+         when String_Value =>
+            String_Value : Unbounded_String;
+
+         when Arbitrary_Expr =>
+            Expr : Unbounded_String;
+      end case;
+   end record;
+   type Annotation_Value_Array is
+     array (Positive range <>) of Annotation_Value;
+
+   procedure Parse_Annotation
+     (Kind       : Src_Annotation_Kind;
+      Sloc       : Source_Location;
+      Args       : Annotation_Value_Array;
+      Annotation : out ALI_Annotation;
+      Silent     : Boolean := False);
+   --  Parse the list of arguments Args for the given annotation Kind.
+   --
+   --  On success, set Annotation to the corresponding annotation. Otherwise,
+   --  raise an Invalid_Annotation_Argument_Error exception (Sloc is used to
+   --  emit the corresponding diagnostics).
+   --
+   --  No diagnostics are emitted if Silent is True. This is useful to avoid
+   --  duplicate diagnostics when the same annotation is parsed multiple times.
+
+   --------------
+   -- Load_ALI --
+   --------------
+
+   procedure Load_ALI (ALI_Filename : String);
+   --  Load ALI information for Filename, without SCOs
+
+   function Load_ALI
+     (ALI_Filename          : String;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp;
+      Units                 : out SFI_Vector;
+      Deps                  : out SFI_Vector;
+      ALI_Annotations       : in out ALI_Annotation_Maps.Map;
+      With_SCOs             : Boolean) return Types.Source_File_Index;
+   --  Load coverage related information (coverage exemptions and, if With_SCOs
+   --  is True, source coverage obligations) from ALI_Filename. Returns the
+   --  source file index for the ALI file. Subsequent calls for the same ALI
+   --  file will return No_Source_File immediately, without reloading the file.
+   --  Units are the units contained in this compilation.
+   --
+   --  Ignore all source obligations according to Excluded_Source_Files (see
+   --  SC_Obligations.Load_SCOs' documentation).
+   --
+   --  Deps are the dependencies of the compilation.
 
    ----------------------------
    -- Accessors for SCO info --

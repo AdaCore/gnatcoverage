@@ -82,8 +82,7 @@ package body Annotations is
    ----------------------
 
    function Aggregated_State
-     (Info : Line_Info; Ignore_Exemptions : Boolean := False)
-      return Any_Line_State
+     (Info : Line_Info; Ignore_Exemptions : Boolean := False) return Line_State
    is
       Result : Line_State := No_Code;
    begin
@@ -165,7 +164,7 @@ package body Annotations is
               and then LI.Exemption.L.Line = Index
             then
                declare
-                  Justification : constant String_Access :=
+                  Justification : constant Unbounded_String :=
                     Get_Exemption_Message (LI.Exemption);
                   M             : constant Message :=
                     (Kind           => Diagnostics.Notice,
@@ -176,8 +175,8 @@ package body Annotations is
                      SCO            => No_SCO_Id,
                      Msg            =>
                        +("Exempted region justification: "
-                         & (if Justification /= null
-                            then """" & Justification.all & """"
+                         & (if Justification /= ""
+                            then """" & (+Justification) & """"
                             else "<NO JUSTIFICATION>")));
                begin
                   Pp.Pretty_Print_Message (M);
@@ -259,7 +258,7 @@ package body Annotations is
 
       Instruction_Set : Address_Info_Acc;
       Sec_Info        : Address_Info_Acc;
-      Ls              : constant Any_Line_State := Aggregated_State (LI);
+      Ls              : constant Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
 
       --  Start of processing for Disp_Instruction_Sets
@@ -640,15 +639,23 @@ package body Annotations is
    -- Get_Exemption_Message --
    ---------------------------
 
-   function Get_Exemption_Message (Sloc : Source_Location) return String_Access
+   function Get_Exemption_Message
+     (Sloc : Source_Location) return Unbounded_String
    is
       use ALI_Annotation_Maps;
       Cur : constant Cursor := Get_Annotation (Sloc);
    begin
       if Has_Element (Cur) then
-         return Element (Cur).Message;
+         declare
+            A : constant ALI_Annotation := Element (Cur);
+         begin
+            return
+              (if A.Kind = Exempt_On
+               then A.Justification
+               else Null_Unbounded_String);
+         end;
       else
-         return null;
+         return Null_Unbounded_String;
       end if;
    end Get_Exemption_Message;
 
@@ -1036,7 +1043,7 @@ package body Annotations is
       for L in From .. Actual_To loop
          declare
             LI : constant Line_Info_Access := Get_Line (FI, L);
-            S  : constant Any_Line_State := Aggregated_State (LI.all);
+            S  : constant Line_State := Aggregated_State (LI.all);
          begin
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.

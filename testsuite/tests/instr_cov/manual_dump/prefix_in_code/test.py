@@ -24,12 +24,18 @@ tmp = Wdir("tmp_")
 
 expected_cov = {
     "ada": {
-        "main_ada.adb.xcov": {"+": {4, 6}},
-        "main_c.c.xcov": {"-": {6, 7, 9}},
+        "get_prefix_ada.adb.xcov": {"+": {4}},
+        "get_prefix_ada.ads.xcov": {},
+        "get_prefix_c.c.xcov": {"-": {4}},
+        "main_ada.adb.xcov": {"+": {6}},
+        "main_c.c.xcov": {"-": {8, 10}},
     },
     "c": {
-        "main_c.c.xcov": {"+": {6, 7}, "-": {9}},
-        "main_ada.adb.xcov": {"-": {4, 6}},
+        "get_prefix_ada.adb.xcov": {"-": {4}},
+        "get_prefix_ada.ads.xcov": {},
+        "get_prefix_c.c.xcov": {"+": {4}},
+        "main_c.c.xcov": {"+": {8}, "-": {10}},
+        "main_ada.adb.xcov": {"-": {6}},
     },
 }
 

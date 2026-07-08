@@ -32,7 +32,7 @@ with Outputs;  use Outputs;
 
 package body Annotations.Index is
 
-   subtype Index_Cov_States is Any_Line_State range Not_Covered .. Covered;
+   subtype Index_Cov_States is Line_State range Not_Covered .. Covered;
    subtype Percentage is Natural range 0 .. 100;
 
    type Stats_Per_State is array (Index_Cov_States) of Natural

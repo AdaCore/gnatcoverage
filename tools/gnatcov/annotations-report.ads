@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 with Coverage;
 
 package Annotations.Report is

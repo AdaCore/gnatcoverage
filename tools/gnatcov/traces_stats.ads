@@ -24,7 +24,7 @@ with Traces_Lines;     use Traces_Lines;
 
 package Traces_Stats is
 
-   type Counter_Array is array (Any_Line_State) of Natural;
+   type Counter_Array is array (Line_State) of Natural;
    --  Array of stats indexed by the coverage state (covered, partially
    --  covered, etc.).
 

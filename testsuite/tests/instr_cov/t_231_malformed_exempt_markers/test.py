@@ -6,9 +6,11 @@ Xcov annotation was found, or if an argument of the wrong type is given.
 
 import re
 
+from e3.testsuite.driver.diff import OutputRefiner
+
 from SCOV.minicheck import build_run_and_coverage, xcov_instrument
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, lines_of
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
@@ -51,38 +53,25 @@ xcov_instrument(
     tolerate_messages=".",
 )
 
-warning_re = re.compile(r"\*\*\* ([^:]+):(\d+):.*")
+
+class SortOutput(OutputRefiner):
+
+    warning_re = re.compile(r"\*\*\* ([^:]+):(\d+):.*")
+
+    @classmethod
+    def line_key(cls, line: str) -> tuple[str, int]:
+        m = cls.warning_re.match(line)
+        return (line, 0) if m is None else (m.group(1), int(m.group(2)))
+
+    def refine(self, output: str) -> str:
+        return "\n".join(sorted(output.splitlines(), key=self.line_key)) + "\n"
 
 
-def line_key(line: str) -> tuple[str, int]:
-    m = warning_re.match(line)
-    return (line, 0) if m is None else (m.group(1), int(m.group(2)))
-
-
-baseline = """\
-*** main_1.adb:5:5: warning: No justification given for exempted region
-*** main_1.adb:9:40: warning: Too many arguments
-*** main_1.adb:10:5: warning: Invalid Xcov annotation kind: aaa
-*** main_1.adb:11:5: warning: Xcov annotation kind missing
-*** main_2.adb:4:5: warning: Invalid Xcov annotation kind
-*** main_2.adb:6:39: warning: Static string expression expected
-*** main_2.adb:7:39: warning: Invalid argument name: no_such_arg
-*** main_2.adb:8:46: warning: Too many arguments
-*** main_3.c:4:5: warning: Invalid Xcov annotation kind: GNATCOV_INVALID_KIND
-*** main_3.c:5:23: warning: Invalid syntax
-*** main_3.c:6:24: warning: Invalid syntax
-*** main_3.c:7:33: warning: unexpected end of annotation
-*** main_3.c:8:24: warning: String expected
-*** main_3.c:9:31: warning: Too many arguments
-*** main_3.c:10:24: warning: Invalid argument name: no_such_arg
-*** main_3.c:11:6: warning: Obsolete syntax, support will be removed in\
- release 28. Consider switching to: GNATCOV_EXEMPT_ON("legacy")
-"""
-
-thistest.fail_if_not_equal(
-    "gnatcov instrument output",
-    baseline,
-    "\n".join(sorted(lines_of("instrument.log"), key=line_key)) + "\n",
+thistest.fail_if_diff(
+    baseline_file="../instrument-baseline.txt",
+    actual_file="instrument.log",
+    failure_message="gnatcov instrument output",
+    output_refiners=[SortOutput()],
 )
 
 thistest.result()

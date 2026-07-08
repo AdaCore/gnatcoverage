@@ -769,6 +769,25 @@ package body Coverage.Source is
          SCOs_Of_Line : declare
             SCO_State : Line_State := No_Code;
             SCI       : Source_Coverage_Info renames SCI_Vector (SCO).all;
+
+            Assertion_Coverage : constant Boolean :=
+              Kind (SCO) = Decision
+              and then Decision_Requires_Assertion_Coverage (SCO);
+
+            procedure Update_Line_State (Level : Coverage_Level);
+            --  Shortcut for the library level Update_Line_State
+
+            -----------------------
+            -- Update_Line_State --
+            -----------------------
+
+            procedure Update_Line_State (Level : Coverage_Level) is
+            begin
+               Update_Line_State (Line_Info, SCO, Level, SCO_State);
+            end Update_Line_State;
+
+            --  Start of processing for SCOs_Of_Line
+
          begin
             if Kind (SCO) = Statement then
 
@@ -873,7 +892,7 @@ package body Coverage.Source is
                   end if;
                end if;
 
-               Update_Line_State (Line_Info, SCO, Stmt, SCO_State);
+               Update_Line_State (Stmt);
 
             elsif Kind (SCO) = Decision
               and then First_Sloc (SCO).L.Line /= Line_Num
@@ -882,24 +901,24 @@ package body Coverage.Source is
                --  computed for the first line, and then cached in the SCI and
                --  reused for subsequent lines.
 
-               if Decision_Requires_Assertion_Coverage (SCO) then
-
+               if Assertion_Coverage then
                   SCO_State := SCI.State (ATC);
-                  Update_Line_State (Line_Info, SCO, ATC, SCO_State);
+                  Update_Line_State (ATC);
 
                   if Assertion_Condition_Coverage_Enabled then
                      SCO_State := SCI.State (ATCC);
-                     Update_Line_State (Line_Info, SCO, ATCC, SCO_State);
+                     Update_Line_State (ATCC);
                   end if;
+
                else
                   if Enabled (Decision) then
                      SCO_State := SCI.State (Decision);
-                     Update_Line_State (Line_Info, SCO, Decision, SCO_State);
+                     Update_Line_State (Decision);
                   end if;
 
                   if MCDC_Coverage_Enabled then
                      SCO_State := SCI.State (MCDC_Level);
-                     Update_Line_State (Line_Info, SCO, MCDC_Level, SCO_State);
+                     Update_Line_State (MCDC_Level);
                   end if;
                end if;
 
@@ -907,7 +926,7 @@ package body Coverage.Source is
               and then
                 ((Decision_Requires_Coverage (SCO)
                   and then (Enabled (Decision) or else MCDC_Coverage_Enabled))
-                 or else Decision_Requires_Assertion_Coverage (SCO))
+                 or else Assertion_Coverage)
             then
                --  Compute decision coverage state for this decision. Note that
                --  the decision coverage information is also included in MC/DC
@@ -936,7 +955,7 @@ package body Coverage.Source is
                         "outcome "
                         & To_Boolean (Decision_Outcome (SCO))'Image
                         & " never exercised");
-                     Update_Line_State (Line_Info, SCO, Decision, SCO_State);
+                     Update_Line_State (Decision);
 
                   elsif Report_If_Excluded (SCO) then
                      SCO_State := Not_Coverable;
@@ -960,9 +979,7 @@ package body Coverage.Source is
                elsif SCI.Outcome_Taken /= No_Outcome_Taken
                  or else SCI.Known_Outcome_Taken /= No_Outcome_Taken
                then
-                  --  Assertion coverage
-
-                  if Decision_Requires_Assertion_Coverage (SCO) then
+                  if Assertion_Coverage then
                      --  Contract coverage level "Assertion True Coverage"
 
                      --  Assertions are never supposed to be evaluated to
@@ -1084,12 +1101,12 @@ package body Coverage.Source is
                --  Update the state of the line for all enabled source coverage
                --  levels.
 
-               if Decision_Requires_Assertion_Coverage (SCO) then
+               if Assertion_Coverage then
 
                   --  If the SCO is in an assertion, update its state for the
                   --  relevant assertion coverage levels...
 
-                  Update_Line_State (Line_Info, SCO, ATC, SCO_State);
+                  Update_Line_State (ATC);
 
                   if Enabled (ATCC) then
                      Compute_Condition_Level_Line_State
@@ -1103,13 +1120,11 @@ package body Coverage.Source is
 
                   --  Update the SCO state for decision level
 
-                  Update_Line_State (Line_Info, SCO, Decision, SCO_State);
+                  Update_Line_State (Decision);
 
                   --  Compute and update the SCO state for MCDC level
 
-                  if MCDC_Coverage_Enabled
-                    and then not Decision_Requires_Assertion_Coverage (SCO)
-                  then
+                  if MCDC_Coverage_Enabled and then not Assertion_Coverage then
                      Compute_Condition_Level_Line_State
                        (SCO, SCO_State, Line_Info, SCI, MCDC_Level);
                   end if;
@@ -1150,12 +1165,13 @@ package body Coverage.Source is
                   Report_Violation (SCO, "not executed");
                end if;
 
-               Update_Line_State (Line_Info, SCO, Fun_Call, SCO_State);
+               Update_Line_State (Fun_Call);
 
             elsif Kind (SCO) in Fun_Call_SCO_Kind and then Enabled (Fun_Call)
             then
                SCO_State := SCI.State (Fun_Call);
-               Update_Line_State (Line_Info, SCO, Fun_Call, SCO_State);
+               Update_Line_State (Fun_Call);
+
             elsif Kind (SCO) = Guarded_Expr and then Enabled (GExpr) then
                if not GExpr_SCO_Instrumented (SCO) then
                   SCO_State := Undetermined_Coverage;
@@ -1174,12 +1190,13 @@ package body Coverage.Source is
                   end if;
                end if;
 
-               Update_Line_State (Line_Info, SCO, GExpr, SCO_State);
+               Update_Line_State (GExpr);
             end if;
          end SCOs_Of_Line;
 
          <<Next_SCO>>
       end loop;
+
       --  Record that this line has been processed
 
       Line_Info.Coverage_Processed := True;

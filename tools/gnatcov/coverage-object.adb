@@ -204,24 +204,24 @@ package body Coverage.Object is
    procedure Update_Line_State (L : in out Line_State; I : Known_Insn_State) is
    begin
       case L is
-         when Not_Covered           =>
+         when Not_Covered                                      =>
             if I = Not_Covered then
                L := Not_Covered;
             else
                L := Partially_Covered;
             end if;
 
-         when Partially_Covered     =>
+         when Partially_Covered                                =>
             null;
 
-         when Covered               =>
+         when Covered                                          =>
             if I = Covered or else I = Both_Taken then
                L := Covered;
             else
                L := Partially_Covered;
             end if;
 
-         when No_Code               =>
+         when No_Code                                          =>
             if I = Covered or else I = Both_Taken then
                L := Covered;
             elsif I = Not_Covered then
@@ -230,7 +230,7 @@ package body Coverage.Object is
                L := Partially_Covered;
             end if;
 
-         when Not_Coverable         =>
+         when Not_Coverable                                    =>
 
             --  Line can't be marked as not coverable, since there *is* an
             --  associated instruction.
@@ -240,7 +240,7 @@ package body Coverage.Object is
                 "Attempting to set an instruction state to Not_Coverable,"
                 & " but the instruction comes from an executable.";
 
-         when Undetermined_Coverage =>
+         when Undetermined_Coverage                            =>
 
             --  Line can't (at the moment) be marked as undetermined line state
             --  when not using source traces.
@@ -250,7 +250,7 @@ package body Coverage.Object is
                 "Undetermined_Coverage line state reserved for source"
                 & " coverage";
 
-         when Disabled_Coverage     =>
+         when Disabled_Coverage                                =>
 
             --  Line can't be marked as disabled coverage line state when not
             --  using source traces.
@@ -259,6 +259,14 @@ package body Coverage.Object is
               with
                 "Disabled_Coverage line state reserved for source"
                 & " coverage";
+
+         when Exempted_With_Violation .. Exempted_No_Violation =>
+
+            --  Only fine grained exemptions can mark lines as exempted in
+            --  internal tables, and fine grained exemptions are not available
+            --  for object coverage: this is unreachable code.
+
+            raise Program_Error;
 
       end case;
    end Update_Line_State;
