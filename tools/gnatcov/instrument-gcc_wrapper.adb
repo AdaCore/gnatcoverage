@@ -1088,15 +1088,20 @@ begin
                   --  TODO (eng/toolchain/gnat#603)???
                   --  Ada.Directories.Simple_Name fails in edge cases.
                   --  Use GNATCOLL.VFS instead for more reliable results.
+                  --
+                  --  Normalize Arg to an absolute path: entries in
+                  --  Instrumented_Files are absolute, and comparing a
+                  --  relative Virtual_File to an absolute one does not work
+                  --  on Windows, where Virtual_File comparisons do not
+                  --  resolve relative paths (GNATCOLL.VFS only does so when
+                  --  symbolic link handling is enabled, which it is not on
+                  --  Windows).
 
-                  VF       : constant GNATCOLL.VFS.Virtual_File :=
-                    GNATCOLL.VFS.Create (+(+Arg));
-                  Base     : constant String := VF.Display_Base_Name;
-                  Fullname : constant String := VF.Display_Full_Name;
+                  VF   : constant GNATCOLL.VFS.Virtual_File :=
+                    Create_Normalized (+Arg);
+                  Base : constant String := VF.Display_Base_Name;
                begin
-                  if Instrumented_Files.Contains
-                       (GNATCOLL.VFS.Create (+Fullname))
-                  then
+                  if Instrumented_Files.Contains (VF) then
                      New_Args.Replace_Element (I, +(Output_Dir / Base));
                   end if;
                end;
