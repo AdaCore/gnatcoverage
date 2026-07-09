@@ -30,6 +30,7 @@ with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
 
 with Command_Line; use Command_Line;
+with Files_Handling;
 with Files_Table;  use Files_Table;
 with Project;      use Project;
 with Support_Files;
@@ -289,8 +290,15 @@ package body Instrument.Actions.Instrument_Source is
               Self.LU_Info.Main_Part_Src.Path_Name.Virtual_File)
              .Display_Full_Name);
       for Dep of Self.Dependencies loop
+
+         --  Dependencies come from a compiler-generated dependency file and
+         --  can be spelled as relative paths. Normalize them to absolute
+         --  paths: entries in Files_Of_Interest are absolute, and comparing
+         --  a relative Virtual_File to an absolute one does not work on
+         --  Windows.
+
          if Self.IC.Files_Of_Interest.Contains
-              (GNATCOLL.VFS.Create (+String (Dep)))
+              (Files_Handling.Create_Normalized (String (Dep)))
          then
             F.Put_Line (String (Dep));
          end if;
