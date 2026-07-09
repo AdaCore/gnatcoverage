@@ -1213,7 +1213,7 @@ procedure GNATcov_Bits_Specific is
          declare
             Format_Count : Natural := 0;
          begin
-            for Format in Annotate_Xcov .. Annotate_Xml loop
+            for Format in Source_Annotation_Format_Creating_Files loop
                if Annotation (Format) then
                   Format_Count := Format_Count + 1;
                end if;
