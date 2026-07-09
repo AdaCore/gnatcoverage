@@ -487,10 +487,13 @@ package SC_Obligations is
    --  source, or target location external annotations), whereas actual
    --  exemptions refer directly to a source coverage obligation (SCO_Id).
 
-   type Exemption_Request_Kind is (Decision_Outcome, Decision_Condition);
+   type Exemption_Request_Kind is
+     (Decision_Outcome, Decision_Condition, Full_Decision);
 
    SCO_Kind_For : constant array (Exemption_Request_Kind) of SCO_Kind :=
-     (Decision_Outcome => Decision, Decision_Condition => Condition);
+     (Decision_Outcome   => Decision,
+      Decision_Condition => Condition,
+      Full_Decision      => Decision);
 
    type Exemption_Request
      (Kind : Exemption_Request_Kind := Exemption_Request_Kind'First)
@@ -498,7 +501,7 @@ package SC_Obligations is
       Sloc : Source_Location;
 
       case Kind is
-         when Decision_Outcome | Decision_Condition =>
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
             Decision_Offset : Natural;
             --  Number of decisions to skip after this annotation to reach the
             --  decision that is exempted.
@@ -511,6 +514,9 @@ package SC_Obligations is
                when Decision_Condition =>
                   Condition : Condition_Index;
                   --  Index of the condition that is exempted
+
+               when Full_Decision =>
+                  null;
             end case;
       end case;
    end record;
@@ -600,6 +606,7 @@ package SC_Obligations is
       Exempt_Off,
       Exempt_Decision_Outcome,
       Exempt_Decision_Condition,
+      Exempt_Full_Decision,
       Dump_Buffers,
       Reset_Buffers,
       Cov_On,
@@ -619,8 +626,7 @@ package SC_Obligations is
    --  Annotation kinds to perform coverage buffers control
 
    subtype Fine_Grained_Annotation_Kind is
-     Any_Annotation_Kind
-       range Exempt_Decision_Outcome .. Exempt_Decision_Condition;
+     Any_Annotation_Kind range Exempt_Decision_Outcome .. Exempt_Full_Decision;
 
    type ALI_Annotation
      (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)

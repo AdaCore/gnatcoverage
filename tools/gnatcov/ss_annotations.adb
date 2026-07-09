@@ -64,6 +64,8 @@ package body SS_Annotations is
      Exemption_Namespace & To_Qualified_Name ("decision_outcome");
    Exempt_Decision_Condition_Purpose : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("decision_condition");
+   Exempt_Full_Decision_Purpose      : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("full_decision");
 
    Buffers_Namespace : constant Ada_Qualified_Name :=
      Xcov_Namespace & To_Qualified_Name ("buffers");
@@ -213,6 +215,9 @@ package body SS_Annotations is
            = Exempt_Decision_Condition_Purpose.Last_Element
          then
             return Exempt_Decision_Condition;
+         elsif Purpose.Element (3) = Exempt_Full_Decision_Purpose.Last_Element
+         then
+            return Exempt_Full_Decision;
          end if;
       elsif Purpose.Element (2) = Buffers_Namespace.Last_Element then
 
@@ -272,6 +277,9 @@ package body SS_Annotations is
 
          when Exempt_Decision_Condition =>
             return Exempt_Decision_Condition_Purpose;
+
+         when Exempt_Full_Decision      =>
+            return Exempt_Full_Decision_Purpose;
 
          when Dump_Buffers              =>
             return Buffers_Dump_Purpose;
@@ -390,7 +398,10 @@ package body SS_Annotations is
          --  Start of processing for Process
       begin
          if Kind
-            in Exempt_On | Exempt_Decision_Outcome | Exempt_Decision_Condition
+            in Exempt_On
+             | Exempt_Decision_Outcome
+             | Exempt_Decision_Condition
+             | Exempt_Full_Decision
          then
             case Kind is
                when Exempt_On                 =>
@@ -415,6 +426,13 @@ package body SS_Annotations is
 
                   Field := Details.Get ("condition");
                   Req.Condition := Condition_Index (Field.As_Integer);
+
+                  Field := Details.Get_Or_Null ("decision");
+                  Req.Decision_Offset :=
+                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+               when Exempt_Full_Decision      =>
+                  Req := (Kind => Full_Decision, Sloc => Sloc, others => <>);
 
                   Field := Details.Get_Or_Null ("decision");
                   Req.Decision_Offset :=
@@ -483,14 +501,14 @@ package body SS_Annotations is
          end if;
 
          case Kind is
-            when Exempt_Decision_Outcome | Exempt_Decision_Condition =>
+            when Fine_Grained_Annotation_Kind =>
                Insert_Fine_Grained_Exemption
                  (New_Exemptions, Req, Justification);
 
-            when Exempt_On | Exempt_Off                              =>
+            when Exempt_On | Exempt_Off       =>
                New_Annotations.Insert (Sloc, Annot);
 
-            when others                                              =>
+            when others                       =>
                raise Program_Error with "unreachable code";
          end case;
       end Process;
@@ -538,6 +556,9 @@ package body SS_Annotations is
 
                when Exempt_Decision_Condition =>
                   Process (Match, Exempt_Decision_Condition);
+
+               when Exempt_Full_Decision      =>
+                  Process (Match, Exempt_Full_Decision);
 
                when others                    =>
                   null;
@@ -978,6 +999,7 @@ package body SS_Annotations is
          when Exempt_On
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
+            | Exempt_Full_Decision
             | Cov_Off                                            =>
 
             --  Accept either the --location or --start-location switches
@@ -1029,6 +1051,9 @@ package body SS_Annotations is
                end if;
 
                Load_Decision_Offset;
+
+            elsif Annot_Kind = Exempt_Full_Decision then
+               Load_Decision_Offset;
             end if;
 
          when Exempt_Off | Dump_Buffers | Reset_Buffers | Cov_On =>
@@ -1076,6 +1101,7 @@ package body SS_Annotations is
             | Exempt_Region
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
+            | Exempt_Full_Decision
             | Cov_Off                      =>
             Annotation.Set ("justification", Create_String (Justification));
 
@@ -1086,6 +1112,9 @@ package body SS_Annotations is
             elsif Annot_Kind = Exempt_Decision_Condition then
                Annotation.Set
                  ("condition", Create_Integer (Any_Integer (Condition)));
+               Annotation.Set
+                 ("decision", Create_Integer (Any_Integer (Decision)));
+            elsif Annot_Kind = Exempt_Full_Decision then
                Annotation.Set
                  ("decision", Create_Integer (Any_Integer (Decision)));
             end if;
@@ -1502,6 +1531,7 @@ package body SS_Annotations is
                      | Exempt_Region
                      | Exempt_Decision_Outcome
                      | Exempt_Decision_Condition
+                     | Exempt_Full_Decision
                      | Cov_Off                       =>
                      if Annot_Kind = Exempt_Decision_Outcome then
                         declare
@@ -1523,6 +1553,8 @@ package body SS_Annotations is
                               & Img (Natural (Condition.As_Integer) + 1));
                            Process_Decision_Offset;
                         end;
+                     elsif Annot_Kind = Exempt_Full_Decision then
+                        Process_Decision_Offset;
                      end if;
                      Ada.Text_IO.Put
                        ("; Justification: "
@@ -1671,7 +1703,8 @@ package body SS_Annotations is
                when Exempt_On
                   | Exempt_Region
                   | Exempt_Decision_Outcome
-                  | Exempt_Decision_Condition     =>
+                  | Exempt_Decision_Condition
+                  | Exempt_Full_Decision          =>
                   Some_Relevant := True;
                   if Get_Or_Null (Annot, "justification")
                     = Null_Unbounded_String
@@ -1712,6 +1745,9 @@ package body SS_Annotations is
                            & """, it will be ignored.");
                         All_Ok := False;
                      end if;
+                     Validate_Decision_Offset;
+
+                  elsif Annot_Kind = Exempt_Full_Decision then
                      Validate_Decision_Offset;
                   end if;
 

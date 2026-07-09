@@ -307,6 +307,9 @@ package body Coverage_Options is
                  & " [--decision=OFFSET]"
                  & " --justification=MESSAGE";
 
+            when Exempt_Full_Decision      =>
+               Res := Res & " [--decision=OFFSET] --justification=MESSAGE";
+
             when Dump_Buffers              =>
                Res :=
                  Res
@@ -341,6 +344,8 @@ package body Coverage_Options is
            "Exempt_Decision_Outcome",
          when SC_Obligations.Exempt_Decision_Condition =>
            "Exempt_Decision_Condition",
+         when SC_Obligations.Exempt_Full_Decision      =>
+           "Exempt_Full_Decision",
          when SC_Obligations.Dump_Buffers              => "Dump_Buffers",
          when SC_Obligations.Reset_Buffers             => "Reset_Buffers",
          when SC_Obligations.Cov_Off                   => "Cov_Off",

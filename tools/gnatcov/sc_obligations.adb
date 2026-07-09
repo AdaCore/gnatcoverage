@@ -1563,7 +1563,7 @@ package body SC_Obligations is
       Value.Sloc := CLS.Read_Source_Location;
 
       case Kind is
-         when Decision_Outcome | Decision_Condition =>
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
             Value.Decision_Offset := CLS.Read_Integer;
             case Kind is
                when Decision_Outcome   =>
@@ -1571,6 +1571,9 @@ package body SC_Obligations is
 
                when Decision_Condition =>
                   Value.Condition := CLS.Read_Condition;
+
+               when Full_Decision      =>
+                  null;
             end case;
       end case;
    end Read;
@@ -1618,7 +1621,7 @@ package body SC_Obligations is
       end if;
 
       case Left.Kind is
-         when Decision_Outcome | Decision_Condition =>
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
             if Left.Decision_Offset < Right.Decision_Offset then
                return True;
             elsif Right.Decision_Offset < Left.Decision_Offset then
@@ -1631,6 +1634,9 @@ package body SC_Obligations is
 
                when Decision_Condition =>
                   return Left.Condition < Right.Condition;
+
+               when Full_Decision      =>
+                  return False;
             end case;
       end case;
    end "<";
@@ -2954,7 +2960,7 @@ package body SC_Obligations is
       CSS.Write (Value.Sloc);
 
       case Value.Kind is
-         when Decision_Outcome | Decision_Condition =>
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
             CSS.Write_Integer (Value.Decision_Offset);
 
             case Value.Kind is
@@ -2963,6 +2969,9 @@ package body SC_Obligations is
 
                when Decision_Condition =>
                   CSS.Write_Condition (Value.Condition);
+
+               when Full_Decision      =>
+                  null;
             end case;
       end case;
    end Write;
@@ -4079,7 +4088,7 @@ package body SC_Obligations is
    begin
       Append (Result, "exemption at " & Image (Self.Sloc) & " ");
       case Self.Kind is
-         when Decision_Outcome | Decision_Condition =>
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
             case Self.Kind is
                when Decision_Outcome   =>
                   Append (Result, "for outcome " & Self.Outcome'Image);
@@ -4088,6 +4097,9 @@ package body SC_Obligations is
                   Append
                     (Result,
                      "for condition " & Img (Natural (Self.Condition)));
+
+               when Full_Decision      =>
+                  Append (Result, "for all outcomes and decisions");
             end case;
 
             Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
@@ -6755,6 +6767,7 @@ package body SC_Obligations is
          when Exempt_On
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
+            | Exempt_Full_Decision
             | Cov_Off             =>
 
             if Kind = Exempt_Decision_Outcome then
@@ -6797,6 +6810,17 @@ package body SC_Obligations is
                     Condition_Index (Args (Next).Integer_Value - 1);
                   Next := Next + 1;
 
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+
+            elsif Kind = Exempt_Full_Decision then
+
+               --  Require an optional integer argument
+
+               declare
+                  Req : Exemption_Request := (Full_Decision, Sloc, 0);
+               begin
                   Parse_Decision_Offset (Req);
                   Annotation.Exemption_Req := Req;
                end;
@@ -7430,6 +7454,10 @@ package body SC_Obligations is
       --   Look for the Offset'th decision that follows Sloc. Emit a warning
       --   and return No_SCO_Id if there is no such decision.
 
+      procedure Insert (E : Exemptable_SCO);
+      --  Try to insert E in the map of resolved exemptions, emit a warning if
+      --  it is redundant with a different justification.
+
       UE            : Exemption_Request;
       Justification : Unbounded_String;
 
@@ -7534,6 +7562,23 @@ package body SC_Obligations is
          end;
       end Lookup_Decision;
 
+      ------------
+      -- Insert --
+      ------------
+
+      procedure Insert (E : Exemptable_SCO) is
+         Insert_Cur : Exemption_Maps.Cursor;
+         Inserted   : Boolean;
+      begin
+         Exemptions.Insert (E, Justification, Insert_Cur, Inserted);
+         if not Inserted
+           and then Exemption_Maps.Element (Insert_Cur) /= Justification
+         then
+            Warn_Duplicate_Fine_Grained_Exemption
+              (UE, Justification, Exemption_Maps.Element (Insert_Cur));
+         end if;
+      end Insert;
+
       --  Start of processing for Resolve_Fine_Grained_Annotations
    begin
       Exemptions.Clear;
@@ -7569,13 +7614,12 @@ package body SC_Obligations is
          pragma Assert (Last_CU /= No_CU_Id);
 
          declare
-            E          :
+            E :
               Exemptable_SCO
                 (case UE.Kind is
                    when Decision_Outcome   => Decision_Outcome,
-                   when Decision_Condition => Decision_Condition);
-            Insert_Cur : Exemption_Maps.Cursor;
-            Inserted   : Boolean;
+                   when Decision_Condition => Decision_Condition,
+                   when Full_Decision      => Decision_Outcome);
          begin
             E.SCO := Lookup_Decision (UE.Sloc.L, UE.Decision_Offset);
             if E.SCO = No_SCO_Id then
@@ -7598,14 +7642,14 @@ package body SC_Obligations is
             --  Finalize the initialization of E from UE
 
             case UE.Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome                   =>
                   E.Outcome := UE.Outcome;
 
-               when Decision_Condition =>
+               when Decision_Condition | Full_Decision =>
                   null;
             end case;
 
-            --  Ignore SCOs that make no sense
+            --  Ignore SCOs that make no sense, try to insert the other ones
 
             case UE.Kind is
                when Decision_Outcome   =>
@@ -7618,20 +7662,29 @@ package body SC_Obligations is
                         Warning);
                      goto Continue;
                   end if;
+                  Insert (E);
 
                when Decision_Condition =>
-                  null;
+                  Insert (E);
+
+               when Full_Decision      =>
+
+                  --  Exempt all relevant outcomes, and then all conditions
+
+                  E.Outcome := True;
+                  Insert (E);
+
+                  if not Is_Assertion_To_Cover (E.SCO) then
+                     E.Outcome := False;
+                     Insert (E);
+                  end if;
+
+                  for I in 0 .. Last_Cond_Index (E.SCO) loop
+                     Insert
+                       ((Kind => Decision_Condition,
+                         SCO  => Condition (E.SCO, I)));
+                  end loop;
             end case;
-
-            --  Try to insert E in the map of resolved exemptions
-
-            Exemptions.Insert (E, Justification, Insert_Cur, Inserted);
-            if not Inserted
-              and then Exemption_Maps.Element (Insert_Cur) /= Justification
-            then
-               Warn_Duplicate_Fine_Grained_Exemption
-                 (UE, Justification, Exemption_Maps.Element (Insert_Cur));
-            end if;
          end;
 
          <<Continue>>
