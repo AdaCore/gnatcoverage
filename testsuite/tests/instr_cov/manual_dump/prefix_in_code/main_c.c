@@ -1,10 +1,11 @@
 #include <stdio.h>
 
+extern const char *get_prefix_c (void);
+
 int
 main (void)
 {
-  char *trace_prefix = "c_trace";
   printf ("Hello C world!\n");
-  /* GNATCOV_DUMP_BUFFERS (trace_prefix) */
+  /* GNATCOV_DUMP_BUFFERS (get_prefix_c ()) */
   return 0;
 }

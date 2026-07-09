@@ -22,14 +22,15 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
-
-with GNATCOLL.VFS;
 with Interfaces;
 
-with Aspects;     use Aspects;
+with GNAT.Regpat;  use GNAT.Regpat;
+with GNAT.Strings; use GNAT.Strings;
+with GNATCOLL.VFS;
+
+with Aspects; use Aspects;
 with Get_SCOs;
-with GNAT.Regpat; use GNAT.Regpat;
-with Namet;       use Namet;
+with Namet;   use Namet;
 with SCOs;
 with Snames;
 
@@ -1481,20 +1482,30 @@ package body SC_Obligations is
    end Read;
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation) is
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation)
+   is
+      Kind : constant Src_Annotation_Kind :=
+        Src_Annotation_Kind'Val (CLS.Read_U8);
+      V    : ALI_Annotation (Kind);
    begin
-      Value.Kind := ALI_Annotation_Kind'Val (CLS.Read_U8);
+      case Kind is
+         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+            V.Justification := CLS.Read_Unbounded_String;
+            if Kind = Exempt_On then
+               V.Violation_Count := 0;
+               V.Undetermined_Cov_Count := 0;
+            end if;
 
-      declare
-         Msg : constant String := CLS.Read_String;
-      begin
-         if Msg'Length > 0 then
-            Value.Message := new String'(Msg);
-         end if;
-      end;
+         when Dump_Buffers | Reset_Buffers              =>
+            declare
+               Ignored : constant Unbounded_String :=
+                 CLS.Read_Unbounded_String;
+            begin
+               null;
+            end;
+      end case;
 
-      Value.Violation_Count := 0;
-      Value.Undetermined_Cov_Count := 0;
+      Value := V;
    end Read;
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean is
@@ -2767,9 +2778,11 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation)
    is
    begin
-      CSS.Write_U8 (ALI_Annotation_Kind'Pos (Value.Kind));
-      CSS.Write_Unbounded
-        (if Value.Message = null then "" else Value.Message.all);
+      CSS.Write_U8 (Src_Annotation_Kind'Pos (Value.Kind));
+      CSS.Write
+        (if Value.Kind in Exempt_On | Exempt_Off | Cov_Off | Cov_On
+         then Value.Justification
+         else Null_Unbounded_String);
    end Write;
 
    ----------
@@ -6019,8 +6032,8 @@ package body SC_Obligations is
                Has_Relevant_Annotation := True;
                Update_Hash (Hash_Ctx, Image (Sloc));
                Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
-               if Ann.Message /= null then
-                  Update_Hash (Hash_Ctx, Ann.Message.all);
+               if Ann.Kind = Cov_Off and then Ann.Justification /= "" then
+                  Update_Hash (Hash_Ctx, +Ann.Justification);
                end if;
             end if;
 
@@ -6464,57 +6477,14 @@ package body SC_Obligations is
             declare
                A : ALI_Annotation renames CU.ALI_Annotations.Reference (Cur);
             begin
-               A.Violation_Count := 0;
-               A.Undetermined_Cov_Count := 0;
+               if A.Kind = Exempt_On then
+                  A.Violation_Count := 0;
+                  A.Undetermined_Cov_Count := 0;
+               end if;
             end;
          end loop;
       end loop;
    end Reset_Exemption_Counters;
-
-   --  Descriptors for annotation kinds and their parameters
-
-   type Annotation_Param is record
-      Name     : Unbounded_String;
-      Optional : Boolean;
-   end record;
-   type Annotation_Param_Access is access constant Annotation_Param;
-   --  Descriptor for a single annotation parameter
-
-   type Annotation_Param_Index is new Positive;
-   type Annotation_Param_List is
-     array (Annotation_Param_Index range <>) of Annotation_Param_Access;
-   --  List of parameters for a given annotation kind
-
-   type Annotation_Spec_Access is access constant Annotation_Param_List;
-   type Annotation_Spec_Array is
-     array (Src_Annotation_Kind) of Annotation_Spec_Access;
-   --  Mapping of parameters for each annotation
-
-   Justification_Spec : aliased constant Annotation_Param :=
-     (Name => +"justification", Optional => True);
-   Prefix_Spec        : aliased constant Annotation_Param :=
-     (Name => +"prefix", Optional => True);
-
-   Index_Justification : constant Annotation_Param_Index := 1;
-   Index_Prefix        : constant Annotation_Param_Index := 1;
-
-   Region_Begin_Spec : aliased constant Annotation_Param_List :=
-     (Index_Justification => Justification_Spec'Access);
-   Region_End_Spec   : aliased constant Annotation_Param_List :=
-     (1 .. 0 => <>);
-
-   Dump_Buffers_Spec  : aliased constant Annotation_Param_List :=
-     (Index_Prefix => Prefix_Spec'Access);
-   Reset_Buffers_Spec : aliased constant Annotation_Param_List :=
-     (1 .. 0 => <>);
-
-   Annotation_Specs : constant Annotation_Spec_Array :=
-     (Exempt_On     => Region_Begin_Spec'Access,
-      Exempt_Off    => Region_End_Spec'Access,
-      Dump_Buffers  => Dump_Buffers_Spec'Access,
-      Reset_Buffers => Reset_Buffers_Spec'Access,
-      Cov_On        => Region_End_Spec'Access,
-      Cov_Off       => Region_Begin_Spec'Access);
 
    ----------------------
    -- Parse_Annotation --
@@ -6522,31 +6492,22 @@ package body SC_Obligations is
 
    procedure Parse_Annotation
      (Kind       : Src_Annotation_Kind;
-      Args       : Argument_List;
       Sloc       : Source_Location;
+      Args       : Annotation_Value_Array;
       Annotation : out ALI_Annotation;
       Silent     : Boolean := False)
    is
+      Next : Positive := Args'First;
+      --  Next argument to analyze in Args
+
+      function Has_Next return Boolean
+      is (Next in Args'Range);
 
       procedure Warn (Sloc : Source_Location; Message : String)
       with No_Return;
       --  If not in silent mode, emit a diagnostic.
       --
       --  Raise an Invalid_Annotation_Argument_Error in all cases.
-
-      type Argument_Array is
-        array (Annotation_Param_Index range <>) of Argument;
-
-      procedure Process_Argument_List
-        (Args       : Argument_List;
-         Spec       : Annotation_Param_List;
-         Arg_Values : out Argument_Array)
-      with
-        Pre =>
-          Spec'First = Arg_Values'First and then Spec'Last = Arg_Values'Last;
-      --  Parse the argument list Args according to the parameter list
-      --  specification Spec. Assign the argument values to the corresponding
-      --  entries in Arg_Values.
 
       ----------
       -- Warn --
@@ -6560,105 +6521,21 @@ package body SC_Obligations is
          raise Invalid_Annotation_Argument_Error;
       end Warn;
 
-      ---------------------------
-      -- Process_Argument_List --
-      ---------------------------
-
-      procedure Process_Argument_List
-        (Args       : Argument_List;
-         Spec       : Annotation_Param_List;
-         Arg_Values : out Argument_Array)
-      is
-         Next_Arg : Annotation_Param_Index := Arg_Values'First;
-         --  Index of the parameter for the next positional argument
-
-         procedure Process
-           (Sloc : Source_Location; Name : String; Value : Argument);
-         --  Callback for Iterate (to process a new argument)
-
-         -------------
-         -- Process --
-         -------------
-
-         procedure Process
-           (Sloc : Source_Location; Name : String; Value : Argument)
-         is
-            Index : Annotation_Param_Index;
-            Found : Boolean := False;
-         begin
-            if Name = "" then
-
-               --  Empty names denote positional arguments
-
-               if Next_Arg not in Arg_Values'Range then
-                  Warn (Sloc, "Too many arguments");
-               end if;
-               Index := Next_Arg;
-               Next_Arg := Next_Arg + 1;
-
-            else
-               --  Look for the parameter whose name matches
-
-               for Candidate_Index in Spec'Range loop
-                  if Spec (Candidate_Index).Name = Name then
-                     Index := Candidate_Index;
-                     Found := True;
-                     exit;
-                  end if;
-               end loop;
-               if not Found then
-                  Warn (Sloc, "Invalid argument name: " & Name);
-               end if;
-            end if;
-
-            --  Assign the argument to the corresponding param
-
-            if Arg_Values (Index) = No_Argument then
-               Arg_Values (Index) := Value;
-            else
-               Warn
-                 (Sloc, "Argument is passed twice: " & (+Spec (Index).Name));
-            end if;
-         end Process;
-
-         --  Start of processing for Process_Argument_List
-      begin
-         --  Assign all arguments in Args to the corresponding entries in
-         --  Arg_Values.
-
-         Arg_Values := (others => No_Argument);
-         Iterate (Args, Process'Access);
-
-         --  Check that all required arguments were passed
-
-         for Index in Spec'Range loop
-            if not Spec (Index).Optional
-              and then Arg_Values (Index) = No_Argument
-            then
-               Warn
-                 (Sloc, "Missing required argument: " & (+Spec (Index).Name));
-            end if;
-         end loop;
-      end Process_Argument_List;
-
-      --  Parse the arguments for this annotation
-
-      Spec       : Annotation_Param_List renames Annotation_Specs (Kind).all;
-      Arg_Values : Argument_Array (Spec'Range);
-
       --  Start of processing for Parse_Annotation
    begin
-      Process_Argument_List (Args, Spec, Arg_Values);
-
       --  Initialize Annotation with the requested kind
 
-      Annotation := (Kind => Kind, others => <>);
+      declare
+         A : ALI_Annotation (Kind);
+      begin
+         Annotation := A;
+      end;
 
       --  Now decode arguments and initialize the annotation
 
       case Kind is
          when Exempt_On | Cov_Off =>
-            if Arg_Values (Index_Justification) = No_Argument then
+            if not Has_Next then
                if not Silent then
                   Report
                     (Sloc,
@@ -6670,22 +6547,29 @@ package body SC_Obligations is
                      Warning);
                end if;
             else
-               Annotation.Message :=
-                 new String'(Parse_String (Arg_Values (Index_Justification)));
+               Annotation.Justification := Args (Next).String_Value;
+               Next := Next + 1;
             end if;
 
          when Exempt_Off | Cov_On =>
             null;
 
          when Dump_Buffers        =>
-            if Arg_Values (Index_Prefix) /= No_Argument then
-               Annotation.Message :=
-                 new String'(Parse_String (Arg_Values (Index_Prefix)));
+            if Has_Next then
+
+               --  Callers are supposed to pick the prefix arguments as is and
+               --  forward it to code generation.
+
+               Next := Next + 1;
             end if;
 
          when Reset_Buffers       =>
             null;
       end case;
+
+      if Has_Next then
+         Warn (Args (Next).Sloc, "Too many arguments");
+      end if;
    end Parse_Annotation;
 
    --------------
@@ -6772,24 +6656,10 @@ package body SC_Obligations is
       procedure Skipc;
       --  Skip one character in Line
 
-      function Check_Message (M1, M2 : String_Access) return Boolean;
-      --  Return True if either M1 or M2 is null or designates an empty string,
+      function Check_Message (M1, M2 : Unbounded_String) return Boolean
+      is (M1 = "" or else M2 = "" or else M1 = M2);
+      --  Return True if either M1 or M2 designates an empty string,
       --  else return True if M1 and M2 designate identical strings.
-
-      -------------------
-      -- Check_Message --
-      -------------------
-
-      function Check_Message (M1, M2 : String_Access) return Boolean is
-      begin
-         return
-           False
-           or else M1 = null
-           or else M1.all = ""
-           or else M2 = null
-           or else M2.all = ""
-           or else M1.all = M2.all;
-      end Check_Message;
 
       ----------
       -- Getc --
@@ -6903,7 +6773,7 @@ package body SC_Obligations is
       --  Set True if unit has been compiled with -fprofile-arcs
 
       Expected_Annotation_Kind : ALI_Annotation_Kind;
-      Expected_Annotation_Msg  : String_Access;
+      Expected_Annotation_Msg  : Unbounded_String;
       --  Variables for checking of annotation validity: annotations must
       --  come in (Exempt_On, Exempt_Off) pairs, nesting forbidden, and
       --  the Exempt_Off message must be either empty or identical to the
@@ -6960,7 +6830,7 @@ package body SC_Obligations is
       SCOs_Trace.Trace ("Loading SCOs from " & ALI_Filename);
 
       Expected_Annotation_Kind := Exempt_On;
-      Expected_Annotation_Msg := null;
+      Expected_Annotation_Msg := Null_Unbounded_String;
 
       Scan_ALI : while not End_Of_File (ALI_File) loop
          loop
@@ -7034,9 +6904,11 @@ package body SC_Obligations is
 
             when 'N'    =>
                declare
-                  Annotation : ALI_Annotation;
-                  Valid      : Boolean;
-                  Sloc       : Source_Location;
+                  Annotation    : ALI_Annotation;
+                  Valid         : Boolean;
+                  Sloc          : Source_Location;
+                  Kind          : Src_Annotation_Kind;
+                  Justification : Unbounded_String;
                begin
                   Match (N_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
@@ -7066,21 +6938,25 @@ package body SC_Obligations is
 
                      Valid := True;
 
-                     declare
-                        Msg : constant String := Match (6);
                      begin
-                        Annotation :=
-                          (Kind    => ALI_Annotation_Kind'Value (Match (4)),
-                           Message =>
-                             (if Msg'Length > 0
-                              then new String'(Msg)
-                              else null),
-                           others  => <>);
+                        Kind := ALI_Annotation_Kind'Value (Match (4));
                      exception
                         when Constraint_Error =>
                            Report (Sloc, "bad annotation " & Match (4));
                            Valid := False;
                      end;
+
+                     declare
+                        A : ALI_Annotation (Kind);
+                     begin
+                        Annotation := A;
+                     end;
+                     if Annotation.Kind
+                        in Exempt_On | Exempt_Off | Cov_Off | Cov_On
+                     then
+                        Justification := +Match (6);
+                        Annotation.Justification := Justification;
+                     end if;
 
                      if Valid then
                         if Annotation.Kind /= Expected_Annotation_Kind then
@@ -7089,34 +6965,33 @@ package body SC_Obligations is
                               "unexpected "
                               & Annotation.Kind'Img
                               & " "
-                              & Annotation.Message.all
+                              & (+Justification)
                               & " (expected "
                               & Expected_Annotation_Kind'Img
                               & ")");
                         elsif not Check_Message
-                                    (Annotation.Message,
-                                     Expected_Annotation_Msg)
+                                    (Justification, Expected_Annotation_Msg)
                         then
                            Report
                              (Sloc,
                               "unexpected EXEMPT_OFF "
-                              & Annotation.Message.all
+                              & (+Justification)
                               & " (expected "
-                              & Expected_Annotation_Msg.all
+                              & (+Expected_Annotation_Msg)
                               & ")");
                         end if;
 
                         if Annotation.Kind = Exempt_On then
-                           if Annotation.Message = null then
+                           if Justification = "" then
                               Report (Sloc, "empty message for EXEMPT_ON");
                            end if;
 
                            Expected_Annotation_Kind := Exempt_Off;
-                           Expected_Annotation_Msg := Annotation.Message;
+                           Expected_Annotation_Msg := Justification;
 
                         else
                            Expected_Annotation_Kind := Exempt_On;
-                           Expected_Annotation_Msg := null;
+                           Expected_Annotation_Msg := Null_Unbounded_String;
                         end if;
 
                         ALI_Annotations.Insert
@@ -7143,7 +7018,8 @@ package body SC_Obligations is
               Element (Last_Ann_Cursor);
          begin
             Report
-              (Last_Ann_Sloc, "missing Exempt_Off " & Last_Ann.Message.all);
+              (Last_Ann_Sloc,
+               "missing Exempt_Off " & (+Last_Ann.Justification));
          end;
       end if;
 

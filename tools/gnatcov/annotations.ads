@@ -18,8 +18,6 @@
 
 with Ada.Text_IO;
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Binary_Files;          use Binary_Files;
 with Coverage;
 with Coverage_Options;      use Coverage_Options;
@@ -180,7 +178,7 @@ private
    --  Let Pp end the pretty printing of the current line
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp : in out Pretty_Printer; State : Any_Line_State)
+     (Pp : in out Pretty_Printer; State : Line_State)
    is null;
    --  Let Pp start the pretty printing of a set of instructions, State
    --  being the merged state of all its instructions.
@@ -270,7 +268,7 @@ private
 
    function Aggregated_State
      (Info : Line_Info; Ignore_Exemptions : Boolean := False)
-      return Any_Line_State;
+      return Line_State;
    --  Return synthetic indication of coverage state for all computed criteria.
    --  If Ignore_Exemptions is True, any exemption information attached to the
    --  line is ignored during the state aggregation.
@@ -287,7 +285,7 @@ private
    --  in the current Gnatcov execution.
 
    function Get_Exemption_Message
-     (Sloc : Source_Location) return String_Access;
+     (Sloc : Source_Location) return Unbounded_String;
    --  For a Sloc denoting an Exempt_On annotation, return the descriptive
    --  message justifying the exemption.
 

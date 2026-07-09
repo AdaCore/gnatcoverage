@@ -148,7 +148,7 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Line (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp : in out Xml_Pretty_Printer; State : Any_Line_State);
+     (Pp : in out Xml_Pretty_Printer; State : Line_State);
 
    procedure Pretty_Print_End_Instruction_Set (Pp : in out Xml_Pretty_Printer);
 
@@ -599,7 +599,7 @@ package body Annotations.Xml is
    ----------------------------------------
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp : in out Xml_Pretty_Printer; State : Any_Line_State) is
+     (Pp : in out Xml_Pretty_Printer; State : Line_State) is
    begin
       Pp.ST ("instruction_set", A ("coverage", State_Char (State)));
    end Pretty_Print_Start_Instruction_Set;

@@ -779,9 +779,9 @@ package body Checkpoints is
    ---------------------
 
    function Read_Line_State
-     (Self : in out Checkpoint_Load_State) return Any_Line_State is
+     (Self : in out Checkpoint_Load_State) return Line_State is
    begin
-      return Any_Line_State'Val (Self.Read_U8);
+      return Line_State'Val (Self.Read_U8);
    end Read_Line_State;
 
    --------------------------------
@@ -1329,10 +1329,9 @@ package body Checkpoints is
       Self.Write_U32 (Supported_Language_Kind'Pos (Value));
    end Write;
 
-   procedure Write
-     (Self : in out Checkpoint_Save_State; Value : Any_Line_State) is
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Line_State) is
    begin
-      Self.Write_U8 (Any_Line_State'Pos (Value));
+      Self.Write_U8 (Line_State'Pos (Value));
    end Write;
 
    procedure Write

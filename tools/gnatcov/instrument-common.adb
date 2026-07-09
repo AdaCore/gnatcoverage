@@ -772,12 +772,8 @@ package body Instrument.Common is
             UIC.Annotations.Append
               (Annotation_Couple'
                  ((Source_File => SFI, L => Off_Sloc),
-                  (Kind    => Cov_Off,
-                   Message =>
-                     (if Length (Off_Annot.Justification) /= 0
-                      then new String'(+Off_Annot.Justification)
-                      else null),
-                   others  => <>)));
+                  (Kind          => Cov_Off,
+                   Justification => Off_Annot.Justification)));
 
             --  Then the Cov_On annotation
 
@@ -789,7 +785,8 @@ package body Instrument.Common is
             UIC.Annotations.Append
               (Annotation_Couple'
                  ((Source_File => SFI, L => Key (Cur)),
-                  (Kind => Cov_On, others => <>)));
+                  (Kind          => Cov_On,
+                   Justification => US.Null_Unbounded_String)));
 
             --  And the region annotation
 

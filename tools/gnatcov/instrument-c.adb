@@ -4662,9 +4662,9 @@ package body Instrument.C is
                        (S,
                         Dump_Procedure
                         & "("
-                        & (if A.Message = null
+                        & (if A.Prefix = ""
                            then """" & To_Ada (Prj.Prj_Name) & """"
-                           else A.Message.all)
+                           else +A.Prefix)
                         & ");");
                      Has_Dump_Indication := True;
 

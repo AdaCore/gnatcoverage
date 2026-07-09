@@ -359,7 +359,7 @@ package Checkpoints is
    function Read_Language_Kind
      (Self : in out Checkpoint_Load_State) return Supported_Language_Kind;
    function Read_Line_State
-     (Self : in out Checkpoint_Load_State) return Any_Line_State;
+     (Self : in out Checkpoint_Load_State) return Line_State;
    function Read_Local_Source_Location
      (Self : in out Checkpoint_Load_State) return Local_Source_Location;
    function Read_Local_Source_Location_Range
@@ -512,8 +512,7 @@ package Checkpoints is
       Value : SC_Obligations.Fingerprint_Type);
    procedure Write
      (Self : in out Checkpoint_Save_State; Value : Supported_Language_Kind);
-   procedure Write
-     (Self : in out Checkpoint_Save_State; Value : Any_Line_State);
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Line_State);
    procedure Write
      (Self : in out Checkpoint_Save_State; Value : Local_Source_Location);
    procedure Write

@@ -478,13 +478,13 @@ package body Annotations.Cobertura is
       Info     : Line_Info_Access;
       Line     : String)
    is
-      Coverage_State : constant Any_Line_State := Aggregated_State (Info.all);
+      Coverage_State : constant Line_State := Aggregated_State (Info.all);
       Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
    begin
       if not Exempted and then Coverage_State /= No_Code then
          declare
             subtype Coverage_Line_State is
-              Any_Line_State range Not_Covered .. Covered;
+              Line_State range Not_Covered .. Covered;
             package SCOs_State_Maps is new
               Ada.Containers.Ordered_Maps
                 (Key_Type     => SCO_Id,
@@ -526,12 +526,12 @@ package body Annotations.Cobertura is
                        or else Coverage.MCDC_Coverage_Enabled)
                   then
                      declare
-                        Line_State : constant Any_Line_State :=
+                        State : constant Line_State :=
                           Get_Line_State (SCO, Decision);
                      begin
-                        if Line_State in Coverage_Line_State then
+                        if State in Coverage_Line_State then
                            Has_Decision := True;
-                           State_Decisions.Insert (SCO, Line_State);
+                           State_Decisions.Insert (SCO, State);
                         end if;
                      end;
                   end if;
