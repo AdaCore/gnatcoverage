@@ -36,6 +36,7 @@ with Snames;
 
 with Checkpoints;           use Checkpoints;
 with Coverage;              use Coverage;
+with Coverage.Source;
 with Diagnostics;           use Diagnostics;
 with Files_Table;           use Files_Table;
 with Hashes;                use Hashes;
@@ -619,6 +620,14 @@ package body SC_Obligations is
         Vectors      => SFI_Vectors,
         Read_Element => Read);
 
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Condition_Index,
+        Element_Type => Tristate,
+        "="          => "=",
+        Vectors      => Condition_Evaluation_Vectors,
+        Read_Element => Read);
+
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info);
    --  Read an Expansion_Info from CLS
@@ -838,6 +847,14 @@ package body SC_Obligations is
         "="           => "=",
         Vectors       => SFI_Vectors,
         Write_Element => Write_SFI);
+
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Condition_Index,
+        Element_Type  => Tristate,
+        "="           => "=",
+        Vectors       => Condition_Evaluation_Vectors,
+        Write_Element => Write);
 
    procedure Write
      (CSS : in out Checkpoint_Save_State; Value : Expansion_Info);
@@ -1563,17 +1580,23 @@ package body SC_Obligations is
       Value.Sloc := CLS.Read_Source_Location;
 
       case Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Outcome
+            | Decision_Condition
+            | Full_Decision
+            | Manual_Decision_Evaluation =>
             Value.Decision_Offset := CLS.Read_Integer;
             case Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome           =>
                   Value.Outcome := CLS.Read_Boolean;
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   Value.Condition := CLS.Read_Condition;
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   null;
+
+               when Manual_Decision_Evaluation =>
+                  Read (CLS, Value.Condition_Values);
             end case;
       end case;
    end Read;
@@ -1581,6 +1604,31 @@ package body SC_Obligations is
    ---------
    -- "<" --
    ---------
+
+   function "<"
+     (Left, Right : Condition_Evaluation_Vectors.Vector) return Boolean is
+   begin
+      if Left.Length < Right.Length then
+         return True;
+      elsif Right.Length < Left.Length then
+         return False;
+      end if;
+
+      for I in Left.First_Index .. Right.Last_Index loop
+         declare
+            L : constant Tristate := Left (I);
+            R : constant Tristate := Right (I);
+         begin
+            if L < R then
+               return True;
+            elsif R < L then
+               return False;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end "<";
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean is
    begin
@@ -1621,7 +1669,10 @@ package body SC_Obligations is
       end if;
 
       case Left.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Outcome
+            | Decision_Condition
+            | Full_Decision
+            | Manual_Decision_Evaluation =>
             if Left.Decision_Offset < Right.Decision_Offset then
                return True;
             elsif Right.Decision_Offset < Left.Decision_Offset then
@@ -1629,14 +1680,17 @@ package body SC_Obligations is
             end if;
 
             case Left.Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome           =>
                   return Left.Outcome < Right.Outcome;
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   return Left.Condition < Right.Condition;
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   return False;
+
+               when Manual_Decision_Evaluation =>
+                  return Left.Condition_Values < Right.Condition_Values;
             end case;
       end case;
    end "<";
@@ -2960,18 +3014,24 @@ package body SC_Obligations is
       CSS.Write (Value.Sloc);
 
       case Value.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Outcome
+            | Decision_Condition
+            | Full_Decision
+            | Manual_Decision_Evaluation =>
             CSS.Write_Integer (Value.Decision_Offset);
 
             case Value.Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome           =>
                   CSS.Write (Value.Outcome);
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   CSS.Write_Condition (Value.Condition);
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   null;
+
+               when Manual_Decision_Evaluation =>
+                  Write (CSS, Value.Condition_Values);
             end case;
       end case;
    end Write;
@@ -4086,24 +4146,44 @@ package body SC_Obligations is
    function Image (Self : Exemption_Request) return String is
       Result : Unbounded_String;
    begin
-      Append (Result, "exemption at " & Image (Self.Sloc) & " ");
-      case Self.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
-            case Self.Kind is
-               when Decision_Outcome   =>
-                  Append (Result, "for outcome " & Self.Outcome'Image);
+      Append
+        (Result,
+         (if Self.Kind = Manual_Decision_Evaluation
+          then "manual evaluation"
+          else "exemption"));
+      Append (Result, " at " & Image (Self.Sloc));
 
-               when Decision_Condition =>
+      case Self.Kind is
+         when Decision_Outcome
+            | Decision_Condition
+            | Full_Decision
+            | Manual_Decision_Evaluation =>
+            case Self.Kind is
+               when Decision_Outcome           =>
+                  Append (Result, " for outcome " & Self.Outcome'Image);
+
+               when Decision_Condition         =>
                   Append
                     (Result,
-                     "for condition " & Img (Natural (Self.Condition)));
+                     " for condition " & Img (Natural (Self.Condition)));
 
-               when Full_Decision      =>
-                  Append (Result, "for all outcomes and decisions");
+               when Full_Decision              =>
+                  Append (Result, " for all outcomes and decisions");
+
+               when Manual_Decision_Evaluation =>
+                  null;
             end case;
 
             Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
       end case;
+
+      if Self.Kind = Manual_Decision_Evaluation then
+         Append (Result, ':');
+         for V of Self.Condition_Values loop
+            Append (Result, (' ', Tristate_Char (V)));
+         end loop;
+      end if;
+
       return +Result;
    end Image;
 
@@ -6768,6 +6848,7 @@ package body SC_Obligations is
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
+            | Manual_Decision_Evaluation
             | Cov_Off             =>
 
             if Kind = Exempt_Decision_Outcome then
@@ -6824,6 +6905,29 @@ package body SC_Obligations is
                   Parse_Decision_Offset (Req);
                   Annotation.Exemption_Req := Req;
                end;
+
+            elsif Kind = Manual_Decision_Evaluation then
+
+               --  Require one or many boolean values, followed by an optional
+               --  integer argument.
+
+               declare
+                  Req : Exemption_Request :=
+                    (Manual_Decision_Evaluation, Sloc, 0, others => <>);
+               begin
+                  while Has_Next and then Args (Next).Kind = Boolean_Value loop
+                     Req.Condition_Values.Append
+                       (To_Tristate (Args (Next).Boolean_Value));
+                     Next := Next + 1;
+                  end loop;
+                  if Req.Condition_Values.Is_Empty then
+                     Warn (Sloc, "at least one boolean value expected");
+                  end if;
+
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+
             end if;
 
             --  Take the exemption justification, if there is one
@@ -7617,9 +7721,10 @@ package body SC_Obligations is
             E :
               Exemptable_SCO
                 (case UE.Kind is
-                   when Decision_Outcome   => Decision_Outcome,
-                   when Decision_Condition => Decision_Condition,
-                   when Full_Decision      => Decision_Outcome);
+                   when Decision_Outcome           => Decision_Outcome,
+                   when Decision_Condition         => Decision_Condition,
+                   when Full_Decision              => Decision_Outcome,
+                   when Manual_Decision_Evaluation => Decision_Outcome);
          begin
             E.SCO := Lookup_Decision (UE.Sloc.L, UE.Decision_Offset);
             if E.SCO = No_SCO_Id then
@@ -7647,12 +7752,37 @@ package body SC_Obligations is
 
                when Decision_Condition | Full_Decision =>
                   null;
+
+               when Manual_Decision_Evaluation         =>
+
+                  --  Manual decision evaluations are not actual SCO
+                  --  exemptions: we do not add them to Exemptions, but add
+                  --  their evaluation vectors to the corresponding SCIs
+                  --  instead.
+
+                  if UE.Condition_Values.Last_Index = Last_Cond_Index (E.SCO)
+                  then
+                     Coverage.Source.Add_Manual_Decision_Evaluation
+                       (E.SCO, UE.Condition_Values, Justification);
+                  else
+                     Report
+                       (UE.Sloc,
+                        Image (E.SCO)
+                        & " has "
+                        & Img (Natural (Last_Cond_Index (E.SCO)) + 1)
+                        & " conditions, Manual_Decision_Evaluation annotation"
+                        & " provides "
+                        & Img (Natural (UE.Condition_Values.Length))
+                        & " values",
+                        Warning);
+                  end if;
+                  goto Continue;
             end case;
 
             --  Ignore SCOs that make no sense, try to insert the other ones
 
             case UE.Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome           =>
                   if not E.Outcome and then Is_Assertion_To_Cover (E.SCO) then
                      Report
                        (UE.Sloc,
@@ -7664,10 +7794,10 @@ package body SC_Obligations is
                   end if;
                   Insert (E);
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   Insert (E);
 
-               when Full_Decision      =>
+               when Full_Decision              =>
 
                   --  Exempt all relevant outcomes, and then all conditions
 
@@ -7684,6 +7814,9 @@ package body SC_Obligations is
                        ((Kind => Decision_Condition,
                          SCO  => Condition (E.SCO, I)));
                   end loop;
+
+               when Manual_Decision_Evaluation =>
+                  raise Program_Error;
             end case;
          end;
 

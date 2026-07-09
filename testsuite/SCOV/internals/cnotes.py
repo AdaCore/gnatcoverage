@@ -167,6 +167,11 @@
 # XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov,
 # XoPartCov, XoNoCov, XaNoCov, XacPartCov, XcPartCov, r0, r0c
 
+# Manual decision evaluation: note that describe the evaluation vector for a
+# decision that was inserted from annotations, with a justification:
+#
+# mDcEval
+
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
 
@@ -251,6 +256,7 @@ class NK(IntEnum):
     xBlock1 = auto()
     xBlock2 = auto()
     dBlock = auto()
+    mDcEval = auto()
 
     @override
     def __str__(self) -> str:
@@ -350,8 +356,12 @@ XNoteKinds = XsNoteKinds + XoNoteKinds + XcNoteKinds
 # Disabled coverage regions
 disabledNoteKinds = (NK.dBlock,)
 
-# Notes for regions with justifications (exemption or disabled coverage)
-justifiedNoteKinds = xNoteKinds + disabledNoteKinds
+# Manual evaluation notes
+mEvalNoteKinds = (NK.mDcEval,)
+
+# Notes for regions with justifications (exemption, disabled coverage) or
+# manual decision evaluation.
+justifiedNoteKinds = xNoteKinds + disabledNoteKinds + mEvalNoteKinds
 
 # Anti-expectations
 rAntiKinds = (NK.r0, NK.r0c)
@@ -371,6 +381,7 @@ erNoteKinds = (
     + tNoteKinds
     + XNoteKinds
     + disabledNoteKinds
+    + mEvalNoteKinds
     # ATCC
     + aNoteKinds
     # Funcall
@@ -517,6 +528,14 @@ class Cnote:
     # instances.
     stag: Stag | str | None = None
 
+    def justification_suffix(self, justification: str | None) -> str:
+        if self.kind == NK.mDcEval:
+            return ": " + (justification or "MISSING JUSTIFICATION")
+        elif justification:
+            return f" (justification: {justification})"
+        else:
+            return ""
+
     def image(self) -> str:
         assert isinstance(self.stag, Stag) or self.stag is None
         return "%s%s mark at %s" % (
@@ -558,10 +577,7 @@ class Xnote(Cnote):
         self.segment = segment
 
     def image(self) -> str:
-        result = super().image()
-        if self.stext and self.kind in justifiedNoteKinds:
-            result += f" (justification: {self.stext})"
-        return result
+        return super().image() + self.justification_suffix(self.stext)
 
     def satisfied(self) -> bool:
         """Tell whether this [anti-]expectation is satisfied at this point."""
@@ -587,16 +603,14 @@ class Enote(Cnote):
         self.source = source  # The corresponding source name
         self.stag = stag  # The separation tag it contains
 
-        # Justification message, for xBlock* notes
+        # Justification message for xBlock* notes, evaluation vector +
+        # justification message for manual evaluation notes.
         self.justification = justification
 
         self.discharges: Xnote | None = None  # The Xnote it discharges
 
     def image(self) -> str:
-        result = super().image()
-        if self.justification:
-            result += f" (justification: {self.justification})"
-        return result
+        return super().image() + self.justification_suffix(self.justification)
 
 
 class KnoteDict[Note: Cnote](dict[NK, list[Note]]):

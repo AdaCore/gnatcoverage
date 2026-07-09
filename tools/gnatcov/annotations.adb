@@ -1225,13 +1225,16 @@ package body Annotations is
    begin
       if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
          case M.Kind is
-            when Exclusion        =>
+            when Exclusion                  =>
                return Coverage_Exclusions;
 
-            when Undetermined_Cov =>
+            when Undetermined_Cov           =>
                return Undet_Coverage;
 
-            when others           =>
+            when Manual_Decision_Evaluation =>
+               return Other_Errors;
+
+            when others                     =>
                pragma Assert (M.Kind in Info | Exempted_Violation | Violation);
 
                declare

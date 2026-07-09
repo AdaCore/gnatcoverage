@@ -24,3 +24,9 @@ decision = 1
 purpose="xcov.exempt.full_decision"
 justification = "Message 4"
 decision = 1
+
+[[foo.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+justification = "Message 5"
+decision = 1
+values = [true, false]

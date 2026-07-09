@@ -60,7 +60,7 @@ package body MC_DC is
 
       Masked_Values : constant String := Masked_Len * "- ";
    begin
-      return Image (E.Values) & Masked_Values & " -> " & E.Outcome'Img;
+      return Image (E.Values) & Masked_Values & "-> " & E.Outcome'Img;
    end Image;
 
    function Image (EV : Condition_Evaluation_Vectors.Vector) return String is

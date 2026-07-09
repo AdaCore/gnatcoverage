@@ -54,18 +54,20 @@ package body SS_Annotations is
      Xcov_Namespace & To_Qualified_Name ("exempt");
    --  Common prefix for all exemption related annotations
 
-   Exempt_On_Purpose                 : constant Ada_Qualified_Name :=
+   Exempt_On_Purpose                  : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("on");
-   Exempt_Off_Purpose                : constant Ada_Qualified_Name :=
+   Exempt_Off_Purpose                 : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("off");
-   Exempt_Region_Purpose             : constant Ada_Qualified_Name :=
+   Exempt_Region_Purpose              : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("region");
-   Exempt_Decision_Outcome_Purpose   : constant Ada_Qualified_Name :=
+   Exempt_Decision_Outcome_Purpose    : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("decision_outcome");
-   Exempt_Decision_Condition_Purpose : constant Ada_Qualified_Name :=
+   Exempt_Decision_Condition_Purpose  : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("decision_condition");
-   Exempt_Full_Decision_Purpose      : constant Ada_Qualified_Name :=
+   Exempt_Full_Decision_Purpose       : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("full_decision");
+   Manual_Decision_Evaluation_Purpose : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("manual_decision_evaluation");
 
    Buffers_Namespace : constant Ada_Qualified_Name :=
      Xcov_Namespace & To_Qualified_Name ("buffers");
@@ -218,6 +220,10 @@ package body SS_Annotations is
          elsif Purpose.Element (3) = Exempt_Full_Decision_Purpose.Last_Element
          then
             return Exempt_Full_Decision;
+         elsif Purpose.Element (3)
+           = Manual_Decision_Evaluation_Purpose.Last_Element
+         then
+            return Manual_Decision_Evaluation;
          end if;
       elsif Purpose.Element (2) = Buffers_Namespace.Last_Element then
 
@@ -263,37 +269,40 @@ package body SS_Annotations is
    function Purpose (Kind : Any_Annotation_Kind) return Ada_Qualified_Name is
    begin
       case Kind is
-         when Exempt_Region             =>
+         when Exempt_Region              =>
             return Exempt_Region_Purpose;
 
-         when Exempt_On                 =>
+         when Exempt_On                  =>
             return Exempt_On_Purpose;
 
-         when Exempt_Off                =>
+         when Exempt_Off                 =>
             return Exempt_Off_Purpose;
 
-         when Exempt_Decision_Outcome   =>
+         when Exempt_Decision_Outcome    =>
             return Exempt_Decision_Outcome_Purpose;
 
-         when Exempt_Decision_Condition =>
+         when Exempt_Decision_Condition  =>
             return Exempt_Decision_Condition_Purpose;
 
-         when Exempt_Full_Decision      =>
+         when Exempt_Full_Decision       =>
             return Exempt_Full_Decision_Purpose;
 
-         when Dump_Buffers              =>
+         when Manual_Decision_Evaluation =>
+            return Manual_Decision_Evaluation_Purpose;
+
+         when Dump_Buffers               =>
             return Buffers_Dump_Purpose;
 
-         when Reset_Buffers             =>
+         when Reset_Buffers              =>
             return Buffers_Reset_Purpose;
 
-         when Cov_Off                   =>
+         when Cov_Off                    =>
             return Cov_Off_Purpose;
 
-         when Cov_On                    =>
+         when Cov_On                     =>
             return Cov_On_Purpose;
 
-         when Unknown                   =>
+         when Unknown                    =>
             return Ada_Identifier_Vectors.Empty_Vector;
       end case;
    end Purpose;
@@ -402,14 +411,15 @@ package body SS_Annotations is
              | Exempt_Decision_Outcome
              | Exempt_Decision_Condition
              | Exempt_Full_Decision
+             | Manual_Decision_Evaluation
          then
             case Kind is
-               when Exempt_On                 =>
+               when Exempt_On                  =>
                   Annot.Justification := Justification;
                   Annot.Violation_Count := 0;
                   Annot.Undetermined_Cov_Count := 0;
 
-               when Exempt_Decision_Outcome   =>
+               when Exempt_Decision_Outcome    =>
                   Req :=
                     (Kind => Decision_Outcome, Sloc => Sloc, others => <>);
 
@@ -420,7 +430,7 @@ package body SS_Annotations is
                   Req.Decision_Offset :=
                     (if Field.Is_Null then 0 else Natural (Field.As_Integer));
 
-               when Exempt_Decision_Condition =>
+               when Exempt_Decision_Condition  =>
                   Req :=
                     (Kind => Decision_Condition, Sloc => Sloc, others => <>);
 
@@ -431,14 +441,31 @@ package body SS_Annotations is
                   Req.Decision_Offset :=
                     (if Field.Is_Null then 0 else Natural (Field.As_Integer));
 
-               when Exempt_Full_Decision      =>
+               when Exempt_Full_Decision       =>
                   Req := (Kind => Full_Decision, Sloc => Sloc, others => <>);
 
                   Field := Details.Get_Or_Null ("decision");
                   Req.Decision_Offset :=
                     (if Field.Is_Null then 0 else Natural (Field.As_Integer));
 
-               when others                    =>
+               when Manual_Decision_Evaluation =>
+                  Req :=
+                    (Kind   => Manual_Decision_Evaluation,
+                     Sloc   => Sloc,
+                     others => <>);
+
+                  Field := Details.Get_Or_Null ("decision");
+                  Req.Decision_Offset :=
+                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+                  Field := Details.Get ("values");
+                  Req.Condition_Values.Clear;
+                  for I in 1 .. Field.Length loop
+                     Req.Condition_Values.Append
+                       (To_Tristate (Field.Item (I).As_Boolean));
+                  end loop;
+
+               when others                     =>
                   raise Program_Error with "unreachable code";
             end case;
          end if;
@@ -537,13 +564,13 @@ package body SS_Annotations is
       for Match of Matches loop
          if Match.Success then
             case Annotation_Kind (Match.Annotation) is
-               when Exempt_On                 =>
+               when Exempt_On                    =>
                   Process (Match, Exempt_On);
 
-               when Exempt_Off                =>
+               when Exempt_Off                   =>
                   Process (Match, Exempt_Off);
 
-               when Exempt_Region             =>
+               when Exempt_Region                =>
 
                   --  Exempt_Region will insert an Exempt_On / Exempt_Off
                   --  couple of annotations.
@@ -551,16 +578,10 @@ package body SS_Annotations is
                   Process (Match, Exempt_On);
                   Process (Match, Exempt_Off);
 
-               when Exempt_Decision_Outcome   =>
-                  Process (Match, Exempt_Decision_Outcome);
+               when Fine_Grained_Annotation_Kind =>
+                  Process (Match, Annotation_Kind (Match.Annotation));
 
-               when Exempt_Decision_Condition =>
-                  Process (Match, Exempt_Decision_Condition);
-
-               when Exempt_Full_Decision      =>
-                  Process (Match, Exempt_Full_Decision);
-
-               when others                    =>
+               when others                       =>
                   null;
             end case;
          else
@@ -906,6 +927,7 @@ package body SS_Annotations is
       Outcome       : Boolean;
       Condition     : Condition_Index;
       Decision      : Natural;
+      Values        : TOML_Value;
 
       function "+" (Opt : Command_Line.String_Options) return Unbounded_String
       is (Parser.Value_Or_Null (Args.String_Args (Opt)));
@@ -1024,6 +1046,7 @@ package body SS_Annotations is
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
+            | Manual_Decision_Evaluation
             | Cov_Off                                            =>
 
             --  Accept either the --location or --start-location switches
@@ -1078,6 +1101,23 @@ package body SS_Annotations is
 
             elsif Annot_Kind = Exempt_Full_Decision then
                Load_Decision_Offset;
+
+            elsif Annot_Kind = Manual_Decision_Evaluation then
+               if Args.String_Args (Opt_Values).Present then
+                  Values := Create_Array;
+                  for C of "+" (Args.String_Args (Opt_Values).Value) loop
+                     if C = 'T' then
+                        Values.Append (Create_Boolean (True));
+                     elsif C = 'F' then
+                        Values.Append (Create_Boolean (False));
+                     else
+                        Fatal_Error (Invalid_Switch_Msg (Opt_Values));
+                     end if;
+                  end loop;
+               else
+                  Fatal_Error (Missing_Switch_Msg (Opt_Values));
+               end if;
+               Load_Decision_Offset;
             end if;
 
          when Exempt_Off | Dump_Buffers | Reset_Buffers | Cov_On =>
@@ -1126,6 +1166,7 @@ package body SS_Annotations is
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
+            | Manual_Decision_Evaluation
             | Cov_Off                      =>
             Annotation.Set ("justification", Create_String (Justification));
 
@@ -1139,6 +1180,10 @@ package body SS_Annotations is
                Annotation.Set
                  ("decision", Create_Integer (Any_Integer (Decision)));
             elsif Annot_Kind = Exempt_Full_Decision then
+               Annotation.Set
+                 ("decision", Create_Integer (Any_Integer (Decision)));
+            elsif Annot_Kind = Manual_Decision_Evaluation then
+               Annotation.Set ("values", Values);
                Annotation.Set
                  ("decision", Create_Integer (Any_Integer (Decision)));
             end if;
@@ -1556,6 +1601,7 @@ package body SS_Annotations is
                      | Exempt_Decision_Outcome
                      | Exempt_Decision_Condition
                      | Exempt_Full_Decision
+                     | Manual_Decision_Evaluation
                      | Cov_Off                       =>
                      if Annot_Kind = Exempt_Decision_Outcome then
                         declare
@@ -1578,6 +1624,20 @@ package body SS_Annotations is
                            Process_Decision_Offset;
                         end;
                      elsif Annot_Kind = Exempt_Full_Decision then
+                        Process_Decision_Offset;
+                     elsif Annot_Kind = Manual_Decision_Evaluation then
+                        declare
+                           Values : constant TOML_Value :=
+                             Match.Annotation.Get ("values");
+                        begin
+                           Ada.Text_IO.Put ("; Values: ");
+                           for I in 1 .. Values.Length loop
+                              Ada.Text_IO.Put
+                                (if Values.Item (I).As_Boolean
+                                 then 'T'
+                                 else 'F');
+                           end loop;
+                        end;
                         Process_Decision_Offset;
                      end if;
                      Ada.Text_IO.Put
@@ -1684,6 +1744,10 @@ package body SS_Annotations is
             procedure Validate_Decision_Offset;
             --  Common helper to validate the "decision" annotation field
 
+            function Valid_Values (Values : TOML_Value) return Boolean;
+            --  Return whether Values is a valid condition evaluation array
+            --  (i.e. an array of booleans with at least one element).
+
             ------------------------------
             -- Validate_Decision_Offset --
             ------------------------------
@@ -1708,6 +1772,28 @@ package body SS_Annotations is
                end if;
             end Validate_Decision_Offset;
 
+            ------------------
+            -- Valid_Values --
+            ------------------
+
+            function Valid_Values (Values : TOML_Value) return Boolean is
+            begin
+               if Values.Kind /= TOML_Array then
+                  return False;
+               end if;
+
+               if Values.Length = 0 then
+                  return False;
+               end if;
+
+               for I in 1 .. Values.Length loop
+                  if Values.Item (I).Kind /= TOML_Boolean then
+                     return False;
+                  end if;
+               end loop;
+               return True;
+            end Valid_Values;
+
          begin
             case Annot_Kind is
                when Unknown                       =>
@@ -1728,7 +1814,8 @@ package body SS_Annotations is
                   | Exempt_Region
                   | Exempt_Decision_Outcome
                   | Exempt_Decision_Condition
-                  | Exempt_Full_Decision          =>
+                  | Exempt_Full_Decision
+                  | Manual_Decision_Evaluation    =>
                   Some_Relevant := True;
                   if Get_Or_Null (Annot, "justification")
                     = Null_Unbounded_String
@@ -1772,6 +1859,19 @@ package body SS_Annotations is
                      Validate_Decision_Offset;
 
                   elsif Annot_Kind = Exempt_Full_Decision then
+                     Validate_Decision_Offset;
+
+                  elsif Annot_Kind = Manual_Decision_Evaluation then
+                     if not Annot.Has ("values")
+                       or else not Valid_Values (Annot.Get ("values"))
+                     then
+                        Warn
+                          ("Missing or invalid values for external"
+                           & " exemption annotation """
+                           & (+Identifier)
+                           & """, it will be ignored.");
+                        All_Ok := False;
+                     end if;
                      Validate_Decision_Offset;
                   end if;
 

@@ -56,7 +56,8 @@ package Diagnostics is
       Violation,
       Exempted_Violation,
       Undetermined_Cov,
-      Exclusion);
+      Exclusion,
+      Manual_Decision_Evaluation);
    subtype Coverage_Kind is Report_Kind range Info .. Exclusion;
 
    type Message is record

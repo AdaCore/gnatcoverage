@@ -430,6 +430,14 @@ package Files_Table is
             --  atc and atcc). Stores how many statement are covered, how many
             --  decisions are covered etc.
 
+            Has_Manual_Evaluations : Boolean := False;
+            --  True iff at least one manual evaluation (currently: only a
+            --  decision evaluation) was included to compute code coverage for
+            --  this file.
+            --
+            --  Tracking this allows to trigger the inclusion of this file in
+            --  the coverage report even when all lines are covered.
+
             Has_Source_Coverage_Info : Boolean := False;
             --  True if source coverage information has been registered for
             --  this source file.

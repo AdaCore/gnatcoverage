@@ -419,6 +419,9 @@ package SC_Obligations is
    To_Boolean : constant array (Known_Tristate) of Boolean :=
      (False => False, True => True);
 
+   Tristate_Char : constant array (Tristate) of Character :=
+     (False => 'F', True => 'T', Unknown => '?');
+
    type Any_Condition_Index is new Integer range -1 .. Integer'Last;
    No_Condition_Index : constant Any_Condition_Index := -1;
    subtype Condition_Index is
@@ -430,6 +433,9 @@ package SC_Obligations is
      Ada.Containers.Vectors
        (Index_Type   => Condition_Index,
         Element_Type => Tristate);
+
+   function "<"
+     (Left, Right : Condition_Evaluation_Vectors.Vector) return Boolean;
 
    function To_Vector
      (Cond_Values : Condition_Values_Array)
@@ -488,12 +494,16 @@ package SC_Obligations is
    --  exemptions refer directly to a source coverage obligation (SCO_Id).
 
    type Exemption_Request_Kind is
-     (Decision_Outcome, Decision_Condition, Full_Decision);
+     (Decision_Outcome,
+      Decision_Condition,
+      Full_Decision,
+      Manual_Decision_Evaluation);
 
    SCO_Kind_For : constant array (Exemption_Request_Kind) of SCO_Kind :=
-     (Decision_Outcome   => Decision,
-      Decision_Condition => Condition,
-      Full_Decision      => Decision);
+     (Decision_Outcome           => Decision,
+      Decision_Condition         => Condition,
+      Full_Decision              => Decision,
+      Manual_Decision_Evaluation => Decision);
 
    type Exemption_Request
      (Kind : Exemption_Request_Kind := Exemption_Request_Kind'First)
@@ -501,7 +511,11 @@ package SC_Obligations is
       Sloc : Source_Location;
 
       case Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Outcome
+            | Decision_Condition
+            | Full_Decision
+            | Manual_Decision_Evaluation
+         =>
             Decision_Offset : Natural;
             --  Number of decisions to skip after this annotation to reach the
             --  decision that is exempted.
@@ -517,6 +531,10 @@ package SC_Obligations is
 
                when Full_Decision =>
                   null;
+
+               when Manual_Decision_Evaluation =>
+                  Condition_Values : Condition_Evaluation_Vectors.Vector;
+                  --  Evaluation vector for the manual decision evaluation
             end case;
       end case;
    end record;
@@ -607,6 +625,7 @@ package SC_Obligations is
       Exempt_Decision_Outcome,
       Exempt_Decision_Condition,
       Exempt_Full_Decision,
+      Manual_Decision_Evaluation,
       Dump_Buffers,
       Reset_Buffers,
       Cov_On,
@@ -626,7 +645,8 @@ package SC_Obligations is
    --  Annotation kinds to perform coverage buffers control
 
    subtype Fine_Grained_Annotation_Kind is
-     Any_Annotation_Kind range Exempt_Decision_Outcome .. Exempt_Full_Decision;
+     Any_Annotation_Kind
+       range Exempt_Decision_Outcome .. Manual_Decision_Evaluation;
 
    type ALI_Annotation
      (Kind : Src_Annotation_Kind := Src_Annotation_Kind'First)

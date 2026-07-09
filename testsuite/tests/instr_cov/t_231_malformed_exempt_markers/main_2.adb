@@ -13,4 +13,5 @@ begin
     pragma Annotate (Xcov, Exempt_Decision_Condition);
     pragma Annotate (Xcov, Exempt_Decision_Condition, False);
     pragma Annotate (Xcov, Exempt_Decision_Condition, -1);
+    pragma Annotate (Xcov, Manual_Decision_Evaluation, 1, "foo");
 end Main_2;

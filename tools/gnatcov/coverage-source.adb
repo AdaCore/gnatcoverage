@@ -2601,6 +2601,88 @@ package body Coverage.Source is
       end loop;
    end Initialize_SCI_For_Instrumented_CU;
 
+   ------------------------------------
+   -- Add_Manual_Decision_Evaluation --
+   ------------------------------------
+
+   procedure Add_Manual_Decision_Evaluation
+     (SCO           : SCO_Id;
+      Values        : Condition_Evaluation_Vectors.Vector;
+      Justification : Unbounded_String)
+   is
+      pragma Assert (Kind (SCO) = Decision);
+      pragma Assert (Values.Last_Index = Last_Cond_Index (SCO));
+
+      SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
+      E   : Evaluation :=
+        (Decision       => SCO,
+         Values         =>
+           Condition_Evaluation_Vectors.To_Vector (Unknown, Values.Length),
+         Outcome        => Unknown,
+         Next_Condition => No_Condition_Index);
+
+      --  Simulate the evaluation of the decision with the given condition
+      --  values until we reach the decision outcome.
+      --
+      --  During the simulation, also assign values to E.Values so that we do
+      --  not pretend a condition has been evaluated when it is masked (i.e.
+      --  associate it to Unknown rather than False/True), as that would
+      --  trigger coverage inconsistencies later on.
+
+      Cur : SCO_Id := Condition (SCO, 0);
+      --  SCO for the next condition to evaluate
+   begin
+      Evaluate_One_Condition : loop
+         declare
+            Cur_Index : constant Condition_Index := Index (Cur);
+            --  Recover the index of the next condition to evaluate
+
+            Cur_Value  : constant Tristate := Values (Cur_Index);
+            Cur_BValue : constant Boolean := To_Boolean (Cur_Value);
+            --  Fetch the Tristate/Boolean for its requested valuation
+         begin
+            --  Propagate it to E
+
+            E.Values (Cur_Index) := Cur_Value;
+
+            --  We are done if evaluating this condition led us to the
+            --  condition outcome
+
+            E.Outcome := Outcome (Cur, Cur_BValue);
+            exit Evaluate_One_Condition when E.Outcome /= Unknown;
+
+            --  Otherwise, proceed with the next condition
+
+            Cur := Next_Condition (Cur, Cur_BValue);
+            pragma Assert (Cur /= No_SCO_Id);
+         end;
+      end loop Evaluate_One_Condition;
+
+      --  Now that E is fully initialized, add it to the decision SCI (for
+      --  MC/DC) and note the corresponding outcome as taken (for decision
+      --  coverage).
+
+      SCI.Evaluations.Include (E);
+      SCI.Known_Outcome_Taken (To_Boolean (E.Outcome)) := True;
+
+      --  Finally, emit a note so that this evaluation vector is clearly marked
+      --  as manual in coverage reports.
+
+      declare
+         Sloc : constant Source_Location := Last_Sloc (SCO);
+      begin
+         Report
+           (Sloc,
+            "including manual decision evaluation: "
+            & Image (E)
+            & " (justification: "
+            & (+Justification)
+            & ")",
+            Manual_Decision_Evaluation);
+         Get_File (Sloc.Source_File).Has_Manual_Evaluations := True;
+      end;
+   end Add_Manual_Decision_Evaluation;
+
    --------------------------
    -- Merge_Checkpoint_SCI --
    --------------------------
