@@ -3443,7 +3443,7 @@ package body Instrument.C is
       --  inhibit the use of clang predefined macros. We want to fully emulate
       --  the user's preprocessor.
 
-      Add_Options (Args, UIC.Options, Pass_Builtins => False);
+      Add_Options (Args, UIC.Options);
       String_Vectors.Append
         (Args, Common_Parse_TU_Args (Instrumenter.Language));
 
