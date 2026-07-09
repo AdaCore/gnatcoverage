@@ -182,8 +182,8 @@ for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
         output_refiners=[
             Filter(),
             Substitute(os.getcwd(), "[TMP]"),
-            SortByFiles(),
             HashRefiner(),
+            SortByFiles(),
             Substitute("\\", "/"),
         ],
         ignore_white_chars=False,
