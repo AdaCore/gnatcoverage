@@ -3,6 +3,7 @@ Check that --warnings-as-errors works as expected.
 """
 
 import re
+from typing import Callable
 
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
@@ -11,24 +12,25 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir("tmp_")
-
-
 def check(
-    slug: str, project: str, warning: str, extra_args: list[str]
+    slug: str,
+    create_project: Callable[[], str],
+    warning: str,
+    extra_args: list[str],
 ) -> None:
     """
     Check that "gnatcov instrument" on the given project yields the expected
     warning, and that it exits with an error when --warnings-as-errors is
     passed.
     """
+    tmp = Wdir(f"tmp_sc_{slug}")
 
     # Run "gnatcov instrument" once with default arguments, just to check that
     # gnatcov succeeds and emits a warning.
     thistest.log(f"== {slug}: sanity check ==")
     log = f"{slug}-sc.txt"
     process = xcov_instrument(
-        gprsw=GPRswitches(root_project=project),
+        gprsw=GPRswitches(root_project=create_project()),
         extra_args=extra_args,
         covlevel="stmt",
         register_failure=False,
@@ -38,12 +40,14 @@ def check(
     thistest.fail_if_no_match(
         "'gnatcov instrument' output", warning, contents_of(log)
     )
+    tmp.to_homedir()
 
     # Then pass --warnings-as-errors to check the exit code
+    tmp = Wdir(f"tmp_wae_{slug}")
     thistest.log(f"== {slug}: warnings-as-errors ==")
     log = f"{slug}-err.txt"
     process = xcov_instrument(
-        gprsw=GPRswitches(root_project=project),
+        gprsw=GPRswitches(root_project=create_project()),
         covlevel="stmt",
         extra_args=["--warnings-as-errors"] + extra_args,
         register_failure=False,
@@ -55,6 +59,7 @@ def check(
     thistest.fail_if_no_match(
         "'gnatcov instrument' output", warning, contents_of(log)
     )
+    tmp.to_homedir()
 
 
 # Check the handling of warnings emitted before command line options (including
@@ -65,14 +70,13 @@ def check(
 # arguments.  Note that we expect the warning twice: once for the wrapper
 # gnatcov program, and one for the gnatcov64 program (both need to load the
 # project).
-project = gprfor(
-    prjid="regular",
-    mains=["main.adb"],
-    srcdirs=["../regular"],
-)
 check(
     "project-warning",
-    project,
+    lambda: gprfor(
+        prjid="regular",
+        mains=["main.adb"],
+        srcdirs=["../regular"],
+    ),
     "suite.cgpr:.*: error: --target: 'foo' is different from the target value"
     " in the configuration project '.*'"
     "\nsuite.cgpr:.*: error: --target: 'foo' is different from the target"
@@ -85,7 +89,7 @@ check(
 # line options are fully loaded.
 check(
     "instrumenter-warning",
-    gprfor(
+    lambda: gprfor(
         prjid="missing_srcfile",
         mains=["main.adb"],
         srcdirs=["../missing-srcfile"],
@@ -97,17 +101,20 @@ check(
     extra_args=[],
 )
 
-instr_limit_prj = gprfor(
-    prjid="instr_limitation",
-    mains=["main.adb"],
-    srcdirs=["../instr-limitation"],
-)
+
+def create_instr_limit_prj() -> str:
+    return gprfor(
+        prjid="instr_limitation",
+        mains=["main.adb"],
+        srcdirs=["../instr-limitation"],
+    )
+
 
 # Check that instrumenter limitations do trigger the warnings-as-error
 # mechanism...
 check(
     "instrumenter-limitation",
-    instr_limit_prj,
+    create_instr_limit_prj,
     r"\?\?\? main.adb:7:7: gnatcov limitation: cannot instrument an"
     " expression function which is a primitive of its return type, when"
     " this type is a tagged type. Consider turning it into a regular function"
@@ -118,8 +125,9 @@ check(
 # .. Except when --suppress-limitations is passed to 'gnatcov instrument',
 # in which case no message should be emitted at all.
 thistest.log("== instrumenter-limitation: suppress-limitations ==")
+tmp = Wdir("tmp_sl_instrumenter-limitation")
 p = xcov_instrument(
-    gprsw=GPRswitches(root_project=instr_limit_prj),
+    gprsw=GPRswitches(root_project=create_instr_limit_prj()),
     covlevel="stmt",
     extra_args=["--suppress-limitations"],
 )
@@ -128,5 +136,6 @@ thistest.fail_if_not_equal(
     p.status,
     0,
 )
+tmp.to_homedir()
 
 thistest.result()
