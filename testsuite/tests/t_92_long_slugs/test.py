@@ -31,19 +31,13 @@ p = xcov_instrument(
 )
 thistest.fail_if(p.status == 0)
 
-# The error message for exceeding the path limit isn't the same on Windows
-# and on linux.
+# Exceeding the path limit is reported when gnatcov attempts to create the
+# buffer unit file.
 
 thistest.fail_if_no_match(
     what="Missing or unexpected error message",
     regexp=(
-        (
-            r"gnatcov: Could not create the buffer unit for "
-            ".*overly_long_capitalized_c_unit_that_should_not_triple_in_size"
-            '_to_avoid_path_name_limit.c: invalid path name "gcvrt_b_z.*'
-        )
-        if "windows" in thistest.env.host.platform
-        else r"gnatcov: cannot open .*/tests"
+        r"gnatcov: cannot open .*/tests"
         r"/t_92_long_slugs/tmp_/obj/gen-gnatcov-instr/gcvrt_b_z.*\.c"
     ),
     actual=contents_of(log).replace("\\", "/"),
