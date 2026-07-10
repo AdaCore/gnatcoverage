@@ -474,8 +474,13 @@ is
          Add_Project_Source (Source, Is_UOI => True);
          if not Is_Multi_Unit (Source) then
             Files_Of_Interest_Info.Insert (Source);
+
+            --  Normalize the path: lookups in Files_Of_Interest use
+            --  Create_Normalized probes, and Virtual_File comparisons do not
+            --  resolve path differences on Windows.
+
             IC.Files_Of_Interest.Insert
-              (Create (+String (Source.Path_Name.Value)));
+              (Create_Normalized (String (Source.Path_Name.Value)));
          end if;
       end if;
 
