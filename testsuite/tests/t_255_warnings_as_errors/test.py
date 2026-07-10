@@ -117,6 +117,7 @@ check(
 
 # .. Except when --suppress-limitations is passed to 'gnatcov instrument',
 # in which case no message should be emitted at all.
+thistest.log("== instrumenter-limitation: suppress-limitations ==")
 p = xcov_instrument(
     gprsw=GPRswitches(root_project=instr_limit_prj),
     covlevel="stmt",
