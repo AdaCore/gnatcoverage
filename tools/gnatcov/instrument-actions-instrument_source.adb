@@ -19,8 +19,8 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
 with GNATCOLL.Traces;
+with GNATCOLL.OS.Process;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
-
 with GPR2.Build.Artifacts;
 with GPR2.Build.Artifacts.Key_Value;
 with GPR2.Build.Makefile_Parser;
@@ -33,6 +33,7 @@ with Command_Line; use Command_Line;
 with Files_Handling;
 with Files_Table;  use Files_Table;
 with Project;      use Project;
+with Subprocesses;
 with Support_Files;
 with Switches_GPR; use Switches_GPR;
 with Text_Files;
@@ -272,6 +273,21 @@ package body Instrument.Actions.Instrument_Source is
       end if;
 
       Cmd_Line.Add_Argument (Self.Unit_Name);
+
+      if Subprocesses.Subprocesses_Trace.Is_Active then
+         declare
+            Items     : constant GNATCOLL.OS.Process.Argument_List :=
+              Cmd_Line.Argument_List;
+            Program   : constant String := Items (0);
+            Arguments : String_Vectors.Vector;
+         begin
+            for I in 1 .. Items.Last_Index loop
+               Arguments.Append (+String'(Items (I)));
+            end loop;
+            Subprocesses.Log_Exec (Program, Arguments);
+         end;
+      end if;
+
       return Cmd_Line;
    end Compute_Command;
 

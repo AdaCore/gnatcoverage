@@ -2127,7 +2127,9 @@ begin
          --  by a gnatcov main process. They are thus by default well-formed,
          --  and if they are not, it is a gnatcov bug.
          --
-         --  The unit to instrument is the trailing argument
+         --  The unit to instrument is the trailing argument.
+
+         pragma Assert (Args.Remaining_Args.Length = 1);
 
          declare
             Instrumenter : Language_Instrumenter'Class := Instrument.Config;

@@ -18,7 +18,18 @@ build_run_and_coverage(
     ),
     covlevel="stmt",
     mains=["main"],
-    extra_instr_args=["-j2"],
+    extra_instr_args=[
+        # The formatting of command lines for subprocesses (gnatcov
+        # instrument-sources) used to incorrectly handle "string list"
+        # switches. As a consequence, while a single positional argument was
+        # required (the name of the unit to instrument), multiple arguments
+        # were passed instead, and so no unit was instrumented in the end.
+        "-j2",
+        "--log=LOG1",
+        "--log=LOG2",
+        "-XVAR1=a",
+        "-XVAR2=b",
+    ],
     extra_coverage_args=["--annotate=xcov"],
 )
 check_xcov_reports(
