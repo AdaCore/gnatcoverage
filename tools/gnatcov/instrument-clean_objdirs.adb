@@ -230,7 +230,7 @@ begin
 
          declare
             Src : constant GPR2.Build.Source.Object := LU_Info.Main_Part_Src;
-            Prj : constant Prj_Desc :=
+            Prj : Prj_Desc renames
               Get_Or_Create_Project_Info (IC, LU_Info.Instr_Project).Desc;
          begin
             Instr_Artifacts.Union
