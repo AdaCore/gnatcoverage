@@ -218,7 +218,8 @@ package body Project is
    with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
 
-   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector);
+   procedure Build_Unit_Map
+     (Override_Units, Override_Excluded_Units : String_Vectors.Vector);
    --  Add entries in Unit_Map for all units of interest
 
    procedure List_From_Project
@@ -1030,17 +1031,37 @@ package body Project is
    -- Build_Unit_Map --
    --------------------
 
-   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector) is
-      Units_Specified : constant Boolean := not Override_Units.Is_Empty;
+   procedure Build_Unit_Map
+     (Override_Units, Override_Excluded_Units : String_Vectors.Vector)
+   is
+      Units_Specified          : constant Boolean :=
+        not Override_Units.Is_Empty;
+      Excluded_Units_Specified : constant Boolean :=
+        not Override_Excluded_Units.Is_Empty;
       --  Whether the user requested a specific set of units of interest
-      --  through the --units command-line argument.
+      --  through the --units / --excluded-units command-line arguments.
 
-      Unit_Patterns : String_Vectors.Vector;
-      --  Lower-cased version of Override_Units
+      Selection_Overridden : constant Boolean :=
+        Units_Specified or else Excluded_Units_Specified;
+      --  Whether the command line overrides the GPR-based selection of units
+      --  of interest.
+
+      Unit_Patterns          : String_Vectors.Vector;
+      Excluded_Unit_Patterns : String_Vectors.Vector;
+      --  Lower-cased versions of Override_Units and Override_Excluded_Units
 
       Units_Specified_Matcher : GNAT.Regexp.Regexp;
       Has_Matcher             : Boolean;
       --  Matcher for the list of units of interest
+
+      Units_Excluded_Matcher : GNAT.Regexp.Regexp;
+      Has_Excluded_Matcher   : Boolean;
+      --  Matcher for the list of units excluded from the units of interest
+
+      Candidate_Units : String_Vectors.Vector;
+      --  When the command line overrides the GPR-based selection, all unit
+      --  names considered before inclusion/exclusion, to compute the
+      --  coverage of the --units and --excluded-units patterns.
 
       procedure Process_Project (Project : GPR2.Project.View.Object);
       --  Compute the list of units of interest in Project and call
@@ -1065,11 +1086,11 @@ package body Project is
          Has_One_Unit_Of_Interest : Boolean := False;
          --  Whether this project has at least one unit of interest
       begin
-         --  Unless the set of units of interest is overriden by --units, go
-         --  through all units, taking into account Units and Excluded_Units
-         --  attributes in the Coverage project package.
+         --  Unless the set of units of interest is overriden by --units or
+         --  --excluded-units, go through all units, taking into account Units
+         --  and Excluded_Units attributes in the Coverage project package.
 
-         if not Units_Specified then
+         if not Selection_Overridden then
 
             Units_From_Project
               (Project,
@@ -1121,12 +1142,21 @@ package body Project is
                      return;
                   end if;
 
-                  if not Units_Specified
-                    or else
-                      (Has_Matcher
-                       and then
-                         GNAT.Regexp.Match
-                           (To_Lower (Unit_Name), Units_Specified_Matcher))
+                  if Selection_Overridden then
+                     Candidate_Units.Append (+Unit_Name);
+                  end if;
+
+                  if (not Units_Specified
+                      or else
+                        (Has_Matcher
+                         and then
+                           GNAT.Regexp.Match
+                             (To_Lower (Unit_Name), Units_Specified_Matcher)))
+                    and then
+                      not (Has_Excluded_Matcher
+                           and then
+                             GNAT.Regexp.Match
+                               (To_Lower (Unit_Name), Units_Excluded_Matcher))
                   then
                      Add_Unit
                        (Inc_Units,
@@ -1173,7 +1203,8 @@ package body Project is
          Prj_Map.Reference (String (Project.Name)).Has_Units_Of_Interest :=
            (Has_One_Unit_Of_Interest
             or else
-              (not Units_Specified and then Has_Unit_Selection_Attributes));
+              (not Selection_Overridden
+               and then Has_Unit_Selection_Attributes));
       end Process_Project;
 
       --  Start of processing for Build_Unit_Map
@@ -1185,6 +1216,9 @@ package body Project is
       for Pattern of Override_Units loop
          Unit_Patterns.Append (+To_Lower (+Pattern));
       end loop;
+      for Pattern of Override_Excluded_Units loop
+         Excluded_Unit_Patterns.Append (+To_Lower (+Pattern));
+      end loop;
 
       --  Then, create a regexp matching all the patterns specified.
       --  Regardless of the current platform, the casing of unit names is not
@@ -1195,6 +1229,11 @@ package body Project is
          Matcher          => Units_Specified_Matcher,
          Has_Matcher      => Has_Matcher,
          Case_Insensitive => True);
+      Create_Matcher
+        (Pattern_List     => Excluded_Unit_Patterns,
+         Matcher          => Units_Excluded_Matcher,
+         Has_Matcher      => Has_Excluded_Matcher,
+         Case_Insensitive => True);
 
       --  Now go through all selected projects to find units of interest
 
@@ -1202,51 +1241,56 @@ package body Project is
          Process_Project (Prj_Info.Project);
       end loop;
 
-      --  Compute the coverage of patterns specified with --units to warn if
-      --  some patterns didn't match any unit.
+      --  Compute the coverage of the patterns specified with --units and
+      --  --excluded-units to warn if some patterns didn't match any unit.
+      --  Both are matched against the units considered before exclusion: a
+      --  pattern is covered as soon as it designates at least one unit of
+      --  the projects of interest.
 
-      if Units_Specified then
-         declare
-            Units_Present : String_Vectors.Vector;
-            --  All units that were included
+      declare
+         procedure Report_Uncovered_Patterns
+           (Patterns : String_Vectors.Vector; Option : String);
+         --  Warn about each pattern in Patterns that matches none of the
+         --  units in Candidate_Units. Option is the name of the command-line
+         --  option the patterns come from.
 
-            Patterns_Not_Covered : String_Sets.Set :=
-              To_String_Set (Unit_Patterns);
-            --  Patterns that do not match any of the present units
+         -------------------------------
+         -- Report_Uncovered_Patterns --
+         -------------------------------
 
-            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor);
+         procedure Report_Uncovered_Patterns
+           (Patterns : String_Vectors.Vector; Option : String)
+         is
+            Units : String_Vectors.Vector := Candidate_Units;
+            --  Copy of the corpus, as Match_Pattern_List filters it in place
 
-            --------------------------
-            -- Add_To_Unit_Presents --
-            --------------------------
-
-            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
-               P_Unit    : constant Compilation_Unit := Unit_Maps.Key (C);
-               Unit_Name : constant Unbounded_String :=
-                 (case P_Unit.Language is
-                    when Traces_Source.File_Based_Language =>
-                      +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
-                    when Traces_Source.Unit_Based_Language =>
-                      P_Unit.Unit_Name);
-            begin
-               Units_Present.Append (Unit_Name);
-            end Add_To_Unit_Presents;
-
+            Patterns_Not_Covered : String_Sets.Set := To_String_Set (Patterns);
+            --  Patterns that do not match any of the candidate units
          begin
-            Unit_Map.Iterate (Add_To_Unit_Presents'Access);
             Match_Pattern_List
-              (Patterns_List        => Unit_Patterns,
-               Strings_List         => Units_Present,
+              (Patterns_List        => Patterns,
+               Strings_List         => Units,
                Patterns_Not_Covered => Patterns_Not_Covered);
             for Pattern of Patterns_Not_Covered loop
                Warn
                  ("no unit "
                   & (+Pattern)
-                  & " (from --units) in the"
-                  & " projects of interest");
+                  & " (from "
+                  & Option
+                  & ") in the projects of interest");
             end loop;
-         end;
-      end if;
+         end Report_Uncovered_Patterns;
+
+      begin
+         if Units_Specified then
+            Report_Uncovered_Patterns (Unit_Patterns, "--units");
+         end if;
+
+         if Excluded_Units_Specified then
+            Report_Uncovered_Patterns
+              (Excluded_Unit_Patterns, "--excluded-units");
+         end if;
+      end;
 
       if Unit_Map.Is_Empty then
          Warn ("no unit of interest");
@@ -1555,11 +1599,11 @@ package body Project is
    -- Compute_Units_Of_Interest --
    -------------------------------
 
-   procedure Compute_Units_Of_Interest (Override_Units : String_Vectors.Vector)
-   is
+   procedure Compute_Units_Of_Interest
+     (Override_Units, Override_Excluded_Units : String_Vectors.Vector) is
    begin
       Build_Prj_Map;
-      Build_Unit_Map (Override_Units);
+      Build_Unit_Map (Override_Units, Override_Excluded_Units);
    end Compute_Units_Of_Interest;
 
    -------------------------------------------

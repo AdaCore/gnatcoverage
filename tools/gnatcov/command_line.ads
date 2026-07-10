@@ -184,6 +184,7 @@ package Command_Line is
       Opt_Gargs,
       Opt_Scos,
       Opt_Units,
+      Opt_Excluded_Units,
       Opt_SID,
       Opt_Subp_Of_Interest,
       Opt_Routines,
@@ -1777,6 +1778,22 @@ package Command_Line is
              "State the set of units of interest by name,"
              & " overriding the GPR-based selection by -P, etc."
              & " Supports globbing patterns.",
+           Commands  =>
+             (Cmd_Run
+              | Cmd_Coverage
+              | Cmd_Scan_Decisions
+              | Cmd_Map_Routines
+              | Cmd_Instrument_Project => True,
+              others                   => False),
+           Internal  => False),
+      Opt_Excluded_Units          =>
+        Create
+          (Long_Name => "--excluded-units",
+           Pattern   => "UNIT|@LISTFILE",
+           Help      =>
+             "State the set of units to exclude from the units of"
+             & " interest by name, overriding the GPR-based selection"
+             & " by -P, etc. Supports globbing patterns.",
            Commands  =>
              (Cmd_Run
               | Cmd_Coverage

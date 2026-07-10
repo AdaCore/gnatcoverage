@@ -187,13 +187,23 @@ considered of interest within a project are as follows:
   attributes are removed from the initial set to yield the set to consider.
 
 Finally, the list of units of interest for a given execution of |gcv| can also
-be overridden from the command line using the :cmd-option:`--units` switch.
-When this option is used, the project files attributes are ignored.
+be overridden from the command line using the :cmd-option:`--units` and
+:cmd-option:`--excluded-units` switches. When either of these options is used,
+the project files attributes are ignored.
 
-The switch may appear multiple times. Each occurrence indicates one
-unit to focus on, or with the @ syntax the name of a text file
-containing a list of units to focus on, one per line. The effect of
-multiple switches accumulate.
+The switches may appear multiple times. Each occurrence indicates one
+unit to focus on (:cmd-option:`--units`) or to exclude
+(:cmd-option:`--excluded-units`), or with the @ syntax the name of a text file
+containing a list of units, one per line. The effect of multiple switches
+accumulate.
+
+Similarly to the project attributes, the set of units of interest is computed
+by first building an initial set from the :cmd-option:`--units` occurrences
+(all the units of the projects of interest if the switch is absent), then
+removing from it the units matching the :cmd-option:`--excluded-units`
+occurrences. In particular, when the exclude/include sets overlap,
+:cmd-option:`--excluded-units` prevails: a unit matching both switches is not
+of interest.
 
 The effect of the example attributes provided previously could then
 first be achieved with::
@@ -208,6 +218,10 @@ or by creating a ``units.list`` file with::
 and then executing::
 
   gnatcov <command> --units=@units.list
+
+or, keeping every unit of interest except ``pak2``::
+
+  gnatcov <command> -P... --excluded-units=pak2
 
 Conveying *subprograms* of interest (experimental)
 **************************************************
