@@ -107,12 +107,22 @@ class SortByFiles(OutputRefiner[str]):
         by_file: dict[str, list[str]] | None = None
         current_file: str | None = None
 
+        # When processing a section that contains a list of files ("Preserving
+        # instrumentation artifacts"), temporary store log lines in
+        # "lines_to_sort" so that we sort them only once all files are
+        # collected for that section.
+        lines_to_sort: list[str] | None = None
+
         def flush_files() -> None:
             """Append all log lines for files seen so far to result."""
-            if by_file is None:
-                return
-            for _, lines in sorted(by_file.items()):
-                result.extend(lines)
+            nonlocal lines_to_sort
+            assert lines_to_sort is None or by_file is None
+            if lines_to_sort:
+                result.extend(sorted(lines_to_sort))
+                lines_to_sort = None
+            elif by_file:
+                for _, lines in sorted(by_file.items()):
+                    result.extend(lines)
 
         for line in output.splitlines():
             if line in ("Coverage instrumentation", "Main instrumentation"):
@@ -123,6 +133,13 @@ class SortByFiles(OutputRefiner[str]):
                 by_file = {}
                 current_file = None
                 result.append(line)
+            elif line == (
+                "[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Preserving instrumentation"
+                " artifacts:"
+            ):
+                flush_files()
+                lines_to_sort = []
+                result.append(line)
             elif line.startswith(
                 "[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing "
             ):
@@ -132,6 +149,10 @@ class SortByFiles(OutputRefiner[str]):
                     by_file = {}
                 by_file[project_name] = [line]
                 current_file = project_name
+            elif lines_to_sort is not None:
+                # Section of sorted lines being processed: add the current line
+                # to the list of lines to sort.
+                lines_to_sort.append(line)
             elif by_file is None:
                 # No section being processed: just forward this log line
                 result.append(line)
