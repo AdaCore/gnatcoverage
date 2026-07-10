@@ -56,9 +56,6 @@ unit_name = (
     "_TO_AVOID_PATH_NAME_LIMIT"
 )
 
-# We normalize the case of files on Windows, as such the report files won't
-# have the same case as the original filename.
-
 check_xcov_reports(
     "obj", {"main.c.xcov": {"+": {6}}, f"{unit_name}.c.xcov": {"+": {6}}}
 )
