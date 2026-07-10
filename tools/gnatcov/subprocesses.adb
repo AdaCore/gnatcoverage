@@ -55,6 +55,28 @@ package body Subprocesses is
    --  In addition, in case of failure and Output_File is not empty, forward
    --  its content to the standard error strem.
 
+   --------------
+   -- Log_Exec --
+   --------------
+
+   procedure Log_Exec (Program : String; Arguments : String_Vectors.Vector) is
+      Log : Unbounded_String;
+   begin
+      Append (Log, "exec:");
+      Append (Log, " '" & Program & "'");
+
+      for A of Arguments loop
+
+         --  Quote the arguments to print empty strings and correctly
+         --  escape quoted strings.
+
+         Append (Log, " '");
+         Append (Log, A);
+         Append (Log, "'");
+      end loop;
+      Subprocesses_Trace.Trace (+Log);
+   end Log_Exec;
+
    ---------
    -- "=" --
    ---------
@@ -307,26 +329,12 @@ package body Subprocesses is
 
       --  Instantiate the argument list
 
-      declare
-         Log : Unbounded_String;
-      begin
-         Process_Types.Add_Argument (Args, Program.all);
-         Append (Log, "exec:");
-         Append (Log, " '" & Program.all & "'");
-         Free (Program);
-
-         for A of Arguments loop
-            Process_Types.Add_Argument (Args, +A);
-
-            --  Quote the arguments to print empty strings and correctly
-            --  escape quoted strings.
-
-            Append (Log, " '");
-            Append (Log, A);
-            Append (Log, "'");
-         end loop;
-         Subprocesses_Trace.Trace (+Log);
-      end;
+      Process_Types.Add_Argument (Args, Program.all);
+      for A of Arguments loop
+         Process_Types.Add_Argument (Args, +A);
+      end loop;
+      Log_Exec (Program.all, Arguments);
+      Free (Program);
 
       --  Actually run the subprocess
 

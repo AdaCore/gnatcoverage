@@ -33,6 +33,10 @@ package Subprocesses is
    Subprocesses_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("SUBPROCESSES");
 
+   procedure Log_Exec (Program : String; Arguments : String_Vectors.Vector);
+   --  Log to Subprocesses_Traces the command line for a subprocess that is
+   --  about to be executed.
+
    type Command_Type is record
       Command : Unbounded_String;
       --  Command (executable file) to run
