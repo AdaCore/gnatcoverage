@@ -41,13 +41,13 @@ project Libsupport is
                for Library_name use "support";
          end case;
 
-         case Do_Build is
-            when "no"  => for Externally_Built use "true";
-            when "yes" => for Externally_Built use "false";
-         end case;
-
       when "no" =>
          null;
+   end case;
+
+   case Do_Build is
+      when "no"  => for Externally_Built use "true";
+      when "yes" => for Externally_Built use "false";
    end case;
 
    --  Now compute the set of source directories to use. A common one,
