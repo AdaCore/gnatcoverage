@@ -1,1 +1,4 @@
-[GPR.ACTIONS_SCHEDULER] Starting the graph iterator
+[Ada Instrument]  main.adb
+[Ada Instrument]  pkg.ads
+[C Instrument]    bar.c
+[C++ Instrument]  baz.cpp
