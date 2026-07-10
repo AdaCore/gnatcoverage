@@ -155,6 +155,7 @@ class SortByFiles(OutputRefiner[str]):
 # Run "gnatcov instrument" and check its output against our logging baselines
 # for all example projects.
 for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
+    thistest.log(f"== {project} / {subproject} ==")
     log = f"instr-{project}.txt"
     xcov(
         [
