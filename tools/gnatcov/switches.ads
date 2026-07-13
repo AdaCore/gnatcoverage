@@ -200,9 +200,13 @@ package Switches is
    --  When True, instrument statement blocks instead of statements
 
    Force : Boolean := False;
-   --  When True, overwrite annotations of the same kind and same location, or
-   --  of the same identifier if specified on the command line. Only relevant
-   --  for the annotate command.
+   --  Only relevant for:
+   --
+   --  * add-annotation/delete annotation: whether to overwrite annotations of
+   --    the same kind and same location, or of the same identifier if
+   --    specified on the command line.
+   --
+   --  * instrument: whether to force instrumentation (disable incrementality).
 
    Split_Extracted_Traces : Boolean := False;
    --  When True, each trace decoded by extract-base64-traces will be written

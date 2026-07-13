@@ -819,11 +819,18 @@ package Command_Line is
           (Long_Name  => "--force",
            Short_Name => "-f",
            Help       =>
-             "Overwrite preexisting annotations with the same kind matching"
-             & " the same location, or any preexisting annotation with the"
-             & " same identifier as the one specified on the command line.",
+             "For add-annotation and delete-annotation: overwrite preexisting"
+             & " annotations with the same kind matching the same location, or"
+             & " any preexisting annotation with the same identifier as the"
+             & " one specified on the command line."
+             & ASCII.LF
+             & ASCII.LF
+             & "For instrument: disable incrementality, i.e. run the"
+             & " instrumenter on already instrumented sources even if that"
+             & " would be unnecessary.",
            Commands   =>
              (Cmd_Add_Annotation | Cmd_Delete_Annotation => True,
+              Cmd_Instrument                             => True,
               others                                     => False),
            Internal   => False),
       Opt_Annotate_After               =>
