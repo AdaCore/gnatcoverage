@@ -334,6 +334,10 @@ units, if any are designated by the root project:
    when computing the list of units of interest (they are ignored by default),
    for the sole purpose of instrumenting mains.
 
+:cmd-option:`--force`
+    requests |gcvins| to disable incrementality, i.e. run the instrumenter on
+    already instrumented sources even if that would be unnecessary.
+
 In addition, for trace files produced automatically from a ``bin-file``
 dump-channel, the ``--dump-filename-<>`` family of switches provides control
 over the name of trace files. See :ref:`instr-tracename` for more details on

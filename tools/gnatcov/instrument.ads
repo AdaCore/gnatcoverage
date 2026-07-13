@@ -52,8 +52,6 @@ package Instrument is
    use type Ada.Containers.Count_Type;
    use all type Unbounded_String;
 
-   Parallelism_Level : Natural := 1;
-
    type Instrumentation_Mode is
      (Project_Instrumentation, Integrated_Instrumentation);
 

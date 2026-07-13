@@ -200,13 +200,27 @@ package Switches is
    --  When True, instrument statement blocks instead of statements
 
    Force : Boolean := False;
-   --  When True, overwrite annotations of the same kind and same location, or
-   --  of the same identifier if specified on the command line. Only relevant
-   --  for the annotate command.
+   --  Only relevant for:
+   --
+   --  * add-annotation/delete annotation: whether to overwrite annotations of
+   --    the same kind and same location, or of the same identifier if
+   --    specified on the command line.
+   --
+   --  * instrument: whether to force instrumentation (disable incrementality).
 
    Split_Extracted_Traces : Boolean := False;
    --  When True, each trace decoded by extract-base64-traces will be written
    --  in separate files instead of overwritting them in the same file.
+
+   function Parallelism_Level return Positive;
+   --  Number of jobs that can be run in parallel
+
+   procedure Set_Parallelism_Level (Level : Natural);
+   --  Set the number of jobs that can be run in parallel. If 0, allow as many
+   --  jobs in parallel as there are CPUs on the host.
+
+   Force_Parallelism : Boolean := False;
+   --  Whether --force-parallelism was passed
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;

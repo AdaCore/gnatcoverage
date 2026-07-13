@@ -18,8 +18,9 @@ cp("../pkg.adb", ".")
 cp("../pkg.ads", ".")
 cp("../main.adb", ".")
 
-# Create a projec
+# Create a project
 root_prj = gprfor(srcdirs=["."], mains=["main.adb"])
+
 # The first instrumentation command should instrument all of the files
 xcov_instrument(
     gprsw=GPRswitches(root_project=root_prj),

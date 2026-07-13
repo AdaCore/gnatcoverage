@@ -105,7 +105,8 @@ package Command_Line is
       Opt_Suppress_Limitations,
       Opt_Compiler_Prefix,
       Opt_Main,
-      Opt_UOI);
+      Opt_UOI,
+      Opt_Force_Parallelism);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -214,6 +215,10 @@ package Command_Line is
 
    subtype Cmd_All_Annotate is
      Command_Type range Cmd_Add_Annotation .. Cmd_Show_Annotations;
+
+   subtype Commands_With_Parallelism is
+     Command_Type range Cmd_Instrument_Project .. Cmd_Instrument_Project;
+   --  Subset of commands that support parallelism, i.e. which accept --jobs
 
    package Parser is new
      Argparse
@@ -814,11 +819,18 @@ package Command_Line is
           (Long_Name  => "--force",
            Short_Name => "-f",
            Help       =>
-             "Overwrite preexisting annotations with the same kind matching"
-             & " the same location, or any preexisting annotation with the"
-             & " same identifier as the one specified on the command line.",
+             "For add-annotation and delete-annotation: overwrite preexisting"
+             & " annotations with the same kind matching the same location, or"
+             & " any preexisting annotation with the same identifier as the"
+             & " one specified on the command line."
+             & ASCII.LF
+             & ASCII.LF
+             & "For instrument: disable incrementality, i.e. run the"
+             & " instrumenter on already instrumented sources even if that"
+             & " would be unnecessary.",
            Commands   =>
              (Cmd_Add_Annotation | Cmd_Delete_Annotation => True,
+              Cmd_Instrument                             => True,
               others                                     => False),
            Internal   => False),
       Opt_Annotate_After               =>
@@ -871,20 +883,31 @@ package Command_Line is
              & " compiler used to compile it.",
            Commands  => (Cmd_Setup => True, others => False),
            Internal  => False),
-      Opt_UOI                          =>
-        Create
-          (Long_Name => "--uoi",
-           Help      =>
-             "Whether the given unit should be instrumented as a uoi",
-           Commands  => (Cmd_Instrument_Source => True, others => False),
-           Internal  => False),
       Opt_Main                         =>
         Create
           (Long_Name => "--main",
            Help      =>
-             "Whether the given unit should be instrumented as a main",
+             "Whether the given unit should be instrumented as a main.",
            Commands  => (Cmd_Instrument_Source => True, others => False),
-           Internal  => False));
+           Internal  => False),
+      Opt_UOI                          =>
+        Create
+          (Long_Name => "--uoi",
+           Help      =>
+             "Whether the given unit should be instrumented as a unit of"
+             & " interest.",
+           Commands  => (Cmd_Instrument_Source => True, others => False),
+           Internal  => False),
+      Opt_Force_Parallelism            =>
+        Create
+          (Long_Name => "--force-parallelism",
+           Help      =>
+             "Whether to force using the parallel framework to run jobs. This"
+             & " is useful to test parallelism handling code while staying"
+             & " with a single job to keep resource usage in check during"
+             & " testing",
+           Commands  => (Commands_With_Parallelism => True, others => False),
+           Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>
@@ -1363,7 +1386,8 @@ package Command_Line is
            Help         =>
              "Maximal number of concurrently running tasks. Number of"
              & " processors of the machine if set to 0. Defaults to 1.",
-           Commands     => (Cmd_Instrument_Project => True, others => False),
+           Commands     =>
+             (Commands_With_Parallelism => True, others => False),
            At_Most_Once => False,
            Internal     => False),
 

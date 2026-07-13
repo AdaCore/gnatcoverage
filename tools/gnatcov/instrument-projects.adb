@@ -563,6 +563,9 @@ is
    Scheduler : GPR2.Build.Actions_Scheduler.Object;
    --  The scheduler takes care of scheduling source instrument actions
 
+   Serial_Execution : constant Boolean :=
+     not Force_Parallelism and then Parallelism_Level = 1;
+
    --  Start of processing for Instrument_Units_Of_Interest
 
 begin
@@ -809,7 +812,7 @@ begin
          Prj     : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
 
       begin
-         if Parallelism_Level = 1 then
+         if Serial_Execution then
             declare
                Inst_Action :
                  Instrument.Actions.Instrument_Source.Thread.Object;
@@ -847,12 +850,13 @@ begin
 
    --  Execute all of the actions
 
-   if Parallelism_Level = 1 then
+   if Serial_Execution then
       loop
          declare
             use GPR2.Build.Actions_Scheduler;
             Action_Rep : constant Action_Report :=
-              Tree_Db.Execute_Next_Action (Catch_Exceptions => False);
+              Tree_Db.Execute_Next_Action
+                (Catch_Exceptions => False, Force_Execution => Force);
          begin
             exit when Action_Rep.Status = No_Action_To_Execute;
          end;
@@ -860,7 +864,7 @@ begin
    else
       declare
          Opt : constant GPR2.Build.Actions_Scheduler.Options :=
-           (Keep_Temp_Files => Save_Temps, others => <>);
+           (Force => Force, Keep_Temp_Files => Save_Temps, others => <>);
       begin
          case Tree_Db.Execute (Scheduler, Opt) is
             when GPR2.Build.Actions_Scheduler.Success =>

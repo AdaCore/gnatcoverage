@@ -27,8 +27,6 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
-with System.Multiprocessors;
-
 with GPR2.Project.Registry.Exchange;
 
 with Snames;
@@ -1463,6 +1461,25 @@ procedure GNATcov_Bits_Specific is
          end;
       end if;
 
+      if Args.String_Args (Opt_Parallelism_Level).Present then
+         declare
+            Level : Natural;
+         begin
+            begin
+               Level :=
+                 Natural'Value
+                   (+Args.String_Args (Opt_Parallelism_Level).Value);
+            exception
+               when Constraint_Error =>
+                  Fatal_Error
+                    ("Parallelism level (-j or --jobs) must be a natural"
+                     & " integer value");
+            end;
+            Set_Parallelism_Level (Level);
+         end;
+      end if;
+      Force_Parallelism := Args.Bool_Args (Opt_Force_Parallelism);
+
       --  Import all external annotation files (this does not yet match the
       --  entries on actual source files) and validate that the annotations
       --  relevant to gnatcov are well formed.
@@ -1725,33 +1742,6 @@ procedure GNATcov_Bits_Specific is
 
             Copy_Arg_List (Opt_C_Opts, C_Opts);
             Copy_Arg_List (Opt_CPP_Opts, CPP_Opts);
-
-            if Args.String_Args (Opt_Parallelism_Level).Present then
-               declare
-                  Parallelism_Level : Natural;
-               begin
-                  begin
-                     Parallelism_Level :=
-                       Natural'Value
-                         (+Args.String_Args (Opt_Parallelism_Level).Value);
-                  exception
-                     when Constraint_Error =>
-                        Fatal_Error
-                          ("Parallelism level (-j or --jobs)"
-                           & " must be a natural integer value");
-                  end;
-
-                  --  Limit the number of spawned subprocesses to the number
-                  --  of cores.
-
-                  if Parallelism_Level = 0 then
-                     Instrument.Parallelism_Level :=
-                       Positive (System.Multiprocessors.Number_Of_CPUs);
-                  else
-                     Instrument.Parallelism_Level := Parallelism_Level;
-                  end if;
-               end;
-            end if;
 
          when others                                         =>
             null;
