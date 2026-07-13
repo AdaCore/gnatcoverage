@@ -105,7 +105,8 @@ package Command_Line is
       Opt_Suppress_Limitations,
       Opt_Compiler_Prefix,
       Opt_Main,
-      Opt_UOI);
+      Opt_UOI,
+      Opt_Force_Parallelism);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -889,7 +890,17 @@ package Command_Line is
              "Whether the given unit should be instrumented as a unit of"
              & " interest.",
            Commands  => (Cmd_Instrument_Source => True, others => False),
-           Internal  => False));
+           Internal  => False),
+      Opt_Force_Parallelism            =>
+        Create
+          (Long_Name => "--force-parallelism",
+           Help      =>
+             "Whether to force using the parallel framework to run jobs. This"
+             & " is useful to test parallelism handling code while staying"
+             & " with a single job to keep resource usage in check during"
+             & " testing",
+           Commands  => (Commands_With_Parallelism => True, others => False),
+           Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>
@@ -1368,7 +1379,8 @@ package Command_Line is
            Help         =>
              "Maximal number of concurrently running tasks. Number of"
              & " processors of the machine if set to 0. Defaults to 1.",
-           Commands     => (Cmd_Instrument_Project => True, others => False),
+           Commands     =>
+             (Commands_With_Parallelism => True, others => False),
            At_Most_Once => False,
            Internal     => False),
 

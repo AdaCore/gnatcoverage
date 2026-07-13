@@ -847,7 +847,7 @@ begin
 
    --  Execute all of the actions
 
-   if Parallelism_Level = 1 then
+   if not Force_Parallelism and then Parallelism_Level = 1 then
       loop
          declare
             use GPR2.Build.Actions_Scheduler;

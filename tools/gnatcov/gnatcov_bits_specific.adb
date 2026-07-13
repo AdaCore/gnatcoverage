@@ -1478,6 +1478,7 @@ procedure GNATcov_Bits_Specific is
             Set_Parallelism_Level (Level);
          end;
       end if;
+      Force_Parallelism := Args.Bool_Args (Opt_Force_Parallelism);
 
       --  Import all external annotation files (this does not yet match the
       --  entries on actual source files) and validate that the annotations

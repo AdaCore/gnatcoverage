@@ -215,6 +215,9 @@ package Switches is
    --  Set the number of jobs that can be run in parallel. If 0, allow as many
    --  jobs in parallel as there are CPUs on the host.
 
+   Force_Parallelism : Boolean := False;
+   --  Whether --force-parallelism was passed
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
