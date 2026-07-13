@@ -871,18 +871,19 @@ package Command_Line is
              & " compiler used to compile it.",
            Commands  => (Cmd_Setup => True, others => False),
            Internal  => False),
-      Opt_UOI                          =>
-        Create
-          (Long_Name => "--uoi",
-           Help      =>
-             "Whether the given unit should be instrumented as a uoi",
-           Commands  => (Cmd_Instrument_Source => True, others => False),
-           Internal  => False),
       Opt_Main                         =>
         Create
           (Long_Name => "--main",
            Help      =>
-             "Whether the given unit should be instrumented as a main",
+             "Whether the given unit should be instrumented as a main.",
+           Commands  => (Cmd_Instrument_Source => True, others => False),
+           Internal  => False),
+      Opt_UOI                          =>
+        Create
+          (Long_Name => "--uoi",
+           Help      =>
+             "Whether the given unit should be instrumented as a unit of"
+             & " interest.",
            Commands  => (Cmd_Instrument_Source => True, others => False),
            Internal  => False));
 
