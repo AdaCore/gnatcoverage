@@ -215,6 +215,10 @@ package Command_Line is
    subtype Cmd_All_Annotate is
      Command_Type range Cmd_Add_Annotation .. Cmd_Show_Annotations;
 
+   subtype Commands_With_Parallelism is
+     Command_Type range Cmd_Instrument_Project .. Cmd_Instrument_Project;
+   --  Subset of commands that support parallelism, i.e. which accept --jobs
+
    package Parser is new
      Argparse
        (Command_Type,

@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
+with System.Multiprocessors;
 
 with Inputs;
 with Outputs; use Outputs;
@@ -27,6 +28,9 @@ package body Switches is
 
    use type Unbounded_String;
    use Command_Line.Parser;
+
+   Current_Parallelism_Level : Positive := 1;
+   --  Number of jobs that can be run in parallel
 
    --------------
    -- Copy_Arg --
@@ -172,6 +176,27 @@ package body Switches is
          end if;
       end loop;
    end Process_File_Or_Dir_Switch;
+
+   -----------------------
+   -- Parallelism_Level --
+   -----------------------
+
+   function Parallelism_Level return Positive is
+   begin
+      return Current_Parallelism_Level;
+   end Parallelism_Level;
+
+   ---------------------------
+   -- Set_Parallelism_Level --
+   ---------------------------
+
+   procedure Set_Parallelism_Level (Level : Natural) is
+   begin
+      Current_Parallelism_Level :=
+        (if Level = 0
+         then Positive (System.Multiprocessors.Number_Of_CPUs)
+         else Level);
+   end Set_Parallelism_Level;
 
    ----------------------
    -- Load_Dump_Config --

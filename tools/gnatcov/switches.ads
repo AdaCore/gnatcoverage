@@ -208,6 +208,13 @@ package Switches is
    --  When True, each trace decoded by extract-base64-traces will be written
    --  in separate files instead of overwritting them in the same file.
 
+   function Parallelism_Level return Positive;
+   --  Number of jobs that can be run in parallel
+
+   procedure Set_Parallelism_Level (Level : Natural);
+   --  Set the number of jobs that can be run in parallel. If 0, allow as many
+   --  jobs in parallel as there are CPUs on the host.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
