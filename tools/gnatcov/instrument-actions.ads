@@ -16,8 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Logging;
+
 package Instrument.Actions is
 
    --  Namespace for units implementing instrumentation actions
+
+   Signature_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("INSTRUMENT_ACTIONS_SIGNATURE");
 
 end Instrument.Actions;
