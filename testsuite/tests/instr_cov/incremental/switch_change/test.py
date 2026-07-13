@@ -3,6 +3,8 @@ Check that when running gnatcov instrument with varying switches, gnatcov
 reinstruments the files.
 """
 
+from collections.abc import Iterator
+import contextlib
 import os
 
 from SCOV.instr import xcov_instrument
@@ -27,6 +29,26 @@ def check_instrumented_sources(label: str, instr_sources: set[str]) -> None:
     )
 
 
+@contextlib.contextmanager
+def gnatdebug_logs() -> Iterator[None]:
+    # Enable logs for LibGPR2's build signature checker and gnatcov's own
+    with open(".gnatdebug", "w") as f:
+        for name in (
+            "GPR.BUILD.SIGNATURE",
+            "GNATCOV.INSTRUMENT_ACTIONS_SIGNATURE",
+        ):
+            print(f"{name}=yes > debug_traces.txt", file=f)
+
+    # Let gnatcov run
+    yield
+
+    # Log the produced traces for post mortem investigation
+    with open("debug_traces.txt") as f:
+        thistest.log("GNATCOLL.Traces logs:")
+        for line in f:
+            thistest.log("  " + line.rstrip())
+
+
 def instrument_and_check(
     label: str,
     args: list[str],
@@ -40,38 +62,43 @@ def instrument_and_check(
         srcdirs=[".."], langs=["Ada", "C", "C++"], mains=["main.adb"]
     )
 
-    # Run the instrumenter a first time for statement coverage
-    xcov_instrument(gprsw=GPRswitches(root_project=root_prj), covlevel="stmt")
+    with gnatdebug_logs():
+        # Run the instrumenter a first time for statement coverage
+        xcov_instrument(
+            gprsw=GPRswitches(root_project=root_prj), covlevel="stmt"
+        )
 
-    # At this point, all sources should be instrumented (this is just a sanity
-    # check).
-    check_instrumented_sources("first", all_sources)
+        # At this point, all sources should be instrumented (this is just a
+        # sanity check).
+        check_instrumented_sources("first", all_sources)
 
-    # Run the instrumenter a second time, to check incrementality. Unless the
-    # purpose of this check is to verify the influence of a change of coverage
-    # level, still instrument for statement coverage.
-    if "--level" not in args:
-        args.append("--level=stmt")
-    xcov_instrument(
-        gprsw=GPRswitches(root_project=root_prj),
-        covlevel=None,
-        extra_args=args,
-        quiet=False,
-        out="instrument.out",
-    )
+    with gnatdebug_logs():
+        # Run the instrumenter a second time, to check incrementality. Unless
+        # the purpose of this check is to verify the influence of a change of
+        # coverage level, still instrument for statement coverage.
+        if "--level" not in args:
+            args.append("--level=stmt")
+        xcov_instrument(
+            gprsw=GPRswitches(root_project=root_prj),
+            covlevel=None,
+            extra_args=args,
+            quiet=False,
+            out="instrument.out",
+        )
 
-    # The non-quiet output from "gnatcov instrument" shows which unit was
-    # re-instrumented: units not mentionned in the output were not
-    # re-instrumented.
-    thistest.fail_if_diff(
-        baseline_file=f"../instrument-{label}.expected",
-        actual_file="instrument.out",
-    )
+        # The non-quiet output from "gnatcov instrument" shows which unit was
+        # re-instrumented: units not mentionned in the output were not
+        # re-instrumented.
+        thistest.fail_if_diff(
+            baseline_file=f"../instrument-{label}.expected",
+            actual_file="instrument.out",
+        )
 
-    # Now, only expected sources should be instrumented. This is to check that
-    # instrumented sources for units that were instrumented the first time, but
-    # no longer units of interest the second time, were correctly deleted.
-    check_instrumented_sources("second", instr_sources)
+        # Now, only expected sources should be instrumented. This is to check
+        # that instrumented sources for units that were instrumented the first
+        # time, but no longer units of interest the second time, were correctly
+        # deleted.
+        check_instrumented_sources("second", instr_sources)
 
 
 # Change the list of units of interest: still-of-interest units do not need to
