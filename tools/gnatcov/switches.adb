@@ -563,8 +563,8 @@ package body Switches is
             else GPR2.Build.Command_Line.Ignore);
       begin
          if Supports (Arg_Parser, Cmd, Opt) then
-            Result.Append (Create (+Opt_Name, Mode));
             for Opt_Arg of Opt_Args loop
+               Result.Append (Create (+Opt_Name, Mode));
                Result.Append (Create (+Opt_Arg, Mode));
             end loop;
          end if;
