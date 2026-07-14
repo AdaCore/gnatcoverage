@@ -144,6 +144,13 @@ is
    -- Options handling --
    ----------------------
 
+   --  In all option creation functions below (Create), the Incremental formal
+   --  determines whether adding/removing/modifying the option will trigger the
+   --  re-instrumentation (i.e. invalidate previous instrumentations).
+   --
+   --  Note that this should only be set for the switches that can be passed to
+   --  the "gnatcov instrument-source" command.
+
    type Bool_Option_Info is private;
    --  Holder for a boolean option synthetic description
 
@@ -423,10 +430,7 @@ private
       Internal              : Boolean;
 
       Incremental : Boolean;
-      --  Whether adding or removing this option should trigger instrumenting
-      --  the file again. Note that this should only be set for the
-      --  switches that can be passed to the "gnatcov instrument-source"
-      --  command.
+      --  See the comment above in the "Options handling" section
 
    end record;
 

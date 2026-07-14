@@ -288,6 +288,19 @@ package body Instrument.Actions.Instrument_Source is
          end;
       end if;
 
+      if Signature_Trace.Is_Active then
+         declare
+            Message : Unbounded_String;
+         begin
+            Append (Message, "Computed command:");
+            for A of Cmd_Line.Argument_List loop
+               Append (Message, " ");
+               Append (Message, A);
+            end loop;
+            Signature_Trace.Trace (+Message);
+         end;
+      end if;
+
       return Cmd_Line;
    end Compute_Command;
 
