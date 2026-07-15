@@ -264,7 +264,11 @@ package body Instrument.Actions.Instrument_Source is
          Cmd_Line.Add_Argument ("--main");
       end if;
 
-      --  Add the arguments for dump trigger instrumentation purposes
+      --  Dump arguments that were passed to "gnatcov instrument" are already
+      --  included in Cmd_Line (see the call to Common_Switches above), but
+      --  passing all options to re-state the dump config here is necessary so
+      --  that, if the dump config was left to the defaults from "gnatcov
+      --  setup", changes to these defaults trigger re-instrumentation.
 
       if Self.LU_Info.Is_Main or else Self.Dump_Config.Manual_Trigger then
          for Arg of Unparse_Config (Self.Dump_Config) loop
