@@ -605,8 +605,8 @@ package body Switches is
       end if;
 
       --  Unfortunately, we can't avoid the code duplication. Deal with all
-      --  kind of options: boolean, string and strings list. Do not pass
-      --  the --target and --RTS flags if there is a --config flag.
+      --  kinds of options: boolean, string and strings list. Do not pass the
+      --  --target and --RTS flags if there is a --config flag.
 
       for Opt in Bool_Options loop
          Process_Option
