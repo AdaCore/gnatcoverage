@@ -588,10 +588,14 @@ package body Switches is
             else GPR2.Build.Command_Line.Ignore);
       begin
          if Supports (Arg_Parser, Cmd, Opt) then
-            for Opt_Arg of Opt_Args loop
+            if Opt.Kind = Bool_Opt then
                Result.Append (Create (+Opt_Name, Mode));
-               Result.Append (Create (+Opt_Arg, Mode));
-            end loop;
+            else
+               for Opt_Arg of Opt_Args loop
+                  Result.Append (Create (+Opt_Name, Mode));
+                  Result.Append (Create (+Opt_Arg, Mode));
+               end loop;
+            end if;
          end if;
       end Process;
 
@@ -601,8 +605,8 @@ package body Switches is
       end if;
 
       --  Unfortunately, we can't avoid the code duplication. Deal with all
-      --  kind of options: boolean, string and strings list. Do not pass
-      --  the --target and --RTS flags if there is a --config flag.
+      --  kinds of options: boolean, string and strings list. Do not pass the
+      --  --target and --RTS flags if there is a --config flag.
 
       for Opt in Bool_Options loop
          Process_Option

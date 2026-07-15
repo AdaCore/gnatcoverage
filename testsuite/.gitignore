@@ -26,3 +26,4 @@ test.py.*
 .~undo-tree~
 internal-tests
 bsp_support
+.gpr-file-index-suite.json
