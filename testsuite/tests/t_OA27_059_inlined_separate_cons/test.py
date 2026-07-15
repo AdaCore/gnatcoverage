@@ -9,6 +9,8 @@ import os
 import os.path
 import shutil
 
+from e3.fs import rm
+
 from SCOV.minicheck import (
     build_run_and_coverage,
     checked_xcov,
@@ -19,6 +21,9 @@ from SUITE.gprutils import GPRswitches
 from SUITE.cutils import Wdir
 from SUITE.tutils import tracename_for, xcov
 
+# Cleanup artifacts from previous testsuite runs
+rm("obj*", recursive=True)
+rm("bin", recursive=True)
 
 wd = Wdir("tmp_")
 
