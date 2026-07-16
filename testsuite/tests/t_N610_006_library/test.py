@@ -1,9 +1,16 @@
 import re
 
+from e3.fs import rm
+
 from SCOV.minicheck import build_and_run
 from SUITE.cutils import contents_of, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, thistest, xcov
+
+
+# Cleanup artifacts from previous testsuite runs
+rm("obj", recursive=True)
+rm("lib", recursive=True)
 
 Wdir("tmp_")
 

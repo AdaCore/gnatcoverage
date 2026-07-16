@@ -15,6 +15,10 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import xcov
 
 
+# Cleanup artifacts from previous testsuite runs
+rm("obj", recursive=True)
+
+
 bin_traces = thistest.options.trace_mode == "bin"
 
 

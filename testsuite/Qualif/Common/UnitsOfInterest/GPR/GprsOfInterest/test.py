@@ -14,6 +14,9 @@ import os
 import e3.fs
 
 
+# Cleanup artifacts from previous testsuite runs
+e3.fs.rm("obj*", recursive=True)
+
 root_project = os.path.abspath("root.gpr")
 board = gnatemu_board_name(env.target.machine)
 board_arg = "-XBOARD={}".format(board)

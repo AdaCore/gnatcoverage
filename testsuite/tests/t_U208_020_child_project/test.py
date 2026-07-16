@@ -5,10 +5,16 @@ instrumented sources.
 
 import os
 
+from e3.fs import rm
+
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
+
+
+# Cleanup artifacts from previous testsuite runs
+rm("obj", recursive=True)
 
 p_gpr = os.path.abspath("p-child.gpr")
 obj_dir = os.path.abspath("obj/p-child")
