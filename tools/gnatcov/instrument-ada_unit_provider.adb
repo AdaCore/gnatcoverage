@@ -51,7 +51,7 @@ package body Instrument.Ada_Unit_Provider is
       F.Create (Filename);
       for Source of
         Project.Source_Closure
-          (View                  => Project.Project.Root_Project,
+          (View                  => Project.Root_Project,
            With_Externally_Built => True,
            With_Runtime          => True)
       loop

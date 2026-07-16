@@ -263,7 +263,7 @@ begin
    --  with the build of the extending project.
 
    Iterate_Projects
-     (Root_Project             => Project.Project.Root_Project,
+     (Root_Project             => Project.Root_Project,
       Process                  => Clean_Subdir'Access,
       Recursive                => True,
       Include_Extended         => True,
