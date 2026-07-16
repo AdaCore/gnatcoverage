@@ -101,21 +101,17 @@ def instrument_and_check(
         check_instrumented_sources("second", instr_sources)
 
 
-# Change the list of units of interest: still-of-interest units do not need to
-# be reinstrumented, and no-longer-of-interest units should be deleted by the
-# "clean_objdirs" pass.
+# It is suboptimal, but gnatcov is conservative: all options that were passed
+# to "gnatcov instrument" are blindly passed down to "gnatcov
+# instrument-source" when "gnatcov instrument-source" also accepts them
+# (--level and --dump-* options).
+
 instrument_and_check(
     "change-uoi",
     ["--units=main"],
     {"main.adb"},
 )
-
-# Change the coverage level. It should reinstrument every file.
 instrument_and_check("change-covlevel", ["--level", "stmt+mcdc"], all_sources)
-
-# Change a dump option. It should reinstrument only main sources: the only
-# argument that changes under the hood is that --dump-filename-simple is passed
-# to gnatcov instrument-source" for the main.
 instrument_and_check("change-dump", ["--dump-filename-simple"], all_sources)
 
 thistest.result()

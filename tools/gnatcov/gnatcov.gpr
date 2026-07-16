@@ -346,6 +346,11 @@ project Gnatcov is
    end case;
    for Object_Dir use Object_Dir & "/" & Build_Mode;
 
-   for Languages use ("Ada", "C", "C++", "Templates");
+   case Part is
+      when "gnatcov64" =>
+         for Languages use ("Ada", "C", "C++", "Templates");
+      when others =>
+         for Languages use ("Ada", "C");
+   end case;
 
 end Gnatcov;
