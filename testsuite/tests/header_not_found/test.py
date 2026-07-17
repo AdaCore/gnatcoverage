@@ -6,6 +6,8 @@ the version of the header that is in the ultimate extending project.
 
 import os
 
+from e3.fs import rm
+
 from SCOV.minicheck import (
     CovReport,
     build_run_and_coverage,
@@ -15,6 +17,9 @@ from SUITE.gprutils import GPRswitches
 from SUITE.cutils import Wdir
 from SUITE.tutils import thistest
 
+
+# Cleanup artifacts from previous testsuite runs
+rm("*/obj", recursive=True)
 
 Wdir("tmp_")
 

@@ -1,12 +1,16 @@
 import os.path
 import re
 
+from e3.fs import rm
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import Csw, GPRswitches, gprcov_for
 from SUITE.tutils import gprfor
 
+# Cleanup artifacts from previous testsuite runs
+rm("App/obj", recursive=True)
 
 pgm = "test_lt0"
 wd = Wdir("tmp_")

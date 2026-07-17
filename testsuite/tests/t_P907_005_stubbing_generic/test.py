@@ -2,6 +2,8 @@ import os
 import os.path
 import shutil
 
+from e3.fs import rm
+
 from SCOV.minicheck import (
     build_run_and_coverage,
     checked_xcov,
@@ -10,6 +12,10 @@ from SCOV.minicheck import (
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
+
+
+# Cleanup artifacts from previous testsuite runs
+rm("*/obj", recursive=True)
 
 
 class TestDriver:
