@@ -62,7 +62,6 @@ package body Project is
    use type GPR2.Language_Id;
    use type GPR2.Path_Name.Object;
    use type GPR2.Project.View.Object;
-   use type GPR2.Project_Kind;
    use type GPR2.Unit_Kind;
 
    use type Traces_Source.Supported_Language_Kind;
@@ -515,8 +514,7 @@ package body Project is
 
       Processed_Units, Queue : GPR2.Containers.Name_Set;
 
-      Root           : constant GPR2.Project.View.Object :=
-        Prj_Tree.Root_Project;
+      Root           : constant GPR2.Project.View.Object := Root_Project;
       Root_Has_Mains : constant Boolean := Root.Has_Mains;
    begin
       if Root_Has_Mains then
@@ -905,8 +903,7 @@ package body Project is
 
       declare
          Result : constant GPR2.Build.Source.Object :=
-           Prj_Tree.Root_Project.Visible_Source
-             (GPR2.Simple_Name (Simple_Name));
+           Root_Project.Visible_Source (GPR2.Simple_Name (Simple_Name));
       begin
          return
            (if Result.Is_Defined
@@ -998,12 +995,12 @@ package body Project is
       if Requested_Projects.Is_Empty then
          declare
             Origin_Attr : constant GPR2.Project.Attribute.Object :=
-              Prj_Tree.Root_Project.Attribute
+              Root_Project.Attribute
                 (GPR2.Project.Registry.Attribute.Origin_Project);
             Prj_Name    : constant String :=
               (if Origin_Attr.Is_Defined
                then Origin_Attr.Value.Text
-               else String (Prj_Tree.Root_Project.Name));
+               else String (Root_Project.Name));
          begin
             Requested_Projects.Insert (Prj_Name);
          end;
@@ -1514,11 +1511,15 @@ package body Project is
          Fatal_Error ("Could not load the project file, aborting.");
       end if;
 
-      --  We do not support non-library aggregate projects, no need to go
-      --  further.
+      --  We do not support non-library aggregate projects that contain more
+      --  than one aggregated project, no need to go further.
 
-      if Prj_Tree.Root_Project.Kind = GPR2.K_Aggregate then
-         Fatal_Error ("non-library aggregate projects are not supported");
+      if Prj_Tree.Root_Project.Kind = GPR2.K_Aggregate
+        and then Prj_Tree.Root_Project.Aggregated.Length > 1
+      then
+         Fatal_Error
+           ("non-library aggregate projects with more than one aggregated"
+            & " project are not supported");
       end if;
 
       --  If we were asked only to load the project file, stop there (i.e.
@@ -1529,7 +1530,7 @@ package body Project is
       end if;
 
       if not Externally_Built_Projects_Processing_Enabled
-        and then Prj_Tree.Root_Project.Is_Externally_Built
+        and then Root_Project.Is_Externally_Built
       then
          Fatal_Error
            ("Root project is marked as externally built, while externally"
@@ -1615,7 +1616,7 @@ package body Project is
 
    function Root_Project_Filename return String is
    begin
-      return String (Prj_Tree.Root_Project.Path_Name.Value);
+      return String (Root_Project.Path_Name.Value);
    end Root_Project_Filename;
 
    --------------------------------
@@ -1623,8 +1624,7 @@ package body Project is
    --------------------------------
 
    function Get_Single_Main_Executable return String is
-      Execs : constant GPR2.Path_Name.Set.Object :=
-        Prj_Tree.Root_Project.Executables;
+      Execs : constant GPR2.Path_Name.Set.Object := Root_Project.Executables;
    begin
       return
         (if Execs.Length = 1 then String (Execs.First_Element.Value) else "");
@@ -1673,7 +1673,7 @@ package body Project is
      (Language : Any_Language)
       return GPR2.Build.Compilation_Unit.Unit_Location_Vector is
    begin
-      return Enumerate_Mains (Prj_Tree.Root_Project, Language);
+      return Enumerate_Mains (Root_Project, Language);
    end Enumerate_Mains;
 
    ----------------
@@ -1682,7 +1682,7 @@ package body Project is
 
    function Output_Dir return String is
    begin
-      return String (Prj_Tree.Root_Project.Object_Directory.Value);
+      return String (Root_Project.Object_Directory.Value);
    end Output_Dir;
 
    --------------
@@ -1691,12 +1691,12 @@ package body Project is
 
    function Switches (Op : String) return String_Vectors.Vector is
       Origin_Attr : constant GPR2.Project.Attribute.Object :=
-        Prj_Tree.Root_Project.Attribute
+        Root_Project.Attribute
           (GPR2.Project.Registry.Attribute.Origin_Project);
       Actual_Prj  : constant GPR2.Project.View.Object :=
         (if Origin_Attr.Is_Defined
          then Lookup_Project (Origin_Attr.Value.Text)
-         else Prj_Tree.Root_Project);
+         else Root_Project);
       --  This intentionally does not use the most-extending view, as the
       --  origin project is supposed to be the root project of the user, and
       --  any extension is a tooling artifact.
@@ -1938,7 +1938,7 @@ package body Project is
             Resolved : constant GPR2.Path_Name.Object :=
               GPR2.Path_Name.Create_File (GPR2.Filename_Type (Full_Name));
          begin
-            for P of Prj_Tree.Root_Project.Closure (Include_Self => True) loop
+            for P of Root_Project.Closure (Include_Self => True) loop
                declare
                   Source : constant GPR2.Build.Source.Object :=
                     P.Source (GPR2.Simple_Name (Basename));
