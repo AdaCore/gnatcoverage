@@ -39,8 +39,9 @@ with Libadalang.Generic_API.Introspection;
 use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;                        use Libadalang.Sources;
 
-with GNATCOLL.Iconv; use GNATCOLL.Iconv;
-with GNATCOLL.JSON;  use GNATCOLL.JSON;
+with GNATCOLL.Iconv;        use GNATCOLL.Iconv;
+with GNATCOLL.JSON;         use GNATCOLL.JSON;
+with GNATCOLL.GMP.Integers; use GNATCOLL.GMP.Integers;
 with GNATCOLL.Utils;
 
 with Coverage_Options;                    use Coverage_Options;
@@ -3481,6 +3482,60 @@ package body Instrument.Ada_Unit is
       --  it is not an identifier, return null. Else, return the identifier
       --  as a symbol.
 
+      function Parse_Value
+        (E : Expr; Sloc : Slocs.Source_Location) return Annotation_Value;
+
+      -----------------
+      -- Parse_Value --
+      -----------------
+
+      function Parse_Value
+        (E : Expr; Sloc : Slocs.Source_Location) return Annotation_Value is
+      begin
+         if not E.P_Is_Static_Expr then
+            return (Arbitrary_Expr, Sloc, +To_UTF8 (E.Text));
+         end if;
+
+         declare
+            use Libadalang.Expr_Eval;
+            Value : constant Eval_Result := Expr_Eval (E);
+         begin
+            case Value.Kind is
+               when Enum_Lit                 =>
+                  if Value.Enum_Result.P_Enum_Type = E.P_Bool_Type then
+                     return (Boolean_Value, Sloc, As_Int (Value) /= 0);
+                  end if;
+
+               when Libadalang.Expr_Eval.Int =>
+                  declare
+                     Result : constant GNATCOLL.GMP.Integers.Big_Integer :=
+                       As_Int (Value);
+                  begin
+                     if Result > GNATCOLL.GMP.Long (Integer'Last) then
+                        Report (E, "Integer literal is too big", Warning);
+                        raise Invalid_Annotation_Argument_Error;
+                     end if;
+                     return
+                       (Integer_Value,
+                        Sloc,
+                        Integer'Value (GNATCOLL.GMP.Integers.Image (Result)));
+                  end;
+
+               when Real                     =>
+                  null;
+
+               when String_Lit               =>
+                  return
+                    (String_Value,
+                     Sloc,
+                     +To_UTF8 (To_Text (As_String (Value))));
+            end case;
+
+            Report (E, "Unhandled argument", Warning);
+            raise Invalid_Annotation_Argument_Error;
+         end;
+      end Parse_Value;
+
       Nb_Children : constant Natural := Prag_Args.Children_Count;
       Kind        : Src_Annotation_Kind;
 
@@ -3534,24 +3589,12 @@ package body Instrument.Ada_Unit is
                if not A.F_Name.Is_Null then
                   Report (A.F_Name, "Identifier not allowed here", Warning);
                   return;
-               elsif not A.F_Expr.P_Is_Static_Expr then
-                  Args (I) := (Arbitrary_Expr, Sloc, +To_UTF8 (A.F_Expr.Text));
                else
-                  declare
-                     use Libadalang.Expr_Eval;
-                     Value : constant Eval_Result := Expr_Eval (A.F_Expr);
                   begin
-                     case Value.Kind is
-                        when String_Lit =>
-                           Args (I) :=
-                             (String_Value,
-                              Sloc,
-                              +To_UTF8 (To_Text (As_String (Value))));
-
-                        when others     =>
-                           Report (A.F_Expr, "String expected", Warning);
-                           return;
-                     end case;
+                     Args (I) := Parse_Value (A.F_Expr, Sloc);
+                  exception
+                     when Invalid_Annotation_Argument_Error =>
+                        return;
                   end;
                end if;
             end;
@@ -3612,6 +3655,17 @@ package body Instrument.Ada_Unit is
 
          when Cov_On                       =>
             UIC.Disable_Coverage := False;
+
+         when Fine_Grained_Annotation_Kind =>
+
+            --  Fine grained exemptions go to the dedicated map only, not the
+            --  general purpose annotaions map.
+
+            Insert_Fine_Grained_Exemption
+              (UIC.Fine_Grained_Exemptions,
+               Result.Exemption_Req,
+               Result.Justification);
+            return;
 
          when others                       =>
             null;
@@ -10408,6 +10462,7 @@ package body Instrument.Ada_Unit is
       --  file.
 
       UIC.Annotations.Clear;
+      UIC.Fine_Grained_Exemptions.Clear;
       UIC.Scope_Entities := Scope_Entities_Trees.Empty_Tree;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
       UIC.Source_Decisions := Source_Decision_Vectors.Empty;

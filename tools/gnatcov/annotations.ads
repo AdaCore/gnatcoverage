@@ -87,13 +87,17 @@ package Annotations is
 
    type Report_Section is
      range Coverage_Level'Pos (Coverage_Level'First)
-           .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
+           .. Coverage_Level'Pos (Coverage_Level'Last) + 4;
    --  For report and SARIF formats. There is one report section for each
    --  coverage level, plus the following three special sections:
 
-   Coverage_Exclusions : constant Report_Section := Report_Section'Last - 2;
-   Undet_Coverage      : constant Report_Section := Report_Section'Last - 1;
-   Other_Errors        : constant Report_Section := Report_Section'Last;
+   Fine_Grained_Exemptions : constant Report_Section :=
+     Report_Section'Last - 3;
+   Coverage_Exclusions     : constant Report_Section :=
+     Report_Section'Last - 2;
+   Undet_Coverage          : constant Report_Section :=
+     Report_Section'Last - 1;
+   Other_Errors            : constant Report_Section := Report_Section'Last;
 
    function Section_Of_Message (M : Message) return Report_Section;
    --  Indicate the coverage criterion a given SCO/message pertains to (by its

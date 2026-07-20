@@ -151,6 +151,10 @@ package body SC_Obligations is
       ALI_Annotations : ALI_Annotation_Maps.Map;
       --  List of annotations for the unit
 
+      Fine_Grained_Exemptions : Exemption_Request_Maps.Map;
+      --  Mapping of exempted SCOs to corresponding justifications for this
+      --  unit.
+
       SCOs : SCO_Range_Vectors.Vector;
       --  List of SCOs for this unit
 
@@ -736,6 +740,20 @@ package body SC_Obligations is
         Read_Element => Read);
    --  Read a ALI_Annotation_Maps.Map from CLS
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Exemption_Request);
+   --  Read an unresolved exemptable SCO from CLS
+
+   procedure Read is new
+     Read_Map
+       (Key_Type     => Exemption_Request,
+        Element_Type => Unbounded_String,
+        Map_Type     => Exemption_Request_Maps.Map,
+        Clear        => Exemption_Request_Maps.Clear,
+        Insert       => Exemption_Request_Maps.Insert,
+        Read_Key     => Read,
+        Read_Element => Read);
+
    procedure Remap_BDD
      (CP_Vectors   : Source_Coverage_Vectors;
       Relocs       : Checkpoint_Relocations;
@@ -948,6 +966,22 @@ package body SC_Obligations is
         Write_Key     => Write,
         Write_Element => Write);
    --  Write a ALI_Annotation_Maps.Map to CSS
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : Exemption_Request);
+   --  Write an unresolved exemptable SCO to CSS
+
+   procedure Write is new
+     Write_Map
+       (Key_Type      => Exemption_Request,
+        Element_Type  => Unbounded_String,
+        Map_Type      => Exemption_Request_Maps.Map,
+        Cursor_Type   => Exemption_Request_Maps.Cursor,
+        Length        => Exemption_Request_Maps.Length,
+        Iterate       => Exemption_Request_Maps.Iterate,
+        Query_Element => Exemption_Request_Maps.Query_Element,
+        Write_Key     => Write,
+        Write_Element => Write);
 
    ------------------
    -- Local tables --
@@ -1393,6 +1427,7 @@ package body SC_Obligations is
       Read (CLS, Value.PP_Info_Map);
       Read (CLS, Value.Scope_Entities);
       Read (CLS, Value.ALI_Annotations);
+      Read (CLS, Value.Fine_Grained_Exemptions);
       Read (CLS, Value.SCOs);
       case Element_Template.Provider is
          when Compiler | LLVM =>
@@ -1484,29 +1519,68 @@ package body SC_Obligations is
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation)
    is
-      Kind : constant Src_Annotation_Kind :=
-        Src_Annotation_Kind'Val (CLS.Read_U8);
+      Kind : constant Src_Annotation_Kind := CLS.Read_Any_Annotation_Kind;
       V    : ALI_Annotation (Kind);
    begin
       case Kind is
-         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+         when Exempt_On
+            | Exempt_Off
+            | Fine_Grained_Annotation_Kind
+            | Cov_Off
+            | Cov_On                       =>
             V.Justification := CLS.Read_Unbounded_String;
-            if Kind = Exempt_On then
-               V.Violation_Count := 0;
-               V.Undetermined_Cov_Count := 0;
-            end if;
+            case Kind is
+               when Exempt_On                    =>
+                  V.Violation_Count := 0;
+                  V.Undetermined_Cov_Count := 0;
 
-         when Dump_Buffers | Reset_Buffers              =>
-            declare
-               Ignored : constant Unbounded_String :=
-                 CLS.Read_Unbounded_String;
-            begin
-               null;
-            end;
+               when Fine_Grained_Annotation_Kind =>
+
+                  --  Fine grained exemptions are stored in dedicated tables
+
+                  raise Program_Error;
+
+               when others                       =>
+                  null;
+            end case;
+
+         when Dump_Buffers | Reset_Buffers =>
+            null;
       end case;
 
       Value := V;
    end Read;
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Exemption_Request)
+   is
+      Kind : constant Exemption_Request_Kind :=
+        Exemption_Request_Kind'Val (CLS.Read_U8);
+
+      Template : Exemption_Request (Kind);
+   begin
+      Value := Template;
+      Value.Sloc := CLS.Read_Source_Location;
+
+      case Kind is
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
+            Value.Decision_Offset := CLS.Read_Integer;
+            case Kind is
+               when Decision_Outcome   =>
+                  Value.Outcome := CLS.Read_Boolean;
+
+               when Decision_Condition =>
+                  Value.Condition := CLS.Read_Condition;
+
+               when Full_Decision      =>
+                  null;
+            end case;
+      end case;
+   end Read;
+
+   ---------
+   -- "<" --
+   ---------
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean is
    begin
@@ -1528,6 +1602,70 @@ package body SC_Obligations is
 
       return False;
    end "<";
+
+   pragma
+     Warnings (Off, "condition can only be True if invalid values present");
+
+   function "<" (Left, Right : Exemption_Request) return Boolean is
+   begin
+      if Left.Kind < Right.Kind then
+         return True;
+      elsif Right.Kind < Left.Kind then
+         return False;
+      end if;
+
+      if Left.Sloc < Right.Sloc then
+         return True;
+      elsif Right.Sloc < Left.Sloc then
+         return False;
+      end if;
+
+      case Left.Kind is
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
+            if Left.Decision_Offset < Right.Decision_Offset then
+               return True;
+            elsif Right.Decision_Offset < Left.Decision_Offset then
+               return False;
+            end if;
+
+            case Left.Kind is
+               when Decision_Outcome   =>
+                  return Left.Outcome < Right.Outcome;
+
+               when Decision_Condition =>
+                  return Left.Condition < Right.Condition;
+
+               when Full_Decision      =>
+                  return False;
+            end case;
+      end case;
+   end "<";
+
+   function "<" (Left, Right : Exemptable_SCO) return Boolean is
+   begin
+      if Left.Kind < Right.Kind then
+         return True;
+      elsif Right.Kind < Left.Kind then
+         return False;
+      end if;
+
+      if Left.SCO < Right.SCO then
+         return True;
+      elsif Right.SCO < Left.SCO then
+         return False;
+      end if;
+
+      case Left.Kind is
+         when Decision_Outcome   =>
+            return Left.Outcome < Right.Outcome;
+
+         when Decision_Condition =>
+            return False;
+      end case;
+   end "<";
+
+   pragma
+     Warnings (On, "condition can only be True if invalid values present");
 
    ------------------------
    -- Sloc_Range_For_SCO --
@@ -2617,6 +2755,27 @@ package body SC_Obligations is
                      ALI_Annotation_Maps.Element (Cur));
                end loop;
             end;
+
+            --  Likewise for fine grained exemptions
+
+            declare
+               use Exemption_Request_Maps;
+
+               CP_Map   : Map renames CP_CU.Fine_Grained_Exemptions;
+               Real_Map : Map renames Real_CU.Fine_Grained_Exemptions;
+            begin
+               for CP_Cur in CP_Map.Iterate loop
+                  declare
+                     Request       : Exemption_Request := Key (CP_Cur);
+                     Justification : constant Unbounded_String :=
+                       Element (CP_Cur);
+                  begin
+                     Remap_SFI (Relocs, Request.Sloc.Source_File);
+                     Insert_Fine_Grained_Exemption
+                       (Real_Map, Request, Justification);
+                  end;
+               end loop;
+            end;
          end;
       end;
    end Checkpoint_Load_Unit;
@@ -2707,6 +2866,7 @@ package body SC_Obligations is
       Write (CSS, Value.PP_Info_Map);
       Write (CSS, Value.Scope_Entities);
       Write (CSS, Value.ALI_Annotations);
+      Write (CSS, Value.Fine_Grained_Exemptions);
       Write (CSS, Value.SCOs);
 
       case Value.Provider is
@@ -2778,11 +2938,42 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation)
    is
    begin
-      CSS.Write_U8 (Src_Annotation_Kind'Pos (Value.Kind));
-      CSS.Write
-        (if Value.Kind in Exempt_On | Exempt_Off | Cov_Off | Cov_On
-         then Value.Justification
-         else Null_Unbounded_String);
+      CSS.Write_Any_Annotation_Kind (Value.Kind);
+      case Value.Kind is
+         when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+            CSS.Write (Value.Justification);
+
+         --  Fine grained exemptions are stored in dedicated tables
+
+         when Fine_Grained_Annotation_Kind              =>
+            raise Program_Error;
+
+         when Dump_Buffers | Reset_Buffers              =>
+            null;
+      end case;
+   end Write;
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : Exemption_Request) is
+   begin
+      CSS.Write_U8 (Exemption_Request_Kind'Pos (Value.Kind));
+      CSS.Write (Value.Sloc);
+
+      case Value.Kind is
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
+            CSS.Write_Integer (Value.Decision_Offset);
+
+            case Value.Kind is
+               when Decision_Outcome   =>
+                  CSS.Write (Value.Outcome);
+
+               when Decision_Condition =>
+                  CSS.Write_Condition (Value.Condition);
+
+               when Full_Decision      =>
+                  null;
+            end case;
+      end case;
    end Write;
 
    ----------
@@ -3890,6 +4081,30 @@ package body SC_Obligations is
               & Sloc_Image (SCOD.Sloc_Range);
          end;
       end if;
+   end Image;
+
+   function Image (Self : Exemption_Request) return String is
+      Result : Unbounded_String;
+   begin
+      Append (Result, "exemption at " & Image (Self.Sloc) & " ");
+      case Self.Kind is
+         when Decision_Outcome | Decision_Condition | Full_Decision =>
+            case Self.Kind is
+               when Decision_Outcome   =>
+                  Append (Result, "for outcome " & Self.Outcome'Image);
+
+               when Decision_Condition =>
+                  Append
+                    (Result,
+                     "for condition " & Img (Natural (Self.Condition)));
+
+               when Full_Decision      =>
+                  Append (Result, "for all outcomes and decisions");
+            end case;
+
+            Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
+      end case;
+      return +Result;
    end Image;
 
    ---------------
@@ -6509,6 +6724,9 @@ package body SC_Obligations is
       --
       --  Raise an Invalid_Annotation_Argument_Error in all cases.
 
+      procedure Parse_Decision_Offset (Req : in out Exemption_Request);
+      --  Common handling code for "decision offset" annotation arguments
+
       ----------
       -- Warn --
       ----------
@@ -6520,6 +6738,18 @@ package body SC_Obligations is
          end if;
          raise Invalid_Annotation_Argument_Error;
       end Warn;
+
+      ---------------------------
+      -- Parse_Decision_Offset --
+      ---------------------------
+
+      procedure Parse_Decision_Offset (Req : in out Exemption_Request) is
+      begin
+         if Has_Next and then Args (Next).Kind = Integer_Value then
+            Req.Decision_Offset := Args (Next).Integer_Value;
+            Next := Next + 1;
+         end if;
+      end Parse_Decision_Offset;
 
       --  Start of processing for Parse_Annotation
    begin
@@ -6534,7 +6764,70 @@ package body SC_Obligations is
       --  Now decode arguments and initialize the annotation
 
       case Kind is
-         when Exempt_On | Cov_Off =>
+         when Exempt_On
+            | Exempt_Decision_Outcome
+            | Exempt_Decision_Condition
+            | Exempt_Full_Decision
+            | Cov_Off             =>
+
+            if Kind = Exempt_Decision_Outcome then
+
+               --  Require a boolean argument, followed by an optional integer
+               --  argument.
+
+               declare
+                  Req : Exemption_Request :=
+                    (Decision_Outcome, Sloc, 0, False);
+               begin
+                  if not Has_Next then
+                     Warn (Sloc, "Too few arguments");
+                  elsif Args (Next).Kind /= Boolean_Value then
+                     Warn (Args (Next).Sloc, "Boolean expected");
+                  end if;
+                  Req.Outcome := Args (Next).Boolean_Value;
+                  Next := Next + 1;
+
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+
+            elsif Kind = Exempt_Decision_Condition then
+
+               --  Require an integer argument, followed by an optional integer
+               --  argument.
+
+               declare
+                  Req : Exemption_Request := (Decision_Condition, Sloc, 0, 0);
+               begin
+                  if not Has_Next then
+                     Warn (Sloc, "Too few arguments");
+                  elsif Args (Next).Kind /= Integer_Value
+                    or else Args (Next).Integer_Value < 1
+                  then
+                     Warn (Args (Next).Sloc, "Positive integer expected");
+                  end if;
+                  Req.Condition :=
+                    Condition_Index (Args (Next).Integer_Value - 1);
+                  Next := Next + 1;
+
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+
+            elsif Kind = Exempt_Full_Decision then
+
+               --  Require an optional integer argument
+
+               declare
+                  Req : Exemption_Request := (Full_Decision, Sloc, 0);
+               begin
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+            end if;
+
+            --  Take the exemption justification, if there is one
+
             if not Has_Next then
                if not Silent then
                   Report
@@ -6546,6 +6839,8 @@ package body SC_Obligations is
                      & " region",
                      Warning);
                end if;
+            elsif Args (Next).Kind /= String_Value then
+               Warn (Args (Next).Sloc, "String expected");
             else
                Annotation.Justification := Args (Next).String_Value;
                Next := Next + 1;
@@ -7076,6 +7371,332 @@ package body SC_Obligations is
       end if;
       return ALI_Index;
    end Load_ALI;
+
+   -----------------------------------
+   -- Insert_Fine_Grained_Exemption --
+   -----------------------------------
+
+   procedure Insert_Fine_Grained_Exemption
+     (Exemptions    : in out Exemption_Request_Maps.Map;
+      Request       : Exemption_Request;
+      Justification : Unbounded_String)
+   is
+      use Exemption_Request_Maps;
+
+      Cur      : Cursor;
+      Inserted : Boolean;
+   begin
+      Exemptions.Insert (Request, Justification, Cur, Inserted);
+      if not Inserted and then Element (Cur) /= Justification then
+         Warn_Duplicate_Fine_Grained_Exemption
+           (Request, Justification, Element (Cur));
+      end if;
+   end Insert_Fine_Grained_Exemption;
+
+   -------------------------------------------
+   -- Warn_Duplicate_Fine_Grained_Exemption --
+   -------------------------------------------
+
+   procedure Warn_Duplicate_Fine_Grained_Exemption
+     (Request       : Exemption_Request;
+      Justification : Unbounded_String;
+      Existing      : Unbounded_String) is
+   begin
+      Report (Request.Sloc, "Duplicate " & Image (Request), Warning);
+      Report
+        (Request.Sloc,
+         "Discarding justification: " & (+Justification),
+         Warning);
+      Report (Request.Sloc, "In favor of: " & (+Existing), Warning);
+   end Warn_Duplicate_Fine_Grained_Exemption;
+
+   ---------------------------------
+   -- Set_Fine_Grained_Exemptions --
+   ---------------------------------
+
+   procedure Set_Fine_Grained_Exemptions
+     (Exemptions : Exemption_Request_Maps.Map)
+   is
+      use Exemption_Request_Maps;
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      --  Current file being processed
+   begin
+      for Cur in Exemptions.Iterate loop
+         declare
+            Request       : constant Exemption_Request := Key (Cur);
+            Justification : constant Unbounded_String := Element (Cur);
+         begin
+            if Request.Sloc.Source_File /= Current_SFI then
+               Current_SFI := Request.Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+
+            Insert_Fine_Grained_Exemption
+              (CU_Vector (Current_CU).Fine_Grained_Exemptions,
+               Request,
+               Justification);
+         end;
+      end loop;
+   end Set_Fine_Grained_Exemptions;
+
+   --------------------------------------
+   -- Resolve_Fine_Grained_Annotations --
+   --------------------------------------
+
+   procedure Resolve_Fine_Grained_Annotations
+     (Requests   : Exemption_Request_Maps.Map;
+      Exemptions : out Exemption_Maps.Map)
+   is
+      function Lookup_Decision
+        (Sloc : Local_Source_Location; Offset : Natural) return SCO_Id;
+      --   Look for the Offset'th decision that follows Sloc. Emit a warning
+      --   and return No_SCO_Id if there is no such decision.
+
+      procedure Insert (E : Exemptable_SCO);
+      --  Try to insert E in the map of resolved exemptions, emit a warning if
+      --  it is redundant with a different justification.
+
+      UE            : Exemption_Request;
+      Justification : Unbounded_String;
+
+      Last_File : Source_File_Index := No_Source_File;
+      Last_CU   : CU_Id := No_CU_Id;
+
+      ---------------------
+      -- Lookup_Decision --
+      ---------------------
+
+      function Lookup_Decision
+        (Sloc : Local_Source_Location; Offset : Natural) return SCO_Id
+      is
+         use Sloc_To_SCO_Maps;
+         Sloc_Bound : Source_Location;
+         Result     : SCO_Id := No_SCO_Id;
+      begin
+         --  Look for the statement that follows Sloc (if any). As a safeguard,
+         --  we do not allow obligation resolution to reach a SCO that goes
+         --  past that statement.
+         --
+         --  The intent is to forbid the following:
+         --
+         --     pragma Annotate (Xcov, Exempt_Decision_Outcome, False);
+         --
+         --     I : Integer := 0;
+         --     B : Boolean := C1 and then C2;
+         --
+         --  In order to avoid confusion (and thus potential mistakes), if
+         --  users want to exempt the decision in B declaration's
+         --  initializer, the pragma should be placed between I and B.
+         --
+         --  Still allow going over Annotate pragmas, so that multiple
+         --  exemptions can reach obligations in the same statement.
+
+         declare
+            Cur : Cursor :=
+              Sloc_To_SCO_Map (Last_File, Statement).Ceiling
+                ((Sloc, No_Local_Location));
+            SCO : SCO_Id := No_SCO_Id;
+         begin
+            while Has_Element (Cur) loop
+               SCO := Element (Cur);
+               if S_Kind (SCO) = Pragma_Statement
+                 and then
+                   SCO_Vector.Constant_Reference (SCO).Pragma_Name
+                   = Pragma_Annotate
+               then
+                  Next (Cur);
+                  SCO :=
+                    (if Has_Element (Cur) then Element (Cur) else No_SCO_Id);
+               else
+                  exit;
+               end if;
+            end loop;
+
+            Sloc_Bound :=
+              (if SCO = No_SCO_Id then Slocs.No_Location else Last_Sloc (SCO));
+         end;
+
+         --  Now, look for the exempted obligation
+
+         declare
+            Cur     : Cursor :=
+              Sloc_To_SCO_Map (Last_File, Decision).Ceiling
+                ((Sloc, Slocs.No_Local_Location));
+            Skipped : Natural := 0;
+         begin
+            while Has_Element (Cur) and then Skipped < Offset loop
+               Skipped := Skipped + 1;
+               Next (Cur);
+            end loop;
+            if Has_Element (Cur)
+              and then
+                (Sloc_Bound = Slocs.No_Location
+                 or else Last_Sloc (Element (Cur)) <= Sloc_Bound)
+            then
+               Result := Element (Cur);
+            else
+               declare
+                  Msg : Unbounded_String;
+               begin
+                  Append (Msg, "Could not find a decision");
+                  if Sloc_Bound /= Slocs.No_Location then
+                     Append
+                       (Msg, " before the end of the next statement (at ");
+                     Append (Msg, Image (Sloc_Bound.L));
+                     Append (Msg, ")");
+                  end if;
+                  if Skipped > 0 then
+                     Append (Msg, " after skipping ");
+                     Append (Msg, Img (Skipped));
+                     Append (Msg, " decision");
+                     Append (Msg, (if Skipped > 1 then "s" else ""));
+                  end if;
+                  Append (Msg, " while processing exemption annotation");
+                  Report (UE.Sloc, +Msg, Warning);
+               end;
+            end if;
+
+            return Result;
+         end;
+      end Lookup_Decision;
+
+      ------------
+      -- Insert --
+      ------------
+
+      procedure Insert (E : Exemptable_SCO) is
+         Insert_Cur : Exemption_Maps.Cursor;
+         Inserted   : Boolean;
+      begin
+         Exemptions.Insert (E, Justification, Insert_Cur, Inserted);
+         if not Inserted
+           and then Exemption_Maps.Element (Insert_Cur) /= Justification
+         then
+            Warn_Duplicate_Fine_Grained_Exemption
+              (UE, Justification, Exemption_Maps.Element (Insert_Cur));
+         end if;
+      end Insert;
+
+      --  Start of processing for Resolve_Fine_Grained_Annotations
+   begin
+      Exemptions.Clear;
+      for Cur in Requests.Iterate loop
+         UE := Exemption_Request_Maps.Key (Cur);
+         Justification := Exemption_Request_Maps.Element (Cur);
+
+         --  Make sure we have the CU that corresponds to this exemption
+         --  request.
+
+         if UE.Sloc.Source_File /= Last_File then
+            Last_File := UE.Sloc.Source_File;
+            declare
+               use CU_Maps;
+               Cur : constant Cursor := CU_Map.Find (Last_File);
+            begin
+               --  Exemption requests come either:
+               --
+               --  * from instrumented sources: in this case we know there is a
+               --    CU associated to it, by construction,
+               --
+               --  * from external annotations: these are loaded on demand for
+               --    specific files: the ones that are instrumented (likewise:
+               --    they have a corresponding CU, by construction), and the
+               --    ones for which we produce a report (we know they have a
+               --    corresponding CU, we would not try to include them in the
+               --    report otherwise).
+
+               pragma Assert (Has_Element (Cur));
+               Last_CU := Element (Cur);
+            end;
+         end if;
+         pragma Assert (Last_CU /= No_CU_Id);
+
+         declare
+            E :
+              Exemptable_SCO
+                (case UE.Kind is
+                   when Decision_Outcome   => Decision_Outcome,
+                   when Decision_Condition => Decision_Condition,
+                   when Full_Decision      => Decision_Outcome);
+         begin
+            E.SCO := Lookup_Decision (UE.Sloc.L, UE.Decision_Offset);
+            if E.SCO = No_SCO_Id then
+               goto Continue;
+            elsif UE.Kind = Decision_Condition then
+               if UE.Condition > Last_Cond_Index (E.SCO) then
+                  Report
+                    (UE.Sloc,
+                     "Could not find condition #"
+                     & Img (Natural (UE.Condition) + 1)
+                     & " of "
+                     & Image (E.SCO)
+                     & " while processing exemption annotation",
+                     Warning);
+                  goto Continue;
+               end if;
+               E.SCO := Condition (E.SCO, UE.Condition);
+            end if;
+
+            --  Finalize the initialization of E from UE
+
+            case UE.Kind is
+               when Decision_Outcome                   =>
+                  E.Outcome := UE.Outcome;
+
+               when Decision_Condition | Full_Decision =>
+                  null;
+            end case;
+
+            --  Ignore SCOs that make no sense, try to insert the other ones
+
+            case UE.Kind is
+               when Decision_Outcome   =>
+                  if not E.Outcome and then Is_Assertion_To_Cover (E.SCO) then
+                     Report
+                       (UE.Sloc,
+                        "Discarding assertion outcome FALSE exemption ("
+                        & (+Justification)
+                        & ")",
+                        Warning);
+                     goto Continue;
+                  end if;
+                  Insert (E);
+
+               when Decision_Condition =>
+                  Insert (E);
+
+               when Full_Decision      =>
+
+                  --  Exempt all relevant outcomes, and then all conditions
+
+                  E.Outcome := True;
+                  Insert (E);
+
+                  if not Is_Assertion_To_Cover (E.SCO) then
+                     E.Outcome := False;
+                     Insert (E);
+                  end if;
+
+                  for I in 0 .. Last_Cond_Index (E.SCO) loop
+                     Insert
+                       ((Kind => Decision_Condition,
+                         SCO  => Condition (E.SCO, I)));
+                  end loop;
+            end case;
+         end;
+
+         <<Continue>>
+      end loop;
+   end Resolve_Fine_Grained_Annotations;
+
+   procedure Resolve_Fine_Grained_Annotations
+     (CU : CU_Id; Exemptions : out Exemption_Maps.Map) is
+   begin
+      Resolve_Fine_Grained_Annotations
+        (CU_Vector (CU).Fine_Grained_Exemptions, Exemptions);
+   end Resolve_Fine_Grained_Annotations;
 
    ----------------
    -- Sloc_Range --

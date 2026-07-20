@@ -1,1 +1,2 @@
 block DEAD Hard-coded SID files
+ALL XFAIL Temporarily disabled until eng/das/cov/gnatcoverage#451 is done

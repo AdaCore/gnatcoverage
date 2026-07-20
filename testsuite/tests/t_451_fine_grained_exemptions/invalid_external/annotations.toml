@@ -1,0 +1,26 @@
+[foo]
+kind="absolute"
+file="main.adb"
+matcher={start_line=7, start_col=7, end_line=7, end_col=7}
+
+[[foo.annotations]]
+purpose="xcov.exempt.decision_outcome"
+justification = "Message 1"
+outcome = false
+
+[[foo.annotations]]
+purpose="xcov.exempt.decision_outcome"
+justification = "Message 2"
+outcome = true
+decision = 1
+
+[[foo.annotations]]
+purpose="xcov.exempt.decision_condition"
+justification = "Message 3"
+condition = 2
+decision = 1
+
+[[foo.annotations]]
+purpose="xcov.exempt.full_decision"
+justification = "Message 4"
+decision = 1

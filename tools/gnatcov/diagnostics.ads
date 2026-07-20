@@ -54,6 +54,7 @@ package Diagnostics is
       Error,
       Info,
       Violation,
+      Exempted_Violation,
       Undetermined_Cov,
       Exclusion);
    subtype Coverage_Kind is Report_Kind range Info .. Exclusion;

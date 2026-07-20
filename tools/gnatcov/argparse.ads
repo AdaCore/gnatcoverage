@@ -389,6 +389,11 @@ is
    --  Return the name for Ref according to Parser. It's a |-separated list of
    --  name as they appear on the command-lines.
 
+   function Option_Name
+     (Parser : Parser_Type; Ref : String_Options) return String
+   is (Option_Name (Parser, (String_Opt, Ref)));
+   --  Convenience wrapper for Option_Name
+
    function Is_Present
      (Args : Parsed_Arguments; Ref : Option_Reference) return Boolean;
    --  Return whether the Ref option is present in Args

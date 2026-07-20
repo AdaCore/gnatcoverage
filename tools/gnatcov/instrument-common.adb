@@ -286,6 +286,7 @@ package body Instrument.Common is
            (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
       Set_Annotations (ALI_Annotations);
+      Set_Fine_Grained_Exemptions (UIC.Fine_Grained_Exemptions);
    end Import_Annotations;
 
    -------------------------------------

@@ -54,12 +54,18 @@ package body SS_Annotations is
      Xcov_Namespace & To_Qualified_Name ("exempt");
    --  Common prefix for all exemption related annotations
 
-   Exempt_On_Purpose     : constant Ada_Qualified_Name :=
+   Exempt_On_Purpose                 : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("on");
-   Exempt_Off_Purpose    : constant Ada_Qualified_Name :=
+   Exempt_Off_Purpose                : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("off");
-   Exempt_Region_Purpose : constant Ada_Qualified_Name :=
+   Exempt_Region_Purpose             : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("region");
+   Exempt_Decision_Outcome_Purpose   : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("decision_outcome");
+   Exempt_Decision_Condition_Purpose : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("decision_condition");
+   Exempt_Full_Decision_Purpose      : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("full_decision");
 
    Buffers_Namespace : constant Ada_Qualified_Name :=
      Xcov_Namespace & To_Qualified_Name ("buffers");
@@ -201,6 +207,17 @@ package body SS_Annotations is
             return Exempt_Off;
          elsif Purpose.Element (3) = Exempt_Region_Purpose.Last_Element then
             return Exempt_Region;
+         elsif Purpose.Element (3)
+           = Exempt_Decision_Outcome_Purpose.Last_Element
+         then
+            return Exempt_Decision_Outcome;
+         elsif Purpose.Element (3)
+           = Exempt_Decision_Condition_Purpose.Last_Element
+         then
+            return Exempt_Decision_Condition;
+         elsif Purpose.Element (3) = Exempt_Full_Decision_Purpose.Last_Element
+         then
+            return Exempt_Full_Decision;
          end if;
       elsif Purpose.Element (2) = Buffers_Namespace.Last_Element then
 
@@ -246,28 +263,37 @@ package body SS_Annotations is
    function Purpose (Kind : Any_Annotation_Kind) return Ada_Qualified_Name is
    begin
       case Kind is
-         when Exempt_Region =>
+         when Exempt_Region             =>
             return Exempt_Region_Purpose;
 
-         when Exempt_On     =>
+         when Exempt_On                 =>
             return Exempt_On_Purpose;
 
-         when Exempt_Off    =>
+         when Exempt_Off                =>
             return Exempt_Off_Purpose;
 
-         when Dump_Buffers  =>
+         when Exempt_Decision_Outcome   =>
+            return Exempt_Decision_Outcome_Purpose;
+
+         when Exempt_Decision_Condition =>
+            return Exempt_Decision_Condition_Purpose;
+
+         when Exempt_Full_Decision      =>
+            return Exempt_Full_Decision_Purpose;
+
+         when Dump_Buffers              =>
             return Buffers_Dump_Purpose;
 
-         when Reset_Buffers =>
+         when Reset_Buffers             =>
             return Buffers_Reset_Purpose;
 
-         when Cov_Off       =>
+         when Cov_Off                   =>
             return Cov_Off_Purpose;
 
-         when Cov_On        =>
+         when Cov_On                    =>
             return Cov_On_Purpose;
 
-         when Unknown       =>
+         when Unknown                   =>
             return Ada_Identifier_Vectors.Empty_Vector;
       end case;
    end Purpose;
@@ -341,6 +367,7 @@ package body SS_Annotations is
       File            : Virtual_File;
       Matches         : Match_Result_Vec;
       New_Annotations : ALI_Annotation_Maps.Map;
+      New_Exemptions  : Exemption_Request_Maps.Map;
 
       procedure Process (Match : Match_Result; Kind : Any_Annotation_Kind);
       --  Insert to New_Annotations an annotation of the given kind for a match
@@ -352,86 +379,138 @@ package body SS_Annotations is
 
       procedure Process (Match : Match_Result; Kind : Any_Annotation_Kind) is
          use ALI_Annotation_Maps;
+         use TOML;
+
+         Details : constant TOML_Value := Match.Annotation;
 
          Justification : constant Unbounded_String :=
-           TOML_Utils.Get_Or_Null (Match.Annotation, "justification");
-
-         Annot : ALI_Annotation (Kind);
-
-         Sloc           : constant Slocs.Source_Location :=
+           TOML_Utils.Get_Or_Null (Details, "justification");
+         Annot         : ALI_Annotation (Kind);
+         Sloc          : constant Slocs.Source_Location :=
            To_Sloc
              ((if Kind = Exempt_On
                then Match.Location.Start_Sloc
                else Match.Location.End_Sloc),
               FI);
-         Cur            : Cursor := Get_Annotation (Sloc);
-         Existing_Annot : ALI_Annotation;
+         Req           : Exemption_Request;
+         Field         : TOML_Value;
+
+         --  Start of processing for Process
       begin
-         if Kind = Exempt_On then
-            Annot.Justification := Justification;
-            if Justification = Null_Unbounded_String then
-               Warn
-                 (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
-                  & ": Missing or empty justification for external"
-                  & " exemption annotation """
-                  & (+Match.Identifier)
-                  & """");
-               return;
-            end if;
+         if Kind
+            in Exempt_On
+             | Exempt_Decision_Outcome
+             | Exempt_Decision_Condition
+             | Exempt_Full_Decision
+         then
+            case Kind is
+               when Exempt_On                 =>
+                  Annot.Justification := Justification;
+                  Annot.Violation_Count := 0;
+                  Annot.Undetermined_Cov_Count := 0;
 
-            Annot.Violation_Count := 0;
-            Annot.Undetermined_Cov_Count := 0;
+               when Exempt_Decision_Outcome   =>
+                  Req :=
+                    (Kind => Decision_Outcome, Sloc => Sloc, others => <>);
+
+                  Field := Details.Get ("outcome");
+                  Req.Outcome := Field.As_Boolean;
+
+                  Field := Details.Get_Or_Null ("decision");
+                  Req.Decision_Offset :=
+                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+               when Exempt_Decision_Condition =>
+                  Req :=
+                    (Kind => Decision_Condition, Sloc => Sloc, others => <>);
+
+                  Field := Details.Get ("condition");
+                  Req.Condition := Condition_Index (Field.As_Integer);
+
+                  Field := Details.Get_Or_Null ("decision");
+                  Req.Decision_Offset :=
+                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+               when Exempt_Full_Decision      =>
+                  Req := (Kind => Full_Decision, Sloc => Sloc, others => <>);
+
+                  Field := Details.Get_Or_Null ("decision");
+                  Req.Decision_Offset :=
+                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+               when others                    =>
+                  raise Program_Error with "unreachable code";
+            end case;
          end if;
 
-         --  Check if the new annotations don't already contain an annotation
-         --  for this sloc.
+         --  For region-based annotations, check if the new annotations don't
+         --  already contain an annotation for this sloc. Fine grained
+         --  annotations have their own detection mechanism.
 
-         if not Has_Element (Cur) then
-            Cur := New_Annotations.Find (Sloc);
-         end if;
-         if Has_Element (Cur) then
-            Existing_Annot := Element (Cur);
-
-            --  Do not warn if the annotation is of the same kind and
-            --  identical message, as this could simply be a case of
-            --  external annotations passed both during
-            --  instrumentation and coverage report computation.
-            --
-            --  Do not check the message for Exmept_Off, as messages are
-            --  irrelevant for them.
-
-            if Existing_Annot.Kind /= Annot.Kind
-              or else
-                (Kind = Exempt_On
-                 and then Existing_Annot.Justification /= Annot.Justification)
-            then
-               Warn
-                 (Slocs.Image (Sloc)
-                  & ": Conflicting annotations for this line, ignoring the"
-                  & " external annotation """
-                  & (+Match.Identifier)
-                  & """");
-            end if;
-            return;
-         end if;
-
-         if Kind = Exempt_On and then Filter then
+         if Kind /= Exempt_Decision_Outcome then
             declare
-               SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
+               Cur            : Cursor := Get_Annotation (Sloc);
+               Existing_Annot : ALI_Annotation;
             begin
-               if SCO /= No_SCO_Id then
-                  Warn
-                    ("Exemption annotation at "
-                     & Slocs.Image (Sloc)
-                     & " intersects a coverage obligation ("
-                     & Image (SCO, True)
-                     & "), ignoring it");
+               if not Has_Element (Cur) then
+                  Cur := New_Annotations.Find (Sloc);
+               end if;
+               if Has_Element (Cur) then
+                  Existing_Annot := Element (Cur);
+
+                  --  Do not warn if the annotation is of the same kind and
+                  --  identical message, as this could simply be a case of
+                  --  external annotations passed both during
+                  --  instrumentation and coverage report computation.
+                  --
+                  --  Do not check the message for Exmept_Off, as messages are
+                  --  irrelevant for them.
+
+                  if Existing_Annot.Kind /= Annot.Kind
+                    or else
+                      (Kind = Exempt_On
+                       and then
+                         Existing_Annot.Justification /= Annot.Justification)
+                  then
+                     Warn
+                       (Slocs.Image (Sloc)
+                        & ": Conflicting annotations for this line, ignoring"
+                        & " the external annotation """
+                        & (+Match.Identifier)
+                        & """");
+                  end if;
                   return;
+               end if;
+
+               if Kind = Exempt_On and then Filter then
+                  declare
+                     SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
+                  begin
+                     if SCO /= No_SCO_Id then
+                        Warn
+                          ("Exemption annotation at "
+                           & Slocs.Image (Sloc)
+                           & " intersects a coverage obligation ("
+                           & Image (SCO, True)
+                           & "), ignoring it");
+                        return;
+                     end if;
+                  end;
                end if;
             end;
          end if;
 
-         New_Annotations.Insert (Sloc, Annot);
+         case Kind is
+            when Fine_Grained_Annotation_Kind =>
+               Insert_Fine_Grained_Exemption
+                 (New_Exemptions, Req, Justification);
+
+            when Exempt_On | Exempt_Off       =>
+               New_Annotations.Insert (Sloc, Annot);
+
+            when others                       =>
+               raise Program_Error with "unreachable code";
+         end case;
       end Process;
 
       --  Start of processing for Import_External_Exemptions
@@ -458,13 +537,13 @@ package body SS_Annotations is
       for Match of Matches loop
          if Match.Success then
             case Annotation_Kind (Match.Annotation) is
-               when Exempt_On     =>
+               when Exempt_On                 =>
                   Process (Match, Exempt_On);
 
-               when Exempt_Off    =>
+               when Exempt_Off                =>
                   Process (Match, Exempt_Off);
 
-               when Exempt_Region =>
+               when Exempt_Region             =>
 
                   --  Exempt_Region will insert an Exempt_On / Exempt_Off
                   --  couple of annotations.
@@ -472,7 +551,16 @@ package body SS_Annotations is
                   Process (Match, Exempt_On);
                   Process (Match, Exempt_Off);
 
-               when others        =>
+               when Exempt_Decision_Outcome   =>
+                  Process (Match, Exempt_Decision_Outcome);
+
+               when Exempt_Decision_Condition =>
+                  Process (Match, Exempt_Decision_Condition);
+
+               when Exempt_Full_Decision      =>
+                  Process (Match, Exempt_Full_Decision);
+
+               when others                    =>
                   null;
             end case;
          else
@@ -480,6 +568,7 @@ package body SS_Annotations is
          end if;
       end loop;
       Set_Annotations (New_Annotations);
+      Set_Fine_Grained_Exemptions (New_Exemptions);
    end Import_External_Exemptions;
 
    -----------------------------
@@ -790,9 +879,48 @@ package body SS_Annotations is
       Output_File   : Virtual_File;
       Language      : Any_Language := All_Languages;
       Justification : Unbounded_String;
+      Outcome       : Boolean;
+      Condition     : Condition_Index;
+      Decision      : Natural;
 
       function "+" (Opt : Command_Line.String_Options) return Unbounded_String
       is (Parser.Value_Or_Null (Args.String_Args (Opt)));
+
+      function Missing_Switch_Msg (Opt : String_Options) return String
+      is (Parser.Option_Name (Arg_Parser, Opt)
+          & " missing for a --kind="
+          & Kind_Image (Annot_Kind)
+          & " annotation");
+
+      function Invalid_Switch_Msg (Opt : String_Options) return String
+      is ("Invalid argument for "
+          & Parser.Option_Name (Arg_Parser, Opt)
+          & ": "
+          & (+Args.String_Args (Opt).Value));
+
+      procedure Load_Decision_Offset;
+      --  Initialize Decision from --decision
+
+      --------------------------
+      -- Load_Decision_Offset --
+      --------------------------
+
+      procedure Load_Decision_Offset is
+      begin
+         if Args.String_Args (Opt_Decision).Present then
+            declare
+               Decision_Str : constant String :=
+                 +Args.String_Args (Opt_Decision).Value;
+            begin
+               Decision := Natural'Value (Decision_Str);
+            exception
+               when Constraint_Error =>
+                  Fatal_Error (Invalid_Switch_Msg (Opt_Decision));
+            end;
+         else
+            Decision := 0;
+         end if;
+      end Load_Decision_Offset;
 
       New_Annot_DB  : Entry_DB;
       Entry_Purpose : Ada_Qualified_Name;
@@ -802,6 +930,7 @@ package body SS_Annotations is
       File_Prefix   : Unbounded_String := +Opt_Source_Root;
       Source        : GPR2.Build.Source.Object;
 
+      --  Start of processing for Add_Annotatino
    begin
       --  First, determine the kind of annotation we'll be generating
 
@@ -856,21 +985,22 @@ package body SS_Annotations is
       --  Validate the arguments depending on the requested annotation kind
 
       case Annot_Kind is
-         when Exempt_Region        =>
+         when Exempt_Region                                      =>
             Start_Sloc :=
               Get_Or_Error (+(+Opt_Start_Location), "--start-location");
             End_Sloc := Get_Or_Error (+(+Opt_End_Location), "--end-location");
 
             if not Args.String_Args (Opt_Justification).Present then
-               Warn
-                 ("--justification missing for an --kind="
-                  & Kind_Image (Annot_Kind)
-                  & " annotation");
+               Warn (Missing_Switch_Msg (Opt_Justification));
             end if;
             Justification :=
               Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
 
-         when Exempt_On | Cov_Off  =>
+         when Exempt_On
+            | Exempt_Decision_Outcome
+            | Exempt_Decision_Condition
+            | Exempt_Full_Decision
+            | Cov_Off                                            =>
 
             --  Accept either the --location or --start-location switches
 
@@ -882,16 +1012,51 @@ package body SS_Annotations is
             end if;
 
             if not Args.String_Args (Opt_Justification).Present then
-               Warn
-                 ("--justification missing for a --kind="
-                  & Kind_Image (Annot_Kind)
-                  & " annotation");
+               Warn (Missing_Switch_Msg (Opt_Justification));
             end if;
             Justification :=
               Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
             End_Sloc := Start_Sloc;
 
-         when Exempt_Off .. Cov_On =>
+            if Annot_Kind = Exempt_Decision_Outcome then
+               if Args.String_Args (Opt_Outcome).Present then
+                  declare
+                     Outcome_Str : constant String :=
+                       +Args.String_Args (Opt_Outcome).Value;
+                  begin
+                     Outcome := Boolean'Value (Outcome_Str);
+                  exception
+                     when Constraint_Error =>
+                        Fatal_Error (Invalid_Switch_Msg (Opt_Outcome));
+                  end;
+               else
+                  Fatal_Error (Missing_Switch_Msg (Opt_Outcome));
+               end if;
+
+               Load_Decision_Offset;
+
+            elsif Annot_Kind = Exempt_Decision_Condition then
+               if Args.String_Args (Opt_Condition).Present then
+                  declare
+                     Condition_Str : constant String :=
+                       +Args.String_Args (Opt_Condition).Value;
+                  begin
+                     Condition := Condition_Index'Value (Condition_Str) - 1;
+                  exception
+                     when Constraint_Error =>
+                        Fatal_Error (Invalid_Switch_Msg (Opt_Condition));
+                  end;
+               else
+                  Fatal_Error (Missing_Switch_Msg (Opt_Condition));
+               end if;
+
+               Load_Decision_Offset;
+
+            elsif Annot_Kind = Exempt_Full_Decision then
+               Load_Decision_Offset;
+            end if;
+
+         when Exempt_Off | Dump_Buffers | Reset_Buffers | Cov_On =>
 
             --  Accept either the --location or --start-location switches
 
@@ -903,7 +1068,7 @@ package body SS_Annotations is
             end if;
             End_Sloc := Start_Sloc;
 
-         when Unknown              =>
+         when Unknown                                            =>
             raise Program_Error with "Unreachable";
       end case;
 
@@ -932,10 +1097,29 @@ package body SS_Annotations is
       --  Add annotation kind specific fields
 
       case Annot_Kind is
-         when Exempt_On | Exempt_Region | Cov_Off =>
+         when Exempt_On
+            | Exempt_Region
+            | Exempt_Decision_Outcome
+            | Exempt_Decision_Condition
+            | Exempt_Full_Decision
+            | Cov_Off                      =>
             Annotation.Set ("justification", Create_String (Justification));
 
-         when Dump_Buffers | Reset_Buffers        =>
+            if Annot_Kind = Exempt_Decision_Outcome then
+               Annotation.Set ("outcome", Create_Boolean (Outcome));
+               Annotation.Set
+                 ("decision", Create_Integer (Any_Integer (Decision)));
+            elsif Annot_Kind = Exempt_Decision_Condition then
+               Annotation.Set
+                 ("condition", Create_Integer (Any_Integer (Condition)));
+               Annotation.Set
+                 ("decision", Create_Integer (Any_Integer (Decision)));
+            elsif Annot_Kind = Exempt_Full_Decision then
+               Annotation.Set
+                 ("decision", Create_Integer (Any_Integer (Decision)));
+            end if;
+
+         when Dump_Buffers | Reset_Buffers =>
             Annotation.Set
               ("insert_after",
                Create_Boolean (Args.Bool_Args (Opt_Annotate_After)));
@@ -949,10 +1133,10 @@ package body SS_Annotations is
                     (Args.String_Args (Opt_Dump_Filename_Prefix).Value));
             end if;
 
-         when Exempt_Off | Cov_On                 =>
+         when Exempt_Off | Cov_On          =>
             null;
 
-         when Unknown                             =>
+         when Unknown                      =>
             raise Program_Error with "Unreachable";
       end case;
 
@@ -1297,6 +1481,7 @@ package body SS_Annotations is
 
       Sort (Match_Results);
       declare
+         use TOML;
          Current_File : Virtual_File;
       begin
          for Match of Match_Results loop
@@ -1310,6 +1495,24 @@ package body SS_Annotations is
             declare
                Annot_Kind : constant Any_Annotation_Kind :=
                  Annotation_Kind (Match.Annotation);
+
+               procedure Process_Decision_Offset;
+               --  Common helper to dump the "decision" annotation field
+
+               -----------------------------
+               -- Process_Decision_Offset --
+               -----------------------------
+
+               procedure Process_Decision_Offset is
+                  Offset : constant TOML_Value :=
+                    Match.Annotation.Get_Or_Null ("decision");
+               begin
+                  if not Offset.Is_Null and then Offset.As_Integer /= 0 then
+                     Ada.Text_IO.Put
+                       ("; Decision:" & Any_Integer'Image (Offset.As_Integer));
+                  end if;
+               end Process_Decision_Offset;
+
             begin
                if Match.Success then
                   Ada.Text_IO.Put ("- " & Image (Match.Location) & "; ");
@@ -1324,12 +1527,40 @@ package body SS_Annotations is
                   & Kind_Image (Annot_Kind));
 
                case Annot_Kind is
-                  when Exempt_On | Exempt_Region | Cov_Off =>
+                  when Exempt_On
+                     | Exempt_Region
+                     | Exempt_Decision_Outcome
+                     | Exempt_Decision_Condition
+                     | Exempt_Full_Decision
+                     | Cov_Off                       =>
+                     if Annot_Kind = Exempt_Decision_Outcome then
+                        declare
+                           Outcome : constant TOML_Value :=
+                             Match.Annotation.Get ("outcome");
+                        begin
+                           Ada.Text_IO.Put
+                             ("; Outcome: "
+                              & Boolean'Image (Outcome.As_Boolean));
+                           Process_Decision_Offset;
+                        end;
+                     elsif Annot_Kind = Exempt_Decision_Condition then
+                        declare
+                           Condition : constant TOML_Value :=
+                             Match.Annotation.Get ("condition");
+                        begin
+                           Ada.Text_IO.Put
+                             ("; Condition: "
+                              & Img (Natural (Condition.As_Integer) + 1));
+                           Process_Decision_Offset;
+                        end;
+                     elsif Annot_Kind = Exempt_Full_Decision then
+                        Process_Decision_Offset;
+                     end if;
                      Ada.Text_IO.Put
                        ("; Justification: "
                         & (+Get_Or_Null (Match.Annotation, "justification")));
 
-                  when Dump_Buffers | Reset_Buffers        =>
+                  when Dump_Buffers | Reset_Buffers  =>
                      Ada.Text_IO.Put
                        ("; annotate after statement: "
                         & Boolean'Image
@@ -1344,7 +1575,7 @@ package body SS_Annotations is
                                  (Match.Annotation, "trace_prefix")));
                      end if;
 
-                  when Unknown | Exempt_Off | Cov_On       =>
+                  when Unknown | Exempt_Off | Cov_On =>
                      null;
                end case;
                if not Match.Success then
@@ -1425,6 +1656,34 @@ package body SS_Annotations is
             Annot      : constant TOML_Value := Entr.Annotations.Item (I);
             Annot_Kind : constant Any_Annotation_Kind :=
               Annotation_Kind (Annot);
+
+            procedure Validate_Decision_Offset;
+            --  Common helper to validate the "decision" annotation field
+
+            ------------------------------
+            -- Validate_Decision_Offset --
+            ------------------------------
+
+            procedure Validate_Decision_Offset is
+            begin
+               if not Annot.Has ("decision") then
+                  return;
+               end if;
+
+               if Annot.Get ("decision").Kind /= TOML_Integer
+                 or else
+                   Annot.Get ("decision").As_Integer
+                   not in 0 .. Any_Integer (Natural'Last)
+               then
+                  Warn
+                    ("Invalid decision offset for external exemption"
+                     & " annotation """
+                     & (+Identifier)
+                     & """, it will be ignored.");
+                  All_Ok := False;
+               end if;
+            end Validate_Decision_Offset;
+
          begin
             case Annot_Kind is
                when Unknown                       =>
@@ -1441,7 +1700,11 @@ package body SS_Annotations is
                      All_Ok := False;
                   end if;
 
-               when Exempt_On | Exempt_Region     =>
+               when Exempt_On
+                  | Exempt_Region
+                  | Exempt_Decision_Outcome
+                  | Exempt_Decision_Condition
+                  | Exempt_Full_Decision          =>
                   Some_Relevant := True;
                   if Get_Or_Null (Annot, "justification")
                     = Null_Unbounded_String
@@ -1452,6 +1715,40 @@ package body SS_Annotations is
                         & (+Identifier)
                         & """, it will be ignored.");
                      All_Ok := False;
+                  end if;
+
+                  if Annot_Kind = Exempt_Decision_Outcome then
+                     if not Annot.Has ("outcome")
+                       or else Annot.Get ("outcome").Kind /= TOML_Boolean
+                     then
+                        Warn
+                          ("Missing or invalid outcome for external exemption"
+                           & " annotation """
+                           & (+Identifier)
+                           & """, it will be ignored.");
+                        All_Ok := False;
+                     end if;
+                     Validate_Decision_Offset;
+
+                  elsif Annot_Kind = Exempt_Decision_Condition then
+                     if not Annot.Has ("condition")
+                       or else Annot.Get ("condition").Kind /= TOML_Integer
+                       or else
+                         Annot.Get ("condition").As_Integer
+                         not in Any_Integer (Condition_Index'First)
+                              .. Any_Integer (Condition_Index'Last)
+                     then
+                        Warn
+                          ("Missing or invalid condition for external"
+                           & " exemption annotation """
+                           & (+Identifier)
+                           & """, it will be ignored.");
+                        All_Ok := False;
+                     end if;
+                     Validate_Decision_Offset;
+
+                  elsif Annot_Kind = Exempt_Full_Decision then
+                     Validate_Decision_Offset;
                   end if;
 
                when Dump_Buffers | Reset_Buffers  =>

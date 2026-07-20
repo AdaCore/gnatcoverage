@@ -80,20 +80,23 @@ package Coverage.Source is
    --  Instrument.Input_Traces.Generic_Read_Source_Trace_File.
 
    procedure Compute_Line_State
-     (Line_Num  : Positive;
-      Line_Info : Line_Info_Access;
-      ST        : in out Scope_Traversal_Type);
+     (Line_Num   : Positive;
+      Line_Info  : Line_Info_Access;
+      ST         : in out Scope_Traversal_Type;
+      Exemptions : Exemption_Maps.Map);
    --  Set Line.State based on coverage information accumulated on all SCOs
    --  that cover the given line.
    --
    --  ST is used to filter the SCOs not belonging to subprograms of interest,
    --  it must be initialized to the CU for which we are computing coverage or
    --  left uninitialized.
+   --
+   --  Exemptions are the fine grained exemptions that may apply to this line.
 
    procedure Refine_Source_Coverage;
    --  Refine source coverage according to dominance information
 
-   subtype SCO_State is Line_State range Not_Covered .. Undetermined_Coverage;
+   subtype SCO_State is Line_State;
    function Get_Line_State
      (SCO : SCO_Id; Level : Coverage_Level) return SCO_State;
    --  Return SCO's contribution to the state of the enclosing line, i.e.
