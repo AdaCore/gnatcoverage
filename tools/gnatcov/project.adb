@@ -28,6 +28,7 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 --  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
 
+with GPR2;
 pragma Warnings (Off, "not referenced");
 with GPR2.Build.Source.Sets;
 pragma Warnings (On, "not referenced");
@@ -895,21 +896,32 @@ package body Project is
    ----------------------
 
    function Find_Source_File
-     (Simple_Name : String) return GNAT.Strings.String_Access is
+     (Simple_Name : String; Ambiguous : out Boolean)
+      return GNAT.Strings.String_Access is
    begin
+      Ambiguous := False;
       if not Prj_Tree.Is_Defined then
          return null;
       end if;
 
       declare
          Result : constant GPR2.Build.Source.Object :=
-           Root_Project.Visible_Source (GPR2.Simple_Name (Simple_Name));
+           Root_Project.Visible_Source
+             (GPR2.Simple_Name (Simple_Name), Ambiguous);
       begin
          return
            (if Result.Is_Defined
             then new String'(String (Result.Path_Name.Value))
             else null);
       end;
+   end Find_Source_File;
+
+   function Find_Source_File
+     (Simple_Name : String) return GNAT.Strings.String_Access
+   is
+      Dont_Care_Ambiguous : Boolean;
+   begin
+      return Find_Source_File (Simple_Name, Dont_Care_Ambiguous);
    end Find_Source_File;
 
    --------------------

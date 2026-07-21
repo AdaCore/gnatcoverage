@@ -222,6 +222,13 @@ package Switches is
    Force_Parallelism : Boolean := False;
    --  Whether --force-parallelism was passed
 
+   Auto_Source_Relocation : Boolean := False;
+   --  When True and when given a -P project file, `gnatcov coverage` will
+   --  map source files mentioned in the trace file to source files of the
+   --  project.
+   --  This is disabled when explicit source relocation options like
+   --  `--source-rebase` or `--source-search` are passed.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

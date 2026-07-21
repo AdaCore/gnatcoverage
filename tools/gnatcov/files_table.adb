@@ -31,13 +31,13 @@ with GNATCOLL.Iconv; use GNATCOLL.Iconv;
 with GNATCOLL.Utils; use GNATCOLL.Utils;
 with GNATCOLL.VFS;   use GNATCOLL.VFS;
 
-with Checkpoints;           use Checkpoints;
-with Coverage;              use Coverage;
-with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
+with Checkpoints;              use Checkpoints;
+with Coverage;                 use Coverage;
+with LLVM_JSON_Checkpoints;    use LLVM_JSON_Checkpoints;
 with Outputs;
-with Perf_Counters;         use Perf_Counters;
-with Project_Find_Source_File;
-with Switches;              use Switches;
+with Perf_Counters;            use Perf_Counters;
+with Project_Find_Source_File; use Project_Find_Source_File;
+with Switches;                 use Switches;
 
 package body Files_Table is
 
@@ -141,7 +141,7 @@ package body Files_Table is
 
    Renaming_Map : Filename_Rebase_Maps.Map;
    --  Cache for source rebasing/source search. When a file is successfully
-   --  rebased/seached, an entry will be added to this map with the original
+   --  rebased/searched, an entry will be added to this map with the original
    --  full path as the key and the rebase full path as the element. This
    --  limits the number of call to Locate_Source when querying mutliple times
    --  the file index for one given file.
@@ -183,7 +183,8 @@ package body Files_Table is
 
    function Use_Renaming_Map return Boolean
    is (First_Source_Rebase_Entry /= null
-       or else First_Source_Search_Entry /= null);
+       or else First_Source_Search_Entry /= null
+       or else Switches.Auto_Source_Relocation);
    --  Whether we should even try to rebase files using Renaming_Map or not
 
    function Locate_Source (File : Virtual_File) return Virtual_File;
@@ -1856,7 +1857,7 @@ package body Files_Table is
             --  If previous attempt failed, try again to locate the source file
             --  with the help of the project manager
 
-            FI.Full_Name := Project_Find_Source_File (FI.Simple_Name.all);
+            FI.Full_Name := Prj_Find_Source_File (FI.Simple_Name.all);
             if FI.Full_Name /= null then
                Try_Open (File, FI.Full_Name.all, Success);
                if not Success then
@@ -1934,6 +1935,30 @@ package body Files_Table is
             E := E.Next;
          end loop;
       end;
+
+      --  Try source relocation from project file sources (automatic)
+
+      if Switches.Auto_Source_Relocation and then not File.Is_Readable then
+         declare
+            Ambiguous : Boolean;
+            S_Acc     : constant GNAT.Strings.String_Access :=
+              Prj_Find_Source_File (+File.Base_Name, Ambiguous);
+         begin
+            if Ambiguous then
+               Files_Table_Trace.Trace
+                 ("Auto Source Reloc: "
+                  & File.Display_Base_Name
+                  & " is ambiguous. Not resolved.");
+            else
+               if S_Acc /= null then
+                  Candidate := Create (+S_Acc.all);
+                  if Candidate.Is_Readable then
+                     return Candidate;
+                  end if;
+               end if;
+            end if;
+         end;
+      end if;
 
       return File;
 

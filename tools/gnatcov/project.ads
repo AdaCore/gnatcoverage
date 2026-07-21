@@ -195,13 +195,18 @@ package Project is
    --  Note that this also returns source files for mains that are not units of
    --  interest.
 
-   function Find_Source_File (Simple_Name : String) return String_Access;
+   function Find_Source_File
+     (Simple_Name : String; Ambiguous : out Boolean) return String_Access;
    --  Look for the absolute path for the source file called Simple_Name in the
    --  loaded project tree. If no such source file is found, return null.
    --  Otherwise, a string is allocated and returned. In this case, the caller
    --  is responsible for deallocating the returned access.
+   --  If several source files match this name, Ambiguous is set to True.
    --
    --  If no project is loaded, just return null.
+
+   function Find_Source_File (Simple_Name : String) return String_Access;
+   --  Same as above but discards the Ambiguous parameter.
 
    function Switches (Op : String) return String_Vectors.Vector
    with Pre => Is_Project_Loaded;

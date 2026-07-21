@@ -18,13 +18,21 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-function Project_Find_Source_File (Simple_Name : String) return String_Access;
---  Look for the absolute path for the source file called Simple_Name in the
---  loaded project tree. If no such source file is found, return null.
---  Otherwise, a string is allocated and returned. In this case, the caller
---  is responsible for deallocating the returned access.
---
---  If no project is loaded, just return null.
+package Project_Find_Source_File is
 
---  Keeping this function separated from the other Project APIs is necessary to
---  avoid including GPR2 in links that do not really need it.
+   function Prj_Find_Source_File
+     (Simple_Name : String; Ambiguous : out Boolean) return String_Access;
+   --  Look for the absolute path for the source file called Simple_Name in the
+   --  loaded project tree. If no such source file is found, return null.
+   --  Otherwise, a string is allocated and returned. In this case, the caller
+   --  is responsible for deallocating the returned access.
+   --
+   --  If no project is loaded, just return null.
+
+   --  Keeping this function separated from the other Project APIs is necessary
+   --  to avoid including GPR2 in links that do not really need it.
+
+   function Prj_Find_Source_File (Simple_Name : String) return String_Access;
+   --  Same as above but discards the Ambiguous result
+
+end Project_Find_Source_File;
