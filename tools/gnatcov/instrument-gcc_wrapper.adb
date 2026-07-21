@@ -20,7 +20,6 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Containers.Vectors;
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings;     use Ada.Strings;
-with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
@@ -1263,139 +1262,31 @@ begin
             --------------------------
 
             procedure Inspect_Dynamic_Deps is
-               Args         : String_Vectors.Vector;
-               Ldd_Filename : constant String :=
+               Args          : String_Vectors.Vector;
+               Temp_File     : File_Type;
+               Temp_Filename : constant String :=
                  (+Prj.Output_Dir.Full_Name)
-                 / ("ldd_"
+                 / ("sharedlibs_"
                     & Filename_Slug (+Comp_DB.Link_Command.Target.Full_Name));
-               Ldd_File     : File_Type;
-               Success      : Boolean;
             begin
+               Args.Append (+"dump-shared-lib-deps");
+               Args.Append (+"-o");
+               Args.Append (+Temp_Filename);
                Args.Append (+(+Comp_DB.Link_Command.Target.Full_Name));
-               Success :=
-                 Run_Command
-                   (Command             => +"ldd",
-                    Arguments           => Args,
-                    Origin_Command_Name => "compiler wrapper",
-                    Output_File         => Ldd_Filename,
-                    Ignore_Error        => True);
+               Run_Command
+                 (Command             => +"gnatcov",
+                  Arguments           => Args,
+                  Origin_Command_Name => "compiler wrapper");
 
-               Open (Ldd_File, In_File, Ldd_Filename);
-               if not Success then
-
-                  if Ada.Strings.Fixed.Trim
-                       (Get_Line (Ldd_File), Ada.Strings.Both)
-                    /= "not a dynamic executable"
-                  then
-                     --  The executable does not depend on any dynamic library,
-                     --  nothing to do here.
-
-                     Close (Ldd_File);
-                     return;
-                  end if;
-
-                  --  Otherwise, something went wrong in the ldd call, abort.
-
-                  Close (Ldd_File);
-                  Outputs.Fatal_Error
-                    ("Error while running LDD on the instrumented executable");
-               end if;
-
-               --  Inspect the output of lld to find the dependencies
-
-               while not End_Of_File (Ldd_File) loop
+               Open (Temp_File, In_File, Temp_Filename);
+               while not End_Of_File (Temp_File) loop
                   declare
-                     use Ada.Strings.Fixed;
-                     Line         : constant String := Get_Line (Ldd_File);
-                     Arrow_Index  : constant Natural := Index (Line, "=>");
-                     Filename_End : constant Natural :=
-                       Index (Line, " ", Line'Last, Going => Backward) - 1;
-
-                     Lib_File : Virtual_File := No_File;
+                     Line : constant String := Get_Line (Temp_File);
                   begin
-                     --  The format of the output of ldd is:
-                     --  <lib_relative_name>
-                     --     (=> <lib_fullname> (<load address>))?
-                     --
-                     --  We use the fullname, when available, otherwise we
-                     --  use the relative name. If the library could not be
-                     --  find through its relative name, then we skip it.
-
-                     if Arrow_Index /= 0 then
-                        declare
-                           Lib_Filename : constant String :=
-                             Line (Arrow_Index + 3 .. Filename_End);
-                        begin
-                           --  If the library is not on the PATH/
-                           --  LD_LIBRARY_PATH, it will be displayed as:
-                           --
-                           --  <lib_basename> => not found
-
-                           if Line (Arrow_Index + 3 .. Line'Last) = "not found"
-                           then
-                              declare
-                                 Path : constant String :=
-                                   (if Paths.On_Windows
-                                    then "PATH"
-                                    else "LD_LIBRARY_PATH");
-                              begin
-                                 Outputs.Warn
-                                   ("Could not find library "
-                                    & Line (Line'First + 1 .. Arrow_Index - 2)
-                                    & ". Add its directory to the "
-                                    & Path
-                                    & " if this is an instrumented library.");
-                              end;
-
-                           else
-                              Lib_File := GNATCOLL.VFS.Create (+Lib_Filename);
-                           end if;
-                        end;
-                     else
-                        declare
-                           Lib_Filename : constant String :=
-                             Line
-                               (Strings.Index_Non_Blank (Line)
-                                .. Filename_End);
-                        begin
-                           Lib_File := GNATCOLL.VFS.Create (+Lib_Filename);
-                        end;
-                     end if;
-
-                     --  Check that the library relative filename / fullname
-                     --  exists. It sometimes does not, e.g. when loading a
-                     --  kernel system, specified by its basename only. For
-                     --  instance:
-                     --
-                     --  linux-vdso.so.1 (0x00007ffe40383000)
-                     --
-                     --  or when the dynamic library is specified as such:
-                     --
-                     --  <lib_basename> => (<load_address>)
-
-                     if GNATCOLL.VFS.Is_Regular_File (Lib_File)
-
-                       --  On Windows, 32-bit programs may be dynamically
-                       --  linked to 64-bit system libraries. Do not try to
-                       --  get coverage symbols from them as running the
-                       --  32-bit "nm" on them will fail, and we are sure they
-                       --  do not contain coverage symbols anyway.
-
-                       and
-                         not (Paths.On_Windows
-                              and then
-                                Fold_Filename_Casing (+Lib_File.Base_Name)
-                                in "ntdll.dll"
-                                 | "wow64.dll"
-                                 | "wow64base.dll"
-                                 | "wow64win.dll"
-                                 | "wow64con.dll")
-                     then
-                        Add_Coverage_Buffer_Symbols (Lib_File);
-                     end if;
+                     Add_Coverage_Buffer_Symbols (Create (+Line));
                   end;
                end loop;
-               Close (Ldd_File);
+               Close (Temp_File);
             end Inspect_Dynamic_Deps;
 
          begin

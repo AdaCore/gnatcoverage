@@ -34,12 +34,6 @@ configuration file that is generated alongside it. It is thus necessary to
 re-run the setup step it if the closure of sources of interest, or if the build
 environment (e.g. the path for the original compiler) changes.
 
-Windows specifics
-=================
-
-GNATcoverage uses ``ldd`` to investigate the dynamic dependencies of the
-compiled binaries. It should thus be installed on the Windows machine.
-
 Specifying instrumentation switches
 ===================================
 

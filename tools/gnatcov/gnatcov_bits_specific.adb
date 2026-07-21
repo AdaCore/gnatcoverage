@@ -78,6 +78,7 @@ with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
 with Set_Builtin_Support;
 with Setup_RTS;             use Setup_RTS;
+with Shared_Lib_Deps;       use Shared_Lib_Deps;
 with SS_Annotations;        use SS_Annotations;
 with Strings;               use Strings;
 with Switches;              use Switches;
@@ -1580,6 +1581,7 @@ procedure GNATcov_Bits_Specific is
             | Cmd_Dump_Subprograms
             | Cmd_Dump_Inlined_Subprograms
             | Cmd_Dump_Lines
+            | Cmd_Dump_Shared_Lib_Deps
             | Cmd_Disassemble_Raw
             | Cmd_Disassemble                                =>
             Copy_Arg_List (Args.Remaining_Args, Exe_Inputs);
@@ -2307,6 +2309,10 @@ begin
                Close_File (Exec);
             end loop;
          end;
+
+      when Cmd_Dump_Shared_Lib_Deps                       =>
+         Check_Argument_Available (Exe_Inputs, "EXEs");
+         Dump_Shared_Libs (Exe_Inputs, Output);
 
       when Cmd_Dump_Compile_Units                         =>
          Check_Argument_Available (Exe_Inputs, "EXEs");
