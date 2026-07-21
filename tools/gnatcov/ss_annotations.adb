@@ -68,6 +68,8 @@ package body SS_Annotations is
      Exemption_Namespace & To_Qualified_Name ("full_decision");
    Manual_Decision_Evaluation_Purpose : constant Ada_Qualified_Name :=
      Exemption_Namespace & To_Qualified_Name ("manual_decision_evaluation");
+   Exempt_Branch_Purpose              : constant Ada_Qualified_Name :=
+     Exemption_Namespace & To_Qualified_Name ("branch");
 
    Buffers_Namespace : constant Ada_Qualified_Name :=
      Xcov_Namespace & To_Qualified_Name ("buffers");
@@ -224,6 +226,8 @@ package body SS_Annotations is
            = Manual_Decision_Evaluation_Purpose.Last_Element
          then
             return Manual_Decision_Evaluation;
+         elsif Purpose.Element (3) = Exempt_Branch_Purpose.Last_Element then
+            return Exempt_Branch;
          end if;
       elsif Purpose.Element (2) = Buffers_Namespace.Last_Element then
 
@@ -289,6 +293,9 @@ package body SS_Annotations is
 
          when Manual_Decision_Evaluation =>
             return Manual_Decision_Evaluation_Purpose;
+
+         when Exempt_Branch              =>
+            return Exempt_Branch_Purpose;
 
          when Dump_Buffers               =>
             return Buffers_Dump_Purpose;
@@ -406,126 +413,121 @@ package body SS_Annotations is
 
          --  Start of processing for Process
       begin
-         if Kind
-            in Exempt_On
-             | Exempt_Decision_Outcome
-             | Exempt_Decision_Condition
-             | Exempt_Full_Decision
-             | Manual_Decision_Evaluation
-         then
-            case Kind is
-               when Exempt_On                  =>
+         case Kind is
+            when Exempt_Region .. Exempt_Off =>
+
+               if Kind = Exempt_On then
                   Annot.Justification := Justification;
                   Annot.Violation_Count := 0;
                   Annot.Undetermined_Cov_Count := 0;
-
-               when Exempt_Decision_Outcome    =>
-                  Req :=
-                    (Kind => Decision_Outcome, Sloc => Sloc, others => <>);
-
-                  Field := Details.Get ("outcome");
-                  Req.Outcome := Field.As_Boolean;
-
-                  Field := Details.Get_Or_Null ("decision");
-                  Req.Decision_Offset :=
-                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
-
-               when Exempt_Decision_Condition  =>
-                  Req :=
-                    (Kind => Decision_Condition, Sloc => Sloc, others => <>);
-
-                  Field := Details.Get ("condition");
-                  Req.Condition := Condition_Index (Field.As_Integer);
-
-                  Field := Details.Get_Or_Null ("decision");
-                  Req.Decision_Offset :=
-                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
-
-               when Exempt_Full_Decision       =>
-                  Req := (Kind => Full_Decision, Sloc => Sloc, others => <>);
-
-                  Field := Details.Get_Or_Null ("decision");
-                  Req.Decision_Offset :=
-                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
-
-               when Manual_Decision_Evaluation =>
-                  Req :=
-                    (Kind   => Manual_Decision_Evaluation,
-                     Sloc   => Sloc,
-                     others => <>);
-
-                  Field := Details.Get_Or_Null ("decision");
-                  Req.Decision_Offset :=
-                    (if Field.Is_Null then 0 else Natural (Field.As_Integer));
-
-                  Field := Details.Get ("values");
-                  Req.Condition_Values.Clear;
-                  for I in 1 .. Field.Length loop
-                     Req.Condition_Values.Append
-                       (To_Tristate (Field.Item (I).As_Boolean));
-                  end loop;
-
-               when others                     =>
-                  raise Program_Error with "unreachable code";
-            end case;
-         end if;
-
-         --  For region-based annotations, check if the new annotations don't
-         --  already contain an annotation for this sloc. Fine grained
-         --  annotations have their own detection mechanism.
-
-         if Kind /= Exempt_Decision_Outcome then
-            declare
-               Cur            : Cursor := Get_Annotation (Sloc);
-               Existing_Annot : ALI_Annotation;
-            begin
-               if not Has_Element (Cur) then
-                  Cur := New_Annotations.Find (Sloc);
                end if;
-               if Has_Element (Cur) then
-                  Existing_Annot := Element (Cur);
 
-                  --  Do not warn if the annotation is of the same kind and
-                  --  identical message, as this could simply be a case of
-                  --  external annotations passed both during
-                  --  instrumentation and coverage report computation.
-                  --
-                  --  Do not check the message for Exmept_Off, as messages are
-                  --  irrelevant for them.
+               --  For region-based annotations, check if the new annotations
+               --  don't already contain an annotation for this sloc. Fine
+               --  grained annotations have their own detection mechanism.
 
-                  if Existing_Annot.Kind /= Annot.Kind
-                    or else
-                      (Kind = Exempt_On
-                       and then
-                         Existing_Annot.Justification /= Annot.Justification)
-                  then
-                     Warn
-                       (Slocs.Image (Sloc)
-                        & ": Conflicting annotations for this line, ignoring"
-                        & " the external annotation """
-                        & (+Match.Identifier)
-                        & """");
+               declare
+                  Cur            : Cursor := Get_Annotation (Sloc);
+                  Existing_Annot : ALI_Annotation;
+               begin
+                  if not Has_Element (Cur) then
+                     Cur := New_Annotations.Find (Sloc);
                   end if;
-                  return;
-               end if;
+                  if Has_Element (Cur) then
+                     Existing_Annot := Element (Cur);
 
-               if Kind = Exempt_On and then Filter then
-                  declare
-                     SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
-                  begin
-                     if SCO /= No_SCO_Id then
+                     --  Do not warn if the annotation is of the same kind and
+                     --  identical message, as this could simply be a case of
+                     --  external annotations passed both during
+                     --  instrumentation and coverage report computation.
+                     --
+                     --  Do not check the message for Exempt_Off, as messages
+                     --  are irrelevant for them.
+
+                     if Existing_Annot.Kind /= Annot.Kind
+                       or else
+                         (Kind = Exempt_On
+                          and then
+                            Existing_Annot.Justification
+                            /= Annot.Justification)
+                     then
                         Warn
-                          ("Exemption annotation at "
-                           & Slocs.Image (Sloc)
-                           & " intersects a coverage obligation ("
-                           & Image (SCO, True)
-                           & "), ignoring it");
-                        return;
+                          (Slocs.Image (Sloc)
+                           & ": Conflicting annotations for this line,"
+                           & " ignoring the external annotation """
+                           & (+Match.Identifier)
+                           & """");
                      end if;
-                  end;
-               end if;
-            end;
-         end if;
+                     return;
+                  end if;
+
+                  if Kind = Exempt_On and then Filter then
+                     declare
+                        SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
+                     begin
+                        if SCO /= No_SCO_Id then
+                           Warn
+                             ("Exemption annotation at "
+                              & Slocs.Image (Sloc)
+                              & " intersects a coverage obligation ("
+                              & Image (SCO, True)
+                              & "), ignoring it");
+                           return;
+                        end if;
+                     end;
+                  end if;
+               end;
+
+            when Exempt_Decision_Outcome     =>
+               Req := (Kind => Decision_Outcome, Sloc => Sloc, others => <>);
+
+               Field := Details.Get ("outcome");
+               Req.Outcome := Field.As_Boolean;
+
+               Field := Details.Get_Or_Null ("decision");
+               Req.Decision_Offset :=
+                 (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+            when Exempt_Decision_Condition   =>
+               Req := (Kind => Decision_Condition, Sloc => Sloc, others => <>);
+
+               Field := Details.Get ("condition");
+               Req.Condition := Condition_Index (Field.As_Integer);
+
+               Field := Details.Get_Or_Null ("decision");
+               Req.Decision_Offset :=
+                 (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+            when Exempt_Full_Decision        =>
+               Req := (Kind => Full_Decision, Sloc => Sloc, others => <>);
+
+               Field := Details.Get_Or_Null ("decision");
+               Req.Decision_Offset :=
+                 (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+            when Manual_Decision_Evaluation  =>
+               Req :=
+                 (Kind   => Manual_Decision_Evaluation,
+                  Sloc   => Sloc,
+                  others => <>);
+
+               Field := Details.Get_Or_Null ("decision");
+               Req.Decision_Offset :=
+                 (if Field.Is_Null then 0 else Natural (Field.As_Integer));
+
+               Field := Details.Get ("values");
+               Req.Condition_Values.Clear;
+               for I in 1 .. Field.Length loop
+                  Req.Condition_Values.Append
+                    (To_Tristate (Field.Item (I).As_Boolean));
+               end loop;
+
+            when Exempt_Branch               =>
+               Req := (Kind => Branch, Sloc => Sloc);
+
+            when others                      =>
+               raise Program_Error with "unreachable code";
+         end case;
 
          case Kind is
             when Fine_Grained_Annotation_Kind =>
@@ -1047,6 +1049,7 @@ package body SS_Annotations is
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
             | Manual_Decision_Evaluation
+            | Exempt_Branch
             | Cov_Off                                            =>
 
             --  Accept either the --location or --start-location switches
@@ -1167,6 +1170,7 @@ package body SS_Annotations is
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
             | Manual_Decision_Evaluation
+            | Exempt_Branch
             | Cov_Off                      =>
             Annotation.Set ("justification", Create_String (Justification));
 
@@ -1602,6 +1606,7 @@ package body SS_Annotations is
                      | Exempt_Decision_Condition
                      | Exempt_Full_Decision
                      | Manual_Decision_Evaluation
+                     | Exempt_Branch
                      | Cov_Off                       =>
                      if Annot_Kind = Exempt_Decision_Outcome then
                         declare
@@ -1815,7 +1820,8 @@ package body SS_Annotations is
                   | Exempt_Decision_Outcome
                   | Exempt_Decision_Condition
                   | Exempt_Full_Decision
-                  | Manual_Decision_Evaluation    =>
+                  | Manual_Decision_Evaluation
+                  | Exempt_Branch                 =>
                   Some_Relevant := True;
                   if Get_Or_Null (Annot, "justification")
                     = Null_Unbounded_String

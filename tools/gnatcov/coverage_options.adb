@@ -317,6 +317,9 @@ package body Coverage_Options is
                  & " --evaluation=EVALUATION"
                  & " --justification=MESSAGE";
 
+            when Exempt_Branch              =>
+               Res := Res & " --justification=MESSAGE";
+
             when Dump_Buffers               =>
                Res :=
                  Res
@@ -355,6 +358,7 @@ package body Coverage_Options is
            "Exempt_Full_Decision",
          when SC_Obligations.Manual_Decision_Evaluation =>
            "Manual_Decision_Evaluation",
+         when SC_Obligations.Exempt_Branch              => "Exempt_Branch",
          when SC_Obligations.Dump_Buffers               => "Dump_Buffers",
          when SC_Obligations.Reset_Buffers              => "Reset_Buffers",
          when SC_Obligations.Cov_Off                    => "Cov_Off",

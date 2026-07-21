@@ -508,11 +508,16 @@ package body Annotations is
          --  annotations.
 
          Import_External_Exemptions (File_Index);
-         Populate_Annotations (File_Index, Exemption);
-         Populate_Annotations (File_Index, Disable_Coverage);
          if CU /= No_CU_Id then
             Resolve_Fine_Grained_Annotations (CU, Exemptions);
          end if;
+
+         --  Populate annotations (in particular exemption regions) after
+         --  resolving fine grained exemptions so resolution can contribute to
+         --  the set of exemption regions.
+
+         Populate_Annotations (File_Index, Exemption);
+         Populate_Annotations (File_Index, Disable_Coverage);
 
          ST := Scope_Traversal (CU);
          Iterate_On_Lines (FI, Compute_Line_State'Access);

@@ -1054,8 +1054,12 @@ package body Annotations.Report is
              (Info.Li_Stats (Not_Coverable) /= 0
               or else Info.Has_Manual_Evaluations))
       then
-
-         --  Some uncovered or partially covered lines are present
+         --  At least one line is:
+         --
+         --  * uncovered,
+         --  * partially covered lines,
+         --  * not coverable (when showing details),
+         --  * has manual evaluations (when showing details).
 
          Pp.Current_File_Index := File;
          Skip := False;

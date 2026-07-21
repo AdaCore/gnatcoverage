@@ -2610,9 +2610,6 @@ package body Coverage.Source is
       Values        : Condition_Evaluation_Vectors.Vector;
       Justification : Unbounded_String)
    is
-      pragma Assert (Kind (SCO) = Decision);
-      pragma Assert (Values.Last_Index = Last_Cond_Index (SCO));
-
       SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
       E   : Evaluation :=
         (Decision       => SCO,
@@ -2626,8 +2623,8 @@ package body Coverage.Source is
       --
       --  During the simulation, also assign values to E.Values so that we do
       --  not pretend a condition has been evaluated when it is masked (i.e.
-      --  associate it to Unknown rather than False/True), as that would
-      --  trigger coverage inconsistencies later on.
+      --  associate it to Unknown rather than False/True), as that would cause
+      --  coverage inconsistencies later on.
 
       Cur : SCO_Id := Condition (SCO, 0);
       --  SCO for the next condition to evaluate

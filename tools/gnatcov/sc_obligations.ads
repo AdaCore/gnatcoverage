@@ -475,6 +475,52 @@ package SC_Obligations is
    subtype Valid_BDD_Node_Id is
      BDD_Node_Id range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
 
+   -----------------
+   -- Branch maps --
+   -----------------
+
+   --  The Branch_Info record below (created by source instrumenters) provides
+   --  necessary information to resolve Exempt_Branch annotations. We create
+   --  one Branch_Info record per area where Exempt_Branch annotations can go.
+
+   type Branch_Info is record
+      Match_Start, Match_End : Local_Source_Location;
+      --  Source code region in which an Exempt_Branch annotation can appear in
+      --  order to exempt this branch.
+      --
+      --  For instance, the area between "then" and "Foo" in the following Ada
+      --  source code:
+      --
+      --     if Condition then
+      --        Foo;
+      --     end if;
+
+      Control_Decision : SCO_Id;
+      Control_Outcome  : Boolean;
+      --  If this branch is controlled by a decision, Control_Decision must be
+      --  the SCO for that decision, and Control_Outcome must be the outcome
+      --  that leads to that branch.
+      --
+      --  If this branch is not controlled by a decision, Control_Decision is
+      --  set to 0 and Control_Outcome must be discarded.
+
+      Stmt_Start, Stmt_End : Local_Source_Location;
+      --  Source code region that must be exempted if this branch is exempted.
+      --  Typically: the statement guarded by an IF block or an ELSE block.
+   end record;
+
+   package Branch_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_Location,
+        Element_Type => Branch_Info);
+   --  Map the "Match_Start" component of Branch_Info records to the records
+   --  themselves. This mapping is used to look for the branch that
+   --  corresponds to a given Exempt_Branch annotation.
+
+   procedure Set_Branch_Map (Map : Branch_Maps.Map);
+   --  Record branch information in Map in gnatcov's internal tables, for
+   --  storage in SID files or computation of coverage reports.
+
    -----------------------------
    -- Fine grained exemptions --
    -----------------------------
@@ -497,13 +543,19 @@ package SC_Obligations is
      (Decision_Outcome,
       Decision_Condition,
       Full_Decision,
-      Manual_Decision_Evaluation);
+      Manual_Decision_Evaluation,
+      Branch);
+
+   subtype Decision_Exemption_Request_Kind is
+     Exemption_Request_Kind
+       range Decision_Outcome .. Manual_Decision_Evaluation;
 
    SCO_Kind_For : constant array (Exemption_Request_Kind) of SCO_Kind :=
      (Decision_Outcome           => Decision,
       Decision_Condition         => Condition,
       Full_Decision              => Decision,
-      Manual_Decision_Evaluation => Decision);
+      Manual_Decision_Evaluation => Decision,
+      Branch                     => Statement);
 
    type Exemption_Request
      (Kind : Exemption_Request_Kind := Exemption_Request_Kind'First)
@@ -535,7 +587,13 @@ package SC_Obligations is
                when Manual_Decision_Evaluation =>
                   Condition_Values : Condition_Evaluation_Vectors.Vector;
                   --  Evaluation vector for the manual decision evaluation
+
+               when others =>
+                  null;
             end case;
+
+         when Branch =>
+            null;
       end case;
    end record;
 
@@ -626,6 +684,7 @@ package SC_Obligations is
       Exempt_Decision_Condition,
       Exempt_Full_Decision,
       Manual_Decision_Evaluation,
+      Exempt_Branch,
       Dump_Buffers,
       Reset_Buffers,
       Cov_On,
@@ -645,7 +704,10 @@ package SC_Obligations is
    --  Annotation kinds to perform coverage buffers control
 
    subtype Fine_Grained_Annotation_Kind is
-     Any_Annotation_Kind
+     Any_Annotation_Kind range Exempt_Decision_Outcome .. Exempt_Branch;
+
+   subtype Decision_Fine_Grained_Annotation_Kind is
+     Fine_Grained_Annotation_Kind
        range Exempt_Decision_Outcome .. Manual_Decision_Evaluation;
 
    type ALI_Annotation

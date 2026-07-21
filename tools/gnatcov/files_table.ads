@@ -431,7 +431,7 @@ package Files_Table is
             --  decisions are covered etc.
 
             Has_Manual_Evaluations : Boolean := False;
-            --  True iff at least one manual evaluation (currently: only a
+            --  True iff at least one manual evaluation (i.e. currently: a
             --  decision evaluation) was included to compute code coverage for
             --  this file.
             --
