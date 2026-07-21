@@ -1,6 +1,6 @@
 """
 Check that "gnatcov instrument" mentions the source file it is currently
-instrumented when it is supposed to: once per source file that triggers an
+instrumenting when it is supposed to: once per source file that triggers an
 error/warning, and once for every file in verbose mode.
 """
 
