@@ -11,7 +11,7 @@ from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprfor
+from SUITE.tutils import gpr_emulator_package, gprfor
 
 tmp = Wdir("tmp_")
 
@@ -43,10 +43,12 @@ main_gpr = gprfor(
 agg_gpr = os.path.abspath("agg.gpr")
 with open(agg_gpr, "w") as f:
     f.write(
-        """
+        f"""
         aggregate project Agg is
             for Project_Path use ("projects");
             for Project_Files use ("projects/main.gpr");
+
+            {gpr_emulator_package()}
         end Agg;
         """
     )
