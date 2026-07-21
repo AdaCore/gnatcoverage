@@ -37,6 +37,8 @@ with Traces_Files; use Traces_Files;
 
 package Project is
 
+   use type GPR2.Project_Kind;
+
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
@@ -244,6 +246,11 @@ package Project is
 
    function Project return GPR2.Project.Tree.Object
    with Pre => Is_Project_Loaded;
+
+   function Root_Project return GPR2.Project.View.Object
+   is (if Project.Root_Project.Kind = GPR2.K_Aggregate
+       then Project.Root_Project.Aggregated.First_Element
+       else Project.Root_Project);
 
    procedure Iterate_Projects
      (Root_Project             : GPR2.Project.View.Object;

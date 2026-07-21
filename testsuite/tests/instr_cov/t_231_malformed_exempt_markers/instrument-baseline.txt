@@ -3,14 +3,22 @@
 *** main_1.adb:10:5: warning: Invalid Xcov annotation kind: aaa
 *** main_1.adb:11:5: warning: Xcov annotation kind missing
 *** main_2.adb:4:5: warning: Invalid Xcov annotation kind
-*** main_2.adb:6:39: warning: String expected
+*** main_2.adb:6:39: warning: Integer literal is too big
 *** main_2.adb:7:39: warning: Identifier not allowed here
 *** main_2.adb:8:46: warning: Too many arguments
+*** main_2.adb:9:39: warning: Unhandled argument
+*** main_2.adb:10:5: warning: Too few arguments
+*** main_2.adb:11:53: warning: Boolean expected
+*** main_2.adb:12:59: warning: String expected
+*** main_2.adb:13:5: warning: Too few arguments
+*** main_2.adb:14:55: warning: Positive integer expected
+*** main_2.adb:15:55: warning: Positive integer expected
 *** main_3.c:4:5: warning: Invalid Xcov annotation kind: GNATCOV_INVALID_KIND
 *** main_3.c:5:23: warning: Invalid syntax
 *** main_3.c:6:24: warning: Invalid syntax
 *** main_3.c:7:27: warning: Invalid syntax
-*** main_3.c:8:24: warning: String expected
+*** main_3.c:8:24: warning: Expression expected
 *** main_3.c:9:31: warning: Too many arguments
 *** main_3.c:10:35: warning: Invalid syntax
 *** main_3.c:11:6: warning: Obsolete syntax, support will be removed in release 28. Consider switching to: GNATCOV_EXEMPT_ON("legacy")
+*** main_3.c:12:24: warning: Too large integer

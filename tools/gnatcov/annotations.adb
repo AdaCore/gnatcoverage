@@ -451,6 +451,10 @@ package body Annotations is
       procedure Compute_File_State (File_Index : Source_File_Index) is
          ST : Scope_Traversal_Type;
          FI : constant File_Info_Access := Get_File (File_Index);
+         CU : CU_Id;
+
+         Exemptions : Exemption_Maps.Map;
+         --  Fine grained exemptions for the current source file
 
          procedure Compute_Line_State (L : Positive);
          --  Given a source line located in FI's source file, at line L,
@@ -469,7 +473,7 @@ package body Annotations is
             if Object_Coverage_Enabled then
                Object.Compute_Line_State (LI);
             else
-               Source.Compute_Line_State (L, LI, ST);
+               Source.Compute_Line_State (L, LI, ST, Exemptions);
             end if;
 
             --  Compute aggregated line state before exemption
@@ -498,11 +502,19 @@ package body Annotations is
             return;
          end if;
 
-         Import_External_Exemptions (File_Index);
+         CU := Comp_Unit (File_Index);
 
+         --  Collect all exemptions for this file and resolve fine grained
+         --  annotations.
+
+         Import_External_Exemptions (File_Index);
          Populate_Annotations (File_Index, Exemption);
          Populate_Annotations (File_Index, Disable_Coverage);
-         ST := Scope_Traversal (Comp_Unit (File_Index));
+         if CU /= No_CU_Id then
+            Resolve_Fine_Grained_Annotations (CU, Exemptions);
+         end if;
+
+         ST := Scope_Traversal (CU);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
 
          --  Update file statistics for line L. Note that this can be done
@@ -514,7 +526,7 @@ package body Annotations is
          declare
             SCOs : SCO_Sets.Set;
          begin
-            for SCO_Range of SCO_Ranges (Comp_Unit (File_Index)) loop
+            for SCO_Range of SCO_Ranges (CU) loop
                for SCO in SCO_Range.First .. SCO_Range.Last loop
                   SCOs.Include (SCO);
                end loop;
@@ -1220,7 +1232,7 @@ package body Annotations is
                return Undet_Coverage;
 
             when others           =>
-               pragma Assert (M.Kind = Violation or else M.Kind = Info);
+               pragma Assert (M.Kind in Info | Exempted_Violation | Violation);
 
                declare
                   S : constant Report_Section := Section_Of_SCO (M.SCO);

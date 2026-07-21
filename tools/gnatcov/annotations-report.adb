@@ -98,6 +98,10 @@ package body Annotations.Report is
         Messages_Of_Exempted_Region.Empty_Map;
       --  Messages that have been covered by an exemption
 
+      Fine_Grained_Exempted_Messages : Message_Vectors.Vector;
+      --  Exempt_Violation messages, i.e. violations that have been covered by
+      --  a fine grained exemption.
+
       Exemption : Slocs.Source_Location := Slocs.No_Location;
       --  Exemption sloc applying to current line, if any
 
@@ -690,6 +694,14 @@ package body Annotations.Report is
             end if;
          end Output_Message;
 
+         function Messages
+            return Message_Vectors
+                     .Vector_Iterator_Interfaces
+                     .Reversible_Iterator'Class
+         is (if MC = Fine_Grained_Exemptions
+             then Pp.Fine_Grained_Exempted_Messages.Iterate
+             else Pp.Nonexempted_Messages (MC).Iterate);
+
          --  Start of processing for Messages_For_Section
 
       begin
@@ -697,7 +709,7 @@ package body Annotations.Report is
             Pp.Section (Title);
          end if;
 
-         for C in Pp.Nonexempted_Messages (MC).Iterate loop
+         for C in Messages loop
             Output_Message (C);
 
             Msg_Count := Msg_Count + 1;
@@ -721,11 +733,14 @@ package body Annotations.Report is
            (+(Pluralize
                 (Item_Count,
                  (case MC is
-                    when Coverage_Violations =>
+                    when Coverage_Violations     =>
                       Non_Exempted & Coverage_Level'Val (MC)'Img & " " & Item,
-                    when Other_Errors        => "other message",
-                    when Coverage_Exclusions => "coverage exclusion",
-                    when Undet_Coverage      => "undetermined coverage item"))
+                    when Other_Errors            => "other message",
+                    when Fine_Grained_Exemptions =>
+                      "fine grained exempted item",
+                    when Coverage_Exclusions     => "coverage exclusion",
+                    when Undet_Coverage          =>
+                      "undetermined coverage item"))
               & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
@@ -793,6 +808,15 @@ package body Annotations.Report is
            (Undet_Coverage,
             Title => "",
             Item  => "undetermined coverage items");
+      end if;
+
+      if not Pp.Fine_Grained_Exempted_Messages.Is_Empty then
+         Pp.Chapter ("FINE GRAINED EXEMPTED VIOLATIONS");
+         New_Line (Output.all);
+         Messages_For_Section
+           (Fine_Grained_Exemptions,
+            Title => "",
+            Item  => "fine grained exempted item");
       end if;
 
       if Has_Exempted_Region then
@@ -894,9 +918,15 @@ package body Annotations.Report is
 
       if M.Kind > Notice then
 
+         --  Register violations covered by fine grained exemptions in their
+         --  own vector.
+
+         if M.Kind = Exempted_Violation then
+            Pp.Fine_Grained_Exempted_Messages.Append (M);
+
          --  If M is a violation, check if an exemption is currently active
 
-         if M.Kind in Violation | Undetermined_Cov
+         elsif M.Kind in Violation | Undetermined_Cov
            and then Pp.Exemption /= Slocs.No_Location
          then
 
@@ -917,7 +947,11 @@ package body Annotations.Report is
                   Element.Append (M);
                end Add_Message;
 
-               C        : Cursor := Pp.Exempted_Messages.Find (Pp.Exemption);
+               C        : Cursor :=
+                 Pp.Exempted_Messages.Find
+                   (if Pp.Exemption = Slocs.No_Location
+                    then M.Sloc
+                    else Pp.Exemption);
                Inserted : Boolean;
             begin
                if not Has_Element (C) then
@@ -928,11 +962,17 @@ package body Annotations.Report is
                Pp.Exempted_Messages.Update_Element (C, Add_Message'Access);
             end;
 
-            if M.Kind = Violation then
-               Inc_Violation_Exemption_Count (Pp.Exemption);
-            else
-               Inc_Undet_Cov_Exemption_Count (Pp.Exemption);
-            end if;
+            case M.Kind is
+               when Violation        =>
+                  Inc_Violation_Exemption_Count (Pp.Exemption);
+
+               when Undetermined_Cov =>
+                  Inc_Undet_Cov_Exemption_Count (Pp.Exemption);
+
+               when others           =>
+                  null;
+            end case;
+
          else
             Pp.Nonexempted_Messages (MC).Append (M);
          end if;

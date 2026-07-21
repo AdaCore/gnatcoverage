@@ -62,6 +62,8 @@ package body Instrument.C_Annotations is
         & "|(\()"
         & "|(\))"
         & "|(""[^""]*"")"
+        & "|([0-9]+)"
+        & "|(false|true)"
         & "|([a-zA-Z_][a-zA-Z0-9_]*)"
         & "|(.+)");
    --  Pattern to match a token in an annotation argument list.
@@ -70,14 +72,16 @@ package body Instrument.C_Annotations is
    --  materialize a valid token (which group matches determines the kind of
    --  token that was found), and group Last is for invalid tokens.
    --
-   --  * Group 1: Whitespace.
-   --  * Group 2: Comma token.
-   --  * Group 3: Equal token.
-   --  * Group 4: Opening paren.
-   --  * Group 5: Closing paren.
-   --  * Group 6: String literal.
-   --  * Group 7: Identifier.
-   --  * Group 8: Invalid token.
+   --  * Group 1:  Whitespace.
+   --  * Group 2:  Comma token.
+   --  * Group 3:  Equal token.
+   --  * Group 4:  Opening paren.
+   --  * Group 5:  Closing paren.
+   --  * Group 6:  String literal.
+   --  * Group 7:  Integer literal.
+   --  * Group 8:  Boolean literal
+   --  * Group 9:  Identifier.
+   --  * Group 10: Invalid token.
 
    Token_Pattern_Last_Group : constant Positive := Paren_Count (Token_Pattern);
    Token_Pattern_Last_Valid : constant Positive :=
@@ -93,6 +97,8 @@ package body Instrument.C_Annotations is
       Opening_Paren,
       Closing_Paren,
       String_Literal,
+      Integer_Literal,
+      Boolean_Literal,
       Identifier);
    subtype Token_Kind is Any_Token_Kind range Comma .. Any_Token_Kind'Last;
    type Token_Data is record
@@ -142,12 +148,21 @@ package body Instrument.C_Annotations is
    subtype Syntax_Index is Any_Syntax_Index range 1 .. Any_Syntax_Index'Last;
    No_Syntax : constant Any_Syntax_Index := 0;
    type Syntax_Kind is
-     (String_Literal, Identifier, Aggregate, Aggregate_Assoc);
+     (String_Literal,
+      Integer_Literal,
+      Boolean_Literal,
+      Identifier,
+      Aggregate,
+      Aggregate_Assoc);
    type Syntax_Data (Kind : Syntax_Kind := Syntax_Kind'First) is record
       Token : Token_Index;
 
       case Kind is
-         when String_Literal | Identifier =>
+         when String_Literal
+            | Boolean_Literal
+            | Integer_Literal
+            | Identifier
+         =>
             null;
 
          when Aggregate =>
@@ -452,6 +467,16 @@ package body Instrument.C_Annotations is
                Index := Index + 1;
                return Syntax.Last_Index;
 
+            when Integer_Literal               =>
+               Syntax.Append (Syntax_Data'(Integer_Literal, Index));
+               Index := Index + 1;
+               return Syntax.Last_Index;
+
+            when Boolean_Literal               =>
+               Syntax.Append (Syntax_Data'(Boolean_Literal, Index));
+               Index := Index + 1;
+               return Syntax.Last_Index;
+
             when Identifier                    =>
                Syntax.Append (Syntax_Data'(Identifier, Index));
                Index := Index + 1;
@@ -529,6 +554,10 @@ package body Instrument.C_Annotations is
       --  Return the Comment slice corresponding to Self, or the empty string
       --  if there is no match.
 
+      function Get (Self : Any_Syntax_Index) return String;
+      --  Assuming that Self designates a single-token syntax node, return the
+      --  corresponding source slice.
+
       function Slice_Sloc (Self : Match_Location) return Source_Location
       is (Slice_Sloc (Comment, Sloc, Self));
       --  Return the source location corresponding to the given match
@@ -543,6 +572,16 @@ package body Instrument.C_Annotations is
       Last_Cov_Off : Source_Location := Slocs.No_Location;
       --  Track the source location of the previous GNATCOV_COV_OFF annotation.
       --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
+
+      ---------
+      -- Get --
+      ---------
+
+      function Get (Self : Any_Syntax_Index) return String is
+         T : constant Token_Data := Tokens (Syntax (Self).Token);
+      begin
+         return Get ((T.Match.First, T.Match.Last));
+      end Get;
 
       -------------------
       -- Process_Token --
@@ -670,23 +709,43 @@ package body Instrument.C_Annotations is
                      declare
                         E : constant Syntax_Index := Syntax (Next).Assoc_Expr;
                         S : constant Source_Location := Syntax_Sloc (E);
-                        T : Token_Data;
                      begin
-                        if Syntax (E).Kind = String_Literal then
+                        case Syntax (E).Kind is
+                           when String_Literal  =>
 
-                           --  Get the content of the string without the
-                           --  surrounding double quotes.
+                              --  Get the content of the string without the
+                              --  surrounding double quotes.
 
-                           T := Tokens (Syntax (E).Token);
-                           Args (I) :=
-                             (String_Value,
-                              S,
-                              +Get ((T.Match.First + 1, T.Match.Last - 1)));
+                              declare
+                                 Value : constant String := Get (E);
+                              begin
+                                 Args (I) :=
+                                   (String_Value,
+                                    S,
+                                    +Value
+                                       (Value'First + 1 .. Value'Last - 1));
+                              end;
 
-                        else
-                           Report (S, "String expected", Warning);
-                           return;
-                        end if;
+                           when Integer_Literal =>
+                              declare
+                                 Value_Str : constant String := Get (E);
+                                 Value     : Integer;
+                              begin
+                                 Value := Integer'Value (Value_Str);
+                                 Args (I) := (Integer_Value, S, Value);
+                              exception
+                                 when Constraint_Error =>
+                                    Report (S, "Too large integer", Warning);
+                                    return;
+                              end;
+
+                           when Boolean_Literal =>
+                              Args (I) := (Boolean_Value, S, Get (E) = "true");
+
+                           when others          =>
+                              Report (S, "Expression expected", Warning);
+                              return;
+                        end case;
                      end;
                      Next := Syntax (Next).Assoc_Next;
                   end loop;
@@ -708,10 +767,10 @@ package body Instrument.C_Annotations is
          --  Add an entry into UIC.Disable_Cov_Regions when needed
 
          case Result.Kind is
-            when Cov_Off =>
+            when Cov_Off                      =>
                Last_Cov_Off := Sloc;
 
-            when Cov_On  =>
+            when Cov_On                       =>
                if Last_Cov_Off /= Slocs.No_Location then
                   UIC.Disable_Cov_Regions.Append
                     (Source_Location_Range'
@@ -723,7 +782,18 @@ package body Instrument.C_Annotations is
                   Last_Cov_Off := Slocs.No_Location;
                end if;
 
-            when others  =>
+            when Fine_Grained_Annotation_Kind =>
+
+               --  Fine grained exemptions go to the dedicated map only, not
+               --  the general purpose annotaions map.
+
+               Insert_Fine_Grained_Exemption
+                 (UIC.Fine_Grained_Exemptions,
+                  Result.Exemption_Req,
+                  Result.Justification);
+               return;
+
+            when others                       =>
                null;
          end case;
 

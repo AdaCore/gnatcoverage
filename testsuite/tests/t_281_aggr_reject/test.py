@@ -2,6 +2,8 @@
 Test that gnatcov properly reject non-library aggregate projects
 """
 
+import re
+
 from e3.fs import cp
 
 from SCOV.minicheck import xcov
@@ -40,7 +42,10 @@ def check_cmd(
     )
     thistest.fail_if_no_match(
         f"unexpected or empty 'gnatcov {cmd}' error message",
-        regexp=r"gnatcov: non-library aggregate projects are not supported",
+        regexp=re.escape(
+            "gnatcov: non-library aggregate projects with more than one"
+            " aggregated project are not supported"
+        ),
         actual=contents_of(log).strip(),
     )
 

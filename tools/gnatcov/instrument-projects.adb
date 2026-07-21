@@ -240,7 +240,7 @@ is
    IC : Inst_Context := Create_Context (Excluded_Source_Files);
 
    Root_Project_Info : constant Project_Info_Access :=
-     Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
+     Get_Or_Create_Project_Info (IC, Project.Root_Project);
 
    --  Create a map from library units to lists of compilation units to
    --  instrument for them.
@@ -282,8 +282,7 @@ is
    function Main_Part_Src
      (Source : GPR2.Build.Source.Object) return GPR2.Build.Source.Object
    is
-      Root_Prj  : constant GPR2.Project.View.Object :=
-        Project.Project.Root_Project;
+      Root_Prj  : constant GPR2.Project.View.Object := Project.Root_Project;
       Lang_Kind : constant Supported_Language_Kind :=
         Language_Kind (To_Language (Source.Language));
    begin
@@ -598,7 +597,7 @@ begin
          declare
             F      : constant String := +Filename;
             Source : constant GPR2.Build.Source.Object :=
-              Project.Project.Root_Project.Source (GPR2.Simple_Name (F));
+              Project.Root_Project.Source (GPR2.Simple_Name (F));
             Lang   : Any_Language;
          begin
             if not Source.Is_Defined then
