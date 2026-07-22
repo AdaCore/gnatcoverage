@@ -235,6 +235,9 @@ package Switches is
    Units_Inputs : String_Vectors.Vector;
    --  List of names for requested units of interest
 
+   Excluded_Units_Inputs : String_Vectors.Vector;
+   --  List of names for units to exclude from the units of interest
+
    C_Opts   : String_Vectors.Vector;
    CPP_Opts : String_Vectors.Vector;
 

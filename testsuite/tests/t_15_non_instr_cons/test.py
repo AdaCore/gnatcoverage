@@ -43,8 +43,8 @@ xcov(xcov_args + ["--save-checkpoint=test_f.ckpt", trace_f])
 xcov(
     xcov_args + ["-Ctest_t.ckpt", "-Ctest_f.ckpt", "-axcov"],
     tolerate_messages=(
-        "warning: Specifying units of interest through --units"
-        " has no effect on checkpoints"
+        "warning: Specifying units of interest through --units/"
+        "--excluded-units has no effect on checkpoints"
     ),
 )
 

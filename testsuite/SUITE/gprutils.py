@@ -172,6 +172,7 @@ class GPRswitches:
         root_project: str,
         projects: Iterable[str] | None = None,
         units: Iterable[str] | None = None,
+        excluded_units: Iterable[str] | None = None,
         no_subprojects: bool = False,
         externally_built_projects: bool = False,
         relocate_build_tree: str | None = None,
@@ -185,6 +186,8 @@ class GPRswitches:
             (--project argument).
         :param units: Optional list of names of units of interest (--units
             argument).
+        :param excluded_units: Optional list of names of units to exclude
+            from the units of interest (--excluded-units argument).
         :param no_subprojects: Whether to process only projects specified
             through -P/--projects (--no-subprojects option). Otherwise, process
             closures of project dependencies.
@@ -197,6 +200,7 @@ class GPRswitches:
         self.root_project = root_project
         self.projects = projects or []
         self.units = units or []
+        self.excluded_units = excluded_units or []
         self.no_subprojects = no_subprojects
         self.externally_built_projects = externally_built_projects
         self.relocate_build_tree = relocate_build_tree
@@ -261,6 +265,9 @@ class GPRswitches:
 
         for u in self.units:
             switches.append("--units={}".format(u))
+
+        for u in self.excluded_units:
+            switches.append("--excluded-units={}".format(u))
 
         if self.no_subprojects:
             switches.append("--no-subprojects")

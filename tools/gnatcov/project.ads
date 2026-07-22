@@ -108,13 +108,16 @@ package Project is
    --  just need to determine the target.
 
    procedure Compute_Units_Of_Interest
-     (Override_Units : String_Vectors.Vector);
+     (Override_Units, Override_Excluded_Units : String_Vectors.Vector);
    --  Compute the sets of projects and units of interest from Add_Project,
-   --  Override_Units and project files data.
+   --  Override_Units, Override_Excluded_Units and project files data.
    --
-   --  If Override_Units is present, it overrides the set of units to be
-   --  considered, else the set defined by the project through the Units,
-   --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
+   --  If Override_Units or Override_Excluded_Units is present, the set of
+   --  units to be considered is the set of units matching Override_Units (all
+   --  units if empty) minus the set of units matching
+   --  Override_Excluded_Units, else the set defined by the project through
+   --  the Units, Units_List, Exclude_Units, and Exclude_Units_List attributes
+   --  is used.
 
    procedure Compute_Unit_Name_For_Excluded_Sources;
    --  Compute the name of the owning unit for each known source file that is

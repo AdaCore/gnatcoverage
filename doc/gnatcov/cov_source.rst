@@ -100,6 +100,10 @@ The available options are as follows:
    When using project files, override the list of units of interest for
    source coverage with those provided.
 
+:cmd-option:`--excluded-units`, |rarg|:
+   When using project files, override the list of units of interest for
+   source coverage, excluding the units provided.
+
 :cmd-option:`--subdirs`:
    When using project files, look for :term:`Library Information files <Library
    Information file>` in the indicated subdirectory of each project's object
