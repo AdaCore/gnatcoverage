@@ -225,6 +225,27 @@ package body SC_Obligations is
    --  Set Found to whether a relevant Branch_Info record was found, and if
    --  that is the case, set Info to it.
 
+   procedure Iterate_Annotations
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Cur          : ALI_Annotation_Maps.Cursor;
+           Sloc         : Source_Location;
+           Ann          : ALI_Annotation;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean));
+   --  Call Process once per annotation in Self, in source order (earlier slocs
+   --  first).
+   --
+   --  * Cur/Sloc/Ann are directly passed from the map.
+   --  * CU is the compilation unit that owns the source file for the
+   --    annotation.
+   --  * New_File is whether this is the first call to Process for the current
+   --    source file.
+   --  * Last_In_File is whether this is the last call to Process for the
+   --    current source file.
+
    package CU_Info_Vectors is new
      Ada.Containers.Vectors
        (Index_Type   => Valid_CU_Id,
@@ -3247,6 +3268,79 @@ package body SC_Obligations is
          Found := True;
       end if;
    end Lookup_Branch_Info;
+
+   -------------------------
+   -- Iterate_Annotations --
+   -------------------------
+
+   procedure Iterate_Annotations
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Cur          : ALI_Annotation_Maps.Cursor;
+           Sloc         : Source_Location;
+           Ann          : ALI_Annotation;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean))
+   is
+      use ALI_Annotation_Maps;
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      --  Current file being processed
+
+      Last_Cur      : Cursor := No_Element;
+      Last_Sloc     : Source_Location := No_Location;
+      Last_CU       : CU_Id := No_CU_Id;
+      Last_New_File : Boolean := False;
+      --  Iteration details from the previous rounds. We call Process one round
+      --  later so that we can determine whether the annotation passed was the
+      --  last of its file (Last_In_File).
+   begin
+      --  As a reminder, Source_Location sort on the file index first, so we
+      --  are guaranteed to have annotations grouped by source files.
+
+      for Cur in Self.Iterate loop
+         declare
+            Sloc     : constant Source_Location := Key (Cur);
+            New_File : constant Boolean := Sloc.Source_File /= Current_SFI;
+         begin
+            --  Find the CU that corresponds to the new source file
+
+            if New_File then
+               Current_SFI := Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+
+            if Last_Cur /= No_Element then
+               Process.all
+                 (Cur          => Last_Cur,
+                  Sloc         => Last_Sloc,
+                  Ann          => Element (Last_Cur),
+                  CU           => Last_CU,
+                  New_File     => Last_New_File,
+                  Last_In_File => New_File);
+            end if;
+            Last_Cur := Cur;
+            Last_Sloc := Sloc;
+            Last_CU := Current_CU;
+            Last_New_File := New_File;
+         end;
+      end loop;
+
+      --  Do not forget to process the last annotation
+
+      if Last_Cur /= No_Element then
+         Process.all
+           (Cur          => Last_Cur,
+            Sloc         => Last_Sloc,
+            Ann          => Element (Last_Cur),
+            CU           => Last_CU,
+            New_File     => Last_New_File,
+            Last_In_File => True);
+      end if;
+   end Iterate_Annotations;
 
    ---------------------
    -- Checkpoint_Load --
@@ -6455,10 +6549,6 @@ package body SC_Obligations is
    ---------------------
 
    procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map) is
-      Current_SFI : Source_File_Index := No_Source_File;
-      Current_CU  : CU_Id := No_CU_Id;
-      --  Current file being processed
-
       Has_Relevant_Annotation : Boolean := False;
       --  Whether at least one annotation was included in the annotations
       --  fingerprint. If not, we want to keep the Annotations_Fingerprint
@@ -6468,72 +6558,76 @@ package body SC_Obligations is
       Hash_Ctx : Tracing_Hash;
       --  Hash context for the annotations fingerprint
 
-      procedure Set_Annotations_Fingerprint;
-      --  Set the annotations fingerprint for Current_CU if it is not null,
-      --  stored in Hash_Ctx.
+      procedure Include
+        (Cur          : ALI_Annotation_Maps.Cursor;
+         Sloc         : Source_Location;
+         Ann          : ALI_Annotation;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean);
+      --  Include the annotation in CU's annotation map and update/set the
+      --  annotation fingerprint (Hash_Ctx).
 
-      ---------------------------------
-      -- Set_Annotations_Fingerprint --
-      ---------------------------------
+      -------------
+      -- Include --
+      -------------
 
-      procedure Set_Annotations_Fingerprint is
+      procedure Include
+        (Cur          : ALI_Annotation_Maps.Cursor;
+         Sloc         : Source_Location;
+         Ann          : ALI_Annotation;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean)
+      is
+         pragma Unreferenced (Cur);
       begin
-         if Current_CU /= No_CU_Id and then Has_Relevant_Annotation then
+         --  If we are processing a new file, initialize the hash context for
+         --  it.
+
+         if New_File then
+            Has_Relevant_Annotation := False;
+            Hash_Ctx :=
+              Start_Hash
+                ("annotations of "
+                 & Get_Full_Name (Sloc.Source_File, Or_Simple => True),
+                 SCOs_Trace);
+         end if;
+
+         --  Not all annotation kinds must be considered for consisency checks:
+         --  see the comment for SID_Info.Annotations_Fingerprint.
+
+         if Ann.Kind in Cov_On .. Cov_Off then
+            Has_Relevant_Annotation := True;
+            Update_Hash (Hash_Ctx, Image (Sloc));
+            Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
+            if Ann.Kind = Cov_Off and then Ann.Justification /= "" then
+               Update_Hash (Hash_Ctx, +Ann.Justification);
+            end if;
+         end if;
+
+         CU_Vector.Reference (CU).ALI_Annotations.Include (Sloc, Ann);
+
+         --  If this is the last annotation for this file and there was at
+         --  least one contribution to the fingerprint, fill in the fingerprint
+         --  to this file.
+
+         if Last_In_File and then Has_Relevant_Annotation then
             declare
                SID_Maps : SID_Info_Maps.Map renames
-                 CU_Vector.Reference (Current_CU).SIDs_Info;
+                 CU_Vector.Reference (CU).SIDs_Info;
                SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
             begin
                SID.Annotations_Fingerprint :=
                  Fingerprint_Type (Digest (Hash_Ctx));
             end;
          end if;
-      end Set_Annotations_Fingerprint;
+      end Include;
 
       --  Start of processing for Set_Annotations
 
    begin
-      --  As a reminder, Source_Location sort on the file index first, so we
-      --  are guaranteed to have annotations grouped by source files.
-
-      for Cur in Annotations.Iterate loop
-         declare
-            use ALI_Annotation_Maps;
-            Sloc : constant Source_Location := Key (Cur);
-            Ann  : constant ALI_Annotation := Element (Cur);
-         begin
-            --  If we are entering a new file, reset the hashing context and
-            --  dump the annotations fingerprint that was processed.
-
-            if Sloc.Source_File /= Current_SFI then
-               Set_Annotations_Fingerprint;
-               Current_SFI := Sloc.Source_File;
-               Current_CU := Comp_Unit (Current_SFI);
-               Has_Relevant_Annotation := False;
-               Hash_Ctx :=
-                 Start_Hash
-                   ("annotations of "
-                    & Get_Full_Name (Current_SFI, Or_Simple => True),
-                    SCOs_Trace);
-            end if;
-
-            --  Not all annotation kinds must be considered for consisency
-            --  checks: see the comment for SID_Info.Annotations_Fingerprint.
-
-            if Ann.Kind in Cov_On .. Cov_Off then
-               Has_Relevant_Annotation := True;
-               Update_Hash (Hash_Ctx, Image (Sloc));
-               Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
-               if Ann.Kind = Cov_Off and then Ann.Justification /= "" then
-                  Update_Hash (Hash_Ctx, +Ann.Justification);
-               end if;
-            end if;
-
-            CU_Vector.Reference (Current_CU).ALI_Annotations.Include
-              (Sloc, Ann);
-         end;
-      end loop;
-      Set_Annotations_Fingerprint;
+      Iterate_Annotations (Annotations, Include'Access);
    end Set_Annotations;
 
    ------------------------
