@@ -408,7 +408,14 @@ package body Outputs is
       --  fine to plan for a failure exit code in warnings-as-errors mode.
 
       Register_Warning;
+
+      --  To avoid output desynchronization, flush stdout so that messages that
+      --  give context to understand better the warning/error appear before it.
+
+      Flush (Standard_Output);
+
       Put_Line (Standard_Error, Msg);
+
    end Warning_Or_Error;
 
 begin

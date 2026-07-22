@@ -1545,6 +1545,19 @@ procedure GNATcov_Bits_Specific is
                   " when --cancel-annotate is also specified");
             end if;
 
+            --  Enable automatic source relocation if :
+            --  - In Cmd_Coverage mode
+            --  - No explicit relocation option are passed
+            --  - The --no-auto-source-relocation is not passed
+
+            if Args.Command = Cmd_Coverage
+              and then Source_Search_Inputs.Length = 0
+              and then Source_Rebase_Inputs.Length = 0
+              and then not Args.Bool_Args (Opt_No_Auto_Source_Relocation)
+            then
+               Auto_Source_Relocation := True;
+            end if;
+
             --  If a source encoding is specified, use it to decode source
             --  files.
 

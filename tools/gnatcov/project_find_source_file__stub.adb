@@ -16,9 +16,19 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-function Project_Find_Source_File (Simple_Name : String) return String_Access
-is
-   pragma Unreferenced (Simple_Name);
-begin
-   return null;
+package body Project_Find_Source_File is
+   function Prj_Find_Source_File
+     (Simple_Name : String; Ambiguous : out Boolean) return String_Access
+   is
+      pragma Unreferenced (Simple_Name);
+      pragma Unreferenced (Ambiguous);
+   begin
+      return null;
+   end Prj_Find_Source_File;
+
+   function Prj_Find_Source_File (Simple_Name : String) return String_Access is
+      pragma Unreferenced (Simple_Name);
+   begin
+      return null;
+   end Prj_Find_Source_File;
 end Project_Find_Source_File;
