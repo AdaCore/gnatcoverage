@@ -2731,10 +2731,7 @@ begin
                pragma Assert (Save_Checkpoint /= null);
             end if;
 
-            --  Generate checkpoint, if requested. Use the last version as
-            --  soon as instrumentation is involved, as the default version
-            --  does not allow us to encode all the information we need to
-            --  encode.
+            --  Generate checkpoint, if requested
 
             if Save_Checkpoint /= null then
                Checkpoints.Checkpoint_Save
