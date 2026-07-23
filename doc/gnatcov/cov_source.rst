@@ -1838,6 +1838,15 @@ number of required instances of :cmd-option:`--source-search` is equal to the
 number of source directories, it is clearly more advantageous to use
 :cmd-option:`--source-rebase` which only needs to be passed once.
 
+When neither :cmd-option:`--source-rebase` nor :cmd-option:`--source-search`
+options are given, and a project file is passed through :cmd-option:`-P`, if
+gnatcoverage cannot find a source file whose absolute path is specified in the
+traces, it will try to find a file with a matching name in the sources of the
+given project. Note that this feature only looks at the file's base name, so
+if multiple source files match it, the resolution for this specific file
+fails. This behavior is disabled with the option
+:cmd-option:`--no-auto-source-relocation`.
+
 Inlining & Ada generic units
 ============================
 
