@@ -575,8 +575,6 @@ package Files_Table is
    --  In case multiple SCOs contain Sloc, the result is the Id of the first
    --  SCO registered in the line info corresponding to Sloc.
 
-   type ALI_Region_Annotation_Kind is (Exemption, Disable_Coverage);
-
    procedure Populate_Annotations
      (FI : Source_File_Index; Kind : ALI_Region_Annotation_Kind);
    --  Fill the Exemption/Disabled_Cov field according to Kind in the Line_Info

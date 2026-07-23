@@ -155,8 +155,11 @@ package body SC_Obligations is
       Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
       --  Scope tree, used to output e.g. subprogram metrics
 
-      ALI_Annotations : ALI_Annotation_Maps.Map;
-      --  List of annotations for the unit
+      Exempted_Regions : ALI_Annotation_Maps.Map;
+      --  Exempt_On/Exempt_Off annotations for the unit
+
+      Disabled_Regions : ALI_Annotation_Maps.Map;
+      --  Cov_Off/Cov_On annotations for the unit
 
       Fine_Grained_Exemptions : Exemption_Request_Maps.Map;
       --  Mapping of exempted SCOs to corresponding justifications for this
@@ -1568,7 +1571,8 @@ package body SC_Obligations is
       Read (CLS, Value.Macro_Info_Map);
       Read (CLS, Value.Include_Info_Map);
       Read (CLS, Value.Scope_Entities);
-      Read (CLS, Value.ALI_Annotations);
+      Read (CLS, Value.Exempted_Regions);
+      Read (CLS, Value.Disabled_Regions);
       Read (CLS, Value.Fine_Grained_Exemptions);
       Read (CLS, Value.Branch_Map);
       Read (CLS, Value.SCOs);
@@ -2942,18 +2946,19 @@ package body SC_Obligations is
 
             Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
 
-            --  Remap ALI annotations and then merge them
+            --  Remap ALI annotations and then merge them (once for exempted
+            --  regions, once for disabled regions).
 
             declare
-               Remapped_Annotations : ALI_Annotation_Maps.Map :=
-                 CP_CU.ALI_Annotations;
+               Remapped_Annotations : ALI_Annotation_Maps.Map;
             begin
+               Remapped_Annotations := CP_CU.Exempted_Regions;
                Remap_ALI_Annotations (Relocs, Remapped_Annotations);
-               for Cur in Remapped_Annotations.Iterate loop
-                  Real_CU.ALI_Annotations.Include
-                    (ALI_Annotation_Maps.Key (Cur),
-                     ALI_Annotation_Maps.Element (Cur));
-               end loop;
+               Set_Annotations (Remapped_Annotations);
+
+               Remapped_Annotations := CP_CU.Disabled_Regions;
+               Remap_ALI_Annotations (Relocs, Remapped_Annotations);
+               Set_Annotations (Remapped_Annotations);
             end;
 
             --  Likewise for fine grained exemptions
@@ -3086,7 +3091,8 @@ package body SC_Obligations is
       Write (CSS, Value.Macro_Info_Map);
       Write (CSS, Value.Include_Info_Map);
       Write (CSS, Value.Scope_Entities);
-      Write (CSS, Value.ALI_Annotations);
+      Write (CSS, Value.Exempted_Regions);
+      Write (CSS, Value.Disabled_Regions);
       Write (CSS, Value.Fine_Grained_Exemptions);
       Write (CSS, Value.Branch_Map);
       Write (CSS, Value.SCOs);
@@ -6606,7 +6612,16 @@ package body SC_Obligations is
             end if;
          end if;
 
-         CU_Vector.Reference (CU).ALI_Annotations.Include (Sloc, Ann);
+         case Ann.Kind is
+            when Exempt_On | Exempt_Off =>
+               CU_Vector.Reference (CU).Exempted_Regions.Include (Sloc, Ann);
+
+            when Cov_On | Cov_Off       =>
+               CU_Vector.Reference (CU).Disabled_Regions.Include (Sloc, Ann);
+
+            when others                 =>
+               raise Program_Error;
+         end case;
 
          --  If this is the last annotation for this file and there was at
          --  least one contribution to the fingerprint, fill in the fingerprint
@@ -6980,18 +6995,31 @@ package body SC_Obligations is
    -- Get_Annotations --
    ---------------------
 
-   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map is
+   function Get_Annotations
+     (CU : CU_Id; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map is
    begin
       if CU = No_CU_Id then
          return ALI_Annotation_Maps.Empty_Map;
       end if;
-      return CU_Vector.Element (CU).ALI_Annotations;
+      declare
+         Unit : CU_Info renames CU_Vector.Reference (CU);
+      begin
+         case Kind is
+            when Exemption        =>
+               return Unit.Exempted_Regions;
+
+            when Disable_Coverage =>
+               return Unit.Disabled_Regions;
+         end case;
+      end;
    end Get_Annotations;
 
    function Get_Annotations
-     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map is
+     (SFI : Source_File_Index; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map is
    begin
-      return Get_Annotations (Comp_Unit (SFI));
+      return Get_Annotations (Comp_Unit (SFI), Kind);
    end Get_Annotations;
 
    --------------------
@@ -6999,28 +7027,49 @@ package body SC_Obligations is
    --------------------
 
    function Get_Annotation
-     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor
+     (Sloc : Source_Location; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Cursor
    is
       CU : constant CU_Id := Comp_Unit (Sloc.Source_File);
    begin
       if CU = No_CU_Id then
          return ALI_Annotation_Maps.No_Element;
       end if;
-      return CU_Vector.Constant_Reference (CU).ALI_Annotations.Find (Sloc);
+      declare
+         Unit : CU_Info renames CU_Vector.Reference (CU);
+      begin
+         case Kind is
+            when Exemption        =>
+               return Unit.Exempted_Regions.Find (Sloc);
+
+            when Disable_Coverage =>
+               return Unit.Disabled_Regions.Find (Sloc);
+         end case;
+      end;
    end Get_Annotation;
 
    -------------------------
    -- Get_All_Annotations --
    -------------------------
 
-   function Get_All_Annotations return ALI_Annotation_Maps.Map is
+   function Get_All_Annotations
+     (Kind : ALI_Region_Annotation_Kind) return ALI_Annotation_Maps.Map
+   is
       use ALI_Annotation_Maps;
       Result : Map;
    begin
       for CU of CU_Vector loop
-         for Cur in CU.ALI_Annotations.Iterate loop
-            Result.Insert (Key (Cur), Element (Cur));
-         end loop;
+         case Kind is
+            when Exemption        =>
+               for Cur in CU.Exempted_Regions.Iterate loop
+                  Result.Insert (Key (Cur), Element (Cur));
+               end loop;
+
+            when Disable_Coverage =>
+               for Cur in CU.Disabled_Regions.Iterate loop
+                  Result.Insert (Key (Cur), Element (Cur));
+               end loop;
+         end case;
       end loop;
       return Result;
    end Get_All_Annotations;
@@ -7032,7 +7081,7 @@ package body SC_Obligations is
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-          .ALI_Annotations
+          .Exempted_Regions
           .Reference (Sloc);
    begin
       E.Violation_Count := E.Violation_Count + 1;
@@ -7045,7 +7094,7 @@ package body SC_Obligations is
    procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-          .ALI_Annotations
+          .Exempted_Regions
           .Reference (Sloc);
    begin
       E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
@@ -7059,9 +7108,9 @@ package body SC_Obligations is
       use ALI_Annotation_Maps;
    begin
       for CU of CU_Vector loop
-         for Cur in CU.ALI_Annotations.Iterate loop
+         for Cur in CU.Exempted_Regions.Iterate loop
             declare
-               A : ALI_Annotation renames CU.ALI_Annotations.Reference (Cur);
+               A : ALI_Annotation renames CU.Exempted_Regions.Reference (Cur);
             begin
                if A.Kind = Exempt_On then
                   A.Violation_Count := 0;
@@ -7307,11 +7356,9 @@ package body SC_Obligations is
                     Fingerprint   => Fingerprint_Type'(others => 0),
                     Created_Units => Discard_Created_Units);
             end if;
-            CU_Vector.Reference (CU_Map.Element (Sloc.Source_File))
-              .ALI_Annotations
-              .Include (Sloc, ALI_Annotation_Maps.Element (Cur));
          end;
       end loop;
+      Set_Annotations (ALI_Annotations);
    end Load_ALI;
 
    --------------
@@ -8067,10 +8114,10 @@ package body SC_Obligations is
                --  Add an exemption region for all the statements guarded by
                --  this branch.
 
-               Unit.ALI_Annotations.Include
+               Unit.Exempted_Regions.Include
                  ((UE.Sloc.Source_File, Info.Stmt_Start),
                   (Exempt_On, Justification, others => <>));
-               Unit.ALI_Annotations.Include
+               Unit.Exempted_Regions.Include
                  ((UE.Sloc.Source_File, Info.Stmt_End),
                   (Exempt_Off, Justification));
             end;
