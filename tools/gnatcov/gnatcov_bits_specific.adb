@@ -2734,6 +2734,15 @@ begin
             --  Generate checkpoint, if requested
 
             if Save_Checkpoint /= null then
+
+               --  If no report was generated so far, then no external
+               --  annotations were imported so far. We need to include them in
+               --  the checkpoint to generate, so import them now.
+
+               if Annotation (Annotate_Unknown) or else not Emit_Report then
+                  Import_All_External_Exemptions;
+               end if;
+
                Checkpoints.Checkpoint_Save
                  (Save_Checkpoint.all,
                   Context'Access,

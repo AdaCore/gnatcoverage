@@ -571,6 +571,30 @@ package body SS_Annotations is
       Set_Fine_Grained_Exemptions (New_Exemptions);
    end Import_External_Exemptions;
 
+   ------------------------------------
+   -- Import_All_External_Exemptions --
+   ------------------------------------
+
+   procedure Import_All_External_Exemptions is
+      procedure Process (SFI : Source_File_Index);
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (SFI : Source_File_Index) is
+         FI : constant File_Info_Access := Get_File (SFI);
+      begin
+         if FI.Kind = Source_File and then FI.Ignore_Status /= Always then
+            Import_External_Exemptions (SFI);
+         end if;
+      end Process;
+
+      --  Start of processing for Import_All_External_Exemptions
+   begin
+      Files_Table_Iterate (Process'Access);
+   end Import_All_External_Exemptions;
+
    -----------------------------
    -- Generic_Get_Annotations --
    -----------------------------
