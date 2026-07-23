@@ -271,7 +271,9 @@ package body Project is
 
    overriding
    procedure Internal_Report
-     (Self : in out Reporter; Message : GPR2.Message.Object);
+     (Self    : in out Reporter;
+      Message : GPR2.Message.Object;
+      Binary  : Boolean := False);
 
    -------------------
    -- Get_Unit_Name --
@@ -2038,12 +2040,14 @@ package body Project is
 
    overriding
    procedure Internal_Report
-     (Self : in out Reporter; Message : GPR2.Message.Object) is
+     (Self    : in out Reporter;
+      Message : GPR2.Message.Object;
+      Binary  : Boolean := False) is
    begin
       if Message.Level in GPR2.Message.Warning | GPR2.Message.Error then
          Register_Warning;
       end if;
-      Self.Inner.Internal_Report (Message);
+      Self.Inner.Internal_Report (Message, Binary);
    end Internal_Report;
 
    ---------------------
