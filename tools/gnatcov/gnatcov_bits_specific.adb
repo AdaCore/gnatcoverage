@@ -1148,11 +1148,13 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
 
       if not Args.String_List_Args (Opt_Checkpoint).Is_Empty
-        and then not Args.String_List_Args (Opt_Units).Is_Empty
+        and then
+          (not Args.String_List_Args (Opt_Units).Is_Empty
+           or else not Args.String_List_Args (Opt_Excluded_Units).Is_Empty)
       then
          Warn
-           ("Specifying units of interest through --units has no effect on "
-            & "checkpoints");
+           ("Specifying units of interest through --units/--excluded-units"
+            & " has no effect on checkpoints");
       end if;
 
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
@@ -1776,11 +1778,16 @@ procedure GNATcov_Bits_Specific is
          Switches.Recursive_Projects :=
            not Args.Bool_Args (Opt_No_Subprojects);
          Copy_Arg_List (Opt_Units, Units_Inputs);
-         Project.Compute_Units_Of_Interest (Units_Inputs);
+         Copy_Arg_List (Opt_Excluded_Units, Excluded_Units_Inputs);
+         Project.Compute_Units_Of_Interest
+           (Units_Inputs, Excluded_Units_Inputs);
 
       else
          if not Args.String_List_Args (Opt_Units).Is_Empty then
             Fatal_Error ("--units requires -P");
+         end if;
+         if not Args.String_List_Args (Opt_Excluded_Units).Is_Empty then
+            Fatal_Error ("--excluded-units requires -P");
          end if;
          if not Args.String_List_Args (Opt_Projects).Is_Empty then
             Fatal_Error ("--projects requires -P");
