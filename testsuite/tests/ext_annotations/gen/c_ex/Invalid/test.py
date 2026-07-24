@@ -5,6 +5,8 @@ Check that gnatcov correctly rejects exemption markers intersecting SCOs.
 # TODO: This may need to be moved to a Robustness chapter instead when
 # proper qualification tests are written for C.
 
+import re
+
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -19,6 +21,15 @@ annotations = generate_annotations(
 
 tmp = Wdir("tmp_")
 
+warnings = [
+    r"warning: Exemption annotation at main\.c:\d+:\d+ intersects a coverage"
+    r" obligation \(.*\), ignoring it",
+    re.escape(
+        "*** main.c:18:31: warning: EXEMPT_OFF annotation found without a"
+        " corresponding EXEMPT_ON"
+    ),
+]
+
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(mains=["main.c"], srcdirs=[".."])),
     extra_coverage_args=["--annotate=xcov"],
@@ -26,7 +37,7 @@ build_run_and_coverage(
     covlevel="stmt+mcdc",
     mains=["main"],
     trace_mode="src",
-    tolerate_instrument_messages="Exemption .* intersects",
+    tolerate_instrument_messages=".*",
 )
 
 check_xcov_reports(
@@ -36,8 +47,7 @@ check_xcov_reports(
 
 thistest.fail_if_no_match(
     what="Unexpected instrument output",
-    regexp=r"(warning: Exemption annotation at main\.c:\d+:\d+ intersects a"
-    r" coverage obligation \(.*\), ignoring it\n)+",
+    regexp="\n".join(warnings),
     actual=contents_of("instrument.log"),
 )
 

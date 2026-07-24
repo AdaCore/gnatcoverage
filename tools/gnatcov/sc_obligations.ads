@@ -597,7 +597,11 @@ package SC_Obligations is
    end record;
 
    function "<" (Left, Right : Exemption_Request) return Boolean;
-   function Image (Self : Exemption_Request) return String;
+
+   function Image
+     (Self : Exemption_Request; Precise_Sloc : Boolean := False) return String;
+   --  If Precise_Sloc is True, assume that Self.Sloc precisely points at the
+   --  SCO that is exempted (i.e. omit offset information from the result).
 
    package Exemption_Request_Maps is new
      Ada.Containers.Ordered_Maps
@@ -641,6 +645,7 @@ package SC_Obligations is
    end record;
 
    function "<" (Left, Right : Exemptable_SCO) return Boolean;
+   function Image (Self : Exemptable_SCO) return String;
 
    --  Fine grained exemption containers: mappings from exemptable SCOs to the
    --  exemption justification.
