@@ -349,6 +349,28 @@ package Instrument.Common is
    package Nat_Vectors is new
      Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Nat);
 
+   --  Branch information collected during the instrumentation.  The
+   --  Import_Annotations procedure will convert them into
+   --  SC_Obligations.Branch_Info records. See the latter for the semantics of
+   --  the components.
+
+   type LL_Branch_Info is record
+      File                   : Source_File_Index;
+      Match_Start, Match_End : Local_Source_Location;
+
+      Control_Decision : Nat;
+      Control_Outcome  : Boolean;
+
+      Stmt_Start, Stmt_End : Local_Source_Location;
+   end record;
+
+   function First_Decision_After (Mark : Nat) return Nat
+   with Post => First_Decision_After'Result > Mark;
+   --  Return the first low-level decision SCO that follows the SCO Mark
+
+   package LL_Branch_Info_Vectors is new
+     Ada.Containers.Vectors (Positive, LL_Branch_Info);
+
    type Unit_Inst_Context is tagged record
       Instrumented_Unit : Unbounded_String;
       --  Absolute filename for the source that is being instrumented
@@ -366,6 +388,10 @@ package Instrument.Common is
       Fine_Grained_Exemptions : Exemption_Request_Maps.Map;
       --  Fine grained exemptions created during the instrumentation process,
       --  to insert in CU_Info.Fine_Grained_Exemptions afterwards.
+
+      Branches : LL_Branch_Info_Vectors.Vector;
+      --  Branch information collected during instrumentation. Processed and
+      --  cleared by the Import_Annotations procedure.
 
       Disable_Instrumentation : Boolean := False;
       --  Set to True to deactivate instrumentation and prevent any code
@@ -395,7 +421,9 @@ package Instrument.Common is
    end record;
 
    procedure Import_Annotations
-     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map);
+     (UIC           : in out Unit_Inst_Context;
+      Created_Units : Created_Unit_Maps.Map;
+      SCO_Map       : LL_HL_SCO_Map);
    --  Import ALI annotations for this unit in the global annotations table.
    --  This should be called once the unit was instrumented and its low level
    --  SCOS have been transformed into high-level ones.

@@ -921,7 +921,7 @@ package body Annotations.Report is
          --  Register violations covered by fine grained exemptions in their
          --  own vector.
 
-         if M.Kind = Exempted_Violation then
+         if M.Kind in Exempted_Violation | Manual_Decision_Evaluation then
             Pp.Fine_Grained_Exempted_Messages.Append (M);
 
          --  If M is a violation, check if an exemption is currently active
@@ -1048,10 +1048,18 @@ package body Annotations.Report is
       Info : constant File_Info_Access := Get_File (File);
    begin
       if Info.Li_Stats (Covered) /= Get_Total (Info.Li_Stats)
-        or else (Pp.Show_Details and then Info.Li_Stats (Not_Coverable) /= 0)
+        or else
+          (Pp.Show_Details
+           and then
+             (Info.Li_Stats (Not_Coverable) /= 0
+              or else Info.Has_Manual_Evaluations))
       then
-
-         --  Some uncovered or partially covered lines are present
+         --  At least one line is:
+         --
+         --  * uncovered,
+         --  * partially covered lines,
+         --  * not coverable (when showing details),
+         --  * has manual evaluations (when showing details).
 
          Pp.Current_File_Index := File;
          Skip := False;

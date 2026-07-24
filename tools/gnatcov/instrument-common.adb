@@ -272,12 +272,36 @@ package body Instrument.Common is
       return Allocated_Bits.Last_Index;
    end Create_Unit_Bits;
 
+   --------------------------
+   -- First_Decision_After --
+   --------------------------
+
+   function First_Decision_After (Mark : Nat) return Nat is
+   begin
+      for I in Mark + 1 .. SCOs.SCO_Table.Last loop
+         declare
+            E : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (I);
+         begin
+            if SCOs.Is_Decision (E.C1) then
+               return I;
+            end if;
+         end;
+      end loop;
+
+      --  It is the responsibility of callers to ensure there is one decision
+      --  SCO after Mark.
+
+      raise Program_Error;
+   end First_Decision_After;
+
    ------------------------
    -- Import_Annotations --
    ------------------------
 
    procedure Import_Annotations
-     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map)
+     (UIC           : in out Unit_Inst_Context;
+      Created_Units : Created_Unit_Maps.Map;
+      SCO_Map       : LL_HL_SCO_Map)
    is
       ALI_Annotations : ALI_Annotation_Maps.Map;
    begin
@@ -287,6 +311,64 @@ package body Instrument.Common is
       end loop;
       Set_Annotations (ALI_Annotations);
       Set_Fine_Grained_Exemptions (UIC.Fine_Grained_Exemptions);
+
+      --  Resolve branch info in UIC.Branches and add them to SC_Obligations
+
+      declare
+         Map : Branch_Maps.Map;
+
+         Trace : constant Boolean := Sources_Trace.Is_Active;
+      begin
+         for BI of UIC.Branches loop
+            declare
+               Key     : constant Source_Location :=
+                 (Source_File => BI.File, L => BI.Match_Start);
+               Element : constant Branch_Info :=
+                 (Match_Start      => BI.Match_Start,
+                  Match_End        => BI.Match_End,
+                  Control_Decision =>
+                    (if BI.Control_Decision = 0
+                     then No_SCO_Id
+                     else SCO_Map (BI.Control_Decision)),
+                  Control_Outcome  => BI.Control_Outcome,
+                  Stmt_Start       => BI.Stmt_Start,
+                  Stmt_End         => BI.Stmt_End);
+            begin
+               if Trace then
+                  Sources_Trace.Increase_Indent
+                    ("New branch info at " & Image (Key));
+                  Sources_Trace.Trace
+                    ("Match: "
+                     & Image (Element.Match_Start)
+                     & " .. "
+                     & Image (Element.Match_End));
+                  if Element.Control_Decision = No_SCO_Id then
+                     Sources_Trace.Trace ("No control decision");
+                  else
+                     Sources_Trace.Trace
+                       ("Controlled by outcome "
+                        & Element.Control_Outcome'Image
+                        & " of "
+                        & Image (Element.Control_Decision));
+                  end if;
+                  Sources_Trace.Trace
+                    ("Statements: "
+                     & Image (Element.Stmt_Start)
+                     & " .. "
+                     & Image (Element.Stmt_End));
+                  Sources_Trace.Decrease_Indent;
+               end if;
+               Map.Include (Key, Element);
+            end;
+         end loop;
+         Set_Branch_Map (Map);
+
+         --  Do not forget to clear branch information in UIC so that
+         --  instrumenting the next source file does not try to re-create
+         --  branch info from previous files.
+
+         UIC.Branches.Clear;
+      end;
    end Import_Annotations;
 
    -------------------------------------

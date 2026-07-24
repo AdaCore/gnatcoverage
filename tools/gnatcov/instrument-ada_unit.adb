@@ -69,6 +69,8 @@ package body Instrument.Ada_Unit is
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
 
+   use type Slocs.Local_Source_Location;
+
    Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
      (GPR2.S_Spec => 'S', GPR2.S_Body => 'B', GPR2.S_Separate => 'U');
 
@@ -3870,6 +3872,27 @@ package body Instrument.Ada_Unit is
       procedure Traverse_Component_List (CL : Component_List);
       --  Traverse a list of components (if a type declaration)
 
+      procedure Insert_Branch_Info
+        (Match_Start : Token_Reference;
+         Stmts       : Stmt_List;
+         Decision    : Nat;
+         Outcome     : Boolean);
+      --  Append an entry to UIC.Branches.
+      --
+      --  Match_Start must be the token after which the Exempt_Branch directive
+      --  must appear to exempt this branch.
+      --
+      --  Stmts is the list of statements that must be exempted with this
+      --  branch. The first token of its first non-statement is used as the
+      --  second boandary for the region in which the Exempt_Branch directives
+      --  can go.
+      --
+      --  Decision must be the low level SCO for the decision that controls
+      --  this branch, or 0 if no decision controls it.
+      --
+      --  Outcome must be the outcome of Decision that gives access to this
+      --  branch. It is unused if Decision is 0.
+
       ------------------------------------------
       -- Utility functions for node synthesis --
       ------------------------------------------
@@ -5468,8 +5491,26 @@ package body Instrument.Ada_Unit is
                declare
                   If_N : constant If_Stmt := N.As_If_Stmt;
                   Alt  : constant Elsif_Stmt_Part_List := If_N.F_Alternatives;
+
+                  SCO_Mark, Last_Decision : Nat;
                begin
+                  SCO_Mark := SCOs.SCO_Table.Last;
                   Process_Expression (UIC, If_N.F_Cond_Expr, 'I');
+
+                  --  The match region for the "if then" branch spans from the
+                  --  "then" token to the first non-statement in the statements
+                  --  block.
+
+                  if UIC.Disable_Coverage then
+                     Last_Decision := 0;
+                  else
+                     Last_Decision := First_Decision_After (SCO_Mark);
+                     Insert_Branch_Info
+                       (Match_Start => Next (If_N.F_Cond_Expr.Token_End),
+                        Stmts       => If_N.F_Then_Stmts,
+                        Decision    => Last_Decision,
+                        Outcome     => True);
+                  end if;
 
                   --  Now we traverse the statements in the THEN part
 
@@ -5491,7 +5532,23 @@ package body Instrument.Ada_Unit is
                            Insertion_N => Handle (Elif.F_Cond_Expr));
                         End_Statement_Block (UIC);
 
+                        SCO_Mark := SCOs.SCO_Table.Last;
                         Process_Expression (UIC, Elif.F_Cond_Expr, 'I');
+
+                        --  The match region for the "elsif then" branch spans
+                        --  from the "then" token to the first non-statement in
+                        --  the statement block.
+
+                        if UIC.Disable_Coverage then
+                           Last_Decision := 0;
+                        else
+                           Last_Decision := First_Decision_After (SCO_Mark);
+                           Insert_Branch_Info
+                             (Match_Start => Next (Elif.F_Cond_Expr.Token_End),
+                              Stmts       => Elif.F_Stmts,
+                              Decision    => Last_Decision,
+                              Outcome     => True);
+                        end if;
 
                         --  Traverse the statements in the ELSIF
 
@@ -5502,10 +5559,26 @@ package body Instrument.Ada_Unit is
 
                   --  Finally traverse the ELSE statements if present
 
-                  if not If_N.F_Else_Part.Is_Null then
-                     Traverse_Declarations_Or_Statements
-                       (UIC, L => If_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
-                  end if;
+                  declare
+                     E_Part : constant Else_Part := If_N.F_Else_Part;
+                  begin
+                     if not E_Part.Is_Null then
+                        Traverse_Declarations_Or_Statements
+                          (UIC, L => E_Part.F_Stmts.As_Ada_Node_List);
+
+                        --  The match region for the "else" branch spans from
+                        --  the "else" token to the first non-statement in the
+                        --  statement block.
+
+                        if not UIC.Disable_Coverage then
+                           Insert_Branch_Info
+                             (Match_Start => E_Part.Token_Start,
+                              Stmts       => E_Part.F_Stmts,
+                              Decision    => Last_Decision,
+                              Outcome     => False);
+                        end if;
+                     end if;
+                  end;
                end;
 
                --  Start a new statement block for statements after the if
@@ -5523,6 +5596,10 @@ package body Instrument.Ada_Unit is
                begin
                   Process_Expression (UIC, Case_N.F_Expr, 'X');
 
+                  for Prag_Node of Case_N.F_Pragmas loop
+                     Traverse_One (Prag_Node.As_Ada_Node);
+                  end loop;
+
                   --  Process case branches
 
                   for J in 1 .. Alt_L.Children_Count loop
@@ -5532,6 +5609,13 @@ package body Instrument.Ada_Unit is
                      begin
                         Traverse_Declarations_Or_Statements
                           (UIC, L => Alt.F_Stmts.As_Ada_Node_List);
+                        if not UIC.Disable_Coverage then
+                           Insert_Branch_Info
+                             (Next (Alt.F_Choices.Token_End),
+                              Alt.F_Stmts,
+                              0,
+                              False);
+                        end if;
                      end;
                   end loop;
                end;
@@ -6050,6 +6134,54 @@ package body Instrument.Ada_Unit is
                Process_Expression (UIC, N, 'X', Preelab);
          end case;
       end Traverse_One;
+
+      ------------------------
+      -- Insert_Branch_Info --
+      ------------------------
+
+      procedure Insert_Branch_Info
+        (Match_Start : Token_Reference;
+         Stmts       : Stmt_List;
+         Decision    : Nat;
+         Outcome     : Boolean)
+      is
+         function Start_Sloc
+           (T : Token_Reference) return Slocs.Local_Source_Location
+         is (+Start_Sloc (Sloc_Range (Data (T))));
+
+         function End_Sloc
+           (T : Token_Reference) return Slocs.Local_Source_Location
+         is (+End_Sloc (Sloc_Range (Data (T))));
+
+         Info : LL_Branch_Info :=
+           (File             => Unit_File_Index (Stmts),
+            Match_Start      => Start_Sloc (Match_Start),
+            Match_End        => Slocs.No_Local_Location,
+
+            Control_Decision => Decision,
+            Control_Outcome  => Outcome,
+
+            Stmt_Start       => Start_Sloc (Stmts.Token_Start),
+            Stmt_End         => End_Sloc (Stmts.Token_End));
+      begin
+         --  The "match region" for this branch starts at Match_Start, and ends
+         --  either:
+         --
+         --  1. at the first non-pragma statement, if any, or
+         --  2. at the last token of this statement list.
+
+         for S of Stmts loop
+            if S.Kind /= Ada_Pragma_Node then
+               Info.Match_End := Start_Sloc (S.Token_Start);
+               exit;
+            end if;
+         end loop;
+         if Info.Match_End = Slocs.No_Local_Location then
+            Info.Match_End := End_Sloc (Stmts.Token_End);
+         end if;
+
+         UIC.Branches.Append (Info);
+      end Insert_Branch_Info;
 
       Saved_Insertion_Info : constant Insertion_Info_Ref :=
         UIC.Current_Insertion_Info;
@@ -10580,7 +10712,7 @@ package body Instrument.Ada_Unit is
 
          --  Import annotations in our internal tables
 
-         UIC.Import_Annotations (Created_Units);
+         UIC.Import_Annotations (Created_Units, SCO_Map);
 
          --  Import external exemption annotations
 

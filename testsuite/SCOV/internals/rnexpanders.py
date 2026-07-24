@@ -16,6 +16,7 @@ from .cnotes import (
     Enote,
     KnoteDict,
     erNoteKinds,
+    mEvalNoteKinds,
     justifiedNoteKinds,
 )
 from .segments import Sloc, Sloc_from_match
@@ -262,20 +263,29 @@ class Nblock(Rblock):
 
         # Then determine the note kind from the remaining contents
 
-        enote_kind = self.nkind_for(this_diag)
+        enote_kind, kind_match = self.nkind_for(this_diag)
 
         self.check_enote_kind(rline, enote_kind)
 
-        return (
-            Enote(
-                kind=enote_kind,
-                segment=enote_segment,
-                source=enote_source,
-                stag=enote_stag,
-            )
-            if enote_kind is not None
-            else None
+        if enote_kind is None:
+            return None
+        assert kind_match is not None
+
+        result = Enote(
+            kind=enote_kind,
+            segment=enote_segment,
+            source=enote_source,
+            stag=enote_stag,
         )
+
+        # For manual decision evaluation notes, we consider that the
+        # justification covers the evaluation vector itself: this allows test
+        # drivers to verify both the evaluation vector and the actual
+        # justification ("T F -> TRUE (justification: Message").
+        if enote_kind == NK.mDcEval:
+            result.justification = kind_match.group("justification")
+
+        return result
 
     def report_unexpected_enote(self, rline: str) -> None:
         thistest.failed(
@@ -317,12 +327,19 @@ class Nblock(Rblock):
 
         return self.re_end
 
-    def nkind_for(self, rline: str) -> NK | None:
+    def nkind_for(self, rline: str) -> tuple[NK, re.Match] | tuple[None, None]:
+        """
+        If `rline` contains an emitted note, return its kind and the Match
+        object for the regexp that matched the note.
+
+        Return `(None, None)` if no note was matched in `rline`.
+        """
         assert self.re_notes is not None
         for key in self.re_notes:
-            if re.match(key, rline):
-                return self.re_notes[key]
-        return None
+            m = re.match(key, rline)
+            if m:
+                return (self.re_notes[key], m)
+        return None, None
 
 
 class Nsection(Nblock, Rsection):
@@ -371,12 +388,12 @@ class OERsection(Nsection):
         )
 
     @override
-    def nkind_for(self, rline: str) -> NK | None:
+    def nkind_for(self, rline: str) -> tuple[None, None]:
         # Messages in this section are always unexpected and should trigger
         # test failure. Just tell we don't know how to bind them on any sort
         # of expected note kind, and let the generic engine do the rest.
 
-        return None
+        return None, None
 
 
 class FGXchapter(Nchapter):
@@ -757,6 +774,10 @@ class RblockSet:
                     ),
                     "condition was never evaluated during an evaluation of the"
                     " decision to True": NK.XacPartCov,
+                    (
+                        "including manual decision evaluation:"
+                        " (?P<justification>.*)"
+                    ): NK.mDcEval,
                 },
             )
         )
@@ -883,7 +904,11 @@ def notes_from_report(filename: str) -> dict[str, KnoteDict]:
             ernotes[enote.source].register(enote)
 
         # xBlock* notes are always followed by a 1-line justification message
-        elif last_enote is not None and last_enote.kind in justifiedNoteKinds:
+        elif (
+            last_enote is not None
+            and last_enote.kind in justifiedNoteKinds
+            and last_enote.kind not in mEvalNoteKinds
+        ):
             last_enote.justification = rline.rstrip()
 
         last_enote = enote

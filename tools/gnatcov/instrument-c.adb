@@ -2318,12 +2318,74 @@ package body Instrument.C is
                UIC.Pass.Start_Statement_Block (UIC);
 
                declare
+                  function First_Stmt_Sloc
+                    (Stmt : Cursor_T) return Source_Location;
+                  --  If Stmt is a compound statement, return the start source
+                  --  location of its first statement. Return the start
+                  --  location of Stmt itself otherwise.
+
+                  ---------------------
+                  -- First_Stmt_Sloc --
+                  ---------------------
+
+                  function First_Stmt_Sloc
+                    (Stmt : Cursor_T) return Source_Location
+                  is
+                     Children : Cursor_Vectors.Vector;
+                  begin
+                     if Kind (Stmt) = Cursor_Compound_Stmt then
+                        Children := Get_Children (Stmt);
+                        if not Children.Is_Empty then
+                           return Start_Sloc (Children.First_Element);
+                        end if;
+                     end if;
+
+                     return Start_Sloc (Stmt);
+                  end First_Stmt_Sloc;
+
+                  Cond_Expr : constant Cursor_T := Get_Cond (N);
                   Then_Part : constant Cursor_T := Get_Then (N);
                   Else_Part : constant Cursor_T := Get_Else (N);
+
+                  Has_Decision : constant Boolean := not Is_Constexpr (N);
+                  File         : Source_File_Index;
+                  Decision     : Nat;
                begin
-                  if not Is_Constexpr (N) then
-                     Process_Expression (UIC, Get_Cond (N), 'I');
-                  end if;
+                  --  Unless this is an if constexpr, instrument the decision
+                  --  that controls the IF, and track the corresponding branch
+                  --  information that allows us to handle branch exemption
+                  --  annotations.
+
+                  declare
+                     SCO_Mark    : constant Nat := SCOs.SCO_Table.Last;
+                     Match_Start : constant Source_Location :=
+                       End_Sloc (Cond_Expr);
+                  begin
+                     File := Match_Start.Source_File;
+                     if Has_Decision and then not UIC.Disable_Coverage then
+                        Process_Expression (UIC, Get_Cond (N), 'I');
+                        Decision := First_Decision_After (SCO_Mark);
+                     else
+                        Decision := 0;
+                     end if;
+
+                     --  The match region for the "then" branch spans from the
+                     --  end of the condition to the beginning of the "then"
+                     --  statement, or, if it is a compound statement, to the
+                     --  beginning of the first statement it contains.
+
+                     UIC.Branches.Append
+                       ((File             => File,
+                         Match_Start      => Match_Start.L,
+                         Match_End        => First_Stmt_Sloc (Then_Part).L,
+
+                         Control_Decision => Decision,
+                         Control_Outcome  => True,
+
+                         Stmt_Start       => Start_Sloc (Then_Part).L,
+                         Stmt_End         => End_Sloc (Then_Part).L));
+                  end;
+
                   Traverse_Statements (UIC, To_Vector (Then_Part), TB);
 
                   --  Traverse the ELSE statements if present
@@ -2336,6 +2398,22 @@ package body Instrument.C is
                      UIC.Pass.Insert_Text_Before (UIC, Get_Else_Loc (N), +TB);
                      TB := +"";
                      Traverse_Statements (UIC, To_Vector (Else_Part), TB);
+
+                     --  The match region for the "else" branch spans from the
+                     --  "else" token to the beginning of the "else" statement,
+                     --  or, if it is a compound statement, to the beginning of
+                     --  the first statement it contains.
+
+                     UIC.Branches.Append
+                       ((File             => File,
+                         Match_Start      => Sloc (Get_Else_Loc (N)).L,
+                         Match_End        => First_Stmt_Sloc (Else_Part).L,
+
+                         Control_Decision => Decision,
+                         Control_Outcome  => False,
+
+                         Stmt_Start       => Start_Sloc (Else_Part).L,
+                         Stmt_End         => End_Sloc (Else_Part).L));
                   end if;
                end;
 
@@ -3708,7 +3786,7 @@ package body Instrument.C is
          --  Import annotations in our internal tables
 
          Filter_Annotations (UIC);
-         UIC.Import_Annotations (UIC.CUs);
+         UIC.Import_Annotations (UIC.CUs, SCO_Map);
          for Cur in UIC.CUs.Iterate loop
             Import_External_Exemptions
               (Created_Unit_Maps.Key (Cur), Filter => True);
