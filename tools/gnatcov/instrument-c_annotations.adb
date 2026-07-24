@@ -822,7 +822,13 @@ package body Instrument.C_Annotations is
                null;
          end case;
 
-         UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+         --  Annotations to record in the CU are supposed to receive exemption
+         --  and coverage disabling regions: leave buffer control annotations
+         --  out (they are used only during instrumentation).
+
+         if Result.Kind not in Dump_Buffers | Reset_Buffers then
+            UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+         end if;
       end Process_Token;
 
       --  Start of processing for Populate_Annotations
