@@ -1,7 +1,10 @@
-#include <stdio.h>
+static void
+print (const char *msg, unsigned len)
+{
+}
 
 void
 foo_c (char *s, unsigned len)
 {
-  printf ("Hello %.*s !\n", len, s);
+  print (s, len);
 }
