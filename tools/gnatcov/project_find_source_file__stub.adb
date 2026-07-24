@@ -17,6 +17,11 @@
 ------------------------------------------------------------------------------
 
 package body Project_Find_Source_File is
+
+   --------------------------
+   -- Prj_Find_Source_File --
+   --------------------------
+
    function Prj_Find_Source_File
      (Simple_Name : String; Ambiguous : out Boolean) return String_Access
    is
@@ -31,4 +36,5 @@ package body Project_Find_Source_File is
    begin
       return null;
    end Prj_Find_Source_File;
+
 end Project_Find_Source_File;
