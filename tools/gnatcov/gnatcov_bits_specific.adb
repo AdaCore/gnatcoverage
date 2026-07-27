@@ -56,6 +56,7 @@ with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Execs_Dbase;           use Execs_Dbase;
 with Files_Handling;        use Files_Handling;
+with Extract_Annotations;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
 with Instrument;
@@ -2873,6 +2874,9 @@ begin
 
       when Cmd_Show_Annotations                           =>
          SS_Annotations.Show_Annotations (Args);
+
+      when Cmd_Extract_Annotations                        =>
+         Extract_Annotations (Args);
    end case;
 
    if Misc_Trace.Is_Active then

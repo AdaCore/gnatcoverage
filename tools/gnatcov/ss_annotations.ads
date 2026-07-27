@@ -18,6 +18,8 @@
 
 --  General interfacing with Stable_Sloc for external annotations
 
+with GNATCOLL.VFS;
+
 with Stable_Sloc;
 
 with Command_Line;
@@ -25,6 +27,7 @@ with Instrument.Common;
 with Logging;
 with Slocs;
 with Strings;        use Strings;
+with Switches;       use Switches;
 with SC_Obligations; use SC_Obligations;
 with Types;          use Types;
 
@@ -97,6 +100,34 @@ package SS_Annotations is
    --
    --  Finally, the resulting annotations are guaranteed not to conflict with
    --  any pre-existing annotations for Filename.
+
+   procedure Add_Extracted_Annotation
+     (DB           : in out Stable_Sloc.Entry_DB;
+      Kind         : Any_Annotation_Kind;
+      Annot        : ALI_Annotation;
+      File         : GNATCOLL.VFS.Virtual_File;
+      Span         : Slocs.Local_Source_Location_Range;
+      Lang         : Any_Language := All_Languages;
+      Insert_After : Boolean := False)
+   with Pre => Kind /= Unknown;
+   --  Add to DB the external annotation equivalent to the in-source annotation
+   --  Annot, designating Span in File.
+   --
+   --  Kind is the kind of external annotation to generate. It is usually
+   --  Annot.Kind, but a pair of in-source Exempt_On / Exempt_Off annotations
+   --  is best rendered as a single Exempt_Region: pass Exempt_Region as Kind
+   --  and the Exempt_On annotation as Annot to do so.
+   --
+   --  The generated entry uses the self-relocating Stable_Sloc backend that
+   --  suits the language of File ("lal_context" for Ada, "clang_context" for
+   --  C/C++), and only falls back on absolute source locations if that fails.
+   --
+   --  Lang is that language. Pass it whenever it is known: deducing it from
+   --  the file extension covers fewer suffixes than the languages gnatcov can
+   --  actually analyze, and getting it wrong costs a self-relocating entry.
+   --
+   --  The entry identifier is derived from Kind and Span. Insert_After is only
+   --  relevant for buffer annotations, see To_TOML in the body.
 
    procedure Add_Annotation (Args : Command_Line.Parser.Parsed_Arguments);
    --  Generate the annotation corresponding to the given Args

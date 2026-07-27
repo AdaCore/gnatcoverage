@@ -127,6 +127,9 @@ project Gnatcov is
                use "instrument-ada_unit__stub.adb";
 
             for Body ("Setup_RTS") use "setup_rts__stub.adb";
+
+            for Body ("Extract_Annotations")
+               use "extract_annotations__stub.adb";
       end case;
 
       case Part is

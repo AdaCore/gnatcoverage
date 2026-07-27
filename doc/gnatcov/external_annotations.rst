@@ -14,9 +14,10 @@ annotations, however in case of conflicts, the annotations defined in the
 sources will always be prioritized.
 
 External annotations are stored in TOML files, which can be manipulated through
-three |gcv| commands, |gcvaddan|, |gcvdelan| and |gcvshoan|, to respectively
-add a new annotations, delete an existing annotation from the files, or show
-the annotations that are stored in the files.
+four |gcv| commands, |gcvaddan|, |gcvdelan|, |gcvshoan| and |gcvxtran|, to
+respectively add a new annotations, delete an existing annotation from the
+files, show the annotations that are stored in the files, or turn the in-source
+annotations of a set of sources into external ones.
 
 Once generated, annotation files should be passed to the |gcvins| or |gcvcov|
 commands with the :cmd-option:`--external-annotations` switch for them to be
@@ -374,6 +375,96 @@ Note that this only works if the file is unique in the project tree, or if the
 file is located in a sub-directory of its project root directory.
 
 
+.. _xtr_ext:
+
+Migrating in-source annotations to external annotations
+#######################################################
+
+Rather than writing external annotations from scratch, the |gcvxtran| command
+turns the in-source annotations that sources already contain, be they
+``pragma Annotate (Xcov, ...)`` for Ada or ``GNATCOV_*`` comments for C and C++,
+into their external counterparts.
+
+The help section for the |gcvxtran| command can be displayed by running
+``gnatcov extract-annotations --help``. Its synopsis is::
+
+    gnatcov extract-annotations --output=OUTPUT_FILENAME [--external-annotations=FILENAME] [-i] [OPTIONS] [FILES]
+
+The semantics of the command line switches is:
+
+:cmd-option:`--output=OUTPUT_FILENAME`:
+    Name of the file where the extracted annotations are written, together with
+    any annotation loaded through :cmd-option:`--external-annotations`. This
+    overwrites any pre-existing file with the same OUTPUT_FILENAME.
+
+:cmd-option:`--external-annotations=FILENAME`, |rarg|:
+    Pre-existing annotation files to load. Their annotations are written back to
+    OUTPUT_FILENAME along with the extracted ones.
+
+:cmd-option:`FILES`, positional, optional:
+    Sources to extract annotations from. If none is given, all the sources of
+    the project passed through ``-P`` are considered.
+
+:cmd-option:`-i`, :cmd-option:`--in-place`, optional:
+    Also remove the extracted annotations from the sources they come from. See
+    :ref:`xtr_in_place` below.
+
+Extracting annotations from Ada sources requires a project file, as |gcv| needs
+the unit provider, the configuration pragmas and the preprocessor configuration
+it describes in order to analyze them. C and C++ sources are scanned as plain
+text, so they need no project: this also means that annotations sitting in code
+that conditional preprocessor directives would exclude are extracted too.
+
+A pair of ``Exempt_On`` / ``Exempt_Off`` in-source annotations is emitted as a
+single :cmd-option:`--kind=Exempt_Region` external annotation, which is the
+natural way to express an exempted region externally. Coverage disabling
+annotations have no region counterpart, so ``Cov_Off`` and ``Cov_On`` are
+emitted individually.
+
+.. _xtr_in_place:
+
+Removing the in-source annotations
+==================================
+
+With :cmd-option:`-i`, |gcvxtran| also deletes the extracted annotations from
+the sources, so that each annotation is expressed in exactly one place. **The
+sources are modified in place**, and this is meant as a one-shot migration:
+there is no way to undo it other than restoring the sources from version
+control.
+
+Removing the in-source annotations necessarily changes the sources, and the
+generated annotations must account for that. As described in
+:ref:`ext_annot_stability`, a self-relocating annotation is tied to a hash of
+the text of its enclosing named construct, so deleting an annotation from a
+subprogram body would invalidate *every* annotation anchored in that body,
+including the ones just extracted from it. For that reason |gcvxtran| rewrites
+each source first, and only then generates the annotations that designate it, so
+that they describe the sources as they stand after the migration.
+
+As a consequence, the generated annotations no longer designate the deleted
+annotation text but the surrounding code:
+
+- ``Exempt_On`` / ``Exempt_Off`` and ``Cov_Off`` / ``Cov_On`` delimit regions,
+  which |gcv| handles line by line. Their endpoints are therefore moved to the
+  closest remaining code on the annotation's own line, or on the nearest line
+  holding code, which leaves the annotated region covering the same lines.
+
+- Fine grained exemptions count obligations from the annotation onwards, so they
+  are anchored on the first construct that follows the deleted annotation.
+
+- Buffer annotations designate where generated code goes, so they are anchored
+  on the construct that follows the deleted annotation. When the annotation
+  closed a sequence of statements, they are anchored on the preceding construct
+  instead, with the ``insert_after`` field set.
+
+If no surrounding code can be found to anchor an annotation on, |gcv| emits a
+warning and drops that annotation.
+
+Note that annotations loaded through :cmd-option:`--external-annotations` are
+written back with the matchers they were created with. If they designate a
+source that :cmd-option:`-i` rewrites, they may become stale: check the output of
+|gcvshoan| after a migration.
+
 Deleting a pre-existing annotation
 ##################################
 
@@ -448,6 +539,8 @@ place of ``IDENTIFIER``, and the annotation kind is displayed in place of
 ``KIND``. The ``EXTRA_FIELDS`` concerns options specific to each annotation
 kind, and are displayed as a semi-column separated list. See :ref:`gen_ext` for
 more details on the extra fields that each annotation kind supports.
+
+.. _ext_annot_stability:
 
 Annotation stability through file modifications
 ###############################################

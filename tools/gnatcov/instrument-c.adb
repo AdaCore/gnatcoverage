@@ -3700,6 +3700,83 @@ package body Instrument.C is
       return Command_Line_Args;
    end Common_Parse_TU_Args;
 
+   ----------------------
+   -- Iterate_Comments --
+   ----------------------
+
+   procedure Iterate_Comments
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        not null access procedure
+          (Comment : Unbounded_String; First, Last : Source_Location))
+   is
+      CIdx : Index_T;
+      TU   : Translation_Unit_T;
+
+      Args : constant String_Vectors.Vector := Common_Parse_TU_Args (Lang);
+      --  Only the language and diagnostic switches: a single-file parse needs
+      --  neither the include paths nor the macro definitions of the project.
+
+      procedure Process_Token (Token : Token_T);
+      --  Forward Token to Process if it is a comment
+
+      -------------------
+      -- Process_Token --
+      -------------------
+
+      procedure Process_Token (Token : Token_T) is
+         Extent : Source_Range_T;
+      begin
+         if Get_Token_Kind (Token) /= Token_Comment then
+            return;
+         end if;
+
+         Extent := Get_Token_Extent (TU, Token);
+         Process.all
+           (Comment => +Get_Token_Spelling (TU, Token),
+            First   => Sloc (Get_Range_Start (Extent)),
+            Last    => Sloc (Get_Range_End (Extent)));
+      end Process_Token;
+
+      --  Start of processing for Iterate_Comments
+
+   begin
+      CIdx :=
+        Create_Index
+          (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
+
+      declare
+         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
+      begin
+         TU :=
+           Parse_Translation_Unit
+             (C_Idx                 => CIdx,
+              Source_Filename       => Filename,
+              Command_Line_Args     => C_Args'Address,
+              Num_Command_Line_Args => C_Args'Length,
+              Unsaved_Files         => null,
+              Num_Unsaved_Files     => 0,
+              Options               =>
+                Translation_Unit_Single_File_Parse
+                or Translation_Unit_Keep_Going);
+         Free (C_Args);
+      end;
+
+      if TU = null then
+         Outputs.Warn
+           ("Could not parse " & Filename & ": ignoring its comments");
+         Dispose_Index (CIdx);
+         return;
+      end if;
+
+      Iterate_Tokens
+        (TU, Get_Translation_Unit_Cursor (TU), Process_Token'Access);
+
+      Dispose_Translation_Unit (TU);
+      Dispose_Index (CIdx);
+   end Iterate_Comments;
+
    ---------------------
    -- Start_Rewriting --
    ---------------------

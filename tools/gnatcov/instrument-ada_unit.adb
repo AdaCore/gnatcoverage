@@ -56,7 +56,6 @@ with Outputs;                             use Outputs;
 with Paths;                               use Paths;
 with Project;
 with SCOs;
-with Slocs;
 with Snames;                              use Snames;
 with SS_Annotations;                      use SS_Annotations;
 with Support_Files;
@@ -3623,6 +3622,93 @@ package body Instrument.Ada_Unit is
 
       Handled := True;
    end Parse_Annotation;
+
+   -------------------------------
+   -- Iterate_Source_Annotations --
+   -------------------------------
+
+   procedure Iterate_Source_Annotations
+     (Self    : in out Ada_Instrumenter_Type;
+      Source  : GNATCOLL.VFS.Virtual_File;
+      Process :
+        access procedure
+          (Annot : ALI_Annotation; Span : Slocs.Local_Source_Location_Range))
+   is
+      Unit : constant Libadalang.Analysis.Analysis_Unit :=
+        Get_From_File (Self, Source.Display_Full_Name, Reparse => True);
+
+      Dummy_Ctx : constant Context_Handle :=
+        Create_Context
+          ("Extracting in-source annotations from " & (+Source.Full_Name));
+
+      function Visit (N : Ada_Node'Class) return Visit_Status;
+      --  Report the annotation carried by N, if it is an Xcov Annotate pragma
+
+      -----------
+      -- Visit --
+      -----------
+
+      function Visit (N : Ada_Node'Class) return Visit_Status is
+         Handled : Boolean;
+         Result  : ALI_Annotation;
+      begin
+         if N.Kind /= Ada_Pragma_Node then
+            return Into;
+         elsif Pragma_Name (N.As_Pragma_Node) /= Name_Annotate then
+            return Over;
+         end if;
+
+         Parse_Annotation
+           (N, N.As_Pragma_Node.F_Args, Handled => Handled, Result => Result);
+
+         if Handled then
+            Process.all
+              (Result,
+               (First_Sloc => +Start_Sloc (N.Sloc_Range),
+                Last_Sloc  => +End_Sloc (N.Sloc_Range)));
+         end if;
+
+         --  Annotate pragmas cannot be nested into one another
+
+         return Over;
+      end Visit;
+
+      --  Start of processing for Iterate_Source_Annotations
+
+   begin
+      if Unit.Root.Is_Null then
+         Warn
+           ("Could not parse "
+            & Source.Display_Full_Name
+            & ": no annotation extracted from it");
+         return;
+      end if;
+      Unit.Root.Traverse (Visit'Access);
+   end Iterate_Source_Annotations;
+
+   ----------------------
+   -- Iterate_Comments --
+   ----------------------
+
+   procedure Iterate_Comments
+     (Self    : in out Ada_Instrumenter_Type;
+      Source  : GNATCOLL.VFS.Virtual_File;
+      Process : access procedure (Span : Slocs.Local_Source_Location_Range))
+   is
+      Unit : constant Libadalang.Analysis.Analysis_Unit :=
+        Get_From_File (Self, Source.Display_Full_Name, Reparse => True);
+
+      Token : Token_Reference := Unit.First_Token;
+   begin
+      while Token /= No_Token loop
+         if Kind (Data (Token)) = Libadalang.Common.Ada_Comment then
+            Process.all
+              ((First_Sloc => +Start_Sloc (Sloc_Range (Data (Token))),
+                Last_Sloc  => +End_Sloc (Sloc_Range (Data (Token)))));
+         end if;
+         Token := Next (Token);
+      end loop;
+   end Iterate_Comments;
 
    ------------------------
    -- Process_Annotation --
