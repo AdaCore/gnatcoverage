@@ -40,7 +40,10 @@ package Annotations is
    use all type Unbounded_String;
 
    type Annotation_Format is
-     (Annotate_Asm,
+     (
+     --  Object coverage report format
+     Annotate_Asm,
+      --  Source coverage report formats
       Annotate_Xcov,
       Annotate_Static_Html,
       Annotate_Xcov_Plus,
@@ -48,9 +51,15 @@ package Annotations is
       Annotate_Html,
       Annotate_Cobertura,
       Annotate_Xml,
-      Annotate_Report,
       Annotate_Sarif,
+      --  Report formats that do not require the creation of report files
+      Annotate_Report,
       Annotate_Unknown);
+
+   subtype Source_Annotation_Format_Creating_Files is
+     Annotation_Format range Annotate_Xcov .. Annotate_Sarif;
+   --  Source coverage report formats that require the creation of report files
+
    subtype Annotation_Format_Family is Annotation_Format
    with
      Static_Predicate =>
