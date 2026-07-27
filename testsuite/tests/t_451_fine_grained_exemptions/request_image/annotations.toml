@@ -1,0 +1,42 @@
+[foo]
+kind = "absolute"
+file = "main.adb"
+[foo.matcher]
+start_line = 6
+start_col = 7
+end_line = 6
+end_col = 7
+
+[[foo.annotations]]
+purpose = "xcov.exempt.decision_outcome"
+outcome = false
+justification = "M1"
+[[foo.annotations]]
+purpose = "xcov.exempt.decision_outcome"
+outcome = false
+justification = "M2"
+
+[[foo.annotations]]
+purpose = "xcov.exempt.decision_condition"
+condition = 0
+justification = "M1"
+[[foo.annotations]]
+purpose = "xcov.exempt.decision_condition"
+condition = 0
+justification = "M2"
+
+[[foo.annotations]]
+purpose = "xcov.exempt.full_decision"
+justification = "M1"
+[[foo.annotations]]
+purpose = "xcov.exempt.full_decision"
+justification = "M2"
+
+[[foo.annotations]]
+purpose = "xcov.exempt.manual_decision_evaluation"
+values = [true, false]
+justification = "M1"
+[[foo.annotations]]
+purpose = "xcov.exempt.manual_decision_evaluation"
+values = [true, false]
+justification = "M2"

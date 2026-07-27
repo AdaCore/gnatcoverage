@@ -71,6 +71,8 @@ from .cnotes import (
     KnoteDict,
     elNoteKinds,
     erNoteKinds,
+    mEvalNoteKinds,
+    justifiedNoteKinds,
     rAntiKinds,
     xNoteKinds,
     sNoteKinds,
@@ -248,7 +250,8 @@ r_ern_for = {
     + cNoteKinds
     + XsNoteKinds
     + XoNoteKinds
-    + XcNoteKinds,
+    + XcNoteKinds
+    + mEvalNoteKinds,
 }
 
 # Relevant report expectations
@@ -328,8 +331,10 @@ class _Xchecker:
             case _:
                 return False
 
-        # For xBlock* notes, the justifications must match
-        return xn.kind not in xNoteKinds or xn.stext == en.justification
+        # For xBlock*/mDcEval notes, the justifications must match
+        return (
+            xn.kind not in justifiedNoteKinds or xn.stext == en.justification
+        )
 
     def try_sat_over(self, ekind: NK, xn: Xnote) -> None:
         # See if expected note XN is satisfied by one of the emitted notes of

@@ -508,11 +508,16 @@ package body Annotations is
          --  annotations.
 
          Import_External_Exemptions (File_Index);
-         Populate_Annotations (File_Index, Exemption);
-         Populate_Annotations (File_Index, Disable_Coverage);
          if CU /= No_CU_Id then
             Resolve_Fine_Grained_Annotations (CU, Exemptions);
          end if;
+
+         --  Populate annotations (in particular exemption regions) after
+         --  resolving fine grained exemptions so resolution can contribute to
+         --  the set of exemption regions.
+
+         Populate_Annotations (File_Index, Exemption);
+         Populate_Annotations (File_Index, Disable_Coverage);
 
          ST := Scope_Traversal (CU);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
@@ -1225,13 +1230,16 @@ package body Annotations is
    begin
       if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
          case M.Kind is
-            when Exclusion        =>
+            when Exclusion                  =>
                return Coverage_Exclusions;
 
-            when Undetermined_Cov =>
+            when Undetermined_Cov           =>
                return Undet_Coverage;
 
-            when others           =>
+            when Manual_Decision_Evaluation =>
+               return Other_Errors;
+
+            when others                     =>
                pragma Assert (M.Kind in Info | Exempted_Violation | Violation);
 
                declare

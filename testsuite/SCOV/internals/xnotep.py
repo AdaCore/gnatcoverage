@@ -266,6 +266,7 @@ class XnoteP:
         "Xc!": NK.XcPartCov,
         "X0": NK.Xr0,
         "X0c": NK.Xr0c,
+        "mDcEval": NK.mDcEval,
     }
 
     # The notes prefixed with 'X' correspond to the type of violations we

@@ -75,6 +75,9 @@ package SS_Annotations is
    --
    --  If Filter is True, ignore annotations that lie within a statement SCO.
 
+   procedure Import_All_External_Exemptions;
+   --  Call Import_External_Exemptions on all non-ignored source files
+
    function Get_Buffer_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
    --  Get the buffer annotations relevant to instrumentation for Filename

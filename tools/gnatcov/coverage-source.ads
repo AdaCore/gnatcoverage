@@ -64,6 +64,20 @@ package Coverage.Source is
    --  checked by assertion coverage levels, and if any assertion coverage
    --  level is enabled.
 
+   procedure Add_Manual_Decision_Evaluation
+     (SCO           : SCO_Id;
+      Values        : Condition_Evaluation_Vectors.Vector;
+      Justification : Unbounded_String)
+   with
+     Pre =>
+       Kind (SCO) = Decision
+       and then Values.Last_Index = Last_Cond_Index (SCO);
+   --  Assuming that SCO designates a decision SCO and that Values is a valid
+   --  conditions evaluation vector for it, treat Values as an evaluation
+   --  vector to discharge this decision/its conditions. The justification
+   --  message is included in the report message emitted to keep track of this
+   --  manual evaluation.
+
    procedure Compute_Source_Coverage
      (Subp_Key : Subprogram_Key; Subp_Info : Subprogram_Info; T : Trace_Entry);
    --  Analyze execution environment traces for the given subprogram to

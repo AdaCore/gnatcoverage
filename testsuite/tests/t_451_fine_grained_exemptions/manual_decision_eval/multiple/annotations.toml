@@ -1,0 +1,37 @@
+[d1]
+kind="absolute"
+file="src/pkg.adb"
+[d1.matcher]
+start_line=8
+start_col=7
+end_line=8
+end_col=7
+[[d1.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+values=[false, true, true]
+justification="J1"
+[[d1.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+values=[true, false, true]
+justification="J2"
+[[d1.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+values=[true, true, false]
+justification="J3"
+
+[d2]
+kind="absolute"
+file="src/pkg.adb"
+[d2.matcher]
+start_line=12
+start_col=7
+end_line=12
+end_col=7
+[[d2.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+values=[false, true]
+justification="J4"
+[[d2.annotations]]
+purpose="xcov.exempt.manual_decision_evaluation"
+values=[true, false]
+justification="J5"

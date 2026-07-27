@@ -106,6 +106,26 @@ check_args(
     ],
     "gnatcov: Invalid argument for --condition: notanint",
 )
+check_args(
+    "args_missing_values",
+    [
+        "--kind=Manual_Decision_Evaluation",
+        "--location=7:7",
+        "--justification=Message",
+    ],
+    "gnatcov: --values missing for a --kind=Manual_Decision_Evaluation"
+    " annotation",
+)
+check_args(
+    "args_bad_values",
+    [
+        "--kind=Manual_Decision_Evaluation",
+        "--location=7:7",
+        "--justification=Message",
+        "--values=True",
+    ],
+    "gnatcov: Invalid argument for --values: True",
+)
 
 
 def check_validate(filename: str, expected_error: str) -> None:
@@ -155,6 +175,10 @@ for i in range(1, 4):
         f"err_decision_condition_{i}.toml", missing_or_invalid_msg("condition")
     )
 
+for i in range(1, 5):
+    check_validate(
+        f"err_manual_decision_eval_{i}.toml", missing_or_invalid_msg("values")
+    )
 
 thistest.log("== show_annotation ==")
 out = "actual-show_annotation.txt"

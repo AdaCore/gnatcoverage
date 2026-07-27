@@ -168,6 +168,7 @@ package Command_Line is
       Opt_Outcome,
       Opt_Decision,
       Opt_Condition,
+      Opt_Values,
       Opt_SS_Backend,
       Opt_Source_Encoding,
       Opt_Ada_Default_Charset);
@@ -1645,6 +1646,17 @@ package Command_Line is
            Help         =>
              "Condition index for the decision condition exemption"
              & " annotations.",
+           Commands     => (Cmd_Add_Annotation => True, others => False),
+           At_Most_Once => False,
+           Internal     => False),
+      Opt_Values                 =>
+        Create
+          (Long_Name    => "--values",
+           Pattern      => "VALUES",
+           Help         =>
+             "Condition values for the manual decision evalutaion annotations."
+             & " One letter ('F' or 'T') for each condition value, for"
+             & " instance: TTFT.",
            Commands     => (Cmd_Add_Annotation => True, others => False),
            At_Most_Once => False,
            Internal     => False),

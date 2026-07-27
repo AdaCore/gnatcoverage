@@ -2093,6 +2093,7 @@ package body Files_Table is
          return Result;
       end Next;
 
+      --  Start of processing for Populate_Annotations
    begin
       if not Has_Element (Annotation_Cur) then
 

@@ -36,6 +36,7 @@ with Snames;
 
 with Checkpoints;           use Checkpoints;
 with Coverage;              use Coverage;
+with Coverage.Source;
 with Diagnostics;           use Diagnostics;
 with Files_Table;           use Files_Table;
 with Hashes;                use Hashes;
@@ -155,6 +156,9 @@ package body SC_Obligations is
       --  Mapping of exempted SCOs to corresponding justifications for this
       --  unit.
 
+      Branch_Map : Branch_Maps.Map;
+      --  Branch information for this unit
+
       SCOs : SCO_Range_Vectors.Vector;
       --  List of SCOs for this unit
 
@@ -201,6 +205,19 @@ package body SC_Obligations is
    function Are_Bit_Maps_In_Range
      (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean;
    --  Return whether all SCOs referenced in Bit_Maps belong to CU
+
+   procedure Lookup_Branch_Info
+     (Unit  : CU_Info;
+      Sloc  : Source_Location;
+      Info  : out Branch_Info;
+      Found : out Boolean);
+   --  Look for the branch info that corresponds to an Exempt_Branch annotation
+   --  appearing at Sloc.
+   --
+   --  Unit must be the corresponding compilation unit info.
+   --
+   --  Set Found to whether a relevant Branch_Info record was found, and if
+   --  that is the case, set Info to it.
 
    package CU_Info_Vectors is new
      Ada.Containers.Vectors
@@ -611,12 +628,34 @@ package body SC_Obligations is
    -- Helper routines for Checkpoint_Load --
    -----------------------------------------
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Branch_Info);
+   --  Read a Branch_Info from CLS
+
+   procedure Read is new
+     Read_Map
+       (Key_Type     => Source_Location,
+        Element_Type => Branch_Info,
+        Map_Type     => Branch_Maps.Map,
+        Clear        => Branch_Maps.Clear,
+        Insert       => Branch_Maps.Insert,
+        Read_Key     => Read,
+        Read_Element => Read);
+
    procedure Read is new
      Read_Vector
        (Index_Type   => Pos,
         Element_Type => Source_File_Index,
         "="          => "=",
         Vectors      => SFI_Vectors,
+        Read_Element => Read);
+
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Condition_Index,
+        Element_Type => Tristate,
+        "="          => "=",
+        Vectors      => Condition_Evaluation_Vectors,
         Read_Element => Read);
 
    procedure Read
@@ -831,6 +870,21 @@ package body SC_Obligations is
    -- Helper routines for Checkpoint_Save --
    -----------------------------------------
 
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Branch_Info);
+   --  Write a Branch_Info to CSS
+
+   procedure Write is new
+     Write_Map
+       (Key_Type      => Source_Location,
+        Element_Type  => Branch_Info,
+        Map_Type      => Branch_Maps.Map,
+        Cursor_Type   => Branch_Maps.Cursor,
+        Length        => Branch_Maps.Length,
+        Iterate       => Branch_Maps.Iterate,
+        Query_Element => Branch_Maps.Query_Element,
+        Write_Key     => Write,
+        Write_Element => Write);
+
    procedure Write is new
      Write_Vector
        (Index_Type    => Pos,
@@ -838,6 +892,14 @@ package body SC_Obligations is
         "="           => "=",
         Vectors       => SFI_Vectors,
         Write_Element => Write_SFI);
+
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Condition_Index,
+        Element_Type  => Tristate,
+        "="           => "=",
+        Vectors       => Condition_Evaluation_Vectors,
+        Write_Element => Write);
 
    procedure Write
      (CSS : in out Checkpoint_Save_State; Value : Expansion_Info);
@@ -1316,6 +1378,17 @@ package body SC_Obligations is
    -- Read --
    ----------
 
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out Branch_Info)
+   is
+   begin
+      Value.Match_Start := CLS.Read_Local_Source_Location;
+      Value.Match_End := CLS.Read_Local_Source_Location;
+      Value.Control_Decision := CLS.Read_SCO;
+      Value.Control_Outcome := CLS.Read_Boolean;
+      Value.Stmt_Start := CLS.Read_Local_Source_Location;
+      Value.Stmt_End := CLS.Read_Local_Source_Location;
+   end Read;
+
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info) is
    begin
@@ -1428,6 +1501,7 @@ package body SC_Obligations is
       Read (CLS, Value.Scope_Entities);
       Read (CLS, Value.ALI_Annotations);
       Read (CLS, Value.Fine_Grained_Exemptions);
+      Read (CLS, Value.Branch_Map);
       Read (CLS, Value.SCOs);
       case Element_Template.Provider is
          when Compiler | LLVM =>
@@ -1563,24 +1637,55 @@ package body SC_Obligations is
       Value.Sloc := CLS.Read_Source_Location;
 
       case Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Exemption_Request_Kind =>
             Value.Decision_Offset := CLS.Read_Integer;
-            case Kind is
-               when Decision_Outcome   =>
+            case Decision_Exemption_Request_Kind (Kind) is
+               when Decision_Outcome           =>
                   Value.Outcome := CLS.Read_Boolean;
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   Value.Condition := CLS.Read_Condition;
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   null;
+
+               when Manual_Decision_Evaluation =>
+                  Read (CLS, Value.Condition_Values);
             end case;
+
+         when Branch                          =>
+            null;
       end case;
    end Read;
 
    ---------
    -- "<" --
    ---------
+
+   function "<"
+     (Left, Right : Condition_Evaluation_Vectors.Vector) return Boolean is
+   begin
+      if Left.Length < Right.Length then
+         return True;
+      elsif Right.Length < Left.Length then
+         return False;
+      end if;
+
+      for I in Left.First_Index .. Right.Last_Index loop
+         declare
+            L : constant Tristate := Left (I);
+            R : constant Tristate := Right (I);
+         begin
+            if L < R then
+               return True;
+            elsif R < L then
+               return False;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end "<";
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean is
    begin
@@ -1621,23 +1726,29 @@ package body SC_Obligations is
       end if;
 
       case Left.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Exemption_Request_Kind =>
             if Left.Decision_Offset < Right.Decision_Offset then
                return True;
             elsif Right.Decision_Offset < Left.Decision_Offset then
                return False;
             end if;
 
-            case Left.Kind is
-               when Decision_Outcome   =>
+            case Decision_Exemption_Request_Kind (Left.Kind) is
+               when Decision_Outcome           =>
                   return Left.Outcome < Right.Outcome;
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   return Left.Condition < Right.Condition;
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   return False;
+
+               when Manual_Decision_Evaluation =>
+                  return Left.Condition_Values < Right.Condition_Values;
             end case;
+
+         when Branch                          =>
+            return False;
       end case;
    end "<";
 
@@ -2776,6 +2887,25 @@ package body SC_Obligations is
                   end;
                end loop;
             end;
+
+            --  And branch information
+
+            declare
+               use Branch_Maps;
+               CP_Map   : Map renames CP_CU.Branch_Map;
+               Real_Map : Map renames Real_CU.Branch_Map;
+            begin
+               for CP_Cur in CP_Map.Iterate loop
+                  declare
+                     Sloc : Source_Location := Key (CP_Cur);
+                     Info : Branch_Info := Element (CP_Cur);
+                  begin
+                     Remap_SFI (Relocs, Sloc.Source_File);
+                     Remap_SCO_Id (Relocs, Info.Control_Decision);
+                     Real_Map.Include (Sloc, Info);
+                  end;
+               end loop;
+            end;
          end;
       end;
    end Checkpoint_Load_Unit;
@@ -2783,6 +2913,16 @@ package body SC_Obligations is
    -----------
    -- Write --
    -----------
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Branch_Info) is
+   begin
+      CSS.Write (Value.Match_Start);
+      CSS.Write (Value.Match_End);
+      CSS.Write_SCO (Value.Control_Decision);
+      CSS.Write (Value.Control_Outcome);
+      CSS.Write (Value.Stmt_Start);
+      CSS.Write (Value.Stmt_End);
+   end Write;
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : Expansion_Info)
    is
@@ -2867,6 +3007,7 @@ package body SC_Obligations is
       Write (CSS, Value.Scope_Entities);
       Write (CSS, Value.ALI_Annotations);
       Write (CSS, Value.Fine_Grained_Exemptions);
+      Write (CSS, Value.Branch_Map);
       Write (CSS, Value.SCOs);
 
       case Value.Provider is
@@ -2960,19 +3101,25 @@ package body SC_Obligations is
       CSS.Write (Value.Sloc);
 
       case Value.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
+         when Decision_Exemption_Request_Kind =>
             CSS.Write_Integer (Value.Decision_Offset);
 
-            case Value.Kind is
-               when Decision_Outcome   =>
+            case Decision_Exemption_Request_Kind (Value.Kind) is
+               when Decision_Outcome           =>
                   CSS.Write (Value.Outcome);
 
-               when Decision_Condition =>
+               when Decision_Condition         =>
                   CSS.Write_Condition (Value.Condition);
 
-               when Full_Decision      =>
+               when Full_Decision              =>
                   null;
+
+               when Manual_Decision_Evaluation =>
+                  Write (CSS, Value.Condition_Values);
             end case;
+
+         when Branch                          =>
+            null;
       end case;
    end Write;
 
@@ -2998,6 +3145,48 @@ package body SC_Obligations is
          Free (SID_Info.Bit_Maps.MCDC_Bits);
       end loop;
    end Free;
+
+   ------------------------
+   -- Lookup_Branch_Info --
+   ------------------------
+
+   procedure Lookup_Branch_Info
+     (Unit  : CU_Info;
+      Sloc  : Source_Location;
+      Info  : out Branch_Info;
+      Found : out Boolean)
+   is
+      use Branch_Maps;
+
+      --  Look for the last entry that preceeds Sloc (Unit.Branch_Map is
+      --  indexed by Match_Start, so we need to find the one that is closest to
+      --  the Exmept_Branch annotation at Sloc).
+
+      Cur : constant Cursor := Unit.Branch_Map.Floor (Sloc);
+   begin
+      Info :=
+        (Match_Start      => No_Local_Location,
+         Match_End        => No_Local_Location,
+         Control_Decision => No_SCO_Id,
+         Control_Outcome  => False,
+         Stmt_Start       => No_Local_Location,
+         Stmt_End         => No_Local_Location);
+      Found := False;
+      if not Has_Element (Cur) then
+         return;
+      end if;
+
+      --  Accept the entry that was found only if Sloc is indeed between its
+      --  Match_Start and Match_End slocs.
+
+      Info := Element (Cur);
+      if Key (Cur).Source_File = Sloc.Source_File
+        and then Info.Match_Start <= Sloc.L
+        and then Sloc.L <= Info.Match_End
+      then
+         Found := True;
+      end if;
+   end Lookup_Branch_Info;
 
    ---------------------
    -- Checkpoint_Load --
@@ -4086,24 +4275,45 @@ package body SC_Obligations is
    function Image (Self : Exemption_Request) return String is
       Result : Unbounded_String;
    begin
-      Append (Result, "exemption at " & Image (Self.Sloc) & " ");
-      case Self.Kind is
-         when Decision_Outcome | Decision_Condition | Full_Decision =>
-            case Self.Kind is
-               when Decision_Outcome   =>
-                  Append (Result, "for outcome " & Self.Outcome'Image);
+      Append
+        (Result,
+         (case Self.Kind is
+            when Manual_Decision_Evaluation => "manual evaluation",
+            when Branch                     => "branch exemption",
+            when others                     => "exemption"));
+      Append (Result, " at " & Image (Self.Sloc));
 
-               when Decision_Condition =>
+      case Self.Kind is
+         when Decision_Exemption_Request_Kind =>
+            case Decision_Exemption_Request_Kind (Self.Kind) is
+               when Decision_Outcome           =>
+                  Append (Result, " for outcome " & Self.Outcome'Image);
+
+               when Decision_Condition         =>
                   Append
                     (Result,
-                     "for condition " & Img (Natural (Self.Condition)));
+                     " for condition " & Img (Natural (Self.Condition)));
 
-               when Full_Decision      =>
-                  Append (Result, "for all outcomes and decisions");
+               when Full_Decision              =>
+                  Append (Result, " for all outcomes and decisions");
+
+               when Manual_Decision_Evaluation =>
+                  null;
             end case;
 
             Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
+
+         when Branch                          =>
+            null;
       end case;
+
+      if Self.Kind = Manual_Decision_Evaluation then
+         Append (Result, ':');
+         for V of Self.Condition_Values loop
+            Append (Result, (' ', Tristate_Char (V)));
+         end loop;
+      end if;
+
       return +Result;
    end Image;
 
@@ -6768,6 +6978,8 @@ package body SC_Obligations is
             | Exempt_Decision_Outcome
             | Exempt_Decision_Condition
             | Exempt_Full_Decision
+            | Manual_Decision_Evaluation
+            | Exempt_Branch
             | Cov_Off             =>
 
             if Kind = Exempt_Decision_Outcome then
@@ -6824,6 +7036,34 @@ package body SC_Obligations is
                   Parse_Decision_Offset (Req);
                   Annotation.Exemption_Req := Req;
                end;
+
+            elsif Kind = Manual_Decision_Evaluation then
+
+               --  Require one or many boolean values, followed by an optional
+               --  integer argument.
+
+               declare
+                  Req : Exemption_Request :=
+                    (Manual_Decision_Evaluation, Sloc, 0, others => <>);
+               begin
+                  while Has_Next and then Args (Next).Kind = Boolean_Value loop
+                     Req.Condition_Values.Append
+                       (To_Tristate (Args (Next).Boolean_Value));
+                     Next := Next + 1;
+                  end loop;
+                  if Req.Condition_Values.Is_Empty then
+                     Warn (Sloc, "at least one boolean value expected");
+                  end if;
+
+                  Parse_Decision_Offset (Req);
+                  Annotation.Exemption_Req := Req;
+               end;
+
+            elsif Kind = Exempt_Branch then
+
+               --  No argument required
+
+               Annotation.Exemption_Req := (Branch, Sloc);
             end if;
 
             --  Take the exemption justification, if there is one
@@ -7372,6 +7612,31 @@ package body SC_Obligations is
       return ALI_Index;
    end Load_ALI;
 
+   --------------------
+   -- Set_Branch_Map --
+   --------------------
+
+   procedure Set_Branch_Map (Map : Branch_Maps.Map) is
+      use Branch_Maps;
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      --  Current file being processed
+   begin
+      for Cur in Map.Iterate loop
+         declare
+            Sloc : constant Source_Location := Key (Cur);
+            Info : constant Branch_Info := Element (Cur);
+         begin
+            if Sloc.Source_File /= Current_SFI then
+               Current_SFI := Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+            CU_Vector (Current_CU).Branch_Map.Include (Sloc, Info);
+         end;
+      end loop;
+   end Set_Branch_Map;
+
    -----------------------------------
    -- Insert_Fine_Grained_Exemption --
    -----------------------------------
@@ -7613,13 +7878,53 @@ package body SC_Obligations is
          end if;
          pragma Assert (Last_CU /= No_CU_Id);
 
+         if UE.Kind = Branch then
+            declare
+               Unit  : CU_Info renames CU_Vector (Last_CU);
+               Info  : Branch_Info;
+               Found : Boolean;
+            begin
+               Lookup_Branch_Info (Unit, UE.Sloc, Info, Found);
+               if not Found then
+                  Report
+                    (UE.Sloc,
+                     "Invalid placement for a branch exemption",
+                     Warning);
+                  goto Continue;
+               end if;
+
+               --  If this branch has a controlling decision, add an exemption
+               --  for the corresponding outcome.
+
+               if Info.Control_Decision /= No_SCO_Id then
+                  Insert
+                    ((Decision_Outcome,
+                      Info.Control_Decision,
+                      Info.Control_Outcome));
+               end if;
+
+               --  Add an exemption region for all the statements guarded by
+               --  this branch.
+
+               Unit.ALI_Annotations.Include
+                 ((UE.Sloc.Source_File, Info.Stmt_Start),
+                  (Exempt_On, Justification, others => <>));
+               Unit.ALI_Annotations.Include
+                 ((UE.Sloc.Source_File, Info.Stmt_End),
+                  (Exempt_Off, Justification));
+            end;
+            goto Continue;
+         end if;
+
          declare
             E :
               Exemptable_SCO
                 (case UE.Kind is
-                   when Decision_Outcome   => Decision_Outcome,
-                   when Decision_Condition => Decision_Condition,
-                   when Full_Decision      => Decision_Outcome);
+                   when Decision_Outcome           => Decision_Outcome,
+                   when Decision_Condition         => Decision_Condition,
+                   when Full_Decision              => Decision_Outcome,
+                   when Manual_Decision_Evaluation => Decision_Outcome,
+                   when Branch                     => raise Program_Error);
          begin
             E.SCO := Lookup_Decision (UE.Sloc.L, UE.Decision_Offset);
             if E.SCO = No_SCO_Id then
@@ -7647,12 +7952,40 @@ package body SC_Obligations is
 
                when Decision_Condition | Full_Decision =>
                   null;
+
+               when Manual_Decision_Evaluation         =>
+
+                  --  Manual decision evaluations are not actual SCO
+                  --  exemptions: we do not add them to Exemptions, but add
+                  --  their evaluation vectors to the corresponding SCIs
+                  --  instead.
+
+                  if UE.Condition_Values.Last_Index = Last_Cond_Index (E.SCO)
+                  then
+                     Coverage.Source.Add_Manual_Decision_Evaluation
+                       (E.SCO, UE.Condition_Values, Justification);
+                  else
+                     Report
+                       (UE.Sloc,
+                        Image (E.SCO)
+                        & " has "
+                        & Img (Natural (Last_Cond_Index (E.SCO)) + 1)
+                        & " conditions, Manual_Decision_Evaluation annotation"
+                        & " provides "
+                        & Img (Natural (UE.Condition_Values.Length))
+                        & " values",
+                        Warning);
+                  end if;
+                  goto Continue;
+
+               when Branch                             =>
+                  raise Program_Error;
             end case;
 
             --  Ignore SCOs that make no sense, try to insert the other ones
 
             case UE.Kind is
-               when Decision_Outcome   =>
+               when Decision_Outcome                    =>
                   if not E.Outcome and then Is_Assertion_To_Cover (E.SCO) then
                      Report
                        (UE.Sloc,
@@ -7664,10 +7997,10 @@ package body SC_Obligations is
                   end if;
                   Insert (E);
 
-               when Decision_Condition =>
+               when Decision_Condition                  =>
                   Insert (E);
 
-               when Full_Decision      =>
+               when Full_Decision                       =>
 
                   --  Exempt all relevant outcomes, and then all conditions
 
@@ -7684,6 +8017,9 @@ package body SC_Obligations is
                        ((Kind => Decision_Condition,
                          SCO  => Condition (E.SCO, I)));
                   end loop;
+
+               when Manual_Decision_Evaluation | Branch =>
+                  raise Program_Error;
             end case;
          end;
 
