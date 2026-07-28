@@ -84,6 +84,8 @@ package body Annotations.Sarif is
    --    (inherited from Pretty_Printer)          --
    -------------------------------------------------
 
+   procedure Pretty_Print_Start (Pp : in out Sarif_Pretty_Printer);
+
    procedure Pretty_Print_End (Pp : in out Sarif_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
@@ -458,6 +460,15 @@ package body Annotations.Sarif is
       Pp.Exemption := Info.Exemption;
    end Pretty_Print_Start_Line;
 
+   ------------------------
+   -- Pretty_Print_Start --
+   ------------------------
+
+   procedure Pretty_Print_Start (Pp : in out Sarif_Pretty_Printer) is
+   begin
+      Create_Output_File (Pp.Sarif_File, +Pp.Sarif_Filename);
+   end Pretty_Print_Start;
+
    ----------------------
    -- Pretty_Print_End --
    ----------------------
@@ -498,8 +509,6 @@ package body Annotations.Sarif is
       Pp : Sarif_Pretty_Printer :=
         (Need_Sources => True, Context => Context, others => <>);
    begin
-      Create_Output_File (Pp.Sarif_File, +Pp.Sarif_Filename);
-
       Annotations.Generate_Report (Pp, True, Subdir => ("sarif"));
 
       Close (Pp.Sarif_File);
