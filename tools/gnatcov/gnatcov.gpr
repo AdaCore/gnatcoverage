@@ -223,6 +223,8 @@ project Gnatcov is
       C_Common_Switches :=
         ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-std=c99", "-g");
 
+      CPP_Common_Switches := ("-g");
+
       Mode_Switches := ();
       Ada_Mode_Switches := ();
       C_Mode_Switches := ();
@@ -253,7 +255,7 @@ project Gnatcov is
         use C_Common_Switches & Mode_Switches & C_Mode_Switches;
 
       for Default_Switches ("C++")
-        use Mode_Switches & CPP_Mode_Switches;
+        use CPP_Common_Switches & Mode_Switches & CPP_Mode_Switches;
 
       for Local_Configuration_Pragmas use "gnat.adc";
 
