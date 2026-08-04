@@ -23,6 +23,34 @@ Once generated, annotation files should be passed to the |gcvins| or |gcvcov|
 commands with the :cmd-option:`--external-annotations` switch for them to be
 taken into account by |gcv|.
 
+.. _ext_annot_attribute:
+
+Designating the annotation file from the project
+################################################
+
+A project can designate its annotation file once, instead of repeating
+:cmd-option:`--external-annotations` on every command::
+
+    package Coverage is
+       for External_Annotations use "annotations.toml";
+    end Coverage;
+
+The name is interpreted from the directory of the project defining the
+attribute, and may be a path rather than a base name. Every command reading
+annotations honours it: |gcvcov|, |gcvins|, |gcvaddan|, |gcvdelan| and
+|gcvshoan|.
+
+|gcvaddan| and |gcvdelan| also write back to that file when
+:cmd-option:`--output` is omitted.
+
+:cmd-option:`--external-annotations` overrides the attribute. It never implies
+an output file, so that a read-only switch cannot become an in-place edit.
+
+Only one annotation file is ever loaded, whether it comes from the attribute or
+from the switch. |gcvaddan| and |gcvdelan| write the whole set of annotations
+they loaded to their output, so loading two files would merge them into one and
+leave duplicated entries behind.
+
 .. _gen_ext:
 
 Generating external annotations
@@ -57,7 +85,7 @@ Some notable command line options are:
     Unique identifier for the new annotation. If not specified, |gcv| will
     generate one based on the kind of annotation and the designated location.
 
-    This identifier must be unique across all external annotation files passed to
+    This identifier must be unique within the external annotation file passed to
     any |gcv| invocation, and is used in diagnostics, or in the other annotation
     manipulation commands, |gcvdelan| and |gcvshoan| to uniquely designate an
     annotation.
@@ -482,7 +510,7 @@ The semantics of each command line switch is:
     Unique IDENTIFIER of the annotation to be deleted.``
 
 :cmd-option:`--external-annotations=FILENAME`, |rarg|:
-    External annotation files from which the annotation will be loaded.
+    External annotation file from which the annotations will be loaded.
     If multiple files are passed to |gcv|, the annotations will be consolidated
     together and all written to the output file.
 
@@ -505,7 +533,7 @@ The help section for the |gcvaddan| command can be displayed by running
 The semantics of the command line switches are as follow:
 
 :cmd-option:`--external-annotations=FILENAME`, |rarg|:
-    External annotation files from which annotations will be loaded
+    External annotation file from which annotations will be loaded
 
 :cmd-option:`--kind=KIND`, optional:
     Only display the annotations of kind KIND.

@@ -85,11 +85,15 @@ package body Project is
       Excluded_Units_List,
       Routines_List,
       Excluded_Routines_List,
-      Excluded_Source_Files_List);
+      Excluded_Source_Files_List,
+
+      External_Annotations);
 
    subtype List_Attribute is Attribute range Units .. Switches;
    subtype String_Attribute is
      Attribute range Units_List .. Excluded_Source_Files_List;
+   --  External_Annotations belongs to neither: it is a single value, and not
+   --  the name of a file holding a list.
 
    function "+" (A : Attribute) return String;
    function "+" (A : Attribute) return GPR2.Q_Attribute_Id;
@@ -213,6 +217,16 @@ package body Project is
    function Lookup_Project (Prj_Name : String) return GPR2.Project.View.Object;
    --  Look for the project in Prj_Tree whose name matches Prj_Name and return
    --  it. Emit a fatal error if there is no such project.
+
+   function Coverage_Project return GPR2.Project.View.Object
+   with Pre => Is_Project_Loaded;
+   --  Return the project whose coverage preferences apply: the root project,
+   --  or the one its Origin_Project attribute designates.
+   --
+   --  gnattest works through an extending project it generates itself, to
+   --  override sources when generating stubs. That is a tooling artifact: the
+   --  preferences belong to the project the user wrote. This intentionally
+   --  does not use the most-extending view, for the same reason.
 
    procedure Build_Prj_Map
    with Pre => Is_Project_Loaded;
@@ -931,6 +945,21 @@ package body Project is
    -- Lookup_Project --
    --------------------
 
+   ----------------------
+   -- Coverage_Project --
+   ----------------------
+
+   function Coverage_Project return GPR2.Project.View.Object is
+      Origin_Attr : constant GPR2.Project.Attribute.Object :=
+        Root_Project.Attribute
+          (GPR2.Project.Registry.Attribute.Origin_Project);
+   begin
+      return
+        (if Origin_Attr.Is_Defined
+         then Lookup_Project (Origin_Attr.Value.Text)
+         else Root_Project);
+   end Coverage_Project;
+
    function Lookup_Project (Prj_Name : String) return GPR2.Project.View.Object
    is
       Lower_Basename : constant String := To_Lower (Simple_Name (Prj_Name));
@@ -1008,17 +1037,7 @@ package body Project is
       --  instead.
 
       if Requested_Projects.Is_Empty then
-         declare
-            Origin_Attr : constant GPR2.Project.Attribute.Object :=
-              Root_Project.Attribute
-                (GPR2.Project.Registry.Attribute.Origin_Project);
-            Prj_Name    : constant String :=
-              (if Origin_Attr.Is_Defined
-               then Origin_Attr.Value.Text
-               else String (Root_Project.Name));
-         begin
-            Requested_Projects.Insert (Prj_Name);
-         end;
+         Requested_Projects.Insert (String (Coverage_Project.Name));
       end if;
 
       for Prj_Name of Requested_Projects loop
@@ -1748,23 +1767,8 @@ package body Project is
    --------------
 
    function Switches (Op : String) return String_Vectors.Vector is
-      Origin_Attr : constant GPR2.Project.Attribute.Object :=
-        Root_Project.Attribute
-          (GPR2.Project.Registry.Attribute.Origin_Project);
-      Actual_Prj  : constant GPR2.Project.View.Object :=
-        (if Origin_Attr.Is_Defined
-         then Lookup_Project (Origin_Attr.Value.Text)
-         else Root_Project);
-      --  This intentionally does not use the most-extending view, as the
-      --  origin project is supposed to be the root project of the user, and
-      --  any extension is a tooling artifact.
-      --
-      --  In the case of gnattest, an extending project is used to override
-      --  some source when generating stubs, still the user coverage
-      --  preferences are to be loaded from the project designated by
-      --  Origin_Project.
-
-      Attr : GPR2.Project.Attribute.Object;
+      Actual_Prj : constant GPR2.Project.View.Object := Coverage_Project;
+      Attr       : GPR2.Project.Attribute.Object;
    begin
       return Result : String_Vectors.Vector do
          Attr :=
@@ -1778,6 +1782,42 @@ package body Project is
          end if;
       end return;
    end Switches;
+
+   --------------------------
+   -- External_Annotations --
+   --------------------------
+
+   function External_Annotations return Unbounded_String is
+      Actual_Prj : constant GPR2.Project.View.Object := Coverage_Project;
+      Attr       : constant GPR2.Project.Attribute.Object :=
+        Actual_Prj.Attribute (Name => +External_Annotations);
+   begin
+      if not Attr.Is_Defined then
+         return Null_Unbounded_String;
+      end if;
+
+      --  The annotation file is named relatively to the project that
+      --  designates it, whereas gnatcov runs from the current directory, so
+      --  make it absolute here.
+      --
+      --  The designating project is the one the value was written in, which is
+      --  not necessarily Actual_Prj: an extending project inherits the
+      --  attribute, and the name it holds is relative to the extended project.
+
+      declare
+         Value    : constant GPR2.Project.Attribute.Object := Attr;
+         Base_Dir : constant String :=
+           (if Value.Value.Has_Source_Reference
+            then Containing_Directory (String (Value.Value.Filename))
+            else String (Actual_Prj.Dir_Name.Value));
+      begin
+         return
+           +(+Full_Name
+                (Create_From_Base
+                   (Base_Name => +String (Value.Value.Text),
+                    Base_Dir  => +Base_Dir)));
+      end;
+   end External_Annotations;
 
    -----------------
    -- Set_Subdirs --
@@ -2224,6 +2264,18 @@ begin
    GPR2_RA.Description.Set_Attribute_Description
      (+Excluded_Source_Files,
       "Source file names to exclude from source coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +External_Annotations,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+External_Annotations,
+      "External annotation file to load, as for the --external-annotations"
+      & " switch. A relative name is interpreted from the directory of the"
+      & " project that defines the attribute.");
 
    GPR2_RA.Add
      (Name                 => +Switches,

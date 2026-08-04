@@ -31,6 +31,10 @@ package body Switches_GPR is
    use type Unbounded_String;
    use Command_Line.Parser;
 
+   From_Project : Boolean := False;
+   --  Whether the external annotation files were taken from the project. See
+   --  Annotations_From_Project.
+
    function Command_Line_Args return String_Vectors.Vector;
    --  Return a string vectors to hold arguments from Ada.Command_Line
 
@@ -297,6 +301,20 @@ package body Switches_GPR is
          Args := Project_Args;
       end;
 
+      --  Take the external annotation files from the project unless the
+      --  command line designates some, so that a project can carry them once
+      --  for every command that consumes them. A file that does not exist yet
+      --  is designated all the same: whether that is an error is decided when
+      --  loading it, from Annotations_From_Project.
+
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty
+        and then Project.External_Annotations /= Null_Unbounded_String
+      then
+         From_Project := True;
+         Args.String_List_Args (Opt_Ext_Annotations).Append
+           (Project.External_Annotations);
+      end if;
+
       --  Set default output directory, target and runtime from the project
 
       if not Args.String_Args (Opt_Output_Directory).Present then
@@ -360,6 +378,13 @@ package body Switches_GPR is
       end if;
       Instrument_Block := Args.Bool_Args (Opt_Instrument_Block);
    end Parse_Arguments;
+
+   ------------------------------
+   -- Annotations_From_Project --
+   ------------------------------
+
+   function Annotations_From_Project return Boolean
+   is (From_Project);
 
    -----------------
    -- To_Language --

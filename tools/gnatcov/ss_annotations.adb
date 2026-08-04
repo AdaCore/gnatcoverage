@@ -119,6 +119,17 @@ package body SS_Annotations is
    --  Report the diagnostics for Match. Consider all failed matches as stale
    --  annotations that need to be re-generated.
 
+   procedure Require_Annotation_File
+     (Args : Command_Line.Parser.Parsed_Arguments);
+   --  Stop with an error unless an external annotation file is designated,
+   --  either on the command line or by the project
+
+   function Output_File_Of
+     (Args : Command_Line.Parser.Parsed_Arguments) return Virtual_File;
+   --  Return the file that add-annotation and delete-annotation write to:
+   --  --output if passed, else the first file the project designates. Stop
+   --  with an error if there is neither.
+
    function "+"
      (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location
    is (Line => Sloc.Line, Column => Sloc.Column)
@@ -405,16 +416,31 @@ package body SS_Annotations is
    --------------------------
 
    procedure Load_Ext_Annotations (Annotation_File : Unbounded_String) is
-      Load_Diags : constant Load_Diagnostic_Arr :=
-        Load_Entries
-          (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
-           DB => Ext_Annotation_DB);
    begin
-      Ext_Annotation_Trace.Trace
-        ("Loading external annotations from " & (+Annotation_File));
-      for Diag of Load_Diags loop
-         Warn (Format_Diagnostic (Diag));
-      end loop;
+      --  A file the project designates but that does not exist yet is not an
+      --  error: that is what a project looks like before its first annotation
+      --  is created. A file named on the command line is loaded whatever its
+      --  state, since the user asked for that one by name, and a missing one
+      --  is then reported as such.
+
+      if Annotations_From_Project
+        and then not Ada.Directories.Exists (+Annotation_File)
+      then
+         return;
+      end if;
+
+      declare
+         Load_Diags : constant Load_Diagnostic_Arr :=
+           Load_Entries
+             (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
+              DB => Ext_Annotation_DB);
+      begin
+         Ext_Annotation_Trace.Trace
+           ("Loading external annotations from " & (+Annotation_File));
+         for Diag of Load_Diags loop
+            Warn (Format_Diagnostic (Diag));
+         end loop;
+      end;
    end Load_Ext_Annotations;
 
    --------------------------------
@@ -1260,6 +1286,49 @@ package body SS_Annotations is
          Language   => Lang);
    end Add_Extracted_Annotation;
 
+   -----------------------------
+   -- Require_Annotation_File --
+   -----------------------------
+
+   procedure Require_Annotation_File
+     (Args : Command_Line.Parser.Parsed_Arguments) is
+   begin
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         Fatal_Error
+           ("no external annotation file: pass --external-annotations, or"
+            & " designate one through the Coverage'External_Annotations"
+            & " project attribute");
+      end if;
+   end Require_Annotation_File;
+
+   --------------------
+   -- Output_File_Of --
+   --------------------
+
+   function Output_File_Of
+     (Args : Command_Line.Parser.Parsed_Arguments) return Virtual_File is
+   begin
+      if Args.String_Args (Opt_Output).Present then
+         return Create (+US.To_String (Args.String_Args (Opt_Output).Value));
+      end if;
+
+      --  A project that states where its annotations live also states where
+      --  edits to them go, so the first designated file is the default output
+      --  of add-annotation and delete-annotation. Only the project is
+      --  considered: making --external-annotations imply an output would turn
+      --  a read-only switch into an in-place edit.
+
+      if Project.Is_Project_Loaded
+        and then Project.External_Annotations /= Null_Unbounded_String
+      then
+         return Create (+(+Project.External_Annotations));
+      end if;
+
+      Fatal_Error
+        ("missing --output switch, and the project designates no"
+         & " Coverage'External_Annotations file to update");
+   end Output_File_Of;
+
    --------------------
    -- Add_Annotation --
    --------------------
@@ -1368,13 +1437,9 @@ package body SS_Annotations is
          Fatal_Error (Target_File.Display_Full_Name & ": no such file");
       end if;
 
-      --  Require the -o/--output switch to be present
+      --  Determine the file to write the amended annotations to
 
-      if not Args.String_Args (Opt_Output).Present then
-         Fatal_Error ("Missing --output switch");
-      else
-         Output_File := Create (+US.To_String ((+Opt_Output)));
-      end if;
+      Output_File := Output_File_Of (Args);
 
       --  Validate the arguments depending on the requested annotation kind
 
@@ -1647,18 +1712,11 @@ package body SS_Annotations is
       --  Require an external annotation file. They have already been loaded
       --  if present, but we still need to check.
 
-      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
-         Fatal_Error ("missing --external-annotations switch");
-      end if;
+      Require_Annotation_File (Args);
 
-      --  Require a file in which to store the amended entries
+      --  Determine the file to store the amended entries in
 
-      if not Args.String_Args (Opt_Output).Present then
-         Fatal_Error ("missing --output switch");
-      else
-         Output_File :=
-           Create (+US.To_String (Args.String_Args (Opt_Output).Value));
-      end if;
+      Output_File := Output_File_Of (Args);
 
       --  Require an entry identifier
 
@@ -1701,9 +1759,7 @@ package body SS_Annotations is
       --  Require an external annotation file. They have already been loaded
       --  if present, but we still need to check.
 
-      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
-         Fatal_Error ("missing --external-annotations switch");
-      end if;
+      Require_Annotation_File (Args);
 
       --  Require either a project or some files on the command line
 

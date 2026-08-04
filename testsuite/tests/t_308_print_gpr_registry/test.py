@@ -55,6 +55,7 @@ baseline = (
     "\nCoverage.Excluded_Source_Files_List"
     "\nCoverage.Excluded_Units"
     "\nCoverage.Excluded_Units_List"
+    "\nCoverage.External_Annotations"
     "\nCoverage.Routines"
     "\nCoverage.Routines_List"
     "\nCoverage.Switches"

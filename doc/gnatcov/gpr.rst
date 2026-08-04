@@ -41,6 +41,10 @@ sense.
 Specifying |gcv| command Switches
 =================================
 
+Besides ``Switches``, the ``Coverage`` package accepts an
+``External_Annotations`` attribute designating the external annotation file to
+load. See :ref:`ext_annot_attribute`.
+
 ``Switches`` attributes in ``Coverage`` package of the root project file are
 treated as lists of command line switches for |gcv| commands. Each attribute
 specification requires an index indicating what |gcv| operation the switches

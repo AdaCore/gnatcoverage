@@ -35,6 +35,14 @@ package Switches_GPR is
    --  interest from project files. This is meant to be used only in the
    --  gnatcov driver, where we just need to determine the target.
 
+   function Annotations_From_Project return Boolean;
+   --  Whether the external annotation files in Switches.Args come from the
+   --  project rather than from the command line.
+   --
+   --  This tells apart a file that does not exist yet, which is what a project
+   --  looks like before its first annotation is created, from one the user
+   --  named by mistake.
+
    function To_Language (Id : GPR2.Language_Id) return Some_Language;
    --  Convert a GPR2 lanugage ID to our enumeration value. Abort with a fatal
    --  error if Name is invalid.

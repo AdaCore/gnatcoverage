@@ -1495,6 +1495,19 @@ procedure GNATcov_Bits_Specific is
       --  entries on actual source files) and validate that the annotations
       --  relevant to gnatcov are well formed.
 
+      --  Only one file can be loaded: annotations from every loaded file are
+      --  held in one database, and add-annotation and delete-annotation write
+      --  that whole database back to their output. Loading two would merge
+      --  them into one, leaving duplicated entries behind.
+
+      if Natural (Args.String_List_Args (Opt_Ext_Annotations).Length) > 1 then
+         Fatal_Error
+           ("only one external annotation file can be loaded, but"
+            & Natural'Image
+                (Natural (Args.String_List_Args (Opt_Ext_Annotations).Length))
+            & " were given");
+      end if;
+
       for Arg of Args.String_List_Args (Opt_Ext_Annotations) loop
          Load_Ext_Annotations (Arg);
       end loop;
