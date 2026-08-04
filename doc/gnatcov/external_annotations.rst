@@ -610,3 +610,84 @@ specifying the annotation identifier to be replaced, and forcing the
 replacement::
 
     gnatcov add-annotation --annotation-id=IDENTIFIER --force [OPTIONS]
+
+.. _ext_annot_vscode:
+
+Using external annotations from VS Code
+#######################################
+
+The Ada & SPARK VS Code extension displays the external annotations of a
+project, creates new ones from the editor and deletes existing ones.
+
+It does not read the annotation file itself. Annotations are stored as stable
+slocs, relative to an enclosing construct rather than absolute, so resolving
+them against the current source requires |gcv|: the extension runs |gcvshoan|
+and displays what it reports. |gcv| must therefore be on the ``PATH``.
+
+The files come from the ``Coverage'External_Annotations`` attribute, see
+:ref:`ext_annot_attribute`. There is no editor setting to keep in sync: a
+project without that attribute simply has the feature off.
+
+Displaying annotations
+----------------------
+
+.. figure:: vscode_screenshots/annotations-editor.png
+   :align: center
+
+   External annotations displayed in the editor, with the list of the project's
+   annotations in the sidebar
+
+An annotation covering a region is shown as a tinted background; one
+designating a single location, such as ``Exempt_On`` or ``Dump_Buffers``, as an
+inline badge naming its kind. Hovering shows the kind, the extra fields, the
+justification and the identifier.
+
+|gcv| resolves stable slocs against the file on disk, so the display refreshes
+on save rather than on every keystroke: annotations may drift slightly while
+typing. :menuselection:`Ada --> GNATcoverage - Refresh external annotations`
+refreshes explicitly, and :menuselection:`Ada --> GNATcoverage - Toggle
+display of external annotations` hides them.
+
+Stale annotations have no location, so they cannot be shown in the editor and
+are reported in the Problems panel instead. Otherwise an annotation that
+stopped matching its source would just disappear, wrongly suggesting that the
+exemption still applies.
+
+Browsing and deleting annotations
+---------------------------------
+
+.. figure:: vscode_screenshots/annotations-tree.png
+   :align: center
+
+   The annotations of a project, grouped by source file. The last entry is
+   stale, and so has no line number to jump to.
+
+The :guilabel:`GNATcoverage Annotations` view lists every annotation of the
+project, grouped by file. Selecting an entry jumps to the annotated code, and
+the trash icon deletes it.
+
+Deletion belongs here rather than in the editor because it is keyed by an
+identifier absent from the source, and because stale annotations have no
+location to act on.
+
+Creating annotations
+--------------------
+
+Select the code to annotate and choose :menuselection:`GNATcoverage - Create
+external annotation` from the editor context menu. The extension asks for the
+kind, and for a justification when the kind expects one.
+
+Only ``Exempt_Region`` requires a selection. The other kinds designate a single
+location and use the cursor. Either way the location is passed to |gcvaddan| as
+the user made it, so the same rules as on the command line apply: if no
+statement list encloses it, the annotation is created but ignored at
+instrumentation time, with a warning.
+
+For ``Dump_Buffers`` and ``Reset_Buffers`` the extension also asks which side of
+the designated statement the call goes on. Those are the only kinds that insert
+code, and so the only ones for which the question means anything; "after" is
+what places a buffer dump past the last statement of a list.
+
+The four decision kinds are not offered either: they designate a decision rather
+than a location and need extra parameters. Created with |gcvaddan|, they are
+displayed and deleted like any other.
