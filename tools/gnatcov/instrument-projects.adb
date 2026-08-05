@@ -565,7 +565,86 @@ is
    Serial_Execution : constant Boolean :=
      not Force_Parallelism and then Parallelism_Level = 1;
 
-   --  Start of processing for Instrument_Units_Of_Interest
+   procedure Register_Source_Instrumentation_Action
+     (LU_Info      : Library_Unit_Info;
+      IC           : Inst_Context_Acc;
+      Instrumenter : Instrument.Common.Language_Instrumenter_Acc;
+      Prj_Info     : Project_Info_Access;
+      Dump_Config  : Any_Dump_Config);
+   --  Register a source instrumentation action in Tree_Db
+
+   procedure Execute_Source_Instrumentation_Actions;
+   --  Run all actions in Tree_Db
+
+   --------------------------------------------
+   -- Register_Source_Instrumentation_Action --
+   --------------------------------------------
+
+   procedure Register_Source_Instrumentation_Action
+     (LU_Info      : Library_Unit_Info;
+      IC           : Inst_Context_Acc;
+      Instrumenter : Instrument.Common.Language_Instrumenter_Acc;
+      Prj_Info     : Project_Info_Access;
+      Dump_Config  : Any_Dump_Config) is
+   begin
+      if Serial_Execution then
+         declare
+            Inst_Action : Instrument.Actions.Instrument_Source.Thread.Object;
+         begin
+            Inst_Action.Initialize
+              (LU_Info, IC, Instrumenter, Prj_Info, Dump_Config);
+            if not Tree_Db.Add_Action (Inst_Action) then
+               raise Program_Error;
+            end if;
+         end;
+      else
+         declare
+            Inst_Action : Instrument.Actions.Instrument_Source.Process.Object;
+         begin
+            Inst_Action.Initialize
+              (LU_Info, IC, Instrumenter, Prj_Info, Dump_Config);
+            if not Tree_Db.Add_Action (Inst_Action) then
+               raise Program_Error;
+            end if;
+         end;
+      end if;
+   end Register_Source_Instrumentation_Action;
+
+   --------------------------------------------
+   -- Execute_Source_Instrumentation_Actions --
+   --------------------------------------------
+
+   procedure Execute_Source_Instrumentation_Actions is
+      package Act_Sched renames GPR2.Build.Actions_Scheduler;
+   begin
+      if Serial_Execution then
+         loop
+            declare
+               Action_Rep : constant Act_Sched.Action_Report :=
+                 Tree_Db.Execute_Next_Action
+                   (Catch_Exceptions => False, Force_Execution => Force);
+            begin
+               exit when Action_Rep.Status = No_Action_To_Execute;
+            end;
+         end loop;
+      else
+         declare
+            Opt : constant Act_Sched.Options :=
+              (Force => Force, Keep_Temp_Files => Save_Temps, others => <>);
+         begin
+            case Tree_Db.Execute (Scheduler, Opt) is
+               when Act_Sched.Success =>
+                  null;
+
+               when others            =>
+                  Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                  raise Outputs.Xcov_Exit_Exc;
+            end case;
+         end;
+      end if;
+   end Execute_Source_Instrumentation_Actions;
+
+   --  Start of processing for Instrument.Projects
 
 begin
    --  Set the instrumentation tag
@@ -809,72 +888,19 @@ begin
       declare
          LU_Info : constant Library_Unit_Info := Unit_Maps.Element (Cur);
          Prj     : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
-
       begin
-         if Serial_Execution then
-            declare
-               Inst_Action :
-                 Instrument.Actions.Instrument_Source.Thread.Object;
-            begin
-               Inst_Action.Initialize
-                 (LU_Info      => LU_Info,
-                  IC           => IC'Unrestricted_Access,
-                  Instrumenter => Instrumenters (LU_Info.Language),
-                  Prj_Info     =>
-                    IC.Project_Info_Map.Element (+String (Prj.Name)),
-                  Dump_Config  => Dump_Config);
-               if not Tree_Db.Add_Action (Inst_Action) then
-                  raise Program_Error;
-               end if;
-            end;
-         else
-            declare
-               Inst_Action :
-                 Instrument.Actions.Instrument_Source.Process.Object;
-            begin
-               Inst_Action.Initialize
-                 (LU_Info      => LU_Info,
-                  IC           => IC'Unrestricted_Access,
-                  Instrumenter => Instrumenters (LU_Info.Language),
-                  Prj_Info     =>
-                    IC.Project_Info_Map.Element (+String (Prj.Name)),
-                  Dump_Config  => Dump_Config);
-               if not Tree_Db.Add_Action (Inst_Action) then
-                  raise Program_Error;
-               end if;
-            end;
-         end if;
+         Register_Source_Instrumentation_Action
+           (LU_Info      => LU_Info,
+            IC           => IC'Unrestricted_Access,
+            Instrumenter => Instrumenters (LU_Info.Language),
+            Prj_Info     => IC.Project_Info_Map.Element (+String (Prj.Name)),
+            Dump_Config  => Dump_Config);
       end;
    end loop;
 
    --  Execute all of the actions
 
-   if Serial_Execution then
-      loop
-         declare
-            use GPR2.Build.Actions_Scheduler;
-            Action_Rep : constant Action_Report :=
-              Tree_Db.Execute_Next_Action
-                (Catch_Exceptions => False, Force_Execution => Force);
-         begin
-            exit when Action_Rep.Status = No_Action_To_Execute;
-         end;
-      end loop;
-   else
-      declare
-         Opt : constant GPR2.Build.Actions_Scheduler.Options :=
-           (Force => Force, Keep_Temp_Files => Save_Temps, others => <>);
-      begin
-         case Tree_Db.Execute (Scheduler, Opt) is
-            when GPR2.Build.Actions_Scheduler.Success =>
-               null;
-
-            when others                               =>
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               raise Outputs.Xcov_Exit_Exc;
-         end case;
-      end;
-   end if;
+   Execute_Source_Instrumentation_Actions;
 
    --  If using the manual dump trigger: look for unit with dump annotations
    --  and emit a dump helper unit for them.
