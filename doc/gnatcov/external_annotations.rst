@@ -551,15 +551,17 @@ The output format is as follows:
 
 .. code-block::
 
-    BASENAME_1:
+    FILENAME_1:
     - START_LOCATION - END_LOCATION; id: IDENTIFIER; kind: KIND; [EXTRA_FIELDS]
     - ...
 
-    BASENAME_2:
+    FILENAME_2:
     - ...
 
-``BASENAME_i`` corresponds to the basename of each file for which there is an
-annotation. The each annotation is displayed on each line, starting by the
+``FILENAME_i`` is the full name of each file for which there is an annotation.
+A base name would not designate a file, since several source directories may
+hold the same one. The each annotation is displayed on each line, starting by
+the
 location range for the annotation. If the annotation only concerns a single
 location, the ``END_LOCATION`` field will be identical to the
 ``START_LOCATION``. The unique identifier of the annotation is then displayed in

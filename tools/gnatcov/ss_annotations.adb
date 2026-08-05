@@ -1859,7 +1859,12 @@ package body SS_Annotations is
                if Current_File /= No_File then
                   Ada.Text_IO.New_Line;
                end if;
-               Ada.Text_IO.Put_Line (Current_File.Display_Base_Name & ":");
+               --  Report the full name: a base name does not designate a
+               --  file, since several source directories may hold the same
+               --  one, and gnatcov is also used without a project, where
+               --  there is nothing to make a name relative to.
+
+               Ada.Text_IO.Put_Line (Current_File.Display_Full_Name & ":");
             end if;
             declare
                Annot_Kind : constant Any_Annotation_Kind :=
