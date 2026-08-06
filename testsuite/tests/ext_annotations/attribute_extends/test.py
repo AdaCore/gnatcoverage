@@ -8,6 +8,7 @@ project designates a file in the wrong directory -- and finds nothing there,
 since a designated file that does not exist is not an error.
 """
 
+import json
 import os
 import os.path
 
@@ -69,8 +70,21 @@ thistest.fail_if(
 xcov(["show-annotations"] + ext_sw.cov_switches, out="show.log")
 thistest.fail_if_no_match(
     "annotation seen from the extending project",
-    r"(?s).*inherited.*",
+    r"(?s).*- 4:7 - 6:13; id: inherited; kind: Exempt_Region;.*",
     contents_of("show.log"),
+)
+
+# And must report it as the file in effect: that list is what an IDE watches
+# for changes, and it is the only place the resolved path is published.
+xcov(
+    ["show-annotations"]
+    + ext_sw.cov_switches
+    + ["--format=json", "--output=show.json"]
+)
+thistest.fail_if_not_equal(
+    "annotation files seen from the extending project",
+    [base_annotations],
+    json.loads(contents_of("show.json"))["annotation_files"],
 )
 
 # The same resolution decides where an edit goes, so creating an annotation
@@ -91,7 +105,7 @@ thistest.fail_if(
 )
 thistest.fail_if_no_match(
     "annotation added through the extending project",
-    r"(?s).*through_ext.*",
+    r"(?s).*\[through_ext\].*",
     contents_of(base_annotations),
 )
 

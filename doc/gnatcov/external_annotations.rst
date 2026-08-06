@@ -528,7 +528,7 @@ annotation files in a more user-friendly manner.
 The help section for the |gcvaddan| command can be displayed by running
 ``gnatcov show-annotations --help``. Its synopsis is::
 
-    gnatcov show-annotations --external-annotations=FILENAME [--kind=KIND] [-P PROJECT] [FILENAMES]
+    gnatcov show-annotations --external-annotations=FILENAME [--kind=KIND] [--format=FORMAT] [-P PROJECT] [FILENAMES]
 
 The semantics of the command line switches are as follow:
 
@@ -537,6 +537,9 @@ The semantics of the command line switches are as follow:
 
 :cmd-option:`--kind=KIND`, optional:
     Only display the annotations of kind KIND.
+
+:cmd-option:`--format=FORMAT`, optional:
+    Output format: ``text``, the default, or ``json``.
 
 :cmd-option:`-P PROJECT`, optional:
     Show all annotations applicable to all source files of the project tree
@@ -560,15 +563,46 @@ The output format is as follows:
 
 ``FILENAME_i`` is the full name of each file for which there is an annotation.
 A base name would not designate a file, since several source directories may
-hold the same one. The each annotation is displayed on each line, starting by
-the
-location range for the annotation. If the annotation only concerns a single
-location, the ``END_LOCATION`` field will be identical to the
-``START_LOCATION``. The unique identifier of the annotation is then displayed in
-place of ``IDENTIFIER``, and the annotation kind is displayed in place of
-``KIND``. The ``EXTRA_FIELDS`` concerns options specific to each annotation
-kind, and are displayed as a semi-column separated list. See :ref:`gen_ext` for
-more details on the extra fields that each annotation kind supports.
+hold the same one. Each annotation is then displayed on its own line, starting
+with its location range. If the annotation only concerns a single location, the
+``END_LOCATION`` field will be identical to the ``START_LOCATION``. The unique
+identifier of the annotation is then displayed in place of ``IDENTIFIER``, and
+the annotation kind is displayed in place of ``KIND``. The ``EXTRA_FIELDS``
+concerns options specific to each annotation kind, and are displayed as a
+semi-column separated list. See :ref:`gen_ext` for more details on the extra
+fields that each annotation kind supports.
+
+With :cmd-option:`--format=json`, the same information is printed as a single
+JSON object, for tools rather than for readers:
+
+.. code-block:: json
+
+    {
+      "annotation_files": ["/path/to/annotations.toml"],
+      "annotations": [
+        {
+          "file": "/path/to/pkg.adb",
+          "id": "IDENTIFIER",
+          "kind": "Exempt_Region",
+          "stale": false,
+          "location": {"start_line": 4, "start_column": 7,
+                       "end_line": 6, "end_column": 13},
+          "justification": "defensive code"
+        }
+      ]
+    }
+
+``annotation_files`` lists the files in effect, including one a project
+designates but that does not exist yet, so that a client can watch them all for
+changes. Each annotation carries the fields of its kind, and a stale one
+carries ``diagnostic`` instead of ``location``. Unlike the text form, a
+justification holding a semicolon or a newline stays unambiguous.
+
+The report goes to standard output unless :cmd-option:`--output` designates a
+file, in which case it is written there instead. A parser should be given a
+file of its own: standard output also carries whatever |gcv| has to say, and a
+warning landing in the middle of the document is a parse error rather than a
+diagnostic.
 
 .. _ext_annot_stability:
 

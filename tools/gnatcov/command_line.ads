@@ -174,7 +174,8 @@ package Command_Line is
       Opt_Values,
       Opt_SS_Backend,
       Opt_Source_Encoding,
-      Opt_Ada_Default_Charset);
+      Opt_Ada_Default_Charset,
+      Opt_Show_Format);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -1061,8 +1062,9 @@ package Command_Line is
               | Cmd_Dump_Shared_Lib_Deps
               | Cmd_Add_Annotation
               | Cmd_Delete_Annotation
-              | Cmd_Extract_Annotations => True,
-              others                    => False),
+              | Cmd_Extract_Annotations
+              | Cmd_Show_Annotations => True,
+              others                 => False),
            At_Most_Once => False,
            Internal     => False),
       Opt_Output_Directory       =>
@@ -1729,6 +1731,16 @@ package Command_Line is
              "Specify the default encoding to use to read Ada source files to"
              & " instrument.",
            Commands     => (Cmd_Instrument_Source => True, others => False),
+           At_Most_Once => True,
+           Internal     => False),
+      Opt_Show_Format            =>
+        Create
+          (Long_Name    => "--format",
+           Pattern      => "FORMAT",
+           Help         =>
+             "Output format: ""text"" (the default) for a human reader, or"
+             & " ""json"" for a machine reader.",
+           Commands     => (Cmd_Show_Annotations => True, others => False),
            At_Most_Once => True,
            Internal     => False));
 
