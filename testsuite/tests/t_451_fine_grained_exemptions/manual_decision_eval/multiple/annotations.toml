@@ -1,6 +1,6 @@
 [d1]
 kind="absolute"
-file="src/pkg.adb"
+file="pkg.adb"
 [d1.matcher]
 start_line=8
 start_col=7
@@ -21,7 +21,7 @@ justification="J3"
 
 [d2]
 kind="absolute"
-file="src/pkg.adb"
+file="pkg.adb"
 [d2.matcher]
 start_line=12
 start_col=7
