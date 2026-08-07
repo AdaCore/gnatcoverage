@@ -1484,7 +1484,9 @@ package body Setup_RTS is
          J.Set_Field ("dump-channel", Image (Dump_Cfg.Channel));
 
          J.Set_Field ("manual-dump-trigger", Dump_Cfg.Manual_Trigger);
-         J.Set_Field ("auto-dump-trigger", Image (Dump_Cfg.Auto_Trigger));
+         if Dump_Cfg.Auto_Trigger /= None then
+            J.Set_Field ("auto-dump-trigger", Image (Dump_Cfg.Auto_Trigger));
+         end if;
 
          case Dump_Cfg.Channel is
             when Binary_File            =>
