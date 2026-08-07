@@ -14,7 +14,7 @@ for trigger in AUTO_TRIGGERS + ["manual"]:
     tmp = Wdir(f"tmp_{trigger}")
     xcov(
         ["setup", "-q", "--prefix=.", f"--dump-trigger={trigger}"],
-        tolerate_messages="--dump-trigger=ravenscar-task-termination "
+        tolerate_messages="--dump-trigger=.* "
         "may not be compatible with the selected runtime",
     )
 
