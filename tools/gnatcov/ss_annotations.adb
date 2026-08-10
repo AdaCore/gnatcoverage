@@ -127,9 +127,16 @@ package body SS_Annotations is
 
    function Output_File_Of
      (Args : Command_Line.Parser.Parsed_Arguments) return Virtual_File;
-   --  Return the file that add-annotation and delete-annotation write to:
-   --  --output if passed, else the first file the project designates. Stop
-   --  with an error if there is neither.
+   --  File that delete-annotation writes to: --output when passed, else the
+   --  first file the project designates. Stop with an error when neither
+   --  designates one.
+
+   function Annotation_Output_For
+     (Args : Command_Line.Parser.Parsed_Arguments; Source : Virtual_File)
+      return Virtual_File;
+   --  File that add-annotation writes to: --output when passed, else the
+   --  Coverage'External_Annotations of the project owning Source. Stop with an
+   --  error when neither designates one.
 
    procedure Print_Annotations_Text (Results : Match_Result_Vec);
    --  Print Results for a human reader, grouped by file
@@ -1311,6 +1318,50 @@ package body SS_Annotations is
       end if;
    end Require_Annotation_File;
 
+   ---------------------------
+   -- Annotation_Output_For --
+   ---------------------------
+
+   function Annotation_Output_For
+     (Args : Command_Line.Parser.Parsed_Arguments; Source : Virtual_File)
+      return Virtual_File is
+   begin
+      --  The command line wins over the project
+
+      if Args.String_Args (Opt_Output).Present then
+         return Create (+US.To_String (Args.String_Args (Opt_Output).Value));
+      end if;
+
+      if not Project.Is_Project_Loaded then
+         Fatal_Error ("Missing --output switch");
+      end if;
+
+      --  An annotation belongs with the unit it applies to, so it goes to the
+      --  file designated by the project owning that unit rather than to the
+      --  root project's.
+
+      declare
+         File : constant Unbounded_String :=
+           Project.Annotation_File_For (+Source.Full_Name);
+
+         Owner : constant GPR2.Build.Source.Object :=
+           Project.Lookup_Source (+Source.Full_Name);
+         --  Looked up only to name the project in the diagnostic below
+      begin
+         if File = Null_Unbounded_String then
+            Fatal_Error
+              ("the project owning "
+               & Source.Display_Base_Name
+               & (if Owner.Is_Defined
+                  then " (" & String (Owner.Owning_View.Name) & ")"
+                  else "")
+               & " designates no Coverage'External_Annotations file: add the"
+               & " attribute to it, or pass --output");
+         end if;
+         return Create (+(+File));
+      end;
+   end Annotation_Output_For;
+
    --------------------
    -- Output_File_Of --
    --------------------
@@ -1449,7 +1500,7 @@ package body SS_Annotations is
 
       --  Determine the file to write the amended annotations to
 
-      Output_File := Output_File_Of (Args);
+      Output_File := Annotation_Output_For (Args, Target_File);
 
       --  Validate the arguments depending on the requested annotation kind
 
@@ -1708,7 +1759,17 @@ package body SS_Annotations is
       --  Finally, import the new entry and write everything to disk
 
       Replace_Entry (Ext_Annotation_DB, New_Annot_DB, Entry_Id, Entry_Id);
-      Write_Entries (Ext_Annotation_DB, Output_File);
+      --  Rewrite only the file the annotations came from. An explicit
+      --  --output keeps the older behaviour of writing back everything that
+      --  was loaded, which is how several files are deliberately combined.
+
+      Write_Entries
+        (Ext_Annotation_DB,
+         Output_File,
+         Origin =>
+           (if Args.String_Args (Opt_Output).Present
+            then No_File
+            else Output_File));
    end Add_Annotation;
 
    -----------------------
@@ -1724,10 +1785,6 @@ package body SS_Annotations is
 
       Require_Annotation_File (Args);
 
-      --  Determine the file to store the amended entries in
-
-      Output_File := Output_File_Of (Args);
-
       --  Require an entry identifier
 
       if not Args.String_Args (Opt_Annotation_Id).Present then
@@ -1736,26 +1793,47 @@ package body SS_Annotations is
          Identifier := Args.String_Args (Opt_Annotation_Id).Value;
       end if;
 
-      --  Check wether there actually is an entry associated with Identifier
+      --  Check whether there actually is an entry associated with Identifier,
+      --  and determine the file to store the amended entries in: the file the
+      --  entry was loaded from, so that deleting an annotation read from
+      --  another project rewrites that project's file rather than collapsing
+      --  everything into one.
 
-      if not Switches.Force then
-         declare
-            Entr : constant Entry_View :=
-              Query_Entry (Ext_Annotation_DB, Identifier);
-         begin
-            if Entr = No_Entry_View then
+      declare
+         Entr : constant Entry_View :=
+           Query_Entry (Ext_Annotation_DB, Identifier);
+      begin
+         if Entr = No_Entry_View then
+            if not Switches.Force then
                Fatal_Error
-                 ("No annotation associated with identifier """
-                  & (+Identifier)
-                  & """");
+                 ("No annotation associated with identifier " & (+Identifier));
             end if;
-         end;
-      end if;
+            Output_File := Output_File_Of (Args);
+
+         elsif Args.String_Args (Opt_Output).Present then
+
+            --  The command line wins over the project
+
+            Output_File := Output_File_Of (Args);
+         else
+            Output_File := Entr.Origin;
+         end if;
+      end;
 
       --  Delete the entry and write the remaining entries back to file
 
       Delete_Entry (Ext_Annotation_DB, Identifier);
-      Write_Entries (Ext_Annotation_DB, Output_File);
+      --  Rewrite only the file the annotations came from. An explicit
+      --  --output keeps the older behaviour of writing back everything that
+      --  was loaded, which is how several files are deliberately combined.
+
+      Write_Entries
+        (Ext_Annotation_DB,
+         Output_File,
+         Origin =>
+           (if Args.String_Args (Opt_Output).Present
+            then No_File
+            else Output_File));
    end Delete_Annotation;
 
    ----------------------

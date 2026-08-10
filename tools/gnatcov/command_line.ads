@@ -2161,11 +2161,11 @@ package Command_Line is
         Create
           (Long_Name => "--external-annotations",
            Help      =>
-             "Specify the external annotation file. Only one can be loaded:"
-             & " the annotation commands (add-annotation, delete-annotation)"
-             & " write the whole set of annotations back to the file passed"
-             & " to --output, so loading several would combine them into"
-             & " one.",
+             "Specify external annotation files. For the annotation commands"
+             & " that modify them (add-annotation, delete-annotation), the"
+             & " file each annotation was loaded from is the one rewritten,"
+             & " unless --output is passed: everything loaded is then written"
+             & " back to it, combining the input files.",
            Commands  =>
              (Cmd_Instrument | Cmd_Coverage | Cmd_All_Annotate => True,
               others                                           => False),

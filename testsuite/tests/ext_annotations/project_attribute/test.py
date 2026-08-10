@@ -127,24 +127,4 @@ thistest.fail_if_no_match(
     contents_of("none.log"),
 )
 
-# Only one annotation file can be loaded. add-annotation and delete-annotation
-# write back everything they loaded, so a second file would be merged into the
-# output and leave duplicated entries behind.
-xcov(
-    [
-        "show-annotations",
-        f"-P{gpr}",
-        f"--external-annotations={annotations}",
-        f"--external-annotations={other}",
-        "../src/pkg.adb",
-    ],
-    out="two-files.log",
-    register_failure=False,
-)
-thistest.fail_if_no_match(
-    "diagnostic for two annotation files",
-    r"(?s).*only one external annotation file can be loaded.*",
-    contents_of("two-files.log"),
-)
-
 thistest.result()

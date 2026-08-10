@@ -36,20 +36,28 @@ A project can designate its annotation file once, instead of repeating
     end Coverage;
 
 The name is interpreted from the directory of the project defining the
-attribute, and may be a path rather than a base name. Every command reading
-annotations honours it: |gcvcov|, |gcvins|, |gcvaddan|, |gcvdelan| and
-|gcvshoan|.
+attribute, and may be a path rather than a base name.
 
-|gcvaddan| and |gcvdelan| also write back to that file when
-:cmd-option:`--output` is omitted.
+Each project designates at most one file, but every project in the tree may
+designate its own. Which ones a command uses depends on what it does with them:
 
-:cmd-option:`--external-annotations` overrides the attribute. It never implies
-an output file, so that a read-only switch cannot become an in-place edit.
+* |gcvcov|, |gcvins| and |gcvshoan| **read** annotations, and load every file
+  the project tree designates: a project's annotations describe its own units,
+  and matter to whoever depends on it.
 
-Only one annotation file is ever loaded, whether it comes from the attribute or
-from the switch. |gcvaddan| and |gcvdelan| write the whole set of annotations
-they loaded to their output, so loading two files would merge them into one and
-leave duplicated entries behind.
+* |gcvaddan| **writes** an annotation, and writes it to the file designated by
+  the project that owns the annotated unit -- not to the root project's. An
+  annotation belongs with the unit it applies to. If that project designates no
+  file, |gcv| says so and stops rather than choosing one.
+
+* |gcvdelan| rewrites the file the deleted annotation was loaded from, leaving
+  the other files untouched.
+
+The command line overrides the project throughout: :cmd-option:`--output`
+chooses the file to write, and :cmd-option:`--external-annotations` the files to
+read. Note that with an explicit :cmd-option:`--output`, |gcvaddan| and
+|gcvdelan| write back every annotation they loaded, which is how several files
+are deliberately combined into one.
 
 .. _gen_ext:
 

@@ -307,12 +307,38 @@ package body Switches_GPR is
       --  is designated all the same: whether that is an error is decided when
       --  loading it, from Annotations_From_Project.
 
-      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty
-        and then Project.External_Annotations /= Null_Unbounded_String
-      then
-         From_Project := True;
-         Args.String_List_Args (Opt_Ext_Annotations).Append
-           (Project.External_Annotations);
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         case Args.Command is
+            when Cmd_Add_Annotation =>
+
+               --  Load only the file of the project owning the source being
+               --  annotated: that is where the annotation goes, and the only
+               --  file add-annotation may rewrite.
+
+               if not Args.Remaining_Args.Is_Empty then
+                  declare
+                     File : constant Unbounded_String :=
+                       Project.Annotation_File_For
+                         (+Args.Remaining_Args.Last_Element);
+                  begin
+                     if File /= Null_Unbounded_String then
+                        From_Project := True;
+                        Args.String_List_Args (Opt_Ext_Annotations).Append
+                          (File);
+                     end if;
+                  end;
+               end if;
+
+            when others             =>
+
+               --  A project's annotations are relevant to whoever depends on
+               --  it, so load everything the tree designates.
+
+               for File of Project.External_Annotations_In_Tree loop
+                  From_Project := True;
+                  Args.String_List_Args (Opt_Ext_Annotations).Append (File);
+               end loop;
+         end case;
       end if;
 
       --  Set default output directory, target and runtime from the project

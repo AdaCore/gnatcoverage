@@ -218,6 +218,11 @@ package body Project is
    --  Look for the project in Prj_Tree whose name matches Prj_Name and return
    --  it. Emit a fatal error if there is no such project.
 
+   function Annotation_File_Of
+     (Prj : GPR2.Project.View.Object) return Unbounded_String;
+   --  Return the external annotation file Prj designates as an absolute name,
+   --  or the empty string if it designates none
+
    function Coverage_Project return GPR2.Project.View.Object
    with Pre => Is_Project_Loaded;
    --  Return the project whose coverage preferences apply: the root project,
@@ -1783,14 +1788,15 @@ package body Project is
       end return;
    end Switches;
 
-   --------------------------
-   -- External_Annotations --
-   --------------------------
+   ------------------------
+   -- Annotation_File_Of --
+   ------------------------
 
-   function External_Annotations return Unbounded_String is
-      Actual_Prj : constant GPR2.Project.View.Object := Coverage_Project;
-      Attr       : constant GPR2.Project.Attribute.Object :=
-        Actual_Prj.Attribute (Name => +External_Annotations);
+   function Annotation_File_Of
+     (Prj : GPR2.Project.View.Object) return Unbounded_String
+   is
+      Attr : constant GPR2.Project.Attribute.Object :=
+        Prj.Attribute (Name => +External_Annotations);
    begin
       if not Attr.Is_Defined then
          return Null_Unbounded_String;
@@ -1801,23 +1807,74 @@ package body Project is
       --  make it absolute here.
       --
       --  The designating project is the one the value was written in, which is
-      --  not necessarily Actual_Prj: an extending project inherits the
-      --  attribute, and the name it holds is relative to the extended project.
+      --  not necessarily Prj: an extending project inherits the attribute, and
+      --  the name it holds is relative to the extended project.
 
       declare
-         Value    : constant GPR2.Project.Attribute.Object := Attr;
          Base_Dir : constant String :=
-           (if Value.Value.Has_Source_Reference
-            then Containing_Directory (String (Value.Value.Filename))
-            else String (Actual_Prj.Dir_Name.Value));
+           (if Attr.Value.Has_Source_Reference
+            then Containing_Directory (String (Attr.Value.Filename))
+            else String (Prj.Dir_Name.Value));
       begin
          return
            +(+Full_Name
                 (Create_From_Base
-                   (Base_Name => +String (Value.Value.Text),
+                   (Base_Name => +String (Attr.Value.Text),
                     Base_Dir  => +Base_Dir)));
       end;
-   end External_Annotations;
+   end Annotation_File_Of;
+
+   --------------------------
+   -- External_Annotations --
+   --------------------------
+
+   function External_Annotations return Unbounded_String
+   is (Annotation_File_Of (Coverage_Project));
+
+   -------------------------
+   -- Annotation_File_For --
+   -------------------------
+
+   function Annotation_File_For (Source : String) return Unbounded_String is
+      Src : constant GPR2.Build.Source.Object := Lookup_Source (Source);
+   begin
+      return
+        (if Src.Is_Defined
+         then Annotation_File_Of (Src.Owning_View)
+         else Null_Unbounded_String);
+   end Annotation_File_For;
+
+   ----------------------------------
+   -- External_Annotations_In_Tree --
+   ----------------------------------
+
+   function External_Annotations_In_Tree return String_Vectors.Vector is
+      Result : String_Vectors.Vector;
+
+      procedure Collect (Prj : GPR2.Project.View.Object);
+      --  Append the annotation file Prj designates, if any and if not already
+      --  collected: several projects may inherit the same one.
+
+      -------------
+      -- Collect --
+      -------------
+
+      procedure Collect (Prj : GPR2.Project.View.Object) is
+         File : constant Unbounded_String := Annotation_File_Of (Prj);
+      begin
+         if File /= Null_Unbounded_String and then not Result.Contains (File)
+         then
+            Result.Append (File);
+         end if;
+      end Collect;
+
+   begin
+      Iterate_Projects
+        (Root_Project => Coverage_Project,
+         Process      => Collect'Access,
+         Recursive    => True);
+      return Result;
+   end External_Annotations_In_Tree;
 
    -----------------
    -- Set_Subdirs --
