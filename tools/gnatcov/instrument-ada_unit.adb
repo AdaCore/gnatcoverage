@@ -486,6 +486,14 @@ package body Instrument.Ada_Unit is
    function Sloc (N : Ada_Node'Class) return Slocs.Source_Location
    is ((Source_File => Unit_File_Index (N), L => +Sloc (N)));
 
+   function Coverage_Disabled
+     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
+   is (UIC.Disable_Coverage
+       or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N))));
+   --  Whether coverage is disabled for N, either because we are past an
+   --  in-source Cov_Off annotation (UIC.Disable_Coverage), or because N lies
+   --  in a region disabled by an external annotation.
+
    function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
    is (Kind
        in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr | Ada_Decl_Expr);
@@ -5501,7 +5509,7 @@ package body Instrument.Ada_Unit is
                   --  "then" token to the first non-statement in the statements
                   --  block.
 
-                  if UIC.Disable_Coverage then
+                  if Coverage_Disabled (UIC, If_N.F_Cond_Expr) then
                      Last_Decision := 0;
                   else
                      Last_Decision := First_Decision_After (SCO_Mark);
@@ -5539,7 +5547,7 @@ package body Instrument.Ada_Unit is
                         --  from the "then" token to the first non-statement in
                         --  the statement block.
 
-                        if UIC.Disable_Coverage then
+                        if Coverage_Disabled (UIC, Elif.F_Cond_Expr) then
                            Last_Decision := 0;
                         else
                            Last_Decision := First_Decision_After (SCO_Mark);
@@ -5570,7 +5578,7 @@ package body Instrument.Ada_Unit is
                         --  the "else" token to the first non-statement in the
                         --  statement block.
 
-                        if not UIC.Disable_Coverage then
+                        if not Coverage_Disabled (UIC, E_Part) then
                            Insert_Branch_Info
                              (Match_Start => E_Part.Token_Start,
                               Stmts       => E_Part.F_Stmts,
@@ -5609,7 +5617,7 @@ package body Instrument.Ada_Unit is
                      begin
                         Traverse_Declarations_Or_Statements
                           (UIC, L => Alt.F_Stmts.As_Ada_Node_List);
-                        if not UIC.Disable_Coverage then
+                        if not Coverage_Disabled (UIC, Alt) then
                            Insert_Branch_Info
                              (Next (Alt.F_Choices.Token_End),
                               Alt.F_Stmts,
