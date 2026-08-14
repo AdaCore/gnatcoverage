@@ -586,6 +586,8 @@ JSON object, for tools rather than for readers:
 .. code-block:: json
 
     {
+      "code": "ok",
+      "message": "",
       "annotation_files": ["/path/to/annotations.toml"],
       "annotations": [
         {
@@ -605,6 +607,23 @@ designates but that does not exist yet, so that a client can watch them all for
 changes. Each annotation carries the fields of its kind, and a stale one
 carries ``diagnostic`` instead of ``location``. Unlike the text form, a
 justification holding a semicolon or a newline stays unambiguous.
+
+``code`` says whether there was anything to report, so that a client does not
+have to recognise a diagnostic by its wording:
+
+* ``ok``: the annotations are reported, ``annotations`` being empty when there
+  is none;
+* ``not_configured``: nothing designates an annotation file, so the feature is
+  simply not in use;
+* ``invalid_command_line``: the invocation itself is wrong.
+
+``message`` carries the corresponding diagnostic, empty for ``ok``.
+
+|gcv| still exits with a non-zero status for anything other than ``ok``, so the
+status remains what tells a failure from a success; ``code`` only tells the
+failures apart. A failure detected before the requested format is known, such
+as an unknown :cmd-option:`--format`, is reported on standard error with no
+report at all, so a client must be prepared for output that is not this object.
 
 The report goes to standard output unless :cmd-option:`--output` designates a
 file, in which case it is written there instead. A parser should be given a

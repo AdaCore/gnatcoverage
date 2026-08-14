@@ -159,6 +159,9 @@ report = json.loads(contents_of("show.json"))
 
 # The annotation files in effect are reported, so that a client can watch them
 # without having to resolve the attribute itself.
+thistest.fail_if_not_equal("code", "ok", report["code"])
+thistest.fail_if_not_equal("message", "", report["message"])
+
 thistest.fail_if_not_equal(
     "annotation_files", [annotations], report["annotation_files"]
 )

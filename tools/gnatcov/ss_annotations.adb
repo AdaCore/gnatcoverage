@@ -142,12 +142,25 @@ package body SS_Annotations is
    --  Print Results for a human reader, grouped by file
 
    procedure Print_Annotations_JSON
-     (Args : Command_Line.Parser.Parsed_Arguments; Results : Match_Result_Vec);
+     (Args    : Command_Line.Parser.Parsed_Arguments;
+      Results : Match_Result_Vec;
+      Code    : String;
+      Message : String);
    --  Print Results as a JSON object, for a machine reader such as an IDE.
    --
    --  The fields mirror what the text form shows rather than how annotations
    --  are stored, so that consumers depend on the annotation model rather than
    --  on the layout of the annotation file.
+   --
+   --  Code says whether there is anything to report, and Message carries the
+   --  matching diagnostic for a human reader. See Show_Annotations for the
+   --  codes and what they mean.
+
+   No_Annotation_File_Error : constant String :=
+     "no external annotation file: pass --external-annotations, or designate"
+     & " one through the Coverage'External_Annotations project attribute";
+   --  Diagnostic for a command that needs an annotation file when nothing
+   --  designates one
 
    function "+"
      (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location
@@ -534,9 +547,11 @@ package body SS_Annotations is
                      --  are irrelevant for them.
 
                      if Existing_Annot.Kind /= Annot.Kind
-                       or else (Kind = Exempt_On
-                                and then Existing_Annot.Justification
-                                         /= Annot.Justification)
+                       or else
+                         (Kind = Exempt_On
+                          and then
+                            Existing_Annot.Justification
+                            /= Annot.Justification)
                      then
                         Warn
                           (Slocs.Image (Sloc)
@@ -1311,10 +1326,7 @@ package body SS_Annotations is
      (Args : Command_Line.Parser.Parsed_Arguments) is
    begin
       if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
-         Fatal_Error
-           ("no external annotation file: pass --external-annotations, or"
-            & " designate one through the Coverage'External_Annotations"
-            & " project attribute");
+         Fatal_Error (No_Annotation_File_Error);
       end if;
    end Require_Annotation_File;
 
@@ -1844,6 +1856,91 @@ package body SS_Annotations is
       Purpose_Filter : Unbounded_String;
       Match_Results  : Match_Result_Vec;
       As_JSON        : Boolean := False;
+
+      procedure Emit (Code : String; Message : String);
+      --  Write the report where --output designates, or to standard output
+      --  when it designates nothing. Code and Message say whether there is
+      --  anything to report; only the JSON form carries them.
+
+      procedure Fail (Code : String; Message : String)
+      with No_Return;
+      --  Emit a report saying why there is nothing to show, then stop with
+      --  Message as any other fatal error would.
+      --
+      --  The exit status stays non-zero, so a client keeps using it to tell a
+      --  failure from a success and reads Code only to tell the failures
+      --  apart. Codes are "not_configured" when nothing designates an
+      --  annotation file, and "invalid_command_line" when the invocation
+      --  itself is wrong; a successful run reports "ok". Failures found before
+      --  the format is known, or outside this command, keep to a diagnostic on
+      --  standard error with no report at all.
+
+      ----------
+      -- Emit --
+      ----------
+
+      procedure Emit (Code : String; Message : String) is
+         Report : Ada.Text_IO.File_Type;
+
+         procedure Print;
+         --  Print the report in the requested format, to the current output
+
+         procedure Print is
+         begin
+            if As_JSON then
+               Print_Annotations_JSON (Args, Match_Results, Code, Message);
+            else
+               Print_Annotations_Text (Match_Results);
+            end if;
+         end Print;
+
+      begin
+         if Args.String_Args (Opt_Output).Present then
+
+            --  Both printers write to the current output, so redirecting it
+            --  covers either format without them having to know where the
+            --  report goes.
+            --
+            --  A report on its own file is what lets a consumer parse the
+            --  JSON: standard output also carries whatever gnatcov has to say,
+            --  and a warning landing in the middle of the document is a parse
+            --  error rather than a diagnostic.
+
+            Ada.Text_IO.Create
+              (Report,
+               Ada.Text_IO.Out_File,
+               US.To_String (Args.String_Args (Opt_Output).Value));
+            Ada.Text_IO.Set_Output (Report);
+
+            Print;
+
+            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
+            Ada.Text_IO.Close (Report);
+
+         else
+            Print;
+         end if;
+
+      exception
+         when others =>
+
+            --  Leaving the output redirected would swallow whatever gnatcov
+            --  prints next, the error being propagated included.
+
+            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
+            raise;
+      end Emit;
+
+      ----------
+      -- Fail --
+      ----------
+
+      procedure Fail (Code : String; Message : String) is
+      begin
+         Emit (Code, Message);
+         Fatal_Error (Message);
+      end Fail;
+
    begin
       --  Decode the output format
 
@@ -1866,13 +1963,16 @@ package body SS_Annotations is
       --  Require an external annotation file. They have already been loaded
       --  if present, but we still need to check.
 
-      Require_Annotation_File (Args);
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         Fail ("not_configured", No_Annotation_File_Error);
+      end if;
 
       --  Require either a project or some files on the command line
 
       if not Project.Is_Project_Loaded and then Args.Remaining_Args.Is_Empty
       then
-         Fatal_Error ("Missing -P switch or positional FILES");
+         Fail
+           ("invalid_command_line", "Missing -P switch or positional FILES");
       end if;
 
       --  Check the annotation purpose if specified
@@ -1885,8 +1985,9 @@ package body SS_Annotations is
               Annotation_Kind (Annot_Kind_Str);
          begin
             if Annot_Kind in Unknown then
-               Fatal_Error
-                 ("Unknown annotation kind (--kind): """
+               Fail
+                 ("invalid_command_line",
+                  "Unknown annotation kind (--kind): """
                   & Annot_Kind_Str
                   & """, must be one of "
                   & Coverage_Options.Annotation_Kind_Options);
@@ -1956,62 +2057,7 @@ package body SS_Annotations is
       --  Post-process the match results and display the annotations
 
       Sort (Match_Results);
-
-      declare
-         Report : Ada.Text_IO.File_Type;
-
-         procedure Print;
-         --  Print the results in the requested format, to the current output
-
-         -----------
-         -- Print --
-         -----------
-
-         procedure Print is
-         begin
-            if As_JSON then
-               Print_Annotations_JSON (Args, Match_Results);
-            else
-               Print_Annotations_Text (Match_Results);
-            end if;
-         end Print;
-
-      begin
-         if Args.String_Args (Opt_Output).Present then
-
-            --  Send the report to the file --output designates. Both printers
-            --  write to the current output, so redirecting it covers either
-            --  format without them having to know where the report goes.
-            --
-            --  A report on its own file is what lets a consumer parse the
-            --  JSON: standard output also carries whatever gnatcov has to say,
-            --  and a warning landing in the middle of the document is a parse
-            --  error rather than a diagnostic.
-
-            Ada.Text_IO.Create
-              (Report,
-               Ada.Text_IO.Out_File,
-               US.To_String (Args.String_Args (Opt_Output).Value));
-            Ada.Text_IO.Set_Output (Report);
-
-            Print;
-
-            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
-            Ada.Text_IO.Close (Report);
-
-         else
-            Print;
-         end if;
-
-      exception
-         when others =>
-
-            --  Leaving the output redirected would swallow whatever gnatcov
-            --  prints next, the error being propagated included.
-
-            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
-            raise;
-      end;
+      Emit ("ok", "");
    end Show_Annotations;
 
    ----------------------------
@@ -2146,7 +2192,10 @@ package body SS_Annotations is
    ----------------------------
 
    procedure Print_Annotations_JSON
-     (Args : Command_Line.Parser.Parsed_Arguments; Results : Match_Result_Vec)
+     (Args    : Command_Line.Parser.Parsed_Arguments;
+      Results : Match_Result_Vec;
+      Code    : String;
+      Message : String)
    is
       use GNATCOLL.JSON;
       use TOML;
@@ -2278,6 +2327,8 @@ package body SS_Annotations is
          Append (Annots, To_JSON (Match));
       end loop;
 
+      Root.Set_Field ("code", Code);
+      Root.Set_Field ("message", Message);
       Root.Set_Field ("annotation_files", Files);
       Root.Set_Field ("annotations", Annots);
 
@@ -2345,8 +2396,9 @@ package body SS_Annotations is
                end if;
 
                if Annot.Get ("decision").Kind /= TOML_Integer
-                 or else Annot.Get ("decision").As_Integer
-                         not in 0 .. Any_Integer (Natural'Last)
+                 or else
+                   Annot.Get ("decision").As_Integer
+                   not in 0 .. Any_Integer (Natural'Last)
                then
                   Warn
                     ("Invalid decision offset for external exemption"
@@ -2430,9 +2482,10 @@ package body SS_Annotations is
                   elsif Annot_Kind = Exempt_Decision_Condition then
                      if not Annot.Has ("condition")
                        or else Annot.Get ("condition").Kind /= TOML_Integer
-                       or else Annot.Get ("condition").As_Integer
-                               not in Any_Integer (Condition_Index'First)
-                                    .. Any_Integer (Condition_Index'Last)
+                       or else
+                         Annot.Get ("condition").As_Integer
+                         not in Any_Integer (Condition_Index'First)
+                              .. Any_Integer (Condition_Index'Last)
                      then
                         Warn
                           ("Missing or invalid condition for external"

@@ -6,6 +6,7 @@ The attribute names a file that does not exist until the first annotation is
 created, so this also checks that gnatcov does not report it as missing.
 """
 
+import json
 import os.path
 
 from SCOV.minicheck import xcov
@@ -126,5 +127,25 @@ thistest.fail_if_no_match(
     r"(?s).*no external annotation file.*",
     contents_of("none.log"),
 )
+
+# In JSON, the reason is a field rather than a wording to recognise. The status
+# stays non-zero all the same, so a client can keep using it as the gate.
+p = xcov(
+    ["show-annotations"]
+    + plain_sw.cov_switches
+    + ["--format=json", "--output=none.json", "../src/pkg.adb"],
+    out="none-json.log",
+    register_failure=False,
+)
+thistest.fail_if(
+    p.status == 0,
+    "show-annotations should still fail when nothing designates a file",
+)
+report = json.loads(contents_of("none.json"))
+thistest.fail_if_not_equal("code", "not_configured", report["code"])
+thistest.fail_if_no_match(
+    "message", r"(?s).*no external annotation file.*", report["message"]
+)
+thistest.fail_if_not_equal("annotations", [], report["annotations"])
 
 thistest.result()
