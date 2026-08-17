@@ -22,10 +22,15 @@ with Ada.Unchecked_Conversion;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Arch;
-with Coff;         use Coff;
-with Binary_Files; use Binary_Files;
+with Binary_Files;   use Binary_Files;
+with Coff;           use Coff;
+with Files_Handling; use Files_Handling;
+with Logging;
 
 package PECoff_Files is
+
+   Trace : constant Logging.GNATCOLL_Trace := Logging.Create_Trace ("PECOFF");
+
    type PE_File is new Binary_File with private;
 
    function Is_PE_File (Fd : File_Descriptor) return Boolean;
@@ -61,6 +66,10 @@ package PECoff_Files is
    function Get_Symbol_Name (File : PE_File; Sym : Syment) return String;
 
    function Get_Image_Base (File : PE_File) return Arch.Arch_Addr;
+
+   function Imported_DLLs (Filename : String) return File_Sets.Set;
+   --  Return the closure of DLL dependencies for the given executable
+
 private
    type PE_Scn_Arr is array (Section_Index) of Scnhdr;
    type PE_Scn_Arr_Acc is access PE_Scn_Arr;
@@ -71,11 +80,24 @@ private
    type PE_File is new Binary_File with record
       Hdr : Filehdr;
 
+      Opt_Hdr_Off : Long_Integer;
+      --  Offset of the optional header in the executable
+
+      Is_PE32_Plus : Boolean;
+      --  Whether the executable is a PE32+ (i.e. 64 bit)
+
       Image_Base : Arch.Arch_Addr;
 
       Data    : System.Address;
       Scn     : PE_Scn_Arr_Acc;
       Str_Off : Unsigned_32;
+
+      Number_Of_RVA_And_Sizes : Unsigned_32;
+      --  Number of "RVA and Size" entries in the optional header
+
+      Import_Table : Opt_Hdr_Data_Directory;
+      --  RVA and Size entry for the import table, or No_Data_Directory if
+      --  there is no such entry.
    end record;
 
 end PECoff_Files;

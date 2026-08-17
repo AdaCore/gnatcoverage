@@ -54,6 +54,7 @@ package Command_Line is
       Cmd_Dump_Lines,
       Cmd_Dump_CFG,
       Cmd_Dump_Pragmas,
+      Cmd_Dump_Shared_Lib_Deps,
 
       Cmd_Disassemble_Insn_Properties,
       Cmd_Disassemble_Raw,
@@ -459,6 +460,14 @@ package Command_Line is
              "Dump the list of names for Ada pragmas that gnatcov"
              & " knows, or that GNAT knows (through gnat_util) if"
              & " --gnat-pragmas is passed.",
+           Internal    => True),
+      Cmd_Dump_Shared_Lib_Deps        =>
+        Create
+          (Name        => "dump-shared-lib-deps",
+           Pattern     => "",
+           Description =>
+             "Dump the list of shared libraries in the closures of the given"
+             & " executables.",
            Internal    => True),
       Cmd_Disassemble_Raw             =>
         Create
@@ -1019,6 +1028,7 @@ package Command_Line is
               | Cmd_Coverage
               | Cmd_Convert
               | Cmd_Dump_CFG
+              | Cmd_Dump_Shared_Lib_Deps
               | Cmd_Add_Annotation
               | Cmd_Delete_Annotation => True,
               others                  => False),
