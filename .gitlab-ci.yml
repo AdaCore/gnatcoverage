@@ -74,7 +74,7 @@ variables:
    GNATFORMAT_DATE: !reference [.dates, gnatformat]
    # Set to --build-date=YYYYMMDD on days where there is a QA incident, so that
    # the CI works with components from a previous date.
-   ANOD_BUILD_DATE_ARG: ""
+   ANOD_BUILD_DATE_ARG: "--build-date=20260813"
 
 stages:
   - build
