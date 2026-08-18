@@ -214,6 +214,10 @@ package Switches is
    --  When True, each trace decoded by extract-base64-traces will be written
    --  in separate files instead of overwritting them in the same file.
 
+   Compute_Origins : Boolean := False;
+   --  If True, the XML, HTML and DHTLM reports shall contain the information
+   --  of coverage origins.
+
    function Parallelism_Level return Positive;
    --  Number of jobs that can be run in parallel
 

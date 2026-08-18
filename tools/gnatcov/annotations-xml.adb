@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
+with Instrument.Input_Traces;
 with Interfaces;
 
 with Coverage;       use Coverage;
@@ -26,6 +27,7 @@ with Files_Handling; use Files_Handling;
 with Hex_Images;     use Hex_Images;
 with Outputs;        use Outputs;
 with Support_Files;
+with Switches;
 with Traces_Disa;    use Traces_Disa;
 with Traces_Files;   use Traces_Files;
 
@@ -211,6 +213,10 @@ package body Annotations.Xml is
    --  Emit a series of <obligation_statistics> tags to Pp to describe the
    --  given statistics
 
+   procedure Print_Coverage_Origins
+     (Pp : in out Xml_Pretty_Printer'Class; SCO : SCO_Id);
+   --  Print the coverage origins for SCO
+
    ---------------
    -- Installed --
    ---------------
@@ -322,6 +328,9 @@ package body Annotations.Xml is
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
+
+      Print_Coverage_Origins (Pp, SCO);
+
       Pp.ET ("condition");
    end Pretty_Print_Condition;
 
@@ -511,6 +520,8 @@ package body Annotations.Xml is
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
+
+      Print_Coverage_Origins (Pp, SCO);
    end Pretty_Print_Start_Decision;
 
    ----------------------------
@@ -682,6 +693,9 @@ package body Annotations.Xml is
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
+
+      Print_Coverage_Origins (Pp, SCO);
+
       Pp.ET (Kind);
    end Pretty_Print_Statement;
 
@@ -981,5 +995,30 @@ package body Annotations.Xml is
          Pp.ET ("obligation_stats", Dest);
       end loop;
    end Print_Coverage_Ob_Stats;
+
+   ----------------------------
+   -- Print_Coverage_Origins --
+   ----------------------------
+
+   procedure Print_Coverage_Origins
+     (Pp : in out Xml_Pretty_Printer'Class; SCO : SCO_Id)
+   is
+      use Instrument.Input_Traces;
+      use Coverage_Origins_Maps;
+
+      --  If SCO is for a call statement, rely on the origins of coverage of
+      --  its enclosing statement (the same is done to compute its coverage).
+      Origins : constant Cursor :=
+        Coverage_Origins.Find
+          ((if Is_Call_Stmt (SCO) then Enclosing_Statement (SCO) else SCO));
+   begin
+      if Switches.Compute_Origins and then Has_Element (Origins) then
+         Pp.ST ("origins");
+         for Origin of Element (Origins) loop
+            Pp.P ("<filepath>" & To_Xml_String (+Origin) & "</filepath>");
+         end loop;
+         Pp.ET ("origins");
+      end if;
+   end Print_Coverage_Origins;
 
 end Annotations.Xml;

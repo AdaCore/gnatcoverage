@@ -31,6 +31,7 @@ with GNAT.Regpat; use GNAT.Regpat;
 with Annotations.Html;
 with Hex_Images;
 with Interfaces;
+with Instrument.Input_Traces;
 with Outputs;
 with Project;
 with Support_Files; use Support_Files;
@@ -257,6 +258,9 @@ package body Annotations.Dynamic_Html is
    procedure Write_Full_Report (Pp : Dynamic_Html'Class);
    --  Dump the HTML file into Filename, inlining both JS and CSS resources
    --  (see JS_Source and CSS_Source) and embedding the JSON object as well.
+
+   procedure Set_Coverage_Origins (Obj : JSON_Value; SCO : SCO_Id);
+   --  Set the origins of coverage for SCO
 
    ---------------
    -- Installed --
@@ -907,6 +911,7 @@ package body Annotations.Dynamic_Html is
       end loop;
       Obj.Set_Field ("annotations", JSON_Annotations);
       Obj.Set_Field ("kind", SCO_Kind_Image (SCO));
+      Set_Coverage_Origins (Obj, SCO);
    end Set_SCO_Fields;
 
    ---------------
@@ -1227,5 +1232,25 @@ package body Annotations.Dynamic_Html is
            ("report generation failed: " & Exception_Information (Ex));
 
    end Write_Full_Report;
+
+   --------------------------
+   -- Set_Coverage_Origins --
+   --------------------------
+
+   procedure Set_Coverage_Origins (Obj : JSON_Value; SCO : SCO_Id) is
+      use Instrument.Input_Traces;
+      use Coverage_Origins_Maps;
+
+      Origins      : constant Cursor := Coverage_Origins.Find (SCO);
+      JSON_Origins : JSON_Array;
+   begin
+      if Switches.Compute_Origins and then Has_Element (Origins) then
+         for Origin of Element (Origins) loop
+            Append (JSON_Origins, Create (+Origin));
+         end loop;
+      end if;
+
+      Obj.Set_Field ("origins", JSON_Origins);
+   end Set_Coverage_Origins;
 
 end Annotations.Dynamic_Html;

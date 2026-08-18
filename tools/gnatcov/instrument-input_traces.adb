@@ -1355,6 +1355,19 @@ package body Instrument.Input_Traces is
          return;
       end if;
 
+      --  Coverage origins:
+      --  Compute the coverage for this trace.
+
+      if Switches.Compute_Origins then
+         Coverage.Source.Compute_Source_Coverage
+           (CU,
+            Fingerprint,
+            Stmt_Buffer,
+            Decision_Buffer,
+            MCDC_Buffer,
+            Tracefile => Trace_Filename);
+      end if;
+
       if Has_Element (Cur) then
 
          --  Update existing coverage buffers for this unit
@@ -1390,9 +1403,9 @@ package body Instrument.Input_Traces is
          end loop;
 
       else
+
          --  Create a new entry for coverage buffers and initialize them from
          --  this trace entry.
-
          pragma Assert (Stmt_Buffer'First = 0);
          pragma Assert (Decision_Buffer'First = 0);
          pragma Assert (MCDC_Buffer'First = 0);
@@ -1441,5 +1454,44 @@ package body Instrument.Input_Traces is
       end loop;
       Self.Map.Clear;
    end Release;
+
+   -------------------------
+   -- Log_Coverage_Origin --
+   -------------------------
+
+   procedure Log_Coverage_Origin (Tracefile : String; SCO : SCO_Id) is
+      procedure Add_Origin (K : SCO_Id; E : in out Tracefile_Sets.Set);
+      --  Add Tracefile in the list of coverage origins for SCO K
+
+      -----------------
+      --  Add_Origin --
+      -----------------
+
+      procedure Add_Origin (K : SCO_Id; E : in out Tracefile_Sets.Set) is
+         pragma Unreferenced (K);
+      begin
+         E.Insert (+Tracefile);
+      end Add_Origin;
+
+   begin
+      declare
+         use Coverage_Origins_Maps;
+
+         C        : Cursor := Coverage_Origins.Find (SCO);
+         Inserted : Boolean := False;
+      begin
+         if not Has_Element (C) then
+            Coverage_Origins.Insert
+              (SCO, Tracefile_Sets.Empty_Set, C, Inserted);
+         end if;
+
+         --  If the case of a condition set to True in multiple evaluation
+         --  vectors, Tracefile would be inserted several times as a source of
+         --  coverage.
+         if not Tracefile_Sets.Has_Element (Element (C).Find (+Tracefile)) then
+            Coverage_Origins.Update_Element (C, Add_Origin'Access);
+         end if;
+      end;
+   end Log_Coverage_Origin;
 
 end Instrument.Input_Traces;
