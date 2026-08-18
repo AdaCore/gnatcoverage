@@ -52,10 +52,12 @@ mkdir gen
 
 case $os in
     windows)
+        gnatcov setup
         $XCOV_INSTR
         dest=x86_64-windows
         ;;
     linux)
+        gnatcov setup --compiler-prefix $CROSS32_OPTS
         $XCOV_INSTR $CROSS32_OPTS
         dest=arm-elf-linux
         ;;
