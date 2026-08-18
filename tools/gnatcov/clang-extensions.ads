@@ -242,6 +242,12 @@ package Clang.Extensions is
 
    function Is_Constexpr (C : Cursor_T) return Boolean
    with Inline;
+   --  Returns true if the expression is a C++ constexpr.
+
+   function Must_Be_Static (C : Cursor_T) return Boolean
+   with Inline;
+   --  Return true if C is an expression in a static context
+   --  (which cannot be instrumented).
 
    function Unwrap (C : Cursor_T) return Cursor_T
    with Import, Convention => C, External_Name => "clang_unwrap";
