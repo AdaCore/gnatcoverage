@@ -12,4 +12,3 @@
 
 clean:
 	rm *.o *.a *.dll
-

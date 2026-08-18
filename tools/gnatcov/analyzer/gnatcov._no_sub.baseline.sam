@@ -5,27 +5,27 @@
     "host_version": "Ubuntu 22.04.5 LTS",
     "hostname": "mesange",
     "sar_checksum": [ "db3236eab36625b745cfd5f42eb879d4" ],
-    "gnatsas_version": "GNATSAS 27.0w (20260705)",
-    "date": "2026-07-08 12:08:50+02:00",
+    "gnatsas_version": "GNATSAS 27.0w (20260721)",
+    "date": "2026-07-22 12:53:08+02:00",
     "root_project_name": "gnatcov",
     "tools": [
       {
         "tool": "Infer",
         "command_line": "infer --reactive --incremental-analysis --quiet --scheduler=components --no-default-checkers --value --pulse --force-delete-results-dir --results-dir obj64/dev/gnatsas/gnatcov.infer/infer.out --report-force-relative-path --project-root ./ --backtrack-level=1000 --jobs=0 --value-taint --value-taint-config obj64/dev/gnatsas/gnatcov.gnatsas/taint_spec.yaml --value-taint-config /share/gnatsas/taint --changed-files-index obj64/dev/gnatsas/gnatcov.gnatsas/sources.txt --report-changed-files-only --progress-bar-style plain --frontend-tests -- gprbuild -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64 --files-from obj64/dev/gnatsas/gnatcov.infer/capture_sources.txt",
-        "duration": 117
+        "duration": 114
       },
       {
         "tool": "Gnatcheck",
         "command_line": "gnatcheck -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64 -m0 -q -j 0 -l -o /obj64/dev/gnatsas/gnatcov.gnatcheck/gnatcheck.out -ox /obj64/dev/gnatsas/gnatcov.gnatcheck/gnatcheck.xml --subdirs=gnatsas/gnatcov.gnatcheck --no-subprojects -r duplicate_branches -r same_logic -r same_operands -r same_tests -r suspicious_equalities",
-        "duration": 12
+        "duration": 8
       }
     ],
     "baseline": {
       "file": "gnatcov._no_sub.baseline.sam",
-      "date": "2026-07-08 10:16:20+02:00",
+      "date": "2026-07-22 09:09:57+02:00",
       "command_line": "gnatsas analyze -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64",
       "project_switches": "-j0 --incrementality-method=minimal --no-subprojects --no-inspector --no-gnat -- infer --frontend-tests",
-      "checksum": "ee73e2b0c327d4dc7d581b226784eb3a"
+      "checksum": "6a0ef0c91ffd74c802b1634a472197fc"
     },
     "command_line": "gnatsas analyze -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64",
     "project_switches": "-j0 --incrementality-method=minimal --no-subprojects --no-inspector --no-gnat -- infer --frontend-tests",
@@ -539,7 +539,7 @@
               "data": {
                 "msg": "Last_Cond_Not_Evaluated might be uninitialized",
                 "cwe": [ [ 457 ] ],
-                "sloc": { "line": 1564, "column": 24 },
+                "sloc": { "line": 1581, "column": 24 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "age": "Unchanged"
@@ -556,7 +556,7 @@
               "data": {
                 "msg": "SCO might be uninitialized",
                 "cwe": [ [ 457 ] ],
-                "sloc": { "line": 792, "column": 13 },
+                "sloc": { "line": 779, "column": 13 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "age": "Unchanged"
@@ -573,7 +573,7 @@
               "data": {
                 "msg": "Last_Cond_No_Pair might be uninitialized",
                 "cwe": [ [ 457 ] ],
-                "sloc": { "line": 1445, "column": 24 },
+                "sloc": { "line": 1443, "column": 24 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "age": "Unchanged"
@@ -681,104 +681,20 @@
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 182, "column": 22 },
-                    "text": "Opt_Hdr64 is tainted by Read which matches a user-provided source"
+                    "loc": { "line": 251, "column": 13 },
+                    "text": "Dir_Entry is tainted by Read which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 190, "column": 54 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 270, "column": 13 },
+                    "text": "taint propagated to File.Import_Table"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "integer range 0 .. 2147483647 (__return_param.Hdr.F_Nscns) passed as an argument to Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 192, "column": 28 },
-                    "text": "taint propagated to File.Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 38 },
-                    "text": "__return_param passed as an argument to File"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 150, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 32 },
-                    "text": "File'Result passed as an argument to Read"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "Read'Result passed as an argument to Set_File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 168, "column": 19 },
-                    "text": "taint propagated to F.Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_File_Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 41 },
-                    "text": "__return_param passed as an argument to File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 159, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 35 },
-                    "text": "File_Region'Result passed as an argument to Data"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "Data'Result passed as an argument to To_Address"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 213, "column": 26 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 561, "column": 10 },
+                    "text": "taint propagated to __return_param by Get_Data_Directory"
                   },
                   {
                     "level": 0,
@@ -951,13 +867,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3748, "column": 21 },
+                    "loc": { "line": 3779, "column": 21 },
                     "text": "SCO is still tainted after calling Reference"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3750, "column": 10 },
+                    "loc": { "line": 3781, "column": 10 },
                     "text": "SCO passed as an argument to Has_PP_Info"
                   },
                   {
@@ -969,13 +885,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3750, "column": 10 },
+                    "loc": { "line": 3781, "column": 10 },
                     "text": "taint propagated to SCO by Has_PP_Info"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3751, "column": 20 },
+                    "loc": { "line": 3782, "column": 20 },
                     "text": "SCO passed as an argument to Get_PP_Info"
                   },
                   {
@@ -999,13 +915,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3751, "column": 10 },
+                    "loc": { "line": 3782, "column": 10 },
                     "text": "taint propagated to Sloc.L"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3753, "column": 7 },
+                    "loc": { "line": 3784, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
@@ -1364,13 +1280,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3748, "column": 21 },
+                    "loc": { "line": 3779, "column": 21 },
                     "text": "SCO is still tainted after calling Reference"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3750, "column": 10 },
+                    "loc": { "line": 3781, "column": 10 },
                     "text": "SCO passed as an argument to Has_PP_Info"
                   },
                   {
@@ -1382,13 +1298,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3750, "column": 10 },
+                    "loc": { "line": 3781, "column": 10 },
                     "text": "taint propagated to SCO by Has_PP_Info"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3751, "column": 20 },
+                    "loc": { "line": 3782, "column": 20 },
                     "text": "SCO passed as an argument to Get_PP_Info"
                   },
                   {
@@ -1412,13 +1328,13 @@
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3751, "column": 10 },
+                    "loc": { "line": 3782, "column": 10 },
                     "text": "taint propagated to Sloc.L"
                   },
                   {
                     "level": 4,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 3753, "column": 7 },
+                    "loc": { "line": 3784, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
@@ -1984,14 +1900,20 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1853, "column": 4 },
+                    "loc": { "line": 1858, "column": 4 },
                     "text": "taint propagated to Args by Parse_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "Args passed as an argument to Process_Arguments"
+                  },
+                  {
+                    "level": 1,
+                    "file": "gnatcov_bits_specific.adb",
+                    "loc": { "line": 1101, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg"
                   },
                   {
                     "level": 1,
@@ -2026,13 +1948,13 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1107, "column": 7 },
-                    "text": "Args is still tainted after calling Copy_Arg"
+                    "loc": { "line": 1108, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1109, "column": 7 },
+                    "loc": { "line": 1148, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -2044,7 +1966,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1150, "column": 7 },
+                    "loc": { "line": 1159, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -2056,7 +1978,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1161, "column": 7 },
+                    "loc": { "line": 1162, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -2074,61 +1996,55 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1165, "column": 7 },
+                    "loc": { "line": 1255, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1256, "column": 7 },
+                    "loc": { "line": 1277, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1278, "column": 7 },
+                    "loc": { "line": 1758, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1726, "column": 13 },
+                    "loc": { "line": 1759, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1727, "column": 13 },
-                    "text": "Args is still tainted after calling Copy_Arg_List"
-                  },
-                  {
-                    "level": 1,
-                    "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1775, "column": 10 },
+                    "loc": { "line": 1780, "column": 10 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "taint propagated to Args by Process_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2133, "column": 59 },
+                    "loc": { "line": 2140, "column": 59 },
                     "text": "Args is still tainted after calling Instrument.Config"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2140, "column": 15 },
+                    "loc": { "line": 2147, "column": 15 },
                     "text": "Args is still tainted after calling Load_Dump_Config"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2143, "column": 15 },
+                    "loc": { "line": 2150, "column": 15 },
                     "text": "Args passed as an argument to Load_From_Command_Line"
                   },
                   {
@@ -2266,13 +2182,13 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2143, "column": 15 },
+                    "loc": { "line": 2150, "column": 15 },
                     "text": "taint propagated to Prj by Load_From_Command_Line"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2147, "column": 13 },
+                    "loc": { "line": 2154, "column": 13 },
                     "text": "Prj passed as an argument to Instrument.Source"
                   },
                   {
@@ -2339,175 +2255,211 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 370, "column": 45 },
+                    "loc": { "line": 369, "column": 45 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "Line passed as an argument to Split_Args"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 274, "column": 15 },
+                    "loc": { "line": 273, "column": 15 },
                     "text": "taint propagated to C"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "C passed as an argument to Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "taint propagated to Arg by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 286, "column": 19 },
+                    "loc": { "line": 285, "column": 19 },
                     "text": "Arg is still tainted after calling Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "Arg passed as an argument to Append_Arg"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "Arg passed as an argument to Append"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "taint propagated to Result by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "taint propagated to Result by Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "__return_param is still tainted after calling Adjust"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "taint propagated to Command by Split_Args"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 376, "column": 30 },
+                    "loc": { "line": 375, "column": 30 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 377, "column": 37 },
+                    "loc": { "line": 376, "column": 37 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "Command passed as an argument to Parse_Compilation_Command"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "Command passed as an argument to First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "taint propagated to Cur by First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 451, "column": 14 },
+                    "loc": { "line": 450, "column": 14 },
                     "text": "Cur is still tainted after calling Next"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 453, "column": 13 },
+                    "loc": { "line": 452, "column": 13 },
                     "text": "Cur is still tainted after calling Has_Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "taint propagated to Arg by Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 461, "column": 16 },
+                    "loc": { "line": 460, "column": 16 },
                     "text": "Arg is still tainted after calling To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
                     "text": "Arg passed as an argument to Ends_With"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
+                    "text": "taint propagated to Arg by Ends_With"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
+                    "text": "Arg passed as an argument to Ends_With"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 166, "column": 8 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 169, "column": 45 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 168, "column": 10 },
+                    "text": "Str is still tainted after calling Index"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 170, "column": 12 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
                     "text": "taint propagated to Arg by Ends_With"
                   },
                   {
@@ -2519,25 +2471,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -2555,25 +2507,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -2585,49 +2537,13 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "Arg passed as an argument to Ends_With"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
-                    "text": "Str is still tainted after calling Index"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "taint propagated to Arg by Ends_With"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 53 },
+                    "loc": { "line": 472, "column": 53 },
                     "text": "Arg passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 34 },
+                    "loc": { "line": 472, "column": 34 },
                     "text": "To_String'Result passed as an argument to Create_Normalized"
                   },
                   {
@@ -2669,139 +2585,139 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 19 },
+                    "loc": { "line": 472, "column": 19 },
                     "text": "taint propagated to Result.File"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 504, "column": 7 },
+                    "loc": { "line": 503, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "taint propagated to CC_Command by Parse_Compilation_Command"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 383, "column": 25 },
+                    "loc": { "line": 382, "column": 25 },
                     "text": "CC_Command is still tainted after calling \"/=\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "CC_Command passed as an argument to Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "taint propagated to Result.Compilation_Commands by Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 415, "column": 7 },
+                    "loc": { "line": 414, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 842, "column": 4 },
+                    "loc": { "line": 841, "column": 4 },
                     "text": "taint propagated to Comp_DB"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 15 },
+                    "loc": { "line": 863, "column": 15 },
                     "text": "Comp_DB.Compilation_Commands passed as an argument to Iterate"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "Iterate'Result passed as an argument to container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "Iterate'Result passed as an argument to container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "taint propagated to Cur by container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "taint propagated to Comp_Command by Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 41 },
+                    "loc": { "line": 885, "column": 41 },
                     "text": "Comp_Command.File passed as an argument to Full_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 40 },
+                    "loc": { "line": 885, "column": 40 },
                     "text": "Full_Name'Result passed as an argument to \"+\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 40 },
+                    "loc": { "line": 885, "column": 40 },
                     "text": "taint propagated to Fullname by \"+\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 906, "column": 15 },
+                    "loc": { "line": 905, "column": 15 },
                     "text": "Fullname is still tainted after calling Base_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 908, "column": 17 },
+                    "loc": { "line": 907, "column": 17 },
                     "text": "Fullname is still tainted after calling Extension"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 919, "column": 16 },
+                    "loc": { "line": 918, "column": 16 },
                     "text": "Fullname passed as an argument to Base_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 919, "column": 15 },
+                    "loc": { "line": 918, "column": 15 },
                     "text": "Base_Name'Result passed as an argument to To_Unbounded_String"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 918, "column": 13 },
+                    "loc": { "line": 917, "column": 13 },
                     "text": "taint propagated to Instr_Config.Dump_Config.Filename_Prefix"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 927, "column": 10 },
+                    "loc": { "line": 926, "column": 10 },
                     "text": "Instr_Config.Dump_Config passed as an argument to Instrument.Source"
                   },
                   {
@@ -2909,67 +2825,67 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 927, "column": 10 },
+                    "loc": { "line": 926, "column": 10 },
                     "text": "taint propagated to Instrumenter by Instrument.Source"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 944, "column": 16 },
+                    "loc": { "line": 943, "column": 16 },
                     "text": "Instrumenter is still tainted after calling unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 960, "column": 18 },
+                    "loc": { "line": 959, "column": 18 },
                     "text": "Instrumenter is still tainted after calling unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 997, "column": 24 },
+                    "loc": { "line": 996, "column": 24 },
                     "text": "Instrumenter is still tainted after calling unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1001, "column": 22 },
+                    "loc": { "line": 1000, "column": 22 },
                     "text": "Instrumenter passed as an argument to unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1001, "column": 22 },
+                    "loc": { "line": 1000, "column": 22 },
                     "text": "taint propagated to Prj by unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1025, "column": 9 },
+                    "loc": { "line": 1024, "column": 9 },
                     "text": "Prj is still tainted after calling Instrumentation_File"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1026, "column": 7 },
+                    "loc": { "line": 1025, "column": 7 },
                     "text": "Prj passed as an argument to Emit_Buffers_List_Object"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 749, "column": 16 },
+                    "loc": { "line": 748, "column": 16 },
                     "text": "Prj is still tainted after calling unknown_call"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1026, "column": 7 },
+                    "loc": { "line": 1025, "column": 7 },
                     "text": "taint propagated to Prj by Emit_Buffers_List_Object"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1177, "column": 21 },
+                    "loc": { "line": 1181, "column": 21 },
                     "text": "Prj passed as an argument to Instrumentation_File"
                   },
                   {
@@ -3047,25 +2963,25 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1177, "column": 21 },
+                    "loc": { "line": 1181, "column": 21 },
                     "text": "taint propagated to Packaged_File by Instrumentation_File"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1193, "column": 42 },
+                    "loc": { "line": 1197, "column": 42 },
                     "text": "Packaged_File is still tainted after calling Display_Full_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1209, "column": 36 },
+                    "loc": { "line": 1213, "column": 36 },
                     "text": "Packaged_File passed as an argument to Display_Full_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1208, "column": 25 },
+                    "loc": { "line": 1212, "column": 25 },
                     "text": "Display_Full_Name'Result passed as an argument to Copy_File"
                   },
                   {
@@ -3094,175 +3010,211 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 370, "column": 45 },
+                    "loc": { "line": 369, "column": 45 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "Line passed as an argument to Split_Args"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 274, "column": 15 },
+                    "loc": { "line": 273, "column": 15 },
                     "text": "taint propagated to C"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "C passed as an argument to Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "taint propagated to Arg by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 286, "column": 19 },
+                    "loc": { "line": 285, "column": 19 },
                     "text": "Arg is still tainted after calling Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "Arg passed as an argument to Append_Arg"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "Arg passed as an argument to Append"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "taint propagated to Result by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "taint propagated to Result by Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "__return_param is still tainted after calling Adjust"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "taint propagated to Command by Split_Args"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 376, "column": 30 },
+                    "loc": { "line": 375, "column": 30 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 377, "column": 37 },
+                    "loc": { "line": 376, "column": 37 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "Command passed as an argument to Parse_Compilation_Command"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "Command passed as an argument to First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "taint propagated to Cur by First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 451, "column": 14 },
+                    "loc": { "line": 450, "column": 14 },
                     "text": "Cur is still tainted after calling Next"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 453, "column": 13 },
+                    "loc": { "line": 452, "column": 13 },
                     "text": "Cur is still tainted after calling Has_Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "taint propagated to Arg by Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 461, "column": 16 },
+                    "loc": { "line": 460, "column": 16 },
                     "text": "Arg is still tainted after calling To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
                     "text": "Arg passed as an argument to Ends_With"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
+                    "text": "taint propagated to Arg by Ends_With"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
+                    "text": "Arg passed as an argument to Ends_With"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 166, "column": 8 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 169, "column": 45 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 168, "column": 10 },
+                    "text": "Str is still tainted after calling Index"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 170, "column": 12 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
                     "text": "taint propagated to Arg by Ends_With"
                   },
                   {
@@ -3274,25 +3226,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -3310,25 +3262,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -3340,49 +3292,13 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "Arg passed as an argument to Ends_With"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
-                    "text": "Str is still tainted after calling Index"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "taint propagated to Arg by Ends_With"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 53 },
+                    "loc": { "line": 472, "column": 53 },
                     "text": "Arg passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 34 },
+                    "loc": { "line": 472, "column": 34 },
                     "text": "To_String'Result passed as an argument to Create_Normalized"
                   },
                   {
@@ -3424,133 +3340,133 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 19 },
+                    "loc": { "line": 472, "column": 19 },
                     "text": "taint propagated to Result.File"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 504, "column": 7 },
+                    "loc": { "line": 503, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "taint propagated to CC_Command by Parse_Compilation_Command"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 383, "column": 25 },
+                    "loc": { "line": 382, "column": 25 },
                     "text": "CC_Command is still tainted after calling \"/=\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "CC_Command passed as an argument to Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "taint propagated to Result.Compilation_Commands by Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 415, "column": 7 },
+                    "loc": { "line": 414, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 842, "column": 4 },
+                    "loc": { "line": 841, "column": 4 },
                     "text": "taint propagated to Comp_DB"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 15 },
+                    "loc": { "line": 863, "column": 15 },
                     "text": "Comp_DB.Compilation_Commands passed as an argument to Iterate"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "Iterate'Result passed as an argument to container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "taint propagated to Cur by container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "taint propagated to Comp_Command by Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 41 },
+                    "loc": { "line": 885, "column": 41 },
                     "text": "Comp_Command.File passed as an argument to Full_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 40 },
+                    "loc": { "line": 885, "column": 40 },
                     "text": "Full_Name'Result passed as an argument to \"+\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 886, "column": 40 },
+                    "loc": { "line": 885, "column": 40 },
                     "text": "taint propagated to Fullname by \"+\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 906, "column": 15 },
+                    "loc": { "line": 905, "column": 15 },
                     "text": "Fullname passed as an argument to Base_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 907, "column": 15 },
+                    "loc": { "line": 906, "column": 15 },
                     "text": "Base_Name'Result passed as an argument to \"&\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 908, "column": 15 },
+                    "loc": { "line": 907, "column": 15 },
                     "text": "(Base_Name'Result & Img'Result) passed as an argument to \"&\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 909, "column": 15 },
+                    "loc": { "line": 908, "column": 15 },
                     "text": "((Base_Name'Result & Img'Result) & Extension'Result) passed as an argument to \"&\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 903, "column": 10 },
+                    "loc": { "line": 902, "column": 10 },
                     "text": "taint propagated to SID_Name (⊤)"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 930, "column": 31 },
+                    "loc": { "line": 929, "column": 31 },
                     "text": "SID_Name passed as an argument to \"/\""
                   },
                   {
@@ -3568,7 +3484,7 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 927, "column": 10 },
+                    "loc": { "line": 926, "column": 10 },
                     "text": "IfExpr passed as an argument to Instrument.Source"
                   },
                   {
@@ -3689,22 +3605,22 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "`FI.all` could be null (null value originating from line 2281) and is dereferenced",
+                "msg": "`FI.all` could be null (null value originating from line 2306) and is dereferenced",
                 "cwe": [ [ 476 ] ],
-                "sloc": { "line": 2271, "column": 10 },
+                "sloc": { "line": 2296, "column": 10 },
                 "rank": "High",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 1,
                     "file": "files_table.adb",
-                    "loc": { "line": 2281, "column": 10 },
+                    "loc": { "line": 2306, "column": 10 },
                     "text": "is assigned to the null pointer"
                   },
                   {
                     "level": 1,
                     "file": "files_table.adb",
-                    "loc": { "line": 2271, "column": 10 },
+                    "loc": { "line": 2296, "column": 10 },
                     "text": "invalid access occurs here"
                   }
                 ],
@@ -3720,9 +3636,9 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "FE.Name points to memory already deallocated at files_table.adb:2569:10",
+                "msg": "FE.Name points to memory already deallocated at files_table.adb:2594:10",
                 "cwe": [ [ 415 ] ],
-                "sloc": { "line": 2569, "column": 10 },
+                "sloc": { "line": 2594, "column": 10 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "age": "Unchanged"
@@ -3739,26 +3655,26 @@
               "data": {
                 "msg": "untrusted data Line with kind 'filesystem' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 2676, "column": 22 },
+                "sloc": { "line": 2701, "column": 22 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2646, "column": 42 },
+                    "loc": { "line": 2671, "column": 42 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2648, "column": 16 },
+                    "loc": { "line": 2673, "column": 16 },
                     "text": "Line is still tainted after calling Match"
                   },
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2676, "column": 22 },
+                    "loc": { "line": 2701, "column": 22 },
                     "text": "Line flows to sink Put"
                   }
                 ],
@@ -3774,32 +3690,32 @@
               "data": {
                 "msg": "untrusted data Line with kind 'filesystem' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 2684, "column": 19 },
+                "sloc": { "line": 2709, "column": 19 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2646, "column": 42 },
+                    "loc": { "line": 2671, "column": 42 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2648, "column": 16 },
+                    "loc": { "line": 2673, "column": 16 },
                     "text": "Line is still tainted after calling Match"
                   },
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2679, "column": 43 },
+                    "loc": { "line": 2704, "column": 43 },
                     "text": "Line is still tainted after calling Match"
                   },
                   {
                     "level": 0,
                     "file": "files_table.adb",
-                    "loc": { "line": 2684, "column": 19 },
+                    "loc": { "line": 2709, "column": 19 },
                     "text": "Line flows to sink Put"
                   }
                 ],
@@ -3817,7 +3733,7 @@
               "data": {
                 "msg": "untrusted data Preserved_Full_Name with kind 'filesystem' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 845, "column": 19 },
+                "sloc": { "line": 846, "column": 19 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
@@ -4064,13 +3980,13 @@
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 970, "column": 24 },
+                    "loc": { "line": 971, "column": 24 },
                     "text": "Name is still tainted after calling \"&\""
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 973, "column": 10 },
+                    "loc": { "line": 974, "column": 10 },
                     "text": "Name passed as an argument to Is_Absolute_Path"
                   },
                   {
@@ -4100,19 +4016,19 @@
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 973, "column": 10 },
+                    "loc": { "line": 974, "column": 10 },
                     "text": "taint propagated to Name by Is_Absolute_Path"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 975, "column": 12 },
+                    "loc": { "line": 976, "column": 12 },
                     "text": "Name passed as an argument to Get_Index_From_Full_Name"
                   },
                   {
                     "level": 4,
                     "file": "files_table.adb",
-                    "loc": { "line": 761, "column": 9 },
+                    "loc": { "line": 762, "column": 9 },
                     "text": "Full_Name passed as an argument to Canonicalize_Filename"
                   },
                   {
@@ -4196,19 +4112,19 @@
                   {
                     "level": 4,
                     "file": "files_table.adb",
-                    "loc": { "line": 761, "column": 9 },
+                    "loc": { "line": 762, "column": 9 },
                     "text": "taint propagated to Preserved_Full_Name by Canonicalize_Filename"
                   },
                   {
                     "level": 4,
                     "file": "files_table.adb",
-                    "loc": { "line": 845, "column": 34 },
+                    "loc": { "line": 846, "column": 34 },
                     "text": "Preserved_Full_Name passed as an argument to \"&\""
                   },
                   {
                     "level": 4,
                     "file": "files_table.adb",
-                    "loc": { "line": 845, "column": 19 },
+                    "loc": { "line": 846, "column": 19 },
                     "text": "(\"  \" & Preserved_Full_Name) flows to sink Put_Line"
                   }
                 ],
@@ -4554,13 +4470,13 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2133, "column": 59 },
+                    "loc": { "line": 2140, "column": 59 },
                     "text": "taint propagated to Instrumenter by Instrument.Config"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2147, "column": 13 },
+                    "loc": { "line": 2154, "column": 13 },
                     "text": "Instrumenter passed as an argument to Instrument.Source"
                   },
                   {
@@ -4997,14 +4913,20 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1853, "column": 4 },
+                    "loc": { "line": 1858, "column": 4 },
                     "text": "taint propagated to Args by Parse_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "Args passed as an argument to Process_Arguments"
+                  },
+                  {
+                    "level": 1,
+                    "file": "gnatcov_bits_specific.adb",
+                    "loc": { "line": 1101, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg"
                   },
                   {
                     "level": 1,
@@ -5039,13 +4961,13 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1107, "column": 7 },
-                    "text": "Args is still tainted after calling Copy_Arg"
+                    "loc": { "line": 1108, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1109, "column": 7 },
+                    "loc": { "line": 1148, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -5057,7 +4979,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1150, "column": 7 },
+                    "loc": { "line": 1159, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -5069,7 +4991,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1161, "column": 7 },
+                    "loc": { "line": 1162, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -5087,61 +5009,55 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1165, "column": 7 },
+                    "loc": { "line": 1255, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1256, "column": 7 },
+                    "loc": { "line": 1277, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1278, "column": 7 },
+                    "loc": { "line": 1758, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1726, "column": 13 },
+                    "loc": { "line": 1759, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1727, "column": 13 },
-                    "text": "Args is still tainted after calling Copy_Arg_List"
-                  },
-                  {
-                    "level": 1,
-                    "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1775, "column": 10 },
+                    "loc": { "line": 1780, "column": 10 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "taint propagated to Args by Process_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2133, "column": 59 },
+                    "loc": { "line": 2140, "column": 59 },
                     "text": "Args is still tainted after calling Instrument.Config"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2140, "column": 15 },
+                    "loc": { "line": 2147, "column": 15 },
                     "text": "Args is still tainted after calling Load_Dump_Config"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2143, "column": 15 },
+                    "loc": { "line": 2150, "column": 15 },
                     "text": "Args passed as an argument to Load_From_Command_Line"
                   },
                   {
@@ -5315,25 +5231,25 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2143, "column": 15 },
+                    "loc": { "line": 2150, "column": 15 },
                     "text": "taint propagated to Args by Load_From_Command_Line"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2151, "column": 38 },
+                    "loc": { "line": 2158, "column": 38 },
                     "text": "Args.Remaining_Args passed as an argument to First_Element"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2151, "column": 37 },
+                    "loc": { "line": 2158, "column": 37 },
                     "text": "First_Element'Result passed as an argument to To_String"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2147, "column": 13 },
+                    "loc": { "line": 2154, "column": 13 },
                     "text": "To_String'Result passed as an argument to Instrument.Source"
                   },
                   {
@@ -6171,7 +6087,7 @@
               "data": {
                 "msg": "untrusted data Msg with kind 'mmaped' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 411, "column": 7 },
+                "sloc": { "line": 417, "column": 7 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
@@ -6346,7 +6262,7 @@
                   {
                     "level": 2,
                     "file": "outputs.adb",
-                    "loc": { "line": 411, "column": 7 },
+                    "loc": { "line": 417, "column": 7 },
                     "text": "Msg flows to sink Put_Line"
                   }
                 ],
@@ -6364,7 +6280,7 @@
               "data": {
                 "msg": "untrusted data Msg with kind 'command_line' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 411, "column": 7 },
+                "sloc": { "line": 417, "column": 7 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
@@ -6515,14 +6431,20 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1853, "column": 4 },
+                    "loc": { "line": 1858, "column": 4 },
                     "text": "taint propagated to Args by Parse_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "Args passed as an argument to Process_Arguments"
+                  },
+                  {
+                    "level": 1,
+                    "file": "gnatcov_bits_specific.adb",
+                    "loc": { "line": 1101, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg"
                   },
                   {
                     "level": 1,
@@ -6557,13 +6479,13 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1107, "column": 7 },
-                    "text": "Args is still tainted after calling Copy_Arg"
+                    "loc": { "line": 1108, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1109, "column": 7 },
+                    "loc": { "line": 1148, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -6575,7 +6497,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1150, "column": 7 },
+                    "loc": { "line": 1159, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -6587,7 +6509,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1161, "column": 7 },
+                    "loc": { "line": 1162, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -6605,235 +6527,229 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1165, "column": 7 },
+                    "loc": { "line": 1255, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1256, "column": 7 },
+                    "loc": { "line": 1277, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1278, "column": 7 },
+                    "loc": { "line": 1758, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1726, "column": 13 },
+                    "loc": { "line": 1759, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1727, "column": 13 },
-                    "text": "Args is still tainted after calling Copy_Arg_List"
-                  },
-                  {
-                    "level": 1,
-                    "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1775, "column": 10 },
+                    "loc": { "line": 1780, "column": 10 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "taint propagated to Args by Process_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2845, "column": 10 },
+                    "loc": { "line": 2856, "column": 10 },
                     "text": "Args passed as an argument to Add_Annotation"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 880, "column": 43 },
+                    "loc": { "line": 927, "column": 43 },
                     "text": "Args is still tainted after calling \"+\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 882, "column": 43 },
+                    "loc": { "line": 929, "column": 43 },
                     "text": "Args is still tainted after calling \"+\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 883, "column": 43 },
+                    "loc": { "line": 930, "column": 43 },
                     "text": "Args is still tainted after calling \"+\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 889, "column": 52 },
+                    "loc": { "line": 937, "column": 52 },
                     "text": "Args is still tainted after calling \"+\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 33 },
+                    "loc": { "line": 957, "column": 33 },
                     "text": "Args.Remaining_Args passed as an argument to Last_Element"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 32 },
+                    "loc": { "line": 957, "column": 32 },
                     "text": "Last_Element'Result passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 30 },
+                    "loc": { "line": 957, "column": 30 },
                     "text": "To_String'Result passed as an argument to \"+\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 22 },
+                    "loc": { "line": 957, "column": 22 },
                     "text": "\"+\"'Result passed as an argument to Create"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 7 },
+                    "loc": { "line": 957, "column": 7 },
                     "text": "taint propagated to Target_File"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 909, "column": 7 },
+                    "loc": { "line": 957, "column": 7 },
                     "text": "Target_File is still tainted after calling Adjust"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 914, "column": 23 },
+                    "loc": { "line": 962, "column": 23 },
                     "text": "Target_File is still tainted after calling Full_Name"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 925, "column": 14 },
+                    "loc": { "line": 973, "column": 14 },
                     "text": "Target_File is still tainted after calling Is_Regular_File"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1016, "column": 23 },
+                    "loc": { "line": 1089, "column": 23 },
                     "text": "Target_File is still tainted after calling Display_Full_Name"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1072, "column": 25 },
+                    "loc": { "line": 1158, "column": 25 },
                     "text": "Target_File passed as an argument to Guess_Lang"
                   },
                   {
                     "level": 2,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1486, "column": 33 },
+                    "loc": { "line": 1596, "column": 33 },
                     "text": "File is still tainted after calling File_Extension"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1072, "column": 25 },
+                    "loc": { "line": 1158, "column": 25 },
                     "text": "taint propagated to Target_File by Guess_Lang"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1102, "column": 56 },
+                    "loc": { "line": 1188, "column": 56 },
                     "text": "Target_File is still tainted after calling Dir_Name"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1151, "column": 12 },
+                    "loc": { "line": 1237, "column": 12 },
                     "text": "Target_File is still tainted after calling Add_Or_Update_Entry"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1173, "column": 22 },
+                    "loc": { "line": 1259, "column": 22 },
                     "text": "Target_File passed as an argument to Display_Full_Name"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1173, "column": 20 },
+                    "loc": { "line": 1259, "column": 20 },
                     "text": "Display_Full_Name'Result passed as an argument to \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1174, "column": 20 },
+                    "loc": { "line": 1260, "column": 20 },
                     "text": "(\"Could not create an auto-relocating annotation for \" & Display_Full_Name'Result) passed as an argument to \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1175, "column": 20 },
+                    "loc": { "line": 1261, "column": 20 },
                     "text": "((\"Could not create an auto-relocating annotation for \" & Display_Full_Name'Result) & \":\") passed as an argument to \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1176, "column": 20 },
+                    "loc": { "line": 1262, "column": 20 },
                     "text": "(((\"Could not create an auto-relocating annotation for \" & Display_Full_Name'Result) & \":\") & Image'Result) passed as an argument to \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1172, "column": 18 },
+                    "loc": { "line": 1258, "column": 18 },
                     "text": "((((\"Could not create an auto-relocating annotation for \" & Display_Full_Name'Result) & \":\") & Image'Result) & \", creating an absolute location annotation instead.\") passed as an argument to To_Unbounded_String"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1172, "column": 18 },
+                    "loc": { "line": 1258, "column": 18 },
                     "text": "taint propagated to Msg by To_Unbounded_String"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1190, "column": 30 },
+                    "loc": { "line": 1276, "column": 30 },
                     "text": "Msg is still tainted after calling \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1190, "column": 19 },
+                    "loc": { "line": 1276, "column": 19 },
                     "text": "Msg is still tainted after calling Adjust"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1193, "column": 33 },
+                    "loc": { "line": 1279, "column": 33 },
                     "text": "Msg is still tainted after calling \"&\""
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1193, "column": 22 },
+                    "loc": { "line": 1279, "column": 22 },
                     "text": "Msg is still tainted after calling Adjust"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1196, "column": 22 },
+                    "loc": { "line": 1282, "column": 22 },
                     "text": "Msg passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "ss_annotations.adb",
-                    "loc": { "line": 1196, "column": 16 },
+                    "loc": { "line": 1282, "column": 16 },
                     "text": "To_String'Result passed as an argument to Warn"
                   },
                   {
@@ -6851,7 +6767,7 @@
                   {
                     "level": 3,
                     "file": "outputs.adb",
-                    "loc": { "line": 411, "column": 7 },
+                    "loc": { "line": 417, "column": 7 },
                     "text": "Msg flows to sink Put_Line"
                   }
                 ],
@@ -6869,74 +6785,104 @@
               "data": {
                 "msg": "untrusted data Msg with kind 'filesystem' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 411, "column": 7 },
+                "sloc": { "line": 417, "column": 7 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1304, "column": 56 },
+                    "loc": { "line": 1284, "column": 48 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1305, "column": 57 },
-                    "text": "Line is still tainted after calling Index"
+                    "loc": { "line": 1286, "column": 59 },
+                    "text": "Line passed as an argument to \"+\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1307, "column": 24 },
-                    "text": "Line is still tainted after calling Index"
+                    "loc": { "line": 1286, "column": 51 },
+                    "text": "\"+\"'Result passed as an argument to Create"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1339, "column": 37 },
-                    "text": "Line ((Line'First(1) + 1) .. (Arrow_Index - 2)) passed as an argument to \"&\""
-                  },
-                  {
-                    "level": 0,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1340, "column": 37 },
-                    "text": "(\"Could not find library \" & Line ((Line'First(1) + 1) .. (Arrow_Index - 2))) passed as an argument to \"&\""
-                  },
-                  {
-                    "level": 0,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1341, "column": 37 },
-                    "text": "((\"Could not find library \" & Line ((Line'First(1) + 1) .. (Arrow_Index - 2))) & \". Add its directory to the \") passed as an argument to \"&\""
-                  },
-                  {
-                    "level": 0,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1342, "column": 37 },
-                    "text": "(((\"Could not find library \" & Line ((Line'First(1) + 1) .. (Arrow_Index - 2))) & \". Add its directory to the \") & Path) passed as an argument to \"&\""
-                  },
-                  {
-                    "level": 0,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 1337, "column": 34 },
-                    "text": "((((\"Could not find library \" & Line ((Line'First(1) + 1) .. (Arrow_Index - 2))) & \". Add its directory to the \") & Path) & \" if this is an instrumented library.\") passed as an argument to Warn"
+                    "loc": { "line": 1286, "column": 22 },
+                    "text": "Create'Result passed as an argument to Add_Coverage_Buffer_Symbols"
                   },
                   {
                     "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 1253, "column": 19 },
+                    "text": "Symbol_File passed as an argument to Coverage_Buffer_Symbols"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 606, "column": 44 },
+                    "text": "Symbol_File is still tainted after calling Full_Name"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 615, "column": 20 },
+                    "text": "Symbol_File passed as an argument to Full_Name"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_handling.adb",
+                    "loc": { "line": 52, "column": 17 },
+                    "text": "File is still tainted after calling Full_Name"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 615, "column": 20 },
+                    "text": "taint propagated to Symbol_File by Full_Name"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 626, "column": 17 },
+                    "text": "Symbol_File passed as an argument to Full_Name"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 626, "column": 16 },
+                    "text": "Full_Name'Result passed as an argument to \"+\""
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 626, "column": 13 },
+                    "text": "\"+\"'Result passed as an argument to \"&\""
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 624, "column": 10 },
+                    "text": "(\"Could not get coverage buffer symbols from \" & \"+\"'Result) passed as an argument to Warn"
+                  },
+                  {
+                    "level": 3,
                     "file": "outputs.adb",
                     "loc": { "line": 398, "column": 37 },
                     "text": "Msg passed as an argument to \"&\""
                   },
                   {
-                    "level": 1,
+                    "level": 3,
                     "file": "outputs.adb",
                     "loc": { "line": 398, "column": 7 },
                     "text": "(\"warning: \" & Msg) passed as an argument to Warning_Or_Error"
                   },
                   {
-                    "level": 2,
+                    "level": 4,
                     "file": "outputs.adb",
-                    "loc": { "line": 411, "column": 7 },
+                    "loc": { "line": 417, "column": 7 },
                     "text": "Msg flows to sink Put_Line"
                   }
                 ],
@@ -6954,7 +6900,7 @@
               "data": {
                 "msg": "untrusted data Msg with kind 'environment' flows to a sink",
                 "cwe": [ [ 200 ] ],
-                "sloc": { "line": 411, "column": 7 },
+                "sloc": { "line": 417, "column": 7 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "backtrace": [
@@ -7003,13 +6949,13 @@
                   {
                     "level": 1,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 104, "column": 7 },
+                    "loc": { "line": 126, "column": 7 },
                     "text": "Cmd is still tainted after calling Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 105, "column": 7 },
+                    "loc": { "line": 127, "column": 7 },
                     "text": "Cmd is still tainted after calling Append_Arg"
                   },
                   {
@@ -7033,43 +6979,43 @@
                   {
                     "level": 1,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 174, "column": 12 },
+                    "loc": { "line": 196, "column": 12 },
                     "text": "Command.Command passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 173, "column": 9 },
+                    "loc": { "line": 195, "column": 9 },
                     "text": "To_String'Result passed as an argument to Run_Command"
                   },
                   {
                     "level": 2,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 243, "column": 9 },
+                    "loc": { "line": 265, "column": 9 },
                     "text": "Command passed as an argument to Run_Command"
                   },
                   {
                     "level": 3,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 282, "column": 18 },
+                    "loc": { "line": 304, "column": 18 },
                     "text": "Command is still tainted after calling Locate_Exec_On_Path"
                   },
                   {
                     "level": 3,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 287, "column": 13 },
+                    "loc": { "line": 309, "column": 13 },
                     "text": "Command passed as an argument to \"&\""
                   },
                   {
                     "level": 3,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 288, "column": 13 },
+                    "loc": { "line": 310, "column": 13 },
                     "text": "((Origin_Command_Name & \": cannot find \") & Command) passed as an argument to \"&\""
                   },
                   {
                     "level": 3,
                     "file": "subprocesses.adb",
-                    "loc": { "line": 284, "column": 10 },
+                    "loc": { "line": 306, "column": 10 },
                     "text": "(((Origin_Command_Name & \": cannot find \") & Command) & \" on your path\") passed as an argument to Error"
                   },
                   {
@@ -7087,7 +7033,7 @@
                   {
                     "level": 5,
                     "file": "outputs.adb",
-                    "loc": { "line": 411, "column": 7 },
+                    "loc": { "line": 417, "column": 7 },
                     "text": "Msg flows to sink Put_Line"
                   }
                 ],
@@ -7114,7 +7060,354 @@
           "basename": "pecoff_files.adb",
           "path": "pecoff_files.adb"
         },
-        "subps": {}
+        "subps": {
+          "pecoff_files.imported_dlls": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Path_traversal" ],
+                "key": "94f479c33a5f75c3dc52612d1f5fdf98",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "untrusted data Filename_Acc with kind 'environment' flows to a sink",
+                "cwe": [ [ 22 ] ],
+                "sloc": { "line": 826, "column": 16 },
+                "rank": "Medium",
+                "analysis": "Mopsfer",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 751, "column": 26 },
+                    "text": "Value'Result is tainted by Value which matches a user-provided source"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 751, "column": 7 },
+                    "text": "Value'Result passed as an argument to Append"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 751, "column": 7 },
+                    "text": "taint propagated to Result by Append"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 752, "column": 7 },
+                    "text": "tainted data returned"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 752, "column": 7 },
+                    "text": "__return_param is still tainted after calling Adjust"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 769, "column": 47 },
+                    "text": "taint propagated to DLL_Path by DLL_Resolution_Path"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 954, "column": 13 },
+                    "text": "DLL_Path passed as an argument to Process_File"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 807, "column": 46 },
+                    "text": "DLL_Path passed as an argument to Locate_File"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 929, "column": 10 },
+                    "text": "DLL_Path passed as an argument to Get_String"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 929, "column": 10 },
+                    "text": "taint propagated to Path_L by Get_String"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 930, "column": 21 },
+                    "text": "Path_S.all (1 .. Path_L) passed as an argument to Locate_Regular_File"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 930, "column": 21 },
+                    "text": "taint propagated to Located"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 936, "column": 29 },
+                    "text": "Located passed as an argument to \"+\""
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 936, "column": 21 },
+                    "text": "\"+\"'Result passed as an argument to Create"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 933, "column": 13 },
+                    "text": "tainted data returned"
+                  },
+                  {
+                    "level": 2,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 933, "column": 13 },
+                    "text": "__return_param is still tainted after calling Adjust"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 807, "column": 46 },
+                    "text": "taint propagated to Resolved by Locate_File"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 809, "column": 13 },
+                    "text": "Resolved is still tainted after calling Contains"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 812, "column": 10 },
+                    "text": "Resolved is still tainted after calling Insert"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 817, "column": 17 },
+                    "text": "Resolved is still tainted after calling Is_Regular_File"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 821, "column": 13 },
+                    "text": "Resolved is still tainted after calling Insert"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 824, "column": 39 },
+                    "text": "Resolved passed as an argument to Full_Name"
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 824, "column": 38 },
+                    "text": "Full_Name'Result passed as an argument to \"+\""
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 825, "column": 47 },
+                    "text": "Filename_Acc is still tainted after calling \"&\""
+                  },
+                  {
+                    "level": 1,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 826, "column": 16 },
+                    "text": "Filename_Acc flows to sink Open_Read"
+                  }
+                ],
+                "age": "Added"
+              }
+            }
+          ],
+          "pecoff_files.imported_dlls.process_file": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Path_traversal" ],
+                "key": "94f479c33a5f75c3dc52612d1f5fdf98",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "untrusted data Filename_Acc with kind 'environment' flows to a sink",
+                "cwe": [ [ 22 ] ],
+                "sloc": { "line": 747, "column": 16 },
+                "rank": "Medium",
+                "analysis": "Mopsfer",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 829, "column": 14 },
+                    "text": "Value'Result is tainted by Value which matches a user-provided source"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 829, "column": 12 },
+                    "text": "Value'Result passed as an argument to \"&\""
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 827, "column": 10 },
+                    "text": "taint propagated to Path"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 830, "column": 37 },
+                    "text": "Path passed as an argument to Locate_Regular_File"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 830, "column": 37 },
+                    "text": "taint propagated to Located"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 836, "column": 29 },
+                    "text": "Located passed as an argument to \"+\""
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 836, "column": 21 },
+                    "text": "\"+\"'Result passed as an argument to Create"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 833, "column": 13 },
+                    "text": "tainted data returned"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 833, "column": 13 },
+                    "text": "__return_param is still tainted after calling Adjust"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 728, "column": 46 },
+                    "text": "taint propagated to Resolved by Locate_File"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 730, "column": 13 },
+                    "text": "Resolved is still tainted after calling Contains"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 733, "column": 10 },
+                    "text": "Resolved is still tainted after calling Insert"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 738, "column": 17 },
+                    "text": "Resolved is still tainted after calling Is_Regular_File"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 742, "column": 13 },
+                    "text": "Resolved is still tainted after calling Insert"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 745, "column": 39 },
+                    "text": "Resolved passed as an argument to Full_Name"
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 745, "column": 38 },
+                    "text": "Full_Name'Result passed as an argument to \"+\""
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 746, "column": 37 },
+                    "text": "Filename_Acc is still tainted after calling \"&\""
+                  },
+                  {
+                    "level": 0,
+                    "file": "pecoff_files.adb",
+                    "loc": { "line": 747, "column": 16 },
+                    "text": "Filename_Acc flows to sink Open_Read"
+                  }
+                ],
+                "age": "Removed"
+              }
+            }
+          ],
+          "pecoff_files.imported_dlls.process_import_table": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "0a78d3b68af1ef92bcf0e15b56c88c01",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Entries'First might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 873, "column": 13 },
+                "rank": "Medium",
+                "analysis": "Mopsfer",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "pecoff_files.lookup_section": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Unassigned_parameter" ],
+                "key": "5b76a2fe2e5bbf666ddfeb1ce427e98a",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "in-out parameter Loader could have mode in",
+                "sloc": { "line": 330, "column": 4 },
+                "rank": "Medium",
+                "analysis": "Mopsfer",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "pecoff_files.read_string": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "734d2ed6a36329d500ff691554b7d0a7",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "S'First might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 421, "column": 10 },
+                "rank": "Medium",
+                "analysis": "Mopsfer",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
       },
       {
         "file_info": {
@@ -7384,39 +7677,39 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 1712 is not freed after the last access at line 1740, column 31",
-                "sloc": { "line": 1740, "column": 31 },
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 1733 is not freed after the last access at line 1761, column 31",
+                "sloc": { "line": 1761, "column": 31 },
                 "rank": "Medium",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1712, "column": 21 },
+                    "loc": { "line": 1733, "column": 21 },
                     "text": "allocation part of the trace starts here"
                   },
                   {
                     "level": 1,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1712, "column": 21 },
+                    "loc": { "line": 1733, "column": 21 },
                     "text": "when calling `files_table.sloc_to_sco_map` here"
                   },
                   {
                     "level": 2,
                     "file": "files_table.adb",
-                    "loc": { "line": 2006, "column": 15 },
+                    "loc": { "line": 2031, "column": 15 },
                     "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 1990, "column": 33 },
+                    "loc": { "line": 2015, "column": 33 },
                     "text": "allocated by `new` here"
                   },
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1740, "column": 31 },
+                    "loc": { "line": 1761, "column": 31 },
                     "text": "memory becomes unreachable here"
                   }
                 ],
@@ -7432,39 +7725,39 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 1794 is not freed after the last access at line 1837, column 24",
-                "sloc": { "line": 1837, "column": 24 },
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 1815 is not freed after the last access at line 1858, column 24",
+                "sloc": { "line": 1858, "column": 24 },
                 "rank": "Medium",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1794, "column": 21 },
+                    "loc": { "line": 1815, "column": 21 },
                     "text": "allocation part of the trace starts here"
                   },
                   {
                     "level": 1,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1794, "column": 21 },
+                    "loc": { "line": 1815, "column": 21 },
                     "text": "when calling `files_table.sloc_to_sco_map` here"
                   },
                   {
                     "level": 2,
                     "file": "files_table.adb",
-                    "loc": { "line": 2006, "column": 15 },
+                    "loc": { "line": 2031, "column": 15 },
                     "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 1990, "column": 33 },
+                    "loc": { "line": 2015, "column": 33 },
                     "text": "allocated by `new` here"
                   },
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 1837, "column": 24 },
+                    "loc": { "line": 1858, "column": 24 },
                     "text": "memory becomes unreachable here"
                   }
                 ],
@@ -7484,7 +7777,7 @@
               },
               "data": {
                 "msg": "in-out parameter Relocs could have mode in",
-                "sloc": { "line": 2195, "column": 4 },
+                "sloc": { "line": 2216, "column": 4 },
                 "rank": "Medium",
                 "analysis": "Mopsfer",
                 "age": "Unchanged"
@@ -7499,43 +7792,43 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7402 is not freed after the last access at line 7464, column 27",
-                "sloc": { "line": 7464, "column": 27 },
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7498 is not freed after the last access at line 7563, column 27",
+                "sloc": { "line": 7563, "column": 27 },
                 "rank": "Medium",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7402, "column": 15 },
+                    "loc": { "line": 7498, "column": 15 },
                     "text": "allocation part of the trace starts here"
                   },
                   {
                     "level": 1,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7402, "column": 15 },
+                    "loc": { "line": 7498, "column": 15 },
                     "text": "when calling `files_table.sloc_to_sco_map` here"
                   },
                   {
                     "level": 2,
                     "file": "files_table.adb",
-                    "loc": { "line": 2006, "column": 15 },
+                    "loc": { "line": 2031, "column": 15 },
                     "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 1990, "column": 33 },
+                    "loc": { "line": 2015, "column": 33 },
                     "text": "allocated by `new` here"
                   },
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7464, "column": 27 },
+                    "loc": { "line": 7563, "column": 27 },
                     "text": "memory becomes unreachable here"
                   }
                 ],
-                "age": "Added"
+                "age": "Unchanged"
               }
             }
           ],
@@ -7547,39 +7840,39 @@
                 "key_seq": 1
               },
               "data": {
-                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7606 is not freed after the last access at line 7690, column 20",
-                "sloc": { "line": 7690, "column": 20 },
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7762 is not freed after the last access at line 7846, column 20",
+                "sloc": { "line": 7846, "column": 20 },
                 "rank": "Medium",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7606, "column": 9 },
+                    "loc": { "line": 7762, "column": 9 },
                     "text": "allocation part of the trace starts here"
                   },
                   {
                     "level": 1,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7606, "column": 9 },
+                    "loc": { "line": 7762, "column": 9 },
                     "text": "when calling `files_table.sloc_to_sco_map` here"
                   },
                   {
                     "level": 2,
                     "file": "files_table.adb",
-                    "loc": { "line": 2006, "column": 15 },
+                    "loc": { "line": 2031, "column": 15 },
                     "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 1990, "column": 33 },
+                    "loc": { "line": 2015, "column": 33 },
                     "text": "allocated by `new` here"
                   },
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7690, "column": 20 },
+                    "loc": { "line": 7846, "column": 20 },
                     "text": "memory becomes unreachable here"
                   }
                 ],
@@ -7593,39 +7886,39 @@
                 "key_seq": 2
               },
               "data": {
-                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7617 is not freed after the last access at line 7690, column 20",
-                "sloc": { "line": 7690, "column": 20 },
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 7773 is not freed after the last access at line 7846, column 20",
+                "sloc": { "line": 7846, "column": 20 },
                 "rank": "Medium",
                 "analysis": "Pulse",
                 "backtrace": [
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7617, "column": 9 },
+                    "loc": { "line": 7773, "column": 9 },
                     "text": "allocation part of the trace starts here"
                   },
                   {
                     "level": 1,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7617, "column": 9 },
+                    "loc": { "line": 7773, "column": 9 },
                     "text": "when calling `files_table.sloc_to_sco_map` here"
                   },
                   {
                     "level": 2,
                     "file": "files_table.adb",
-                    "loc": { "line": 2006, "column": 15 },
+                    "loc": { "line": 2031, "column": 15 },
                     "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
                   },
                   {
                     "level": 3,
                     "file": "files_table.adb",
-                    "loc": { "line": 1990, "column": 33 },
+                    "loc": { "line": 2015, "column": 33 },
                     "text": "allocated by `new` here"
                   },
                   {
                     "level": 0,
                     "file": "sc_obligations.adb",
-                    "loc": { "line": 7690, "column": 20 },
+                    "loc": { "line": 7846, "column": 20 },
                     "text": "memory becomes unreachable here"
                   }
                 ],
@@ -7813,14 +8106,20 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1853, "column": 4 },
+                    "loc": { "line": 1858, "column": 4 },
                     "text": "taint propagated to Args by Parse_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "Args passed as an argument to Process_Arguments"
+                  },
+                  {
+                    "level": 1,
+                    "file": "gnatcov_bits_specific.adb",
+                    "loc": { "line": 1101, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg"
                   },
                   {
                     "level": 1,
@@ -7855,13 +8154,13 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1107, "column": 7 },
-                    "text": "Args is still tainted after calling Copy_Arg"
+                    "loc": { "line": 1108, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1109, "column": 7 },
+                    "loc": { "line": 1148, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -7873,7 +8172,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1150, "column": 7 },
+                    "loc": { "line": 1159, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -7885,7 +8184,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1161, "column": 7 },
+                    "loc": { "line": 1162, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -7903,73 +8202,67 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1165, "column": 7 },
+                    "loc": { "line": 1255, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1256, "column": 7 },
+                    "loc": { "line": 1277, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1278, "column": 7 },
+                    "loc": { "line": 1758, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1726, "column": 13 },
+                    "loc": { "line": 1759, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1727, "column": 13 },
-                    "text": "Args is still tainted after calling Copy_Arg_List"
-                  },
-                  {
-                    "level": 1,
-                    "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1775, "column": 10 },
+                    "loc": { "line": 1780, "column": 10 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "taint propagated to Args by Process_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1940, "column": 45 },
+                    "loc": { "line": 1945, "column": 45 },
                     "text": "Args is still tainted after calling Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1948, "column": 15 },
+                    "loc": { "line": 1953, "column": 15 },
                     "text": "Args is still tainted after calling Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1954, "column": 15 },
+                    "loc": { "line": 1959, "column": 15 },
                     "text": "Args is still tainted after calling Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2000, "column": 32 },
+                    "loc": { "line": 2005, "column": 32 },
                     "text": "Args is still tainted after calling Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 2001, "column": 32 },
+                    "loc": { "line": 2006, "column": 32 },
                     "text": "Args passed as an argument to Value"
                   },
                   {
@@ -7987,7 +8280,7 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1997, "column": 13 },
+                    "loc": { "line": 2002, "column": 13 },
                     "text": "Value'Result passed as an argument to Setup"
                   },
                   {
@@ -8350,6 +8643,20 @@
         "subps": {}
       },
       {
+        "file_info": {
+          "basename": "shared_lib_deps.adb",
+          "path": "shared_lib_deps.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "shared_lib_deps.ads",
+          "path": "shared_lib_deps.ads"
+        },
+        "subps": {}
+      },
+      {
         "file_info": { "basename": "slocs.adb", "path": "slocs.adb" },
         "subps": {}
       },
@@ -8525,13 +8832,13 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 771, "column": 45 },
+                    "loc": { "line": 770, "column": 45 },
                     "text": "taint propagated to Save_Temps by Load_Config"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 810, "column": 4 },
+                    "loc": { "line": 809, "column": 4 },
                     "text": "not Save_Temps passed as an argument to Create_Temporary_Directory"
                   },
                   {
@@ -8543,37 +8850,37 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 810, "column": 4 },
+                    "loc": { "line": 809, "column": 4 },
                     "text": "taint propagated to Instr_Dir by Create_Temporary_Directory"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 842, "column": 15 },
+                    "loc": { "line": 841, "column": 15 },
                     "text": "Instr_Dir passed as an argument to Parse_Compiler_Driver_Command"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 335, "column": 9 },
+                    "loc": { "line": 334, "column": 9 },
                     "text": "Tmp_Dir is still tainted after calling Directory_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 842, "column": 15 },
+                    "loc": { "line": 841, "column": 15 },
                     "text": "taint propagated to Instr_Dir by Parse_Compiler_Driver_Command"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 849, "column": 44 },
+                    "loc": { "line": 848, "column": 44 },
                     "text": "Instr_Dir is still tainted after calling Directory_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 47, "column": 1 },
+                    "loc": { "line": 46, "column": 1 },
                     "text": "Instr_Dir passed as an argument to Finalize"
                   },
                   {
@@ -8766,14 +9073,20 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1853, "column": 4 },
+                    "loc": { "line": 1858, "column": 4 },
                     "text": "taint propagated to Args by Parse_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "Args passed as an argument to Process_Arguments"
+                  },
+                  {
+                    "level": 1,
+                    "file": "gnatcov_bits_specific.adb",
+                    "loc": { "line": 1101, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg"
                   },
                   {
                     "level": 1,
@@ -8808,13 +9121,13 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1107, "column": 7 },
-                    "text": "Args is still tainted after calling Copy_Arg"
+                    "loc": { "line": 1108, "column": 7 },
+                    "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1109, "column": 7 },
+                    "loc": { "line": 1148, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -8826,7 +9139,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1150, "column": 7 },
+                    "loc": { "line": 1159, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -8838,7 +9151,7 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1161, "column": 7 },
+                    "loc": { "line": 1162, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
@@ -8856,55 +9169,49 @@
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1165, "column": 7 },
+                    "loc": { "line": 1255, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1256, "column": 7 },
+                    "loc": { "line": 1277, "column": 7 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1278, "column": 7 },
+                    "loc": { "line": 1758, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1726, "column": 13 },
+                    "loc": { "line": 1759, "column": 13 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 1,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1727, "column": 13 },
-                    "text": "Args is still tainted after calling Copy_Arg_List"
-                  },
-                  {
-                    "level": 1,
-                    "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1775, "column": 10 },
+                    "loc": { "line": 1780, "column": 10 },
                     "text": "Args is still tainted after calling Copy_Arg_List"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1855, "column": 4 },
+                    "loc": { "line": 1860, "column": 4 },
                     "text": "taint propagated to Args by Process_Arguments"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1940, "column": 45 },
+                    "loc": { "line": 1945, "column": 45 },
                     "text": "Args is still tainted after calling Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1948, "column": 15 },
+                    "loc": { "line": 1953, "column": 15 },
                     "text": "Args passed as an argument to Value"
                   },
                   {
@@ -8922,13 +9229,13 @@
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1948, "column": 15 },
+                    "loc": { "line": 1953, "column": 15 },
                     "text": "taint propagated to Install_Name by Value"
                   },
                   {
                     "level": 0,
                     "file": "gnatcov_bits_specific.adb",
-                    "loc": { "line": 1997, "column": 13 },
+                    "loc": { "line": 2002, "column": 13 },
                     "text": "Install_Name passed as an argument to Setup"
                   },
                   {
@@ -9572,175 +9879,211 @@
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 370, "column": 45 },
+                    "loc": { "line": 369, "column": 45 },
                     "text": "Line is tainted by Get_Line which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "Line passed as an argument to Split_Args"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 274, "column": 15 },
+                    "loc": { "line": 273, "column": 15 },
                     "text": "taint propagated to C"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "C passed as an argument to Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 281, "column": 19 },
+                    "loc": { "line": 280, "column": 19 },
                     "text": "taint propagated to Arg by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 286, "column": 19 },
+                    "loc": { "line": 285, "column": 19 },
                     "text": "Arg is still tainted after calling Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "Arg passed as an argument to Append_Arg"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "Arg passed as an argument to Append"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 263, "column": 13 },
+                    "loc": { "line": 262, "column": 13 },
                     "text": "taint propagated to Result by Append"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 303, "column": 7 },
+                    "loc": { "line": 302, "column": 7 },
                     "text": "taint propagated to Result by Append_Arg"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 304, "column": 7 },
+                    "loc": { "line": 303, "column": 7 },
                     "text": "__return_param is still tainted after calling Adjust"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 371, "column": 60 },
+                    "loc": { "line": 370, "column": 60 },
                     "text": "taint propagated to Command by Split_Args"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 376, "column": 30 },
+                    "loc": { "line": 375, "column": 30 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 377, "column": 37 },
+                    "loc": { "line": 376, "column": 37 },
                     "text": "Command is still tainted after calling First_Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "Command passed as an argument to Parse_Compilation_Command"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "Command passed as an argument to First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 434, "column": 26 },
+                    "loc": { "line": 433, "column": 26 },
                     "text": "taint propagated to Cur by First"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 451, "column": 14 },
+                    "loc": { "line": 450, "column": 14 },
                     "text": "Cur is still tainted after calling Next"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 453, "column": 13 },
+                    "loc": { "line": 452, "column": 13 },
                     "text": "Cur is still tainted after calling Has_Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 455, "column": 48 },
+                    "loc": { "line": 454, "column": 48 },
                     "text": "taint propagated to Arg by Element"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 461, "column": 16 },
+                    "loc": { "line": 460, "column": 16 },
                     "text": "Arg is still tainted after calling To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
                     "text": "Arg passed as an argument to Ends_With"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 467, "column": 19 },
+                    "loc": { "line": 466, "column": 19 },
+                    "text": "taint propagated to Arg by Ends_With"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
+                    "text": "Arg passed as an argument to Ends_With"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 166, "column": 8 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 169, "column": 45 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 168, "column": 10 },
+                    "text": "Str is still tainted after calling Index"
+                  },
+                  {
+                    "level": 2,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 170, "column": 12 },
+                    "text": "Str is still tainted after calling Length"
+                  },
+                  {
+                    "level": 1,
+                    "file": "instrument-gcc_wrapper.adb",
+                    "loc": { "line": 467, "column": 23 },
                     "text": "taint propagated to Arg by Ends_With"
                   },
                   {
@@ -9752,25 +10095,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -9788,25 +10131,25 @@
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
+                    "loc": { "line": 166, "column": 8 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
+                    "loc": { "line": 169, "column": 45 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
+                    "loc": { "line": 168, "column": 10 },
                     "text": "Str is still tainted after calling Index"
                   },
                   {
                     "level": 2,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
+                    "loc": { "line": 170, "column": 12 },
                     "text": "Str is still tainted after calling Length"
                   },
                   {
@@ -9818,49 +10161,13 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "Arg passed as an argument to Ends_With"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 167, "column": 8 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 170, "column": 45 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 169, "column": 10 },
-                    "text": "Str is still tainted after calling Index"
-                  },
-                  {
-                    "level": 2,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 171, "column": 12 },
-                    "text": "Str is still tainted after calling Length"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 470, "column": 23 },
-                    "text": "taint propagated to Arg by Ends_With"
-                  },
-                  {
-                    "level": 1,
-                    "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 53 },
+                    "loc": { "line": 472, "column": 53 },
                     "text": "Arg passed as an argument to To_String"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 34 },
+                    "loc": { "line": 472, "column": 34 },
                     "text": "To_String'Result passed as an argument to Create_Normalized"
                   },
                   {
@@ -9902,91 +10209,91 @@
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 473, "column": 19 },
+                    "loc": { "line": 472, "column": 19 },
                     "text": "taint propagated to Result.File"
                   },
                   {
                     "level": 1,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 504, "column": 7 },
+                    "loc": { "line": 503, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 381, "column": 24 },
+                    "loc": { "line": 380, "column": 24 },
                     "text": "taint propagated to CC_Command by Parse_Compilation_Command"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 383, "column": 25 },
+                    "loc": { "line": 382, "column": 25 },
                     "text": "CC_Command is still tainted after calling \"/=\""
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "CC_Command passed as an argument to Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 384, "column": 25 },
+                    "loc": { "line": 383, "column": 25 },
                     "text": "taint propagated to Result.Compilation_Commands by Append"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 415, "column": 7 },
+                    "loc": { "line": 414, "column": 7 },
                     "text": "tainted data returned"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 842, "column": 4 },
+                    "loc": { "line": 841, "column": 4 },
                     "text": "taint propagated to Comp_DB"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 15 },
+                    "loc": { "line": 863, "column": 15 },
                     "text": "Comp_DB.Compilation_Commands passed as an argument to Iterate"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "Iterate'Result passed as an argument to container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 864, "column": 8 },
+                    "loc": { "line": 863, "column": 8 },
                     "text": "taint propagated to Cur by container_value_union"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "Cur passed as an argument to Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 867, "column": 66 },
+                    "loc": { "line": 866, "column": 66 },
                     "text": "taint propagated to Comp_Command by Element"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 928, "column": 34 },
+                    "loc": { "line": 927, "column": 34 },
                     "text": "Comp_Command.File passed as an argument to Display_Full_Name"
                   },
                   {
                     "level": 0,
                     "file": "instrument-gcc_wrapper.adb",
-                    "loc": { "line": 927, "column": 10 },
+                    "loc": { "line": 926, "column": 10 },
                     "text": "Display_Full_Name'Result passed as an argument to Instrument.Source"
                   },
                   {
@@ -10497,104 +10804,20 @@
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 182, "column": 22 },
-                    "text": "Opt_Hdr64 is tainted by Read which matches a user-provided source"
+                    "loc": { "line": 251, "column": 13 },
+                    "text": "Dir_Entry is tainted by Read which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 190, "column": 54 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 270, "column": 13 },
+                    "text": "taint propagated to File.Import_Table"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "integer range 0 .. 2147483647 (__return_param.Hdr.F_Nscns) passed as an argument to Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 192, "column": 28 },
-                    "text": "taint propagated to File.Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 38 },
-                    "text": "__return_param passed as an argument to File"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 150, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 32 },
-                    "text": "File'Result passed as an argument to Read"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "Read'Result passed as an argument to Set_File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 168, "column": 19 },
-                    "text": "taint propagated to F.Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_File_Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 41 },
-                    "text": "__return_param passed as an argument to File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 159, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 35 },
-                    "text": "File_Region'Result passed as an argument to Data"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "Data'Result passed as an argument to To_Address"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 213, "column": 26 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 561, "column": 10 },
+                    "text": "taint propagated to __return_param by Get_Data_Directory"
                   },
                   {
                     "level": 0,
@@ -11544,104 +11767,20 @@
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 182, "column": 22 },
-                    "text": "Opt_Hdr64 is tainted by Read which matches a user-provided source"
+                    "loc": { "line": 251, "column": 13 },
+                    "text": "Dir_Entry is tainted by Read which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 190, "column": 54 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 270, "column": 13 },
+                    "text": "taint propagated to File.Import_Table"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "integer range 0 .. 2147483647 (__return_param.Hdr.F_Nscns) passed as an argument to Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 192, "column": 28 },
-                    "text": "taint propagated to File.Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 38 },
-                    "text": "__return_param passed as an argument to File"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 150, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 32 },
-                    "text": "File'Result passed as an argument to Read"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "Read'Result passed as an argument to Set_File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 168, "column": 19 },
-                    "text": "taint propagated to F.Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_File_Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 41 },
-                    "text": "__return_param passed as an argument to File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 159, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 35 },
-                    "text": "File_Region'Result passed as an argument to Data"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "Data'Result passed as an argument to To_Address"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 213, "column": 26 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 561, "column": 10 },
+                    "text": "taint propagated to __return_param by Get_Data_Directory"
                   },
                   {
                     "level": 0,
@@ -12187,104 +12326,20 @@
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 182, "column": 22 },
-                    "text": "Opt_Hdr64 is tainted by Read which matches a user-provided source"
+                    "loc": { "line": 251, "column": 13 },
+                    "text": "Dir_Entry is tainted by Read which matches a user-provided source"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 190, "column": 54 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 270, "column": 13 },
+                    "text": "taint propagated to File.Import_Table"
                   },
                   {
                     "level": 0,
                     "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "integer range 0 .. 2147483647 (__return_param.Hdr.F_Nscns) passed as an argument to Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 192, "column": 28 },
-                    "text": "taint propagated to File.Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 200, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_Nbr_Sections"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 38 },
-                    "text": "__return_param passed as an argument to File"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 150, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 32 },
-                    "text": "File'Result passed as an argument to Read"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "Read'Result passed as an argument to Set_File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 168, "column": 19 },
-                    "text": "taint propagated to F.Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 202, "column": 10 },
-                    "text": "taint propagated to __return_param by Set_File_Region"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 41 },
-                    "text": "__return_param passed as an argument to File_Region"
-                  },
-                  {
-                    "level": 1,
-                    "file": "binary_files.adb",
-                    "loc": { "line": 159, "column": 14 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 35 },
-                    "text": "File_Region'Result passed as an argument to Data"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "Data'Result passed as an argument to To_Address"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 203, "column": 23 },
-                    "text": "tainted data returned"
-                  },
-                  {
-                    "level": 0,
-                    "file": "pecoff_files.adb",
-                    "loc": { "line": 213, "column": 26 },
-                    "text": "tainted data returned"
+                    "loc": { "line": 561, "column": 10 },
+                    "text": "taint propagated to __return_param by Get_Data_Directory"
                   },
                   {
                     "level": 0,

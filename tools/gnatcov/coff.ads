@@ -20,6 +20,11 @@ with Interfaces; use Interfaces;
 with System;     use System;
 
 package Coff is
+
+   --  Record types and constants to help analyze the contents of COFF/PE
+   --  files. See Microsoft's documentation for full details:
+   --  <https://learn.microsoft.com/en-us/windows/win32/debug/pe-format>.
+
    type Filehdr is record
       F_Machine : Unsigned_16;
       F_Nscns   : Unsigned_16;
@@ -54,11 +59,13 @@ package Coff is
    --  standard fields and Windows-specific fields.
 
    type Opt_Hdr_PE32 is record
-      Magic      : Unsigned_16;
-      Pad1       : String (2 .. 27);
-      Image_Base : Unsigned_32;
-      Pad2       : String (4 .. 67);
+      Magic                   : Unsigned_16;
+      Pad1                    : String (2 .. 27);
+      Image_Base              : Unsigned_32;
+      Pad2                    : String (32 .. 91);
+      Number_Of_RVA_And_Sizes : Unsigned_32;
    end record;
+   pragma Assert (Opt_Hdr_PE32'Size = Opt_Hdr_PE32_Size * 8);
 
    --  Layout for the Optional Header (PE32+ only). Note that we only map the
    --  fields we are truly interested in.
@@ -68,11 +75,13 @@ package Coff is
    --  standard fields and Windows-specific fields.
 
    type Opt_Hdr_PE32_Plus is record
-      Magic      : Unsigned_16;
-      Pad1       : String (2 .. 23);
-      Image_Base : Unsigned_64;
-      Pad2       : String (8 .. 87);
+      Magic                   : Unsigned_16;
+      Pad1                    : String (2 .. 23);
+      Image_Base              : Unsigned_64;
+      Pad2                    : String (32 .. 107);
+      Number_Of_RVA_And_Sizes : Unsigned_32;
    end record;
+   pragma Assert (Opt_Hdr_PE32_Plus'Size = Opt_Hdr_PE32_Plus_Size * 8);
 
    type Scnhdr is record
       S_Name    : String (1 .. 8);
@@ -181,6 +190,41 @@ package Coff is
 
    Reloc_Rel32  : constant Unsigned_16 := 20;
    Reloc_Addr32 : constant Unsigned_16 := 6;
+
+   type Data_Directory is
+     (Export_Table,
+      Import_Table,
+      Resource_Table,
+      Exception_Table,
+      Certificate_Table,
+      Base_Relocation_Table,
+      Debug,
+      Architecture,
+      Global_Ptr,
+      TLS_Table,
+      Load_Config_Table,
+      Bound_Import,
+      IAT,
+      Delay_Import_Descriptor,
+      CLR_Runtime_Header,
+      Reserved);
+
+   type Opt_Hdr_Data_Directory is record
+      Virtual_Address : Unsigned_32;
+      Size            : Unsigned_32;
+   end record;
+
+   No_Data_Directory : constant Opt_Hdr_Data_Directory := (0, 0);
+
+   type Idata_Directory_Entry is record
+      Import_Lookup_Table_RVA  : Unsigned_32;
+      Time_Date_Stamp          : Unsigned_32;
+      Forwarder_Chain          : Unsigned_32;
+      Name_RVA                 : Unsigned_32;
+      Import_Address_Table_RVA : Unsigned_32;
+   end record;
+   Idata_Directory_Entry_Size : constant Natural :=
+     Idata_Directory_Entry'Size / Storage_Unit;
 
    type PEHdr is record
       E_MZHdr  : Unsigned_16;
