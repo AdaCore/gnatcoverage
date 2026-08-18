@@ -1,1 +1,2 @@
 !native DEAD Checks support for a custom toolchain only defined natively
+ALL XFAIL Pending resolution of eng/das/cov/gnatcov#587
