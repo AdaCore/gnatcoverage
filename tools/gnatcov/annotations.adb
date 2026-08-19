@@ -58,26 +58,6 @@ package body Annotations is
    --  and let Pp display them
 
    ----------------------
-   -- Pretty_Print_Fun --
-   ----------------------
-
-   procedure Pretty_Print_Fun
-     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State) is
-   begin
-      Pp.Pretty_Print_Statement (SCO, State);
-   end Pretty_Print_Fun;
-
-   -----------------------
-   -- Pretty_Print_Call --
-   -----------------------
-
-   procedure Pretty_Print_Call
-     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State) is
-   begin
-      Pp.Pretty_Print_Statement (SCO, State);
-   end Pretty_Print_Call;
-
-   ----------------------
    -- Aggregated_State --
    ----------------------
 
@@ -354,14 +334,25 @@ package body Annotations is
 
          if Kind (SCO) /= Removed and then First_Sloc (SCO).L.Line = Line then
             case SCO_Kind (Kind (SCO)) is
-               when Statement    =>
+               when Statement         =>
                   if Coverage.Enabled (Stmt) then
                      SCO_State := Get_Line_State (SCO, Stmt);
                      Pretty_Print_Statement (Pp, SCO, SCO_State);
                   end if;
 
-               when Decision     =>
-                  if Coverage.Enabled (Decision)
+               when Decision          =>
+                  if Is_Assertion (SCO) then
+                     if Coverage.Assertion_Coverage_Enabled then
+                        SCO_State :=
+                          Get_Line_State
+                            (SCO,
+                             (if Coverage.Assertion_Condition_Coverage_Enabled
+                              then ATCC
+                              else ATC));
+                        Pretty_Print_Assertion (Pp, SCO, (SCO_State));
+                     end if;
+
+                  elsif Coverage.Enabled (Decision)
                     or else Coverage.MCDC_Coverage_Enabled
                   then
                      if Coverage.MCDC_Coverage_Enabled then
@@ -390,28 +381,22 @@ package body Annotations is
                      Pretty_Print_End_Decision (Pp);
                   end if;
 
-               when Condition    =>
+               when Condition         =>
                   --  Condition without a parent decision. This should never
                   --  happen; fatal error.
 
                   Fatal_Error ("no decision attached to " & Image (SCO));
 
-               when Operator     =>
+               when Operator          =>
                   null;
 
-               when Fun          =>
+               when Fun_Call_SCO_Kind =>
                   if Coverage.Enabled (Fun_Call) then
                      SCO_State := Get_Line_State (SCO, Fun_Call);
-                     Pretty_Print_Fun (Pp, SCO, SCO_State);
+                     Pretty_Print_Statement (Pp, SCO, SCO_State);
                   end if;
 
-               when Call         =>
-                  if Coverage.Enabled (Fun_Call) then
-                     SCO_State := Get_Line_State (SCO, Fun_Call);
-                     Pretty_Print_Call (Pp, SCO, SCO_State);
-                  end if;
-
-               when Guarded_Expr =>
+               when Guarded_Expr      =>
                   if Coverage.Enabled (GExpr) then
                      SCO_State := Get_Line_State (SCO, GExpr);
                      Pretty_Print_Statement (Pp, SCO, SCO_State);
