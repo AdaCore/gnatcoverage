@@ -1079,6 +1079,34 @@ clang_isConstexpr (CXCursor C)
   return 0;
 }
 
+bool
+isStaticStorage (CXCursor C)
+{
+  CX_StorageClass storage = clang_Cursor_getStorageClass (C);
+  return (storage == CX_SC_Static || storage == CX_SC_Extern);
+}
+
+extern "C" unsigned
+clang_mustBeStatic (CXCursor C)
+{
+  CXCursor parent = clang_getCursorSemanticParent (C);
+
+  while (!clang_Cursor_isNull (parent))
+    {
+      auto kind = parent.kind;
+
+      // Check if the parent is a variable declaration in
+      // static storage.
+      if (parent.kind == CXCursor_VarDecl && isStaticStorage (parent))
+        {
+          return 1;
+        }
+
+      parent = clang_getCursorSemanticParent (parent);
+    }
+  return 0;
+}
+
 /* Return the string representative of the operator for a binary
    or unary operator node.  */
 

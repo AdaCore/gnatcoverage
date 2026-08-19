@@ -229,6 +229,17 @@ package body Clang.Extensions is
       return Is_Constexpr_C (C) /= 0;
    end Is_Constexpr;
 
+   --------------------
+   -- Must_Be_Static --
+   --------------------
+
+   function Must_Be_Static (C : Cursor_T) return Boolean is
+      function Must_Be_Static_C (C : Cursor_T) return unsigned
+      with Import, Convention => C, External_Name => "clang_mustBeStatic";
+   begin
+      return Must_Be_Static_C (C) /= 0;
+   end Must_Be_Static;
+
    -----------------------------------
    -- CX_Rewriter_Insert_Text_After --
    -----------------------------------
