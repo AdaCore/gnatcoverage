@@ -9,6 +9,8 @@ coverage of some source construct is not achievable. The |gcp|
 :dfn:`exemptions` facility was designed to allow abstracting these coverage
 violations away from the genuine defects of a testing campaign.
 
+.. _exemption_region:
+
 Defining :term:`Exemption Regions <Exemption Region>`
 =====================================================
 
@@ -85,8 +87,298 @@ Such markers are ignored by |gcvins|, after emitting a warning.
 It is also possible to define exemption regions trough external annotation
 files, see :ref:`ext_annot` for more information.
 
+Defining :term:`Fine Grained Exemptions <Fine Grained Exemption>`
+=================================================================
+
+:dfn:`Fine Grained Exemptions` are annotations to state that violations of
+precise source coverage obligations are expected, with a justification message.
+These annotations are similar to the ones that define exemption regions:
+
+.. code-block:: ada
+
+   --  In Ada
+
+   pragma Annotate
+     (Xcov,
+      Exemption_Kind,  -- Identifier to designate what to exempt
+      --  Potential exemption kind-dependent details go here
+      "Message"  -- Justification for the exemption);
+
+.. code-block:: c
+
+   // In C
+
+   // GNATCOV_EXEMPTION_KIND(/* ... details ... */, "Message")
+
+These annotations must appear right before the statement/declaration in which
+to find the source coverage obligation to exempt:
+
+.. code-block:: Ada
+
+   --  Exemption_1 targets a construct in Statement_Or_Declaration_A
+
+   pragma Annotate (Xcov, Exemption_1, "Justification");
+
+   Statement_Or_Declaration_A;
+
+   --  Exemption_2 .. 4 target a construct in Statement_Or_Declaration_B;
+   --  Statement_Or_Declaration_C is out of reach.
+
+   pragma Annotate (Xcov, Exemption_2, "Justification");
+   pragma Annotate (Xcov, Exemption_3, "Justification");
+   pragma Annotate (Xcov, Exemption_4, "Justification");
+
+   Statement_Or_Declaration_B;
+   Statement_Or_Declaration_C;
+
+   --  Exemption_5 targets a construct in Statement_Or_Declaration_D
+
+   pragma Annotate (Xcov, Exemption_5, "Justification");
+
+   Statement_Or_Declaration_D;
+
+.. _fine_grained_exemption_decision_outcome:
+
+Decision Outcome Exemptions
+---------------------------
+
+For decision coverage, each of the two decision outcomes can be exempted
+separately. In Ada, the following will exempt the outcome True of the ``Debug``
+decision:
+
+.. code-block:: ada
+
+  pragma Annotate (Xcov, Exempt_Decision_Outcome, True, "Debug code");
+  Put_Line ("Content" & (if Debug then " (debug)" else ""));
+
+The equivalent construct in C/C++ would be:
+
+.. code-block:: c
+
+  // GNATCOV_EXEMPT_DECISION_OUTCOME(true, "Debug code")
+  printf ("Content%s", debug ? " (debug)" : "");
+
+.. _exemption_decision_offset:
+
+When there are multiple decisions in the same statement, it is possible to
+specify a "decision offset" ``N``, instructing to skip ``N`` decisions after
+reaching the one to exempt. For instance:
+
+.. code-block:: ada
+
+  pragma Annotate (Xcov, Exempt_Decision_Outcome, True, 2, "Debug code");
+  Procedure_Call
+    (Arg_1 => (if Flag_1 then 'A' else 'B'),
+     Arg_2 => (if Flag_2 then 'C' elsif Flag_3 then 'D' else 'E'));
+
+There are 3 decisions here: in source order: ``Flag_1``, ``Flag_2`` and
+``Flag_3``. Without a decision offset, the exemption would target the first
+decision (``Flag_1``), but with the decision offset 2, the exemption targets
+``Flag_3``: 2 decisions are skipped (``Flag_1`` and ``Flag_2``).
+
+.. _fine_grained_exemption_decision_condition:
+
+Decision Condition Exemptions
+-----------------------------
+
+For MCDC, the need to demonstrate the independent influence of each condition
+on the decision outcome can be exempted.
+
+.. code-block:: ada
+
+   pragma Annotate (Xcov, Exempt_Decision_Condition, 2, "Debug code");
+   if Message_Requested or else Debug then
+      Send_Message;
+   end if;
+
+In this example, 2 is the index of the condition to exempt. For a given
+decision, indexes are assigned from left to right starting at 1:
+``Message_Requested`` is the condition at index 1, ``Debug`` is the condition
+at index 2.
+
+With this fine grained exemption, it is no longer necessary to demonstrate the
+independent influence of the ``Debug`` condition, so the following evaluation
+vectors for the decision will be enough to get no violation in the coverage
+report:
+
+* ``False or else False`` (outcome: ``False``)
+* ``True or else XXX`` (outcome: ``True``)
+
+whereas without the exemption, an additional ``False or else True`` would be
+needed to reach full MCDC coverage.
+
+Below is the equivalent example in C/C++:
+
+.. code-block:: c
+
+   // GNATCOV_EXEMPT_DECISION_CONDITION(2, "Debug code")
+   if (message_requested || debug)
+     send_message ();
+
+Note that for ATCC, the exemption covers the mere evaluation of the designated
+condition as part of a decision evaluation that reaches its outcome True.
+
+As with :ref:`decision outcome exemptions <exemption_decision_offset>`, it is
+possible to specify a decision offset for cases when there are multiple
+decisions in the statement:
+
+.. code-block:: ada
+
+   pragma Annotate (Xcov, Exempt_Decision_Condition, 3, 1, "Debug code");
+   Procedure_Call
+     (Arg_1 => (if Flag_1 then 'A' else 'B'),
+      Arg_2 => (if Flag_2
+                   and then Flag_3
+                   and then Flag_4
+                then 'C'
+                else 'D'),
+      Arg_3 => (if Flag_5 then 'E' else 'F'));
+
+Here, the statement that follows the exemption annotation has 3 decisions. The
+decision at offset 1 (i.e. ``Flag_2 and then Flag_3 and then Flag_4``) has 3
+conditions, so it is ``Flag_4`` that is exempted.
+
+.. _fine_grained_exemption_full_decision:
+
+Full Decision Exemptions
+------------------------
+
+|gcv| supports the following convenience annotation to exempt all relevant
+outcomes (i.e. False and True for decision coverage and MCDC, only True for
+assertion coverage) and conditions for a given decision:
+
+.. code-block:: ada
+
+   --  Exempt all decisions and conditions for the next decision
+   pragma Annotate (Xcov, Exempt_Full_Decision, "Justification");
+
+   --  Exempt all decisions and conditions for the decision
+   --  at offset 2.
+   pragma Annotate (Xcov, Exempt_Full_Decision, 2, "Justification");
+
+.. code-block:: c
+
+   // GNATCOV_EXEMPT_FULL_DECISION("Justification")
+   // GNATCOV_EXEMPT_FULL_DECISION(2, "Justification")
+
+In both examples above, ``2`` is the optional :ref:`decision offset
+<exemption_decision_offset>`.
+
+.. _fine_grained_exemption_branch:
+
+Branch Exemptions
+-----------------
+
+The branch exemption annotation is a convenience helper that can be put first
+in an ``if``/``elsif``/``else`` block (Ada and C/C++): it is expanded into:
+
+* a decision outcome exemption for the relevant outcome of the closest
+  controlling decision;
+* an exemption region for the statements that contain the branch exemption.
+
+For example:
+
+.. code-block:: ada
+
+   if Debug then
+      pragma Annotate (Xcov, Exempt_Branch, "Debug code");
+      Put_Line ("Execution went here");
+   elsif Profiling then
+      Increment_Counter;
+   end if;
+
+Here, the outcome True of the ``Debug`` decision is exempted, as well as the
+call to ``Put_Line``. However, if the annotation was put before the call to
+``Increment_Counter``, then the outcome True of ``Profiling`` and the call to
+``Increment_Counter`` would be exempted.
+
+In C/C++, the equivalent example would be:
+
+.. code-block:: c
+
+   if (debug)
+     // GNATCOV_EXEMPT_BRANCH("Debug code")
+     puts ("Execution went here");
+   else if (profiling)
+     increment_counter ();
+
+Specifically in Ada, it is also possible to set a branch exemption in a ``when
+...  =>`` clause: in that case, no decision outcome is exempted, but all
+statements in the branch are exempted:
+
+.. code-block:: ada
+
+   case State is
+      when Uninitialized =>
+         Initialize;
+
+      when Initialized =>
+         Make_Progress;
+
+      when Error =>
+         pragma Annotate (Xcov, Exempt_Branch, "defensive code");
+         Log_Unreachable ("State = Error");
+         raise Program_Error;
+   end case;
+
+.. _fine_grained_exemption_manual_decision_evaluation:
+
+Manual Decision Evaluations
+---------------------------
+
+While they are not exactly exemptions, decision evaluation vectors are conveyed
+to |gcv| through the annotation mechanism: coverage report production will then
+act as if the decision was evaluated with the given condition values.
+
+.. code-block:: ada
+
+   pragma Annotate
+     (Xcov, Manual_Decision_Evaluation, False, False, "Tested manually");
+   pragma Annotate
+     (Xcov, Manual_Decision_Evaluation, True, False, "Tested manually");
+   if A and then B then
+      Do_Something;
+   end if;
+
+In this example, |gcv| will consider that the ``A and then B`` decision was
+evaluated as ``False and then XXX`` and ``True and then False``, so MCDC will
+be fully achieved for this decision as soon as it is evaluated at run time with
+``True, True``.
+
+Note that the in the ``False, False`` evaluation vector, the second condition
+valuation is not meaningful since, because of the short-circuiting behavior of
+``and then``, ``B`` is not evaluated when ``A`` evaluates to False: in that
+case, the second boolean value passed to ``Manual_Decision_Evaluation`` is just
+disregarded, yet its presence is necessary in order to have exactly one
+valuation per condition.
+
+Below is the equivalent example in C/C++:
+
+.. code-block:: c
+
+   // GNATCOV_MANUAL_DECISION_EVALUATION(false, false, "Tested manually")
+   // GNATCOV_MANUAL_DECISION_EVALUATION(true, false, "Tested manually")
+   if (a && b)
+      do_something ();
+
+As with :ref:`decision outcome exemptions <exemption_decision_offset>`, it is
+possible to specify a decision offset for cases when there are multiple
+decisions in the statement:
+
+.. code-block:: ada
+
+   pragma Annotate
+     (Xcov, Manual_Decision_Evaluation, False, False, 1, "Debug code");
+   Procedure_Call
+     (Arg_1 => (if Flag_1 then 'A' else 'B'),
+      Arg_2 => (if Flag_2 and then Flag_3 then 'C' else 'D'),
+      Arg_3 => (if Flag_5 then 'E' else 'F'));
+
 Reporting about coverage exemptions
 ===================================
+
+Exemption regions
+-----------------
 
 Exempted regions are reported as blocks in both the annotated source and the
 synthetic text reports, for both source and object coverage metrics.  In
@@ -176,6 +468,65 @@ In synthetic reports, the count of exempted violations is 0, like::
   assert condition never to be False
 
   1 exempted region.
+
+Fine grained exemptions
+-----------------------
+
+In the annotated source, fine grained exemptions are reported in the line range
+that covers the relevant source coverage obligation, with the same signs as
+exemption regions (``#`` and ``*``) depending on whether the exempted
+obligation had a violation. Note that unexempted violations are reported in
+priority over exempted violations::
+
+   --  The whole statement was not executed
+
+   8 .: pragma Annotate (Xcov, Exempt_Decision_Outcome, True, "Debug code");
+   9 -: Put_Line ("Content" & (if Debug then " (debug)" else ""));
+
+   --  The statement was executed, Debug was evaluated to False
+
+   8 .: pragma Annotate (Xcov, Exempt_Decision_Outcome, True, "Debug code");
+   9 *: Put_Line ("Content" & (if Debug then " (debug)" else ""));
+
+   --  The statement was executed and Debug evaluated to both False and True
+
+   8 .: pragma Annotate (Xcov, Exempt_Decision_Outcome, True, "Debug code");
+   9 #: Put_Line ("Content" & (if Debug then " (debug)" else ""));
+
+In synthetic text reports, fine grained exemptions that were triggered (i.e.
+that prevented the emission of a note in the Coverage Violations section) are
+listed in the Fine Grained Exempted Violatinos section::
+
+   =========================================
+   == 3. FINE GRAINED EXEMPTED VIOLATIONS ==
+   =========================================
+
+   pkg.adb:8:10: decision outcome TRUE never exercised (exempted: Debug code)
+
+   1 fine grained exempted item.
+
+Manual decision evaluations are visible in annotated source reports, but only
+when including details (``xcov+``, ``html``)::
+
+    8 .: pragma Annotate
+    9 .:  (Xcov, Manual_Decision_Evaluation, False, False, "Tested manually");
+   10 .: pragma Annotate
+   11 .:  (Xcov, Manual_Decision_Evaluation, True, False, "Tested manually");
+   12 +: if A and then B then
+   pkg.adb:12:15: including manual decision evaluation:
+     F - -> FALSE (justification: Tested manually)
+
+In synthetic text reports, they are also included in the Fine Grained Exempted
+Violations section::
+
+   =========================================
+   == 3. FINE GRAINED EXEMPTED VIOLATIONS ==
+   =========================================
+
+   pkg.adb:12:15: including manual decision evaluation:
+     F - -> FALSE (justification: Tested manually)
+
+   1 fine grained exempted item.
 
 Undetermined Coverage state and Exemptions
 ------------------------------------------
