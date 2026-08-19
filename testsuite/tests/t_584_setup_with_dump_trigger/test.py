@@ -53,6 +53,8 @@ xcov(
         "--dump-trigger=atexit",
         "--dump-trigger=manual",
     ],
+    tolerate_messages="--dump-trigger=.* "
+    "may not be compatible with the selected runtime",
 )
 manifest = json.loads(
     contents_of("share/gnatcov_rts/setup-config-gnatcov_rts.json")
