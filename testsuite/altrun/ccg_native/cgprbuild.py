@@ -162,7 +162,7 @@ def main():
     if custom_rts_dir:
         rts_dir = pathlib.Path(custom_rts_dir)
         gcc_args += [
-            str(pth.absolute()) for pth in rts_dir.glob("gnatcov_rts_c*")
+            str(pth.absolute()) for pth in rts_dir.glob("gnatcov_rts_c*.c")
         ]
 
     # Add the runtime library in the mix. The pre-testsuite script compile the
