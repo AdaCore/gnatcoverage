@@ -55,7 +55,7 @@
                   "uri": "foo.c"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 9
                 }
               }
@@ -97,7 +97,7 @@
                   "uri": "lib.c"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 6
                 }
               }
@@ -223,7 +223,7 @@
                   "uri": "main.c"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 8,
                   "startLine": 24
                 }
               }

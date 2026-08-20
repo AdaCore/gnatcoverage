@@ -356,6 +356,12 @@ package Clang.Extensions is
    with Import, Convention => C, External_Name => "clang_getSpellingLoc";
    --  See getSpellingLoc in clang/Basic/SourceManager.h
 
+   function Get_Include_Loc
+     (TU : Translation_Unit_T; Loc : Source_Location_T)
+      return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getIncludeLoc";
+   --  See getIncludeLoc in clang/Basic/SourceManager.h
+
    procedure Print_Location (TU : Translation_Unit_T; Loc : Source_Location_T)
    with Import, Convention => C, External_Name => "clang_printLocation";
 

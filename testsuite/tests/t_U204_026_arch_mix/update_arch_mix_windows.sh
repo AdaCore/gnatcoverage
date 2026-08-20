@@ -15,10 +15,10 @@ git reset --hard wip
 
 # Build gnatcov
 cd /Users/itmgr/wave
-# anod vcs --reset
-# anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
-# anod build gnatcov --smart
-# anod install gnatall -Qstable
+anod vcs --reset
+anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
+anod build gnatcov --build-date 20260813 --smart
+anod install gnatall -Qstable
 eval $(anod printenv gnatcov)
 eval $(anod printenv gnatall -Qstable)
 
@@ -29,7 +29,6 @@ rm -rf "$SRC_DIR/gen/x86_64-windows"
 rsync -ar "$SRC_DIR/" "$BUILD_DIR"
 cd "$BUILD_DIR"
 chmod +x gen.sh
-gnatcov setup
 ./gen.sh windows
 
 # Copy back the generated sources
