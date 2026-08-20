@@ -12,8 +12,6 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, thistest
 
-Wdir("tmp_")
-
 
 def check_xml(xsd_file: str, xml_file: str) -> None:
     xsd_doc = etree.parse(xsd_file)
@@ -40,6 +38,9 @@ def xml_file(output_dir: str) -> str:
 
 
 def build_run_coverage_and_check(covlevel: str) -> None:
+    thistest.log(f"== {covlevel} ==")
+    tmp = Wdir(f"tmp_{covlevel}")
+
     build_run_and_coverage(
         gprsw=GPRswitches(
             root_project=gprfor(srcdirs=[".."], mains=["test.adb"])
@@ -49,6 +50,8 @@ def build_run_coverage_and_check(covlevel: str) -> None:
         extra_coverage_args=["--annotate=xml"],
     )
     check_xml(xsd_file("obj"), xml_file("obj"))
+
+    tmp.to_homedir()
 
 
 build_run_coverage_and_check("stmt+mcdc")
