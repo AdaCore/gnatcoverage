@@ -1,0 +1,2 @@
+!C++ DEAD Only run C++ tests if we have a supported C++ compiler
+bareboard DEAD Exception propagation support required
