@@ -2621,11 +2621,13 @@ package body Instrument.C is
 
          case Kind (N) is
 
-            when Cursor_Compound_Stmt                         =>
+            when Cursor_Compound_Stmt
+            =>
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
-            when Cursor_If_Stmt                               =>
+            when Cursor_If_Stmt
+            =>
                Add_SCO_And_Instrument_Statement (N, C2 => 'I');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
@@ -2730,7 +2732,8 @@ package body Instrument.C is
                   end if;
                end;
 
-            when Cursor_Switch_Stmt                           =>
+            when Cursor_Switch_Stmt
+            =>
                Add_SCO_And_Instrument_Statement (N, C2 => 'C');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
@@ -2747,14 +2750,16 @@ package body Instrument.C is
 
             --  Case alternative
 
-            when Cursor_Case_Stmt | Cursor_Default_Stmt       =>
+            when Cursor_Case_Stmt | Cursor_Default_Stmt
+            =>
                declare
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
                   Traverse_Statements (UIC, To_Vector (Case_Body), TB);
                end;
 
-            when Cursor_While_Stmt                            =>
+            when Cursor_While_Stmt
+            =>
                declare
                   While_Body : constant Cursor_T := Get_Body (N);
                   Cond_Var   : constant Cursor_T := Get_Cond_Var (N);
@@ -2778,7 +2783,8 @@ package body Instrument.C is
                   Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
 
-            when Cursor_Do_Stmt                               =>
+            when Cursor_Do_Stmt
+            =>
                declare
                   Do_Body  : constant Cursor_T := Get_Body (N);
                   Do_While : constant Cursor_T := Get_Cond (N);
@@ -2802,7 +2808,8 @@ package body Instrument.C is
                   Process_Expression (UIC, Do_While, 'W');
                end;
 
-            when Cursor_For_Stmt                              =>
+            when Cursor_For_Stmt
+            =>
                declare
                   For_Init : constant Cursor_T := Get_For_Init (N);
                   For_Cond : constant Cursor_T := Get_Cond (N);
@@ -2831,7 +2838,8 @@ package body Instrument.C is
                   UIC.Pass.Start_Statement_Block (UIC);
                end;
 
-            when Cursor_CXX_For_Range_Stmt                    =>
+            when Cursor_CXX_For_Range_Stmt
+            =>
                declare
                   For_Init_Stmt  : constant Cursor_T := Get_For_Init (N);
                   For_Range_Decl : constant Cursor_T := Get_For_Range_Expr (N);
@@ -2879,35 +2887,41 @@ package body Instrument.C is
                   UIC.Pass.Start_Statement_Block (UIC);
                end;
 
-            when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
+            when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt
+            =>
                Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
-            when Cursor_Label_Stmt                            =>
+            when Cursor_Label_Stmt
+            =>
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
-            when Cursor_Break_Stmt                            =>
-               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
+            when Cursor_Break_Stmt | Cursor_Continue_Stmt | Cursor_Return_Stmt
+            =>
+               Instrument_Basic_Statement (N);
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
-            when Cursor_Stmt_Expr                             =>
+            when Cursor_Stmt_Expr
+            =>
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             --  Null statement, we won't monitor their execution
 
-            when Cursor_Null_Stmt                             =>
+            when Cursor_Null_Stmt
+            =>
                null;
 
             --  TODO??? There are probably missing special statements, such as
             --  ternary operator etc. Do that in a later step.
 
-            when Cursor_Call_Expr                             =>
+            when Cursor_Call_Expr
+            =>
                --  Check the name of the callee. If the callee is the manual
                --  dump buffers procedure, end the statement block and
                --  do not instrument the call expression as it should not
@@ -2924,7 +2938,8 @@ package body Instrument.C is
                   Process_Expression (UIC, N, 'X');
                end if;
 
-            when Cursor_CXX_Try_Stmt                          =>
+            when Cursor_CXX_Try_Stmt
+            =>
                declare
                   Try_Block : constant Cursor_T := Get_Try_Block (N);
                begin
@@ -2961,7 +2976,8 @@ package body Instrument.C is
                   UIC.Pass.Start_Statement_Block (UIC);
                end if;
 
-            when Cursor_Decl_Stmt                             =>
+            when Cursor_Decl_Stmt
+            =>
                declare
                   First_Decl : constant Cursor_T := Get_First_Decl (N);
                begin
@@ -2984,7 +3000,8 @@ package body Instrument.C is
                   end case;
                end;
 
-            when others                                       =>
+            when others
+            =>
                Instrument_Basic_Statement (N);
 
          end case;
