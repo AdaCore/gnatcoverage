@@ -17,6 +17,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 from typing import Any, IO
@@ -1446,6 +1447,28 @@ class TestSuite(e3.testsuite.Testsuite):
         gprconfig and build the support library for the whole series of tests
         to come.
         """
+
+        # TODO (eng/shared/release#2678): Remove this once the investigation is
+        # over.
+        self.ccg_debug_file = os.path.join(self.working_dir, "ccg_debug.txt")
+        os.environ["CCG_DEBUG_FILE"] = self.ccg_debug_file
+
+        def ccg_observe_objects(label: str) -> None:
+            subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(
+                        self.root_dir,
+                        "altrun",
+                        "ccg_native",
+                        "observe_objects.py",
+                    ),
+                    label,
+                ]
+            )
+
+        ccg_observe_objects("set_up: beginning")
+
         # First, perform a couple of validity checks on command-line arguments
         # and compute bits of internal state for later use from them.
 
@@ -1612,7 +1635,9 @@ class TestSuite(e3.testsuite.Testsuite):
         # TODO: re-implement this feature
         self.n_consecutive_failures = 0
 
+        ccg_observe_objects("set_up: before pre-testsuite")
         self.maybe_exec(binfile=args.pre_testsuite, edir="...")
+        ccg_observe_objects("set_up: after pre-testsuite")
 
         # Make testsuite options and the discriminants file available from
         # testcases.
@@ -1621,6 +1646,14 @@ class TestSuite(e3.testsuite.Testsuite):
 
     def tear_down(self) -> None:
         self.maybe_exec(binfile=self.ts_args.post_testsuite, edir="...")
+
+        # TODO (eng/shared/release#2678): Remove this once the investigation is
+        # over.
+        if self.env.target.platform == "c":
+            from e3.testsuite import logger
+
+            with open(self.ccg_debug_file) as f:
+                logger.info("## CCG DEBUG FILE\n\n" + f.read())
 
     # -----------------------------------
     # -- Early comments about this run --
