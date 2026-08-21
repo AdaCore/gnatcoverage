@@ -72,10 +72,16 @@ begin
 
         --  gnatcov32 does not package instrumentation. It can still be used to
         --  decode source binary traces, but not to instrument source files.
+        --
+        --  Also force the use of gnatcov64 to dump shared library
+        --  dependencies, as its PE/COFF parser accepts both PE32 (32-bit) and
+        --  PE32+ (64-bit) files, whereas the parser of gnatcov32 will crash
+        --  with PE32+ binaries because of address overflow issues. This
+        --  matters, because PE32+ DLLs may be in the closure of PE32 programs.
 
           Args
           .Command
-        in Cmd_Setup | Cmd_Instrument
+        in Cmd_Setup | Cmd_Instrument | Cmd_Dump_Shared_Lib_Deps
 
         --  Otherwise, infer the gnatcov executable to use from the target
         --  option.
