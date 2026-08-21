@@ -8,6 +8,8 @@ import json
 import os
 from pathlib import Path
 from shutil import which
+import subprocess
+import sys
 
 from e3.fs import rm, cp, mkdir, mv
 from e3.os.process import Run
@@ -24,6 +26,18 @@ gnatcov = which("gnatcov" + exeext)
 base_rts_dir = os.path.join(
     os.path.dirname(gnatcov), "..", "share", "gnatcoverage", "gnatcov_rts"
 )
+
+
+def ccg_observe_objects(label: str) -> None:
+    # TODO (eng/shared/release#2678): Remove this once the investigation is
+    # over.
+    subprocess.run(
+        [
+            sys.executable,
+            os.path.join(altrun_dir, "observe_objects.py"),
+            label,
+        ]
+    )
 
 
 def run(cmd, what):
@@ -109,6 +123,7 @@ def prepare_rts():
     )
 
     # Pre-build gnatcov_rts
+    ccg_observe_objects("pre_testsuite.py: before gprbuild")
     run(
         [
             "gprbuild",
@@ -122,6 +137,7 @@ def prepare_rts():
         ],
         what="Custom gnatcov rts build",
     )
+    ccg_observe_objects("pre_testsuite.py: after gprbuild")
 
     # Flag it as externally built
     amend_file(
