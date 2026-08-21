@@ -55,6 +55,12 @@ Glossary of terms & concepts
       Violation>` are expected, and explicitly marked as such with a mandatory
       justification text.
 
+   Fine Grained Exemption
+      Like an :term:`exemption region <Exemption Region>`, but for a precise
+      source coverage obligation. For instance: the outcome True of a given
+      decision (for decision coverage), or the independent influence of a given
+      condition (for MCDC).
+
    Incremental Coverage Analysis
       The process of constructing a consolidated coverage result incrementally,
       using a single checkpoint file to accumulate new info about discharged

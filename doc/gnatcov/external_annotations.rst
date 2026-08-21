@@ -104,6 +104,91 @@ and |gcvaddan| will emit an error if not found on the command line.
         Justification message to be displayed in the coverage reports for the
         exempted region.
 
+* :cmd-option:`--kind=Exempt_Decision_Outcome`
+    Generate an annotation to exempt a :ref:`decision outcome
+    <fine_grained_exemption_decision_outcome>`.
+
+    :cmd-option:`--location=LINE:COL`
+        Source location for the exemption (i.e. where the annotation would be
+        placed in the source code).
+
+    :cmd-option:`--outcome=true|false`
+        Outcome to exempt.
+
+    :cmd-option:`[--decision=OFFSET]`
+        Decision offset for the exemption.
+
+    :cmd-option:`[--justification=MESSAGE]`
+        Justification message to be displayed in the coverage reports for the
+        exempted obligation.
+
+* :cmd-option:`--kind=Exempt_Decision_Condition`
+    Generate an annotation to exempt a :ref:`decision condition
+    <fine_grained_exemption_decision_condition>`.
+
+    :cmd-option:`--location=LINE:COL`
+        Source location for the exemption (i.e. where the annotation would be
+        placed in the source code).
+
+    :cmd-option:`--condition=INDEX`
+        Index of the condition for the exemption. First condition from left to
+        right in the source order is at index 1.
+
+    :cmd-option:`[--decision=OFFSET]`
+        Decision offset for the exemption.
+
+    :cmd-option:`[--justification=MESSAGE]`
+        Justification message to be displayed in the coverage reports for the
+        exempted obligation.
+
+* :cmd-option:`--kind=Exempt_Full_Decision`
+    Generate an annotation to exempt :ref:`all outcomes and conditions
+    <fine_grained_exemption_full_decision>`.
+
+    :cmd-option:`--location=LINE:COL`
+        Source location for the exemption (i.e. where the annotation would be
+        placed in the source code).
+
+    :cmd-option:`[--decision=OFFSET]`
+        Decision offset for the exemption.
+
+    :cmd-option:`[--justification=MESSAGE]`
+        Justification message to be displayed in the coverage reports for the
+        exempted obligation.
+
+* :cmd-option:`--kind=Exempt_Branch`
+    Generate an annotation to exempt :ref:`a branch
+    <fine_grained_exemption_branch>`.
+
+    :cmd-option:`--location=LINE:COL`
+        Source location for the exemption (i.e. where the annotation would be
+        placed in the source code).
+
+    :cmd-option:`[--justification=MESSAGE]`
+        Justification message to be displayed in the coverage reports for the
+        exempted obligation.
+
+* :cmd-option:`--kind=Manual_Decision_Evaluation`
+    Generate an annotation to insert :ref:`a manual decision evaluation
+    <fine_grained_exemption_manual_decision_evaluation>`.
+
+    :cmd-option:`--location=LINE:COL`
+        Source location for the exemption (i.e. where the annotation would be
+        placed in the source code).
+
+    :cmd-option:`--values=VALUES`
+        Valuations for all conditions in the decision (even the ones masked due
+        to short-circuiting operators). ``F`` for false valuations, ``T`` for
+        true valuations. For instance: ``--values=TTF`` for ``(A and then B) or
+        else C``.
+
+    :cmd-option:`[--decision=OFFSET]`
+        Decision offset for the exemption.
+
+    :cmd-option:`[--justification=MESSAGE]`
+        Justification message to be displayed in the coverage reports for the
+        exempted obligation.
+
 * :cmd-option:`--kind=Cov_Off`
     Generate an annotation symbolizing the beginning of a :ref:`disabled
     coverage region <disable_cov>`.
