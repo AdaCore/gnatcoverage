@@ -2799,6 +2799,15 @@ package body Instrument.C is
                   UIC.Pass.Insert_Text_After (UIC, Get_While_Loc (N), +TB);
                   TB := +"";
 
+                  --  Close the current block, which contain the last
+                  --  statements in the loop body, so that evaluating the
+                  --  condition does not mark these statements as covered
+                  --  (in case a "continue" statement skips these statements
+                  --  and jumps directly to the condition).
+
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
+
                   --  Process the while decision
 
                   Add_SCO_And_Instrument_Statement
