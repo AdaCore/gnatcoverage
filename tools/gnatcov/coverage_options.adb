@@ -314,7 +314,7 @@ package body Coverage_Options is
                Res :=
                  Res
                  & " [--decision=OFFSET]"
-                 & " --evaluation=EVALUATION"
+                 & " --values=VALUES"
                  & " --justification=MESSAGE";
 
             when Exempt_Branch              =>
