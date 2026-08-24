@@ -1532,7 +1532,7 @@ package body SS_Annotations is
                procedure Add_File
                  (Project : GPR2.Project.View.Object;
                   File    : GPR2.Build.Source.Object);
-               --  Callabck for Enumerate_Sources: append File to Source_Files
+               --  Callback for Enumerate_Sources: append File to Source_Files
 
                --------------
                -- Add_File --
