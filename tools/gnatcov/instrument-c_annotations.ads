@@ -21,6 +21,7 @@
 with Ada.Containers.Ordered_Maps;
 
 with Instrument.C; use Instrument.C;
+with Slocs;
 
 package Instrument.C_Annotations is
 
@@ -32,6 +33,31 @@ package Instrument.C_Annotations is
    --  Look for exemption / disabling coverage markers in the source code and
    --  fill UIC.Annotations (and also UIC.Disable_Cov_Regions for disabling
    --  coverage markers) accordingly.
+
+   procedure Iterate_Source_Annotations
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        access procedure
+          (Annot : ALI_Annotation; Span : Slocs.Local_Source_Location_Range));
+   --  Call Process for each in-source GNATCOV_* annotation comment that
+   --  Filename contains, in source order. Lang is the language to analyze
+   --  Filename as.
+   --
+   --  Span designates the comment itself, i.e. the very text that materializes
+   --  the annotation. Note that its Last_Sloc is exclusive: it designates the
+   --  first character past the comment.
+   --
+   --  Unlike Populate_Annotations above, this parses Filename on its own, with
+   --  clang's single-file mode: it needs none of the compiler switches of the
+   --  project, it reports locations in the original file rather than in a
+   --  preprocessed one, and, because tokenization re-lexes the raw source, it
+   --  also sees annotations sitting in code that conditional preprocessor
+   --  directives would exclude. Comments are still found by clang's own lexer,
+   --  so what we extract is exactly what the instrumenter would honour.
+   --
+   --  Comments that are not valid Xcov annotations are skipped, with a
+   --  warning.
 
    ----------------------------------
    -- Text buffer based processing --

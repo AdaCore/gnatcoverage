@@ -452,6 +452,34 @@ package body Switches is
       end if;
    end To_Language_Or_All;
 
+   --------------------
+   -- Guess_Language --
+   --------------------
+
+   function Guess_Language
+     (File : GNATCOLL.VFS.Virtual_File) return Any_Language
+   is
+      use GNATCOLL.VFS;
+      --  Kept local: at package level, this would make the "+" and Create
+      --  operations for filenames ambiguous with the ones used elsewhere here.
+
+      Ext : constant String := +File.File_Extension;
+   begin
+      if Ext in ".c" | ".h" then
+         return C_Language;
+      elsif Ext in ".cc" | ".cpp" | ".cxx" | ".C" | ".hh" | ".hpp" | ".hxx"
+      then
+         return CPP_Language;
+      elsif Ext in ".adb" | ".ads"
+        or else File.Has_Suffix (".1.ada")
+        or else File.Has_Suffix (".2.ada")
+      then
+         return Ada_Language;
+      else
+         return All_Languages;
+      end if;
+   end Guess_Language;
+
    -----------
    -- Image --
    -----------

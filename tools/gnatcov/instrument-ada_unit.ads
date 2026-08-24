@@ -36,6 +36,7 @@ with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;
 with Instrument.Ada_Unit_Provider;
 with Instrument.Common; use Instrument.Common;
+with Slocs;
 with Switches;
 
 package Instrument.Ada_Unit is
@@ -158,6 +159,32 @@ package Instrument.Ada_Unit is
      (Self      : in out Ada_Instrumenter_Type;
       Unit_Name : String;
       Process   : access procedure (Filename : Virtual_File));
+
+   procedure Iterate_Source_Annotations
+     (Self    : in out Ada_Instrumenter_Type;
+      Source  : GNATCOLL.VFS.Virtual_File;
+      Process :
+        access procedure
+          (Annot : ALI_Annotation; Span : Slocs.Local_Source_Location_Range));
+   --  Call Process for each in-source annotation, i.e. each
+   --
+   --     pragma Annotate (Xcov, ...);
+   --
+   --  that Source contains, in source order.
+   --
+   --  Span designates the pragma node itself, i.e. the very text that
+   --  materializes the annotation. Note that its Last_Sloc is exclusive: it
+   --  designates the first character past the pragma.
+   --
+   --  Pragmas that are not valid Xcov annotations are skipped, with a warning.
+
+   procedure Iterate_Comments
+     (Self    : in out Ada_Instrumenter_Type;
+      Source  : GNATCOLL.VFS.Virtual_File;
+      Process : access procedure (Span : Slocs.Local_Source_Location_Range));
+   --  Call Process on every comment that Source contains, in source order.
+   --  Span is the extent of the comment, its Last_Sloc designating the first
+   --  character past it.
 
    procedure Save_Config_Pragmas_Mapping (Filename : String);
    --  Create a configuration pragmas mapping for the loaded project and write
