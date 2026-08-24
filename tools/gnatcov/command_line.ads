@@ -565,12 +565,12 @@ package Command_Line is
         Create
           (Name        => "show-annotations",
            Description =>
-             "Show the annotations stored in EXT_FILENAME that apply to FILES,"
-             & " if present or to the project sources. Optionally filter the"
-             & " kind of annotations to show with --kind.",
+             "Show the annotations stored in EXT_FILENAME that apply to"
+             & " FILENAMEs, if present or to the project sources. Optionally"
+             & " filter the kind of annotations to show with --kind.",
            Pattern     =>
              "--external-annotations=EXT_FILENAME [--kind=KIND] [OPTIONS]"
-             & " [FILENAME]",
+             & " [FILENAMEs]",
            Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
