@@ -1503,52 +1503,57 @@ package body SS_Annotations is
       --  Build the file list. Use all the project source files if no files
       --  have been explicitly requested on the command line
 
-      if Args.Remaining_Args.Is_Empty then
-         declare
-            Source_Files : String_Vectors.Vector;
-            Files        : File_Array_Access;
-            I            : Positive := 1;
+      declare
+         procedure Get_Matches (Source_Files : String_Vectors.Vector);
+         --  Set Match_Results to all DB entries that match the given source
+         --  files.
 
-            procedure Add_File
-              (Project : GPR2.Project.View.Object;
-               File    : GPR2.Build.Source.Object);
-            --  Callabck for Enumerate_Sources: append File to Source_Files
+         -----------------
+         -- Get_Matches --
+         -----------------
 
-            --------------
-            -- Add_File --
-            --------------
-
-            procedure Add_File
-              (Project : GPR2.Project.View.Object;
-               File    : GPR2.Build.Source.Object)
-            is
-               pragma Unreferenced (Project);
-            begin
-               Source_Files.Append (+String (File.Path_Name.Value));
-            end Add_File;
+         procedure Get_Matches (Source_Files : String_Vectors.Vector) is
+            Files : File_Array_Access;
          begin
-            Project.Enumerate_Sources (Add_File'Access, All_Languages);
-            Files := new File_Array (1 .. Positive (Source_Files.Length));
-            for F of Source_Files loop
-               Files.all (I) := Create (+(+F));
-               I := I + 1;
+            Files := new File_Array (1 .. Source_Files.Last_Index);
+            for Cur in Source_Files.Iterate loop
+               Files.all (String_Vectors.To_Index (Cur)) :=
+                 Create (+(+String_Vectors.Element (Cur)));
             end loop;
             Match_Results :=
-              Match_Entries (Files.all, Ext_Annotation_DB, +Purpose_Filter);
+              Match_Entries (Files.all, Valid_Annotation_DB, +Purpose_Filter);
             GNATCOLL.VFS.Unchecked_Free (Files);
-         end;
-      else
-         declare
-            Files : File_Array (1 .. Positive (Args.Remaining_Args.Length));
-         begin
-            for I in 1 .. Files'Last loop
-               Files (I) :=
-                 Create (+(US.To_String (Args.Remaining_Args.Element (I))));
-            end loop;
-            Match_Results :=
-              Match_Entries (Files, Valid_Annotation_DB, +Purpose_Filter);
-         end;
-      end if;
+         end Get_Matches;
+      begin
+         if Args.Remaining_Args.Is_Empty then
+            declare
+               Source_Files : String_Vectors.Vector;
+
+               procedure Add_File
+                 (Project : GPR2.Project.View.Object;
+                  File    : GPR2.Build.Source.Object);
+               --  Callabck for Enumerate_Sources: append File to Source_Files
+
+               --------------
+               -- Add_File --
+               --------------
+
+               procedure Add_File
+                 (Project : GPR2.Project.View.Object;
+                  File    : GPR2.Build.Source.Object)
+               is
+                  pragma Unreferenced (Project);
+               begin
+                  Source_Files.Append (+String (File.Path_Name.Value));
+               end Add_File;
+            begin
+               Project.Enumerate_Sources (Add_File'Access, All_Languages);
+               Get_Matches (Source_Files);
+            end;
+         else
+            Get_Matches (Args.Remaining_Args);
+         end if;
+      end;
 
       --  Post-process the match results and display the annotations
 
