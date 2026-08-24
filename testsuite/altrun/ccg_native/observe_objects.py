@@ -7,13 +7,20 @@ rts_dir = os.path.join(
 )
 
 label = sys.argv[1]
+
+lines = []
+
+lines.append(f"# {label}")
+objfiles = glob.glob(os.path.join(rts_dir, "*.o"))
+if objfiles:
+    lines.append(f"Object files in {rts_dir}:")
+    for filename in objfiles:
+        lines.append(f"* {filename}")
+else:
+    lines.append(f"No object file in {rts_dir}")
+lines.append("")
+
+content = "".join("\n" + line for line in lines)
+
 with open(os.environ["CCG_DEBUG_FILE"], "a") as f:
-    print("#", label, file=f)
-    objfiles = glob.glob(os.path.join(rts_dir, "*.o"))
-    if objfiles:
-        print(f"Object files in {rts_dir}:", file=f)
-        for filename in objfiles:
-            print("* ", filename, file=f)
-    else:
-        print(f"No object file in {rts_dir}", file=f)
-    print("", file=f)
+    f.write(content)
