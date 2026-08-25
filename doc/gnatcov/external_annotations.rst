@@ -424,7 +424,7 @@ emitted individually.
 .. _xtr_in_place:
 
 Removing the in-source annotations
-==================================
+----------------------------------
 
 With :cmd-option:`-i`, |gcvxtran| also deletes the extracted annotations from
 the sources, so that each annotation is expressed in exactly one place. **The
