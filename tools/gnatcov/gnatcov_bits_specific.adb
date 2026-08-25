@@ -27,6 +27,7 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
+with GPR2.Build.Jobserver;
 with GPR2.Project.Registry.Exchange;
 
 with Snames;
@@ -103,6 +104,12 @@ procedure GNATcov_Bits_Specific is
    --  driver (see gnatcov.adb) is supposed to run this main.
 
    use all type Unbounded_String;
+
+   Make_JS : GPR2.Build.Jobserver.Object;
+   --  The make jobserver to obey, if gnatcov was spawned from a make recipe.
+   --  Passed down to LibGPR2 when running the instrumentation actions. One
+   --  that was never connected simply reports itself unavailable, and the
+   --  actions then run without one.
 
    --  Results of the command line processing. It is filled by
    --  Process_Arguments once Switches.Args reached its final state.
@@ -1858,6 +1865,13 @@ procedure GNATcov_Bits_Specific is
    --  Start of processing for GNATcov
 
 begin
+   --  Must stay the very first statement: MAKEFLAGS advertises the jobserver
+   --  as bare descriptor numbers when relying on simple UNIX pipes, and make
+   --  may have closed them behind our back. Any file or pipe we open before
+   --  connecting to it would be given those very numbers, and we would end up
+   --  reading a pipe of our own, waiting forever for a token nobody can write.
+
+   Make_JS.Initialize_Protocol;
 
    --  Load arguments from command-line and from the project file (if any),
    --  then update our local state according to them. Create an artificial
@@ -2074,7 +2088,8 @@ begin
                RTS_Source_Dirs       => Setup_Cfg.RTS_Source_Dirs,
                Excluded_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null),
-               Mains                 => Args.Remaining_Args);
+               Mains                 => Args.Remaining_Args,
+               Make_JS               => Make_JS);
          end;
          if Args.String_Args (Opt_Dump_Debug).Present then
             Instrument.Debug_Dump.Write_Debug_Dump_File

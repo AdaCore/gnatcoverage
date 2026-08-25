@@ -34,6 +34,7 @@ with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Actions_Scheduler;
+with GPR2.Build.Jobserver;
 with GPR2.Build.Source;
 with GPR2.Build.Source.Sets;
 with GPR2.Build.Tree_Db;
@@ -93,7 +94,8 @@ procedure Instrument.Projects
   (Dump_Config           : Any_Dump_Config;
    RTS_Source_Dirs       : File_Vectors.Vector;
    Excluded_Source_Files : access GNAT.Regexp.Regexp;
-   Mains                 : String_Vectors.Vector)
+   Mains                 : String_Vectors.Vector;
+   Make_JS               : in out GPR2.Build.Jobserver.Object)
 is
    use type GPR2.Language_Id;
    use type GPR2.Unit_Kind;
@@ -632,7 +634,7 @@ is
             Opt : constant Act_Sched.Options :=
               (Force => Force, Keep_Temp_Files => Save_Temps, others => <>);
          begin
-            case Tree_Db.Execute (Scheduler, Opt) is
+            case Tree_Db.Execute (Scheduler, Opt, Make_JS) is
                when Act_Sched.Success =>
                   null;
 
