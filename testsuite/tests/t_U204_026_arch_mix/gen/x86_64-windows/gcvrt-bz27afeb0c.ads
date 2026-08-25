@@ -4,7 +4,7 @@ with System;
 with GNATcov_RTS.Buffers;       use GNATcov_RTS.Buffers;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
-package GCVRT.Bz3791e32c is
+package GCVRT.Bz27afeb0c is
    pragma Preelaborate;
 
    package Buffers_1 is
@@ -84,6 +84,6 @@ package GCVRT.Bz3791e32c is
      );
    C_Buffers_Group : aliased constant GNATcov_RTS_Coverage_Buffers_Group :=
       ( 2, Buffers_Group'Address);
-   pragma Export (C, C_Buffers_Group, "gnatcov_rts_buffers_z3791e32c_buffers");
+   pragma Export (C, C_Buffers_Group, "gnatcov_rts_buffers_z27afeb0c_buffers");
 
-end GCVRT.Bz3791e32c;
+end GCVRT.Bz27afeb0c;

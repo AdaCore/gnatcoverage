@@ -5,7 +5,7 @@ with GNATcov_RTS;
 with GNATcov_RTS.Buffers;
 pragma Compile_Time_Error (GNATcov_RTS.Version /= 12 ,"Incompatible GNATcov_RTS version, please use the GNATcov_RTS project provided with your GNATcoverage distribution.");
 
-package GCVRT.Pz3791e32c is
+package GCVRT.Pz27afeb0c is
    pragma Pure;
 
    package Buffers_1 is
@@ -30,4 +30,4 @@ package GCVRT.Pz3791e32c is
    end Buffers_2;
 
 
-end GCVRT.Pz3791e32c;
+end GCVRT.Pz27afeb0c;
