@@ -24,6 +24,8 @@ with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with GNATCOLL.VFS;
+
 with GPR2;
 with GPR2.Build.Command_Line;
 
@@ -255,6 +257,15 @@ package Switches is
 
    function To_Language_Or_All (Name : String) return Any_Language;
    --  Like To_Language, but return All_Languages if Name is invalid
+
+   function Guess_Language
+     (File : GNATCOLL.VFS.Virtual_File) return Any_Language;
+   --  Guess the language of File from its name alone. Return All_Languages if
+   --  no known extension matches.
+   --
+   --  This is a heuristic, for use when no project file can tell the language
+   --  of a source: the extensions a project associates with a language are
+   --  configurable.
 
    function Image (Language : Some_Language) return String;
    --  Return a human-readable name for the given language

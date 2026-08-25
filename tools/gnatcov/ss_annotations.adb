@@ -41,7 +41,6 @@ with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;
 with Paths;             use Paths;
 with Project;           use Project;
-with Switches;          use Switches;
 with Switches_GPR;      use Switches_GPR;
 
 package body SS_Annotations is
@@ -169,9 +168,6 @@ package body SS_Annotations is
    --  This function will reject source locations with a 0 for the line or the
    --  column.
 
-   function Guess_Lang (File : Virtual_File) return Any_Language;
-   --  Try to guess the language of file based on its extension.
-
    procedure Validate_Annotation
      (Identifier : Unbounded_String; Entr : Entry_View);
    --  Helper for the above procedure, validate a single entry, if it is ok
@@ -180,6 +176,54 @@ package body SS_Annotations is
    procedure Check_New_Entry_Diags (Diags : Load_Diagnostic_Arr);
    --  Check if Diags is empty, and if not error out while displaying the
    --  diagnostics.
+
+   function Default_Identifier
+     (Kind : Any_Annotation_Kind; File : Virtual_File; Span : Sloc_Span)
+      return Unbounded_String;
+   --  Return the identifier to use for the annotation of the given Kind
+   --  covering Span in File, when the user did not provide one explicitly.
+
+   function To_TOML
+     (Kind         : Any_Annotation_Kind;
+      Annot        : ALI_Annotation;
+      Insert_After : Boolean := False) return TOML.TOML_Value
+   with Pre => Kind /= Unknown;
+   --  Return the TOML table describing an annotation of the given Kind, taking
+   --  all kind-specific fields from Annot.
+   --
+   --  Annot's own kind is expected to be consistent with Kind, with the
+   --  exception of Kind = Exempt_Region, for which Annot is expected to be an
+   --  Exempt_On annotation: ALI_Annotation designates a single source
+   --  location, so it cannot represent a whole region on its own.
+   --
+   --  Insert_After is relevant for buffer annotations only, and conveys
+   --  whether the generated code should go after the designated location
+   --  rather than before it.
+
+   procedure Create_Entry
+     (DB               : in out Entry_DB;
+      Identifier       : Unbounded_String;
+      Annotation       : TOML.TOML_Value;
+      File             : Virtual_File;
+      Span             : Sloc_Span;
+      Source           : GPR2.Build.Source.Object;
+      Backend          : Unbounded_String := Null_Unbounded_String;
+      File_Prefix      : Unbounded_String := Null_Unbounded_String;
+      Explicit_Backend : Boolean := False;
+      Language         : Any_Language := All_Languages);
+   --  Add to DB the entry named Identifier, described by Annotation, and
+   --  designating Span in File.
+   --
+   --  Backend is the Stable_Sloc matcher kind to use. If empty, it is deduced
+   --  from the language of File: "lal_context" for Ada, "clang_context" for
+   --  C/C++, using Source to determine that language when a project is
+   --  loaded, and falling back on the file extension otherwise. Unless
+   --  Explicit_Backend is set, failing to create such a self-relocating entry
+   --  is not fatal: we retry with the "absolute" backend and warn about it.
+   --
+   --  File_Prefix is the prefix to strip from File's name in the created
+   --  entry. If empty and a project is loaded, compute it so that the entry
+   --  designates File through the shortest unambiguous name.
 
    ---------------------
    -- Annotation_Kind --
@@ -912,6 +956,309 @@ package body SS_Annotations is
       return Res;
    end Get_Disabled_Cov_Annotations;
 
+   ------------------------
+   -- Default_Identifier --
+   ------------------------
+
+   function Default_Identifier
+     (Kind : Any_Annotation_Kind; File : Virtual_File; Span : Sloc_Span)
+      return Unbounded_String
+   is (+Kind_Image (Kind)
+       & "-"
+       & Hex_Image
+           (Unsigned_32
+              (Ada.Strings.Hash
+                 (File.Display_Full_Name
+                  & Slocs.Image (+Span.Start_Sloc)
+                  & Slocs.Image (+Span.End_Sloc)))));
+
+   -------------
+   -- To_TOML --
+   -------------
+
+   function To_TOML
+     (Kind         : Any_Annotation_Kind;
+      Annot        : ALI_Annotation;
+      Insert_After : Boolean := False) return TOML.TOML_Value
+   is
+      use TOML;
+
+      Result : constant TOML_Value := Create_Table;
+
+      function Decision_Offset return TOML_Value
+      is (Create_Integer (Any_Integer (Annot.Exemption_Req.Decision_Offset)));
+   begin
+      Result.Set ("purpose", Create_String (To_Ada (Purpose (Kind))));
+
+      case Kind is
+         when Exempt_On
+            | Exempt_Region
+            | Fine_Grained_Annotation_Kind
+            | Cov_Off                      =>
+            Result.Set ("justification", Create_String (Annot.Justification));
+
+            case Kind is
+               when Exempt_Decision_Outcome    =>
+                  Result.Set
+                    ("outcome", Create_Boolean (Annot.Exemption_Req.Outcome));
+                  Result.Set ("decision", Decision_Offset);
+
+               when Exempt_Decision_Condition  =>
+                  Result.Set
+                    ("condition",
+                     Create_Integer
+                       (Any_Integer (Annot.Exemption_Req.Condition)));
+                  Result.Set ("decision", Decision_Offset);
+
+               when Exempt_Full_Decision       =>
+                  Result.Set ("decision", Decision_Offset);
+
+               when Manual_Decision_Evaluation =>
+                  declare
+                     Values : constant TOML_Value := Create_Array;
+                  begin
+                     for V of Annot.Exemption_Req.Condition_Values loop
+
+                        --  Guard against Unknown tristates: they have no
+                        --  boolean counterpart, and To_Boolean would raise.
+
+                        Values.Append
+                          (Create_Boolean
+                             (V in Known_Tristate and then To_Boolean (V)));
+                     end loop;
+                     Result.Set ("values", Values);
+                  end;
+                  Result.Set ("decision", Decision_Offset);
+
+               when others                     =>
+                  null;
+            end case;
+
+         when Dump_Buffers | Reset_Buffers =>
+            Result.Set ("insert_after", Create_Boolean (Insert_After));
+
+            if Kind = Dump_Buffers and then Annot.Prefix /= "" then
+               Result.Set ("trace_prefix", Create_String (Annot.Prefix));
+            end if;
+
+         when Exempt_Off | Cov_On          =>
+            null;
+
+         when Unknown                      =>
+            raise Program_Error with "Unreachable";
+      end case;
+
+      return Result;
+   end To_TOML;
+
+   ------------------
+   -- Create_Entry --
+   ------------------
+
+   procedure Create_Entry
+     (DB               : in out Entry_DB;
+      Identifier       : Unbounded_String;
+      Annotation       : TOML.TOML_Value;
+      File             : Virtual_File;
+      Span             : Sloc_Span;
+      Source           : GPR2.Build.Source.Object;
+      Backend          : Unbounded_String := Null_Unbounded_String;
+      File_Prefix      : Unbounded_String := Null_Unbounded_String;
+      Explicit_Backend : Boolean := False;
+      Language         : Any_Language := All_Languages)
+   is
+      SS_Backend  : Unbounded_String := Backend;
+      Prefix      : Unbounded_String := File_Prefix;
+      Actual_Lang : Any_Language := Language;
+   begin
+      --  Determine the backend to be used depending on the language, if not
+      --  specified by the caller.
+
+      if US.Length (SS_Backend) = 0 then
+
+         --  If the caller did not tell us and we have a project loaded, use it
+         --  to determine the file language.
+
+         if Actual_Lang = All_Languages
+           and then Is_Project_Loaded
+           and then Source.Is_Defined
+         then
+            Actual_Lang := To_Language_Or_All (Source.Language);
+         end if;
+
+         --  If this failed or we have no project at hand, revert to simple
+         --  heuristics.
+
+         if Actual_Lang = All_Languages then
+            Actual_Lang := Guess_Language (File);
+         end if;
+
+         case Actual_Lang is
+            when Ada_Language              =>
+               SS_Backend := +"lal_context";
+
+            when C_Language | CPP_Language =>
+               SS_Backend := +"clang_context";
+
+            when All_Languages             =>
+
+               --  This should not hit but maybe with rust coverage we may
+               --  hit this?
+
+               SS_Backend := +"absolute";
+         end case;
+      end if;
+
+      --  Compute a file prefix if there isn't one already specified, and we
+      --  have a project at hand.
+
+      if US.Length (Prefix) = 0
+        and then Is_Project_Loaded
+        and then Source.Is_Defined
+      then
+         case To_Language_Or_All (Source.Language) is
+            when Ada_Language =>
+
+               --  Ada source files are guaranteed to be unique in a project,
+               --  so use the directory name as file prefix to end-up with only
+               --  the base name.
+
+               Prefix := US.To_Unbounded_String (+File.Dir_Name);
+
+            when others       =>
+               --  For other sources, check if the source is unique in the
+               --  tree, if so, do the same thing.
+
+               declare
+                  Count    : Natural := 0;
+                  Basename : constant GPR2.Simple_Name :=
+                    Source.Path_Name.Simple_Name;
+                  Prj_Dir  : constant Virtual_File :=
+                    Create (+String (Source.Owning_View.Dir_Name.Value));
+                  Rel_Path : constant String :=
+                    +Create (Relative_Path (File, Prj_Dir)).Dir_Name;
+               begin
+                  for View of Project.Project loop
+                     declare
+                        S : constant GPR2.Build.Source.Object :=
+                          View.Source (Basename);
+                     begin
+                        if S.Is_Defined then
+                           Count := Count + 1;
+                        end if;
+                     end;
+                  end loop;
+
+                  --  If the basename is ambiguous, use the relative path from
+                  --  the project to the file, if it has no relative path
+                  --  components (./ or ..).
+
+                  if Count > 1 then
+                     if Has_Relative_Component (Rel_Path) then
+                        Warn
+                          ("Could not generate adequate file prefix from"
+                           & " project, use --source-root if necessary.");
+                     else
+                        Prefix := US.To_Unbounded_String (Rel_Path);
+                     end if;
+                  else
+                     Prefix := US.To_Unbounded_String (+File.Dir_Name);
+                  end if;
+               end;
+         end case;
+      end if;
+
+      declare
+         Diags : constant Load_Diagnostic_Arr :=
+           Add_Or_Update_Entry
+             (DB          => DB,
+              Identifier  => Identifier,
+              Annotation  => Annotation,
+              Kind        => SS_Backend,
+              File        => File,
+              Span        => Span,
+              File_Prefix => Prefix);
+      begin
+         --  Do not fallback if we have an explicit backend specified by the
+         --  caller, or if the backend is already "absolute"
+
+         if Diags'Length /= 0
+           and then SS_Backend /= "absolute"
+           and then not Explicit_Backend
+         then
+            --  Try again, but with the "absolute" backend. If that fails do
+            --  not log a warning about the first attempt.
+
+            declare
+               Msg       : Unbounded_String :=
+                 +("Could not create an auto-relocating annotation for "
+                   & File.Display_Full_Name
+                   & ":"
+                   & Image (Span)
+                   & ", creating an absolute location annotation instead.");
+               Abs_Diags : constant Load_Diagnostic_Arr :=
+                 Add_Or_Update_Entry
+                   (DB          => DB,
+                    Identifier  => Identifier,
+                    Annotation  => Annotation,
+                    Kind        => +"absolute",
+                    File        => File,
+                    Span        => Span,
+                    File_Prefix => Prefix);
+            begin
+               Check_New_Entry_Diags (Abs_Diags);
+
+               if Ext_Annotation_Trace.Is_Active then
+                  Msg := Msg & (ASCII.LF & "Error was: ");
+
+                  for Diag of Diags loop
+                     Msg := Msg & (ASCII.LF & Format_Diagnostic (Diag));
+                  end loop;
+               end if;
+               Warn (+Msg);
+            end;
+         else
+            Check_New_Entry_Diags (Diags);
+         end if;
+      end;
+   end Create_Entry;
+
+   ------------------------------
+   -- Add_Extracted_Annotation --
+   ------------------------------
+
+   procedure Add_Extracted_Annotation
+     (DB           : in out Stable_Sloc.Entry_DB;
+      Kind         : Any_Annotation_Kind;
+      Annot        : ALI_Annotation;
+      File         : GNATCOLL.VFS.Virtual_File;
+      Span         : Slocs.Local_Source_Location_Range;
+      Lang         : Any_Language := All_Languages;
+      Insert_After : Boolean := False)
+   is
+      SS_Span : constant Sloc_Span := (+Span.First_Sloc, +Span.Last_Sloc);
+      Source  : GPR2.Build.Source.Object;
+   begin
+      --  Look up the GPR2 source for File, so that Create_Entry can determine
+      --  its language and an adequate file prefix. This is optional: without a
+      --  project, Create_Entry falls back on the file extension.
+
+      if Is_Project_Loaded then
+         Source :=
+           Project.Lookup_Source
+             (Create (File.Full_Name, Normalize => True).Display_Full_Name);
+      end if;
+
+      Create_Entry
+        (DB         => DB,
+         Identifier => Default_Identifier (Kind, File, SS_Span),
+         Annotation => To_TOML (Kind, Annot, Insert_After),
+         File       => File,
+         Span       => SS_Span,
+         Source     => Source,
+         Language   => Lang);
+   end Add_Extracted_Annotation;
+
    --------------------
    -- Add_Annotation --
    --------------------
@@ -924,12 +1271,11 @@ package body SS_Annotations is
       End_Sloc      : Slocs.Local_Source_Location;
       Target_File   : Virtual_File;
       Output_File   : Virtual_File;
-      Language      : Any_Language := All_Languages;
       Justification : Unbounded_String;
       Outcome       : Boolean;
       Condition     : Condition_Index;
       Decision      : Natural;
-      Values        : TOML_Value;
+      Values        : Condition_Evaluation_Vectors.Vector;
 
       function "+" (Opt : Command_Line.String_Options) return Unbounded_String
       is (Parser.Value_Or_Null (Args.String_Args (Opt)));
@@ -973,12 +1319,11 @@ package body SS_Annotations is
       New_Annot_DB  : Entry_DB;
       Entry_Purpose : Ada_Qualified_Name;
       Entry_Id      : Unbounded_String := +Opt_Annotation_Id;
-      Annotation    : constant TOML_Value := Create_Table;
-      SS_Backend    : Unbounded_String := +Opt_SS_Backend;
-      File_Prefix   : Unbounded_String := +Opt_Source_Root;
+      SS_Backend    : constant Unbounded_String := +Opt_SS_Backend;
+      File_Prefix   : constant Unbounded_String := +Opt_Source_Root;
       Source        : GPR2.Build.Source.Object;
 
-      --  Start of processing for Add_Annotatino
+      --  Start of processing for Add_Annotation
    begin
       --  First, determine the kind of annotation we'll be generating
 
@@ -1107,12 +1452,11 @@ package body SS_Annotations is
 
             elsif Annot_Kind = Manual_Decision_Evaluation then
                if Args.String_Args (Opt_Values).Present then
-                  Values := Create_Array;
                   for C of "+" (Args.String_Args (Opt_Values).Value) loop
                      if C = 'T' then
-                        Values.Append (Create_Boolean (True));
+                        Values.Append (SC_Obligations.True);
                      elsif C = 'F' then
-                        Values.Append (Create_Boolean (False));
+                        Values.Append (SC_Obligations.False);
                      else
                         Fatal_Error (Invalid_Switch_Msg (Opt_Values));
                      end if;
@@ -1142,222 +1486,112 @@ package body SS_Annotations is
       --  Generate the annotation in isolation and report if there are any
       --  issues.
       --
-      --  First, generate an entry identifier if not specified, from the
-      --  annotation kind and original source location range.
-
-      if US.Length (Entry_Id) = 0 then
-         Entry_Id := +Kind_Image (Annot_Kind);
-         Entry_Id :=
-           Entry_Id
-           & "-"
-           & Hex_Image
-               (Unsigned_32
-                  (Ada.Strings.Hash
-                     (Target_File.Display_Full_Name
-                      & Slocs.Image (Start_Sloc)
-                      & Slocs.Image (End_Sloc))));
-      end if;
-
-      Entry_Purpose := Purpose (Annot_Kind);
-      Annotation.Set ("purpose", Create_String (To_Ada (Entry_Purpose)));
-
-      --  Add annotation kind specific fields
-
-      case Annot_Kind is
-         when Exempt_On
-            | Exempt_Region
-            | Exempt_Decision_Outcome
-            | Exempt_Decision_Condition
-            | Exempt_Full_Decision
-            | Manual_Decision_Evaluation
-            | Exempt_Branch
-            | Cov_Off                      =>
-            Annotation.Set ("justification", Create_String (Justification));
-
-            if Annot_Kind = Exempt_Decision_Outcome then
-               Annotation.Set ("outcome", Create_Boolean (Outcome));
-               Annotation.Set
-                 ("decision", Create_Integer (Any_Integer (Decision)));
-            elsif Annot_Kind = Exempt_Decision_Condition then
-               Annotation.Set
-                 ("condition", Create_Integer (Any_Integer (Condition)));
-               Annotation.Set
-                 ("decision", Create_Integer (Any_Integer (Decision)));
-            elsif Annot_Kind = Exempt_Full_Decision then
-               Annotation.Set
-                 ("decision", Create_Integer (Any_Integer (Decision)));
-            elsif Annot_Kind = Manual_Decision_Evaluation then
-               Annotation.Set ("values", Values);
-               Annotation.Set
-                 ("decision", Create_Integer (Any_Integer (Decision)));
-            end if;
-
-         when Dump_Buffers | Reset_Buffers =>
-            Annotation.Set
-              ("insert_after",
-               Create_Boolean (Args.Bool_Args (Opt_Annotate_After)));
-
-            if Annot_Kind = Dump_Buffers
-              and then Args.String_Args (Opt_Dump_Filename_Prefix).Present
-            then
-               Annotation.Set
-                 ("trace_prefix",
-                  Create_String
-                    (Args.String_Args (Opt_Dump_Filename_Prefix).Value));
-            end if;
-
-         when Exempt_Off | Cov_On          =>
-            null;
-
-         when Unknown                      =>
-            raise Program_Error with "Unreachable";
-      end case;
-
-      --  Determine the backend to be used depending on the language, if not
-      --  specified on the command line.
-
-      if US.Length (SS_Backend) = 0 then
-
-         --  If we have a project loaded, use it to determine the file language
-
-         if Is_Project_Loaded then
-            Language := To_Language_Or_All (Source.Language);
-         end if;
-
-         --  If this failed or we have no project at hand, revert to simple
-         --  heuristics.
-
-         if Language = All_Languages then
-            Language := Guess_Lang (Target_File);
-         end if;
-
-         case Language is
-            when Ada_Language              =>
-               SS_Backend := +"lal_context";
-
-            when C_Language | CPP_Language =>
-               SS_Backend := +"clang_context";
-
-            when All_Languages             =>
-
-               --  This should not hit but maybe with rust coverage we may
-               --  hit this?
-
-               SS_Backend := +"absolute";
-         end case;
-      end if;
-
-      --  Compute a File prefix if there isn't one already specified, and we
-      --  have a project at hand.
-
-      if US.Length (File_Prefix) = 0 and then Is_Project_Loaded then
-         case To_Language_Or_All (Source.Language) is
-            when Ada_Language =>
-
-               --  Ada source files are guaranteed to be unique in a project,
-               --  so use the directory name as file prefix to end-up with only
-               --  the base name.
-
-               File_Prefix := US.To_Unbounded_String (+Target_File.Dir_Name);
-
-            when others       =>
-               --  For other sources, check if the source is unique in the
-               --  tree, if so, do the same thing.
-
-               declare
-                  Count    : Natural := 0;
-                  Basename : constant GPR2.Simple_Name :=
-                    Source.Path_Name.Simple_Name;
-                  Prj_Dir  : constant Virtual_File :=
-                    Create (+String (Source.Owning_View.Dir_Name.Value));
-                  Rel_Path : constant String :=
-                    +Create (Relative_Path (Target_File, Prj_Dir)).Dir_Name;
-               begin
-                  for View of Project.Project loop
-                     declare
-                        S : constant GPR2.Build.Source.Object :=
-                          View.Source (Basename);
-                     begin
-                        if S.Is_Defined then
-                           Count := Count + 1;
-                        end if;
-                     end;
-                  end loop;
-
-                  --  If the basename is ambiguous, use the relative path from
-                  --  the project to the file, if it has no relative path
-                  --  components (./ or ..).
-
-                  if Count > 1 then
-                     if Has_Relative_Component (Rel_Path) then
-                        Warn
-                          ("Could not generate adequate file prefix from"
-                           & " project, use --source-root if necessary.");
-                     else
-                        File_Prefix := US.To_Unbounded_String (Rel_Path);
-                     end if;
-                  else
-                     File_Prefix :=
-                       US.To_Unbounded_String (+Target_File.Dir_Name);
-                  end if;
-               end;
-         end case;
-      end if;
+      --  Gather the kind-specific details from the command line into an
+      --  ALI_Annotation, so that the mapping from annotation details to their
+      --  TOML representation lives in a single place (To_TOML), shared with
+      --  the extract-annotations command.
 
       declare
          Target_Span : constant Sloc_Span := (+Start_Sloc, +End_Sloc);
-         Diags       : constant Load_Diagnostic_Arr :=
-           Add_Or_Update_Entry
-             (DB          => New_Annot_DB,
-              Identifier  => Entry_Id,
-              Annotation  => Annotation,
-              Kind        => SS_Backend,
-              File        => Target_File,
-              Span        => Target_Span,
-              File_Prefix => File_Prefix);
+
+         function Annotation return TOML_Value;
+         --  Build the TOML description for the requested annotation
+
+         ----------------
+         -- Annotation --
+         ----------------
+
+         function Annotation return TOML_Value is
+
+            --  ALI_Annotation designates a single source location, so it
+            --  cannot represent a whole region: describe Exempt_Region through
+            --  its Exempt_On counterpart, from which To_TOML only needs the
+            --  justification.
+
+            Annot_Repr : constant Src_Annotation_Kind :=
+              (if Annot_Kind = Exempt_Region then Exempt_On else Annot_Kind);
+            Annot      : ALI_Annotation (Annot_Repr);
+         begin
+            case Annot_Repr is
+               when Exempt_On | Exempt_Off | Cov_Off | Cov_On =>
+                  Annot.Justification := Justification;
+
+               when Fine_Grained_Annotation_Kind              =>
+                  Annot.Justification := Justification;
+
+                  case Fine_Grained_Annotation_Kind'(Annot_Repr) is
+                     when Exempt_Decision_Outcome    =>
+                        Annot.Exemption_Req :=
+                          (Kind            => Decision_Outcome,
+                           Sloc            => Slocs.No_Location,
+                           Decision_Offset => Decision,
+                           Outcome         => Outcome);
+
+                     when Exempt_Decision_Condition  =>
+                        Annot.Exemption_Req :=
+                          (Kind            => Decision_Condition,
+                           Sloc            => Slocs.No_Location,
+                           Decision_Offset => Decision,
+                           Condition       => Condition);
+
+                     when Exempt_Full_Decision       =>
+                        Annot.Exemption_Req :=
+                          (Kind            => Full_Decision,
+                           Sloc            => Slocs.No_Location,
+                           Decision_Offset => Decision);
+
+                     when Manual_Decision_Evaluation =>
+                        Annot.Exemption_Req :=
+                          (Kind             => Manual_Decision_Evaluation,
+                           Sloc             => Slocs.No_Location,
+                           Decision_Offset  => Decision,
+                           Condition_Values => Values);
+
+                     when Exempt_Branch              =>
+                        Annot.Exemption_Req :=
+                          (Kind => Branch, Sloc => Slocs.No_Location);
+                  end case;
+
+               when Dump_Buffers                              =>
+                  if Args.String_Args (Opt_Dump_Filename_Prefix).Present then
+                     Annot.Prefix :=
+                       Args.String_Args (Opt_Dump_Filename_Prefix).Value;
+                  end if;
+
+               when Reset_Buffers                             =>
+                  null;
+            end case;
+
+            return
+              To_TOML
+                (Kind         => Annot_Kind,
+                 Annot        => Annot,
+                 Insert_After => Args.Bool_Args (Opt_Annotate_After));
+         end Annotation;
+
+         --  Start of processing for the entry creation
+
       begin
-         --  Do not fallback if we have an explicit backend specified on
-         --  command line, or if the backend is already "absolute"
+         --  Generate an entry identifier if not specified, from the annotation
+         --  kind and original source location range.
 
-         if Diags'Length /= 0
-           and then SS_Backend /= "absolute"
-           and then not Args.String_Args (Opt_SS_Backend).Present
-         then
-            --  Try again, but with the "absolute" backend. If that fails do
-            --  not log a warning about the first attempt.
-
-            declare
-               Msg       : Unbounded_String :=
-                 +("Could not create an auto-relocating annotation for "
-                   & Target_File.Display_Full_Name
-                   & ":"
-                   & Image (Target_Span)
-                   & ", creating an absolute location annotation instead.");
-               Abs_Diags : constant Load_Diagnostic_Arr :=
-                 Add_Or_Update_Entry
-                   (DB          => New_Annot_DB,
-                    Identifier  => Entry_Id,
-                    Annotation  => Annotation,
-                    Kind        => +"absolute",
-                    File        => Target_File,
-                    Span        => Target_Span,
-                    File_Prefix => File_Prefix);
-            begin
-               Check_New_Entry_Diags (Abs_Diags);
-
-               if Ext_Annotation_Trace.Is_Active then
-                  Msg := Msg & (ASCII.LF & "Error was: ");
-
-                  for Diag of Diags loop
-                     Msg := Msg & (ASCII.LF & Format_Diagnostic (Diag));
-                  end loop;
-               end if;
-               Warn (+Msg);
-            end;
-         else
-            Check_New_Entry_Diags (Diags);
+         if US.Length (Entry_Id) = 0 then
+            Entry_Id :=
+              Default_Identifier (Annot_Kind, Target_File, Target_Span);
          end if;
 
+         Entry_Purpose := Purpose (Annot_Kind);
+
+         Create_Entry
+           (DB               => New_Annot_DB,
+            Identifier       => Entry_Id,
+            Annotation       => Annotation,
+            File             => Target_File,
+            Span             => Target_Span,
+            Source           => Source,
+            Backend          => SS_Backend,
+            File_Prefix      => File_Prefix,
+            Explicit_Backend => Args.String_Args (Opt_SS_Backend).Present);
       end;
 
       --  Check if there already is an entry with the same identifier in the
@@ -1503,52 +1737,57 @@ package body SS_Annotations is
       --  Build the file list. Use all the project source files if no files
       --  have been explicitly requested on the command line
 
-      if Args.Remaining_Args.Is_Empty then
-         declare
-            Source_Files : String_Vectors.Vector;
-            Files        : File_Array_Access;
-            I            : Positive := 1;
+      declare
+         procedure Get_Matches (Source_Files : String_Vectors.Vector);
+         --  Set Match_Results to all DB entries that match the given source
+         --  files.
 
-            procedure Add_File
-              (Project : GPR2.Project.View.Object;
-               File    : GPR2.Build.Source.Object);
-            --  Callabck for Enumerate_Sources: append File to Source_Files
+         -----------------
+         -- Get_Matches --
+         -----------------
 
-            --------------
-            -- Add_File --
-            --------------
-
-            procedure Add_File
-              (Project : GPR2.Project.View.Object;
-               File    : GPR2.Build.Source.Object)
-            is
-               pragma Unreferenced (Project);
-            begin
-               Source_Files.Append (+String (File.Path_Name.Value));
-            end Add_File;
+         procedure Get_Matches (Source_Files : String_Vectors.Vector) is
+            Files : File_Array_Access;
          begin
-            Project.Enumerate_Sources (Add_File'Access, All_Languages);
-            Files := new File_Array (1 .. Positive (Source_Files.Length));
-            for F of Source_Files loop
-               Files.all (I) := Create (+(+F));
-               I := I + 1;
+            Files := new File_Array (1 .. Source_Files.Last_Index);
+            for Cur in Source_Files.Iterate loop
+               Files.all (String_Vectors.To_Index (Cur)) :=
+                 Create (+(+String_Vectors.Element (Cur)));
             end loop;
             Match_Results :=
-              Match_Entries (Files.all, Ext_Annotation_DB, +Purpose_Filter);
+              Match_Entries (Files.all, Valid_Annotation_DB, +Purpose_Filter);
             GNATCOLL.VFS.Unchecked_Free (Files);
-         end;
-      else
-         declare
-            Files : File_Array (1 .. Positive (Args.Remaining_Args.Length));
-         begin
-            for I in 1 .. Files'Last loop
-               Files (I) :=
-                 Create (+(US.To_String (Args.Remaining_Args.Element (I))));
-            end loop;
-            Match_Results :=
-              Match_Entries (Files, Valid_Annotation_DB, +Purpose_Filter);
-         end;
-      end if;
+         end Get_Matches;
+      begin
+         if Args.Remaining_Args.Is_Empty then
+            declare
+               Source_Files : String_Vectors.Vector;
+
+               procedure Add_File
+                 (Project : GPR2.Project.View.Object;
+                  File    : GPR2.Build.Source.Object);
+               --  Callback for Enumerate_Sources: append File to Source_Files
+
+               --------------
+               -- Add_File --
+               --------------
+
+               procedure Add_File
+                 (Project : GPR2.Project.View.Object;
+                  File    : GPR2.Build.Source.Object)
+               is
+                  pragma Unreferenced (Project);
+               begin
+                  Source_Files.Append (+String (File.Path_Name.Value));
+               end Add_File;
+            begin
+               Project.Enumerate_Sources (Add_File'Access, All_Languages);
+               Get_Matches (Source_Files);
+            end;
+         else
+            Get_Matches (Args.Remaining_Args);
+         end if;
+      end;
 
       --  Post-process the match results and display the annotations
 
@@ -1676,32 +1915,6 @@ package body SS_Annotations is
       end;
 
    end Show_Annotations;
-
-   ----------------
-   -- Guess_Lang --
-   ----------------
-
-   function Guess_Lang (File : Virtual_File) return Any_Language is
-      Ext : constant String := +File.File_Extension;
-   begin
-      if Ext = ".h" or else Ext = ".c" then
-         return C_Language;
-      elsif Ext = ".hh"
-        or else Ext = ".cc"
-        or else Ext = ".hpp"
-        or else Ext = ".cpp"
-      then
-         return CPP_Language;
-      elsif Ext = ".adb"
-        or else Ext = ".ads"
-        or else File.Has_Suffix (".1.ada")
-        or else File.Has_Suffix (".2.ada")
-      then
-         return Ada_Language;
-      else
-         return All_Languages;
-      end if;
-   end Guess_Lang;
 
    --------------------------
    -- Validate_Annotations --

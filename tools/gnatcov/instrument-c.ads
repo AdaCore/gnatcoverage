@@ -520,6 +520,27 @@ package Instrument.C is
    --    C_String_Literal ("a\b") = """a\\b"""
    --    C_String_Literal ("a""b") = """a\""b"""
 
+   procedure Iterate_Comments
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        not null access procedure
+          (Comment : Unbounded_String; First, Last : Source_Location));
+   --  Call Process on every comment that Filename contains, in source order.
+   --  Comment is the full spelling of the comment, including its delimiters,
+   --  and First .. Last is its extent, Last designating the first character
+   --  past it.
+   --
+   --  Filename is analyzed as Lang, on its own: clang's single-file mode
+   --  inhibits the processing of #include directives, so this needs none of
+   --  the compiler switches of the project and stays cheap.
+   --
+   --  We only ever tokenize the result, and clang_tokenize re-lexes the raw
+   --  source range rather than replaying the preprocessor. Two things follow:
+   --  an incomplete parse is harmless (missing headers included), and comments
+   --  are reported wherever they sit, including in the blocks that conditional
+   --  directives exclude.
+
 private
 
    function Find_Instrumented_Entities

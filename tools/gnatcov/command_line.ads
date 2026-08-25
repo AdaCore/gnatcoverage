@@ -69,7 +69,8 @@ package Command_Line is
 
       Cmd_Add_Annotation,
       Cmd_Delete_Annotation,
-      Cmd_Show_Annotations);
+      Cmd_Show_Annotations,
+      Cmd_Extract_Annotations);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -108,7 +109,8 @@ package Command_Line is
       Opt_Main,
       Opt_UOI,
       Opt_Force_Parallelism,
-      Opt_No_Auto_Source_Relocation);
+      Opt_No_Auto_Source_Relocation,
+      Opt_In_Place);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -221,7 +223,7 @@ package Command_Line is
      Static_Predicate => Cmd_All_Setups in Cmd_Setup | Cmd_Setup_Integration;
 
    subtype Cmd_All_Annotate is
-     Command_Type range Cmd_Add_Annotation .. Cmd_Show_Annotations;
+     Command_Type range Cmd_Add_Annotation .. Cmd_Extract_Annotations;
 
    subtype Commands_With_Parallelism is
      Command_Type range Cmd_Instrument_Project .. Cmd_Instrument_Project;
@@ -565,12 +567,30 @@ package Command_Line is
         Create
           (Name        => "show-annotations",
            Description =>
-             "Show the annotations stored in EXT_FILENAME that apply to FILES,"
-             & " if present or to the project sources. Optionally filter the"
-             & " kind of annotations to show with --kind.",
+             "Show the annotations stored in EXT_FILENAME that apply to"
+             & " FILENAMEs, if present or to the project sources. Optionally"
+             & " filter the kind of annotations to show with --kind.",
            Pattern     =>
              "--external-annotations=EXT_FILENAME [--kind=KIND] [OPTIONS]"
-             & " [FILENAME]",
+             & " [FILENAMEs]",
+           Internal    => False),
+      Cmd_Extract_Annotations         =>
+        Create
+          (Name        => "extract-annotations",
+           Description =>
+             "Turn the in-source annotations of FILES, or of the project"
+             & " sources if no FILE is given, into external annotations, and"
+             & " write them to OUTPUT_FILENAME together with any annotation"
+             & " loaded through --external-annotations."
+             & ASCII.LF
+             & ASCII.LF
+             & "With -i, the in-source annotations are also removed from the"
+             & " sources: the generated annotations then designate the sources"
+             & " as rewritten. This is a one-shot migration, and it modifies"
+             & " the sources in place.",
+           Pattern     =>
+             "--output=OUTPUT_FILENAME [--external-annotations=FILENAME] [-i]"
+             & " [OPTIONS] [FILES]",
            Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -928,7 +948,17 @@ package Command_Line is
           (Long_Name => "--no-auto-source-relocation",
            Help      => "Disable the automatic source relocation",
            Commands  => (Cmd_Coverage => True, others => False),
-           Internal  => False));
+           Internal  => False),
+      Opt_In_Place                     =>
+        Create
+          (Long_Name  => "--in-place",
+           Short_Name => "-i",
+           Help       =>
+             "Remove the in-source annotations from the sources they were"
+             & " extracted from. The sources are modified in place: this is"
+             & " meant as a one-shot migration to external annotations.",
+           Commands   => (Cmd_Extract_Annotations => True, others => False),
+           Internal   => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>
@@ -1030,8 +1060,9 @@ package Command_Line is
               | Cmd_Dump_CFG
               | Cmd_Dump_Shared_Lib_Deps
               | Cmd_Add_Annotation
-              | Cmd_Delete_Annotation => True,
-              others                  => False),
+              | Cmd_Delete_Annotation
+              | Cmd_Extract_Annotations => True,
+              others                    => False),
            At_Most_Once => False,
            Internal     => False),
       Opt_Output_Directory       =>

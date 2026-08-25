@@ -42,6 +42,19 @@ package body Instrument.C_Annotations is
    --  * Group 3: Arguments (call syntax, possibly empty).
    --  * Group 4: Single argument (legacy syntax).
 
+   procedure Analyze_Comment
+     (Comment : Unbounded_String;
+      Sloc    : Source_Location;
+      Handled : out Boolean;
+      Result  : out ALI_Annotation);
+   --  Analyze Comment, the full spelling of a source comment (including its
+   --  "//" or "/*" "*/" delimiters) found at Sloc, as a potential GNATCOV_*
+   --  annotation.
+   --
+   --  If it is one, set Handled to True and Result to the decoded annotation.
+   --  Otherwise set Handled to False, emitting a warning if the comment looked
+   --  like an annotation but could not be decoded.
+
    function Slice_Sloc
      (Buffer      : Unbounded_String;
       Buffer_Sloc : Source_Location;
@@ -532,17 +545,18 @@ package body Instrument.C_Annotations is
    -- Populate_Annotations --
    --------------------------
 
-   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context) is
+   ---------------------
+   -- Analyze_Comment --
+   ---------------------
 
-      --  When processing a comment (in Process_Token below), source text and
-      --  source location for it. Indexes in matches (Match_Location values)
-      --  are relative to the Comment string.
-
-      Comment : Unbounded_String;
+   procedure Analyze_Comment
+     (Comment : Unbounded_String;
       Sloc    : Source_Location;
-
-      --  Tokens and syntax tree for argument lists when processing an
-      --  annotation.
+      Handled : out Boolean;
+      Result  : out ALI_Annotation)
+   is
+      --  Tokens and syntax tree for the annotation argument list. Indexes in
+      --  matches (Match_Location values) are relative to the Comment string.
 
       Tokens : Token_Vectors.Vector;
       Syntax : Syntax_Vectors.Vector;
@@ -566,13 +580,6 @@ package body Instrument.C_Annotations is
       is (Slice_Sloc (Tokens (Syntax (Self).Token).Match));
       --  Likewise, for a given syntax node
 
-      procedure Process_Token (Token : Token_T);
-      --  Try to parse an annotation in the given token
-
-      Last_Cov_Off : Source_Location := Slocs.No_Location;
-      --  Track the source location of the previous GNATCOV_COV_OFF annotation.
-      --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
-
       ---------
       -- Get --
       ---------
@@ -583,185 +590,216 @@ package body Instrument.C_Annotations is
          return Get ((T.Match.First, T.Match.Last));
       end Get;
 
+      First   : Positive;
+      Last    : Natural;
+      Matches : Match_Array (0 .. Paren_Count (Annotation_Pattern));
+      Kind    : Src_Annotation_Kind;
+
+      --  Start of processing for Analyze_Comment
+
+   begin
+      Handled := False;
+      Result := (Kind => Exempt_On, others => <>);
+
+      --  Extract the comment "content": remove the "//" prefix or the "/*"
+      --  and "*/" boundaries.
+
+      First := 1;
+      Last := Length (Comment);
+      if US.Slice (Comment, 1, 2) = "//" then
+         First := First + 2;
+      else
+         pragma Assert (US.Slice (Comment, 1, 2) = "/*");
+         pragma Assert (US.Slice (Comment, Last - 1, Last) = "*/");
+         First := First + 2;
+         Last := Last - 2;
+      end if;
+      Match (Annotation_Pattern, Comment, Matches, First, Last);
+      if Matches (0) = No_Match then
+         return;
+      end if;
+
+      --  Now extract the annotation kind
+
+      declare
+         Kind_Str : constant String := Get (Matches (2));
+      begin
+         Kind := Src_Annotation_Kind'Value (Kind_Str);
+      exception
+         when Constraint_Error =>
+            Report
+              (Slice_Sloc (Matches (1)),
+               "Invalid Xcov annotation kind: " & Get (Matches (1)),
+               Warning);
+            return;
+      end;
+      declare
+         A : ALI_Annotation (Kind);
+      begin
+         Result := A;
+      end;
+
+      --  Now that the annotation kind is known, validate the remaining
+      --  arguments expected for that kind.
+      --
+      --  Still support the legacy syntax, but emit a warning when used.
+
+      if Matches (4) /= No_Match then
+         declare
+            Justification : constant String := Get (Matches (4));
+         begin
+            Report
+              (Slice_Sloc (Matches (1)),
+               "Obsolete syntax, support will be removed in release 28."
+               & " Consider switching to: "
+               & Get (Matches (1))
+               & "("""
+               & Justification
+               & """)",
+               Warning);
+            if Result.Kind in Exempt_On | Cov_Off then
+               Result.Justification := +Justification;
+            end if;
+         end;
+
+      elsif Kind = Dump_Buffers then
+
+         --  GNATCOV_DUMP_BUFFERS takes an arbitrary C expression as its
+         --  argument. We cannot reasonably parse it here, so we have to
+         --  resort to a special case to analyze this annotation.
+
+         Result.Prefix := +Get (Matches (3));
+
+      else
+         declare
+            Root : Any_Syntax_Index := No_Syntax;
+         begin
+            --  First build the syntax tree for the argument list
+
+            if Matches (3) /= No_Match then
+               Parse_Expression
+                 (Comment, Sloc, Matches (3), Tokens, Syntax, Root);
+
+               --  We parse the expression only if the regular expression
+               --  matched the comment. This regular expression matches the
+               --  parens that surround the argument list, so we know that
+               --  we get an aggregate at the root expression.
+
+               pragma Assert (Syntax (Root).Kind = Aggregate);
+            end if;
+
+            --  Then decode individual arguments
+
+            declare
+               Args_Count : constant Natural :=
+                 (if Root = No_Syntax
+                  then 0
+                  else Aggregate_Length (Syntax, Root));
+               Args       : Annotation_Value_Array (1 .. Args_Count);
+               Next       : Any_Syntax_Index :=
+                 (if Root = No_Syntax
+                  then No_Syntax
+                  else Syntax (Root).Aggregate_First);
+            begin
+               for I in Args'Range loop
+                  declare
+                     E : constant Syntax_Index := Syntax (Next).Assoc_Expr;
+                     S : constant Source_Location := Syntax_Sloc (E);
+                  begin
+                     case Syntax (E).Kind is
+                        when String_Literal  =>
+
+                           --  Get the content of the string without the
+                           --  surrounding double quotes.
+
+                           declare
+                              Value : constant String := Get (E);
+                           begin
+                              Args (I) :=
+                                (String_Value,
+                                 S,
+                                 +Value (Value'First + 1 .. Value'Last - 1));
+                           end;
+
+                        when Integer_Literal =>
+                           declare
+                              Value_Str : constant String := Get (E);
+                              Value     : Integer;
+                           begin
+                              Value := Integer'Value (Value_Str);
+                              Args (I) := (Integer_Value, S, Value);
+                           exception
+                              when Constraint_Error =>
+                                 Report (S, "Too large integer", Warning);
+                                 return;
+                           end;
+
+                        when Boolean_Literal =>
+                           Args (I) := (Boolean_Value, S, Get (E) = "true");
+
+                        when others          =>
+                           Report (S, "Expression expected", Warning);
+                           return;
+                     end case;
+                  end;
+                  Next := Syntax (Next).Assoc_Next;
+               end loop;
+
+               --  Finally, extract annotation data from them
+
+               Parse_Annotation
+                 (Kind       => Kind,
+                  Sloc       => Sloc,
+                  Args       => Args,
+                  Annotation => Result);
+            end;
+         exception
+            when Invalid_Annotation_Argument_Error =>
+               return;
+         end;
+      end if;
+
+      Handled := True;
+   end Analyze_Comment;
+
+   --------------------------
+   -- Populate_Annotations --
+   --------------------------
+
+   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context) is
+
+      Last_Cov_Off : Source_Location := Slocs.No_Location;
+      --  Track the source location of the previous GNATCOV_COV_OFF annotation.
+      --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
+
+      procedure Process_Token (Token : Token_T);
+      --  Try to parse an annotation in the given token
+
       -------------------
       -- Process_Token --
       -------------------
 
       procedure Process_Token (Token : Token_T) is
-
+         Sloc    : Source_Location;
+         Handled : Boolean;
+         Result  : ALI_Annotation;
+      begin
          --  Skip this token if it's not a comment in which we can find a
          --  GNATCOV_* marker.
 
-         First   : Positive;
-         Last    : Natural;
-         Matches : Match_Array (0 .. Paren_Count (Annotation_Pattern));
-         Kind    : Src_Annotation_Kind;
-         Result  : ALI_Annotation;
-      begin
          if Get_Token_Kind (Token) /= Token_Comment then
             return;
          end if;
 
-         Comment := +Get_Token_Spelling (UIC.TU, Token);
-
-         --  Extract the comment "content": remove the "//" prefix or the "/*"
-         --  and "*/" boundaries.
-
-         First := 1;
-         Last := Length (Comment);
-         if US.Slice (Comment, 1, 2) = "//" then
-            First := First + 2;
-         else
-            pragma Assert (US.Slice (Comment, 1, 2) = "/*");
-            pragma Assert (US.Slice (Comment, Last - 1, Last) = "*/");
-            First := First + 2;
-            Last := Last - 2;
-         end if;
-         Match (Annotation_Pattern, Comment, Matches, First, Last);
-         if Matches (0) = No_Match then
-            return;
-         end if;
          Sloc := Instrument.C_Utils.Sloc (Get_Token_Location (UIC.TU, Token));
+         Analyze_Comment
+           (Comment => +Get_Token_Spelling (UIC.TU, Token),
+            Sloc    => Sloc,
+            Handled => Handled,
+            Result  => Result);
 
-         --  Now extract the annotation kind
-
-         declare
-            Kind_Str : constant String := Get (Matches (2));
-         begin
-            Kind := Src_Annotation_Kind'Value (Kind_Str);
-         exception
-            when Constraint_Error =>
-               Report
-                 (Slice_Sloc (Matches (1)),
-                  "Invalid Xcov annotation kind: " & Get (Matches (1)),
-                  Warning);
-               return;
-         end;
-         declare
-            A : ALI_Annotation (Kind);
-         begin
-            Result := A;
-         end;
-
-         --  Now that the annotation kind is known, validate the remaining
-         --  arguments expected for that kind.
-         --
-         --  Still support the legacy syntax, but emit a warning when used.
-
-         if Matches (4) /= No_Match then
-            declare
-               Justification : constant String := Get (Matches (4));
-            begin
-               Report
-                 (Slice_Sloc (Matches (1)),
-                  "Obsolete syntax, support will be removed in release 28."
-                  & " Consider switching to: "
-                  & Get (Matches (1))
-                  & "("""
-                  & Justification
-                  & """)",
-                  Warning);
-               if Result.Kind in Exempt_On | Cov_Off then
-                  Result.Justification := +Justification;
-               end if;
-            end;
-
-         elsif Kind = Dump_Buffers then
-
-            --  GNATCOV_DUMP_BUFFERS takes an arbitrary C expression as its
-            --  argument. We cannot reasonably parse it here, so we have to
-            --  resort to a special case to analyze this annotation.
-
-            Result.Prefix := +Get (Matches (3));
-
-         else
-            declare
-               Root : Any_Syntax_Index := No_Syntax;
-            begin
-               --  First build the syntax tree for the argument list
-
-               if Matches (3) /= No_Match then
-                  Parse_Expression
-                    (Comment, Sloc, Matches (3), Tokens, Syntax, Root);
-
-                  --  We parse the expression only if the regular expression
-                  --  matched the comment. This regular expression matches the
-                  --  parens that surround the argument list, so we know that
-                  --  we get an aggregate at the root expression.
-
-                  pragma Assert (Syntax (Root).Kind = Aggregate);
-               end if;
-
-               --  Then decode individual arguments
-
-               declare
-                  Args_Count : constant Natural :=
-                    (if Root = No_Syntax
-                     then 0
-                     else Aggregate_Length (Syntax, Root));
-                  Args       : Annotation_Value_Array (1 .. Args_Count);
-                  Next       : Any_Syntax_Index :=
-                    (if Root = No_Syntax
-                     then No_Syntax
-                     else Syntax (Root).Aggregate_First);
-               begin
-                  for I in Args'Range loop
-                     declare
-                        E : constant Syntax_Index := Syntax (Next).Assoc_Expr;
-                        S : constant Source_Location := Syntax_Sloc (E);
-                     begin
-                        case Syntax (E).Kind is
-                           when String_Literal  =>
-
-                              --  Get the content of the string without the
-                              --  surrounding double quotes.
-
-                              declare
-                                 Value : constant String := Get (E);
-                              begin
-                                 Args (I) :=
-                                   (String_Value,
-                                    S,
-                                    +Value
-                                       (Value'First + 1 .. Value'Last - 1));
-                              end;
-
-                           when Integer_Literal =>
-                              declare
-                                 Value_Str : constant String := Get (E);
-                                 Value     : Integer;
-                              begin
-                                 Value := Integer'Value (Value_Str);
-                                 Args (I) := (Integer_Value, S, Value);
-                              exception
-                                 when Constraint_Error =>
-                                    Report (S, "Too large integer", Warning);
-                                    return;
-                              end;
-
-                           when Boolean_Literal =>
-                              Args (I) := (Boolean_Value, S, Get (E) = "true");
-
-                           when others          =>
-                              Report (S, "Expression expected", Warning);
-                              return;
-                        end case;
-                     end;
-                     Next := Syntax (Next).Assoc_Next;
-                  end loop;
-
-                  --  Finally, extract annotation data from them
-
-                  Parse_Annotation
-                    (Kind       => Kind,
-                     Sloc       => Sloc,
-                     Args       => Args,
-                     Annotation => Result);
-               end;
-            exception
-               when Invalid_Annotation_Argument_Error =>
-                  return;
-            end;
+         if not Handled then
+            return;
          end if;
 
          --  Add an entry into UIC.Disable_Cov_Regions when needed
@@ -805,6 +843,41 @@ package body Instrument.C_Annotations is
       Iterate_Tokens
         (UIC.TU, Get_Translation_Unit_Cursor (UIC.TU), Process_Token'Access);
    end Populate_Annotations;
+
+   -------------------------------
+   -- Iterate_Source_Annotations --
+   -------------------------------
+
+   procedure Iterate_Source_Annotations
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        access procedure
+          (Annot : ALI_Annotation; Span : Local_Source_Location_Range))
+   is
+      procedure Process_Comment
+        (Comment : Unbounded_String; First, Last : Source_Location);
+      --  Report the annotation carried by Comment, if it carries one
+
+      ---------------------
+      -- Process_Comment --
+      ---------------------
+
+      procedure Process_Comment
+        (Comment : Unbounded_String; First, Last : Source_Location)
+      is
+         Handled : Boolean;
+         Result  : ALI_Annotation;
+      begin
+         Analyze_Comment (Comment, First, Handled, Result);
+         if Handled then
+            Process.all (Result, (First_Sloc => First.L, Last_Sloc => Last.L));
+         end if;
+      end Process_Comment;
+
+   begin
+      Iterate_Comments (Filename, Lang, Process_Comment'Access);
+   end Iterate_Source_Annotations;
 
    ---------------------
    -- Remap_Locations --
@@ -1089,5 +1162,4 @@ package body Instrument.C_Annotations is
          end loop;
       end;
    end Populate_Annotations;
-
 end Instrument.C_Annotations;

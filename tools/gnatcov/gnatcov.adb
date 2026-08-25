@@ -81,8 +81,10 @@ begin
 
           Args
           .Command
-        in Cmd_Setup | Cmd_Instrument | Cmd_Dump_Shared_Lib_Deps
-
+        in Cmd_Setup
+         | Cmd_Instrument
+         | Cmd_Dump_Shared_Lib_Deps
+         | Cmd_Extract_Annotations
         --  Otherwise, infer the gnatcov executable to use from the target
         --  option.
 
