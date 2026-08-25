@@ -1938,6 +1938,16 @@ package body Instrument.C is
       --  Helper for Visit_Children. Process every lambda expr under Cursor,
       --  _but_ the lambda expressions nested in other lambda expressions.
 
+      Nested_Throw : Boolean := False;
+      --  Whether N throws, outside of the body of a lambda
+
+      function Detect_Throw_Expr
+        (Cursor : Cursor_T) return Child_Visit_Result_T;
+      --  Helper for Visit. Set Nested_Throw if Cursor is a throw expression.
+      --  Skip the body of a lambda: it runs on call, like any other callee.
+      --  Do not skip its capture initializers: they run where the lambda is
+      --  built.
+
       procedure Process_Decisions
         (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character);
 
@@ -1959,6 +1969,32 @@ package body Instrument.C is
          end if;
          return Child_Visit_Recurse;
       end Process_Lambda_Expr;
+
+      -----------------------
+      -- Detect_Throw_Expr --
+      -----------------------
+
+      function Detect_Throw_Expr
+        (Cursor : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (Cursor) = Cursor_Lambda_Expr then
+            declare
+               Lambda_Body : constant Cursor_T := Get_Body (Cursor);
+            begin
+               for Child of Get_Children (Cursor) loop
+                  if Equal_Cursors (Child, Lambda_Body) = 0 then
+                     Visit (Child, Detect_Throw_Expr'Access);
+                  end if;
+               end loop;
+            end;
+            return Child_Visit_Continue;
+         elsif Kind (Cursor) = Cursor_CXX_Throw_Expr then
+            Nested_Throw := True;
+            return Child_Visit_Break;
+         else
+            return Child_Visit_Recurse;
+         end if;
+      end Detect_Throw_Expr;
 
       -----------------------
       -- Process_Decisions --
@@ -2457,6 +2493,16 @@ package body Instrument.C is
       end if;
 
       Visit (N, Process_Lambda_Expr'Access);
+
+      --  A nested throw transfers control out of the enclosing statement.
+      --  Close the block. Otherwise the statements that follow would share
+      --  its witness, and they are not reached when it throws.
+
+      Visit (N, Detect_Throw_Expr'Access);
+      if Nested_Throw then
+         UIC.Pass.End_Statement_Block (UIC);
+         UIC.Pass.Start_Statement_Block (UIC);
+      end if;
    end Process_Expression;
 
    -------------------------
@@ -2752,6 +2798,8 @@ package body Instrument.C is
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
                   Traverse_Statements (UIC, To_Vector (Case_Body), TB);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                end;
 
             when Cursor_While_Stmt                            =>
@@ -2792,6 +2840,15 @@ package body Instrument.C is
 
                   UIC.Pass.Insert_Text_After (UIC, Get_While_Loc (N), +TB);
                   TB := +"";
+
+                  --  Close the current block, which contain the last
+                  --  statements in the loop body, so that evaluating the
+                  --  condition does not mark these statements as covered
+                  --  (in case a "continue" statement skips these statements
+                  --  and jumps directly to the condition).
+
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
 
                   --  Process the while decision
 
@@ -2890,8 +2947,11 @@ package body Instrument.C is
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
-            when Cursor_Break_Stmt                            =>
-               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
+            when Cursor_Break_Stmt
+               | Cursor_Continue_Stmt
+               | Cursor_Return_Stmt
+               | Cursor_CXX_Throw_Expr                        =>
+               Instrument_Basic_Statement (N);
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
