@@ -626,7 +626,7 @@ package body Annotations is
      (Sloc : Source_Location) return Natural
    is
       use ALI_Annotation_Maps;
-      Cur : constant Cursor := Get_Annotation (Sloc);
+      Cur : constant Cursor := Get_Annotation (Sloc, Exemption);
    begin
       if Has_Element (Cur) then
          return Element (Cur).Violation_Count;
@@ -643,7 +643,7 @@ package body Annotations is
      (Sloc : Source_Location) return Natural
    is
       use ALI_Annotation_Maps;
-      Cur : constant Cursor := Get_Annotation (Sloc);
+      Cur : constant Cursor := Get_Annotation (Sloc, Exemption);
    begin
       if Has_Element (Cur) then
          return Element (Cur).Undetermined_Cov_Count;
@@ -660,7 +660,7 @@ package body Annotations is
      (Sloc : Source_Location) return Unbounded_String
    is
       use ALI_Annotation_Maps;
-      Cur : constant Cursor := Get_Annotation (Sloc);
+      Cur : constant Cursor := Get_Annotation (Sloc, Exemption);
    begin
       if Has_Element (Cur) then
          declare

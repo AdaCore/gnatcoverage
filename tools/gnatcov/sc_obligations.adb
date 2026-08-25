@@ -155,8 +155,11 @@ package body SC_Obligations is
       Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
       --  Scope tree, used to output e.g. subprogram metrics
 
-      ALI_Annotations : ALI_Annotation_Maps.Map;
-      --  List of annotations for the unit
+      Exempted_Regions : ALI_Annotation_Maps.Map;
+      --  Exempt_On/Exempt_Off annotations for the unit
+
+      Disabled_Regions : ALI_Annotation_Maps.Map;
+      --  Cov_Off/Cov_On annotations for the unit
 
       Fine_Grained_Exemptions : Exemption_Request_Maps.Map;
       --  Mapping of exempted SCOs to corresponding justifications for this
@@ -224,6 +227,113 @@ package body SC_Obligations is
    --
    --  Set Found to whether a relevant Branch_Info record was found, and if
    --  that is the case, set Info to it.
+
+   package ALI_Annotation_Cursor_Vectors is new
+     Ada.Containers.Vectors
+       (Positive,
+        ALI_Annotation_Maps.Cursor,
+        "=" => ALI_Annotation_Maps."=");
+
+   procedure Iterate_Annotations
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Cur          : ALI_Annotation_Maps.Cursor;
+           Sloc         : Source_Location;
+           Ann          : ALI_Annotation;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean));
+   --  Call Process once per annotation in Self, in source order (earlier slocs
+   --  first).
+   --
+   --  * Cur/Sloc/Ann are directly passed from the map.
+   --  * CU is the compilation unit that owns the source file for the
+   --    annotation.
+   --  * New_File is whether this is the first call to Process for the current
+   --    source file.
+   --  * Last_In_File is whether this is the last call to Process for the
+   --    current source file.
+
+   type Annotation_Region (Open : Boolean := False) is record
+      Sloc_Start : Source_Location;
+      Ann_Start  : ALI_Annotation;
+
+      case Open is
+         when False =>
+            Sloc_End : Source_Location;
+            Ann_End  : ALI_Annotation;
+
+         when True =>
+            null;
+      end case;
+   end record;
+   --  Annotation regions delimited by a first annotation
+   --  (Sloc_Start/Ann_Start) and possibly a second annotation
+   --  (Sloc_End/Ann_End). If the "end" annotation is missing, the region spans
+   --  until the end of the source file.
+
+   function Is_Start (Kind : Any_Annotation_Kind) return Boolean
+   is (Kind in Exempt_On | Cov_Off);
+   --  Whether Kind is an annotation that starts a region
+
+   function Is_End (Kind : Any_Annotation_Kind) return Boolean
+   is (Kind in Exempt_Off | Cov_On);
+   --  Whether Kind is an annotation that ends a region
+
+   function Same_Sloc_Range (Left, Right : Annotation_Region) return Boolean
+   is (Left.Open = Right.Open
+       and then Left.Sloc_Start = Right.Sloc_Start
+       and then (Left.Open or else Left.Sloc_End = Right.Sloc_End));
+   --  Return whether Left and Right designate exactly the same sloc range
+
+   procedure Compute_Regions
+     (Self             : ALI_Annotation_Maps.Map;
+      Exempted_Regions : out ALI_Annotation_Maps.Map;
+      Disabled_Regions : out ALI_Annotation_Maps.Map);
+   --  Iterate on Self to couple "start" annotations with "end" annotations and
+   --  store them in Exempted_Regions/Disabled_Regions.
+   --
+   --  Overlapping regions are discarded with a warning. Upon return,
+   --  Exempted_Regions and Disabled_Regions are guaranteed to contain well
+   --  formed regions:
+   --
+   --  * An Exempt_Off annotation is always preceeded by an Exempt_On
+   --    annotation in the same source file (resp. Cov_On/Cov_Off).
+   --
+   --  * An Exempt_On annotation is either the last annotation of its source
+   --    file, or it is followed by an Exempt_Off annotation in the same file
+   --    (resp. Cov_Off/Cov_On).
+
+   procedure Iterate_Regions
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Region       : Annotation_Region;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean));
+   --  Assuming that Self is a set of annotations for well-formed regions (see
+   --  Compute_Regions), call Process on each region it contains.
+   --
+   --  * Region is the region that is currently processed.
+   --  * CU is the compilation unit that owns the source file for the region.
+   --  * New_File is whether this is the first call to Process for the current
+   --    source file.
+   --  * Last_In_File is whether this is the last call to Process for the
+   --    current source file.
+
+   procedure Insert_Region
+     (Regions  : in out ALI_Annotation_Maps.Map;
+      Item     : Annotation_Region;
+      Inserted : out Boolean);
+   --  Assuming that Self is a set of annotations for well-formed regions (see
+   --  Compute_Regions), try to insert a new region to it.
+   --
+   --  This succeeds iff Item does not intersect with an existing region in
+   --  Regions: set Inserted to whether that was the case. If Item could not be
+   --  inserted and is not equal to an existing region in Regions, emit a
+   --  warning to say that it is discarded.
 
    package CU_Info_Vectors is new
      Ada.Containers.Vectors
@@ -1547,7 +1657,8 @@ package body SC_Obligations is
       Read (CLS, Value.Macro_Info_Map);
       Read (CLS, Value.Include_Info_Map);
       Read (CLS, Value.Scope_Entities);
-      Read (CLS, Value.ALI_Annotations);
+      Read (CLS, Value.Exempted_Regions);
+      Read (CLS, Value.Disabled_Regions);
       Read (CLS, Value.Fine_Grained_Exemptions);
       Read (CLS, Value.Branch_Map);
       Read (CLS, Value.SCOs);
@@ -2921,18 +3032,19 @@ package body SC_Obligations is
 
             Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
 
-            --  Remap ALI annotations and then merge them
+            --  Remap ALI annotations and then merge them (once for exempted
+            --  regions, once for disabled regions).
 
             declare
-               Remapped_Annotations : ALI_Annotation_Maps.Map :=
-                 CP_CU.ALI_Annotations;
+               Remapped_Annotations : ALI_Annotation_Maps.Map;
             begin
+               Remapped_Annotations := CP_CU.Exempted_Regions;
                Remap_ALI_Annotations (Relocs, Remapped_Annotations);
-               for Cur in Remapped_Annotations.Iterate loop
-                  Real_CU.ALI_Annotations.Include
-                    (ALI_Annotation_Maps.Key (Cur),
-                     ALI_Annotation_Maps.Element (Cur));
-               end loop;
+               Set_Annotations (Remapped_Annotations);
+
+               Remapped_Annotations := CP_CU.Disabled_Regions;
+               Remap_ALI_Annotations (Relocs, Remapped_Annotations);
+               Set_Annotations (Remapped_Annotations);
             end;
 
             --  Likewise for fine grained exemptions
@@ -3065,7 +3177,8 @@ package body SC_Obligations is
       Write (CSS, Value.Macro_Info_Map);
       Write (CSS, Value.Include_Info_Map);
       Write (CSS, Value.Scope_Entities);
-      Write (CSS, Value.ALI_Annotations);
+      Write (CSS, Value.Exempted_Regions);
+      Write (CSS, Value.Disabled_Regions);
       Write (CSS, Value.Fine_Grained_Exemptions);
       Write (CSS, Value.Branch_Map);
       Write (CSS, Value.SCOs);
@@ -3247,6 +3360,509 @@ package body SC_Obligations is
          Found := True;
       end if;
    end Lookup_Branch_Info;
+
+   -------------------------
+   -- Iterate_Annotations --
+   -------------------------
+
+   procedure Iterate_Annotations
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Cur          : ALI_Annotation_Maps.Cursor;
+           Sloc         : Source_Location;
+           Ann          : ALI_Annotation;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean))
+   is
+      use ALI_Annotation_Maps;
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      --  Current file being processed
+
+      Last_Cur      : Cursor := No_Element;
+      Last_Sloc     : Source_Location := No_Location;
+      Last_CU       : CU_Id := No_CU_Id;
+      Last_New_File : Boolean := False;
+      --  Iteration details from the previous rounds. We call Process one round
+      --  later so that we can determine whether the annotation passed was the
+      --  last of its file (Last_In_File).
+   begin
+      --  As a reminder, Source_Location sort on the file index first, so we
+      --  are guaranteed to have annotations grouped by source files.
+
+      for Cur in Self.Iterate loop
+         declare
+            Sloc     : constant Source_Location := Key (Cur);
+            New_File : constant Boolean := Sloc.Source_File /= Current_SFI;
+         begin
+            --  Find the CU that corresponds to the new source file
+
+            if New_File then
+               Current_SFI := Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+
+            if Last_Cur /= No_Element then
+               Process.all
+                 (Cur          => Last_Cur,
+                  Sloc         => Last_Sloc,
+                  Ann          => Element (Last_Cur),
+                  CU           => Last_CU,
+                  New_File     => Last_New_File,
+                  Last_In_File => New_File);
+            end if;
+            Last_Cur := Cur;
+            Last_Sloc := Sloc;
+            Last_CU := Current_CU;
+            Last_New_File := New_File;
+         end;
+      end loop;
+
+      --  Do not forget to process the last annotation
+
+      if Last_Cur /= No_Element then
+         Process.all
+           (Cur          => Last_Cur,
+            Sloc         => Last_Sloc,
+            Ann          => Element (Last_Cur),
+            CU           => Last_CU,
+            New_File     => Last_New_File,
+            Last_In_File => True);
+      end if;
+   end Iterate_Annotations;
+
+   ---------------------
+   -- Compute_Regions --
+   ---------------------
+
+   procedure Compute_Regions
+     (Self             : ALI_Annotation_Maps.Map;
+      Exempted_Regions : out ALI_Annotation_Maps.Map;
+      Disabled_Regions : out ALI_Annotation_Maps.Map)
+   is
+      Exempted_Stack : ALI_Annotation_Cursor_Vectors.Vector;
+      Disabled_Stack : ALI_Annotation_Cursor_Vectors.Vector;
+      --  Stacks to collect Exempt_On/Cov_Off annotations maintained during the
+      --  iteration on Annotations:
+      --
+      --  * Cursors for Exempt_On annotations are:
+      --    1. pushed to Exempted_Stack when processing an Exempt_On,
+      --    2. popped when processing an Exempt_Off.
+      --
+      --  * Cursors for Cov_Off annotations are:
+      --    1. pushed to Disabled_Stack when processing a Cov_Off,
+      --    2. popped when processing a Cov_On.
+      --
+      --  This allows us to keep track of which Exempt_On/Cov_Off annotation
+      --  should be paired when processing an Exempt_Off/Cov_On one, and thus
+      --  have user-friendly behavior in case of nested regions.
+
+      procedure Process
+        (Cur          : ALI_Annotation_Maps.Cursor;
+         Sloc         : Source_Location;
+         Ann          : ALI_Annotation;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean);
+      --  Callback for Iterate_Annotations: update the exemption stacks and
+      --  region maps to take into account the given annotation.
+
+      procedure Process_Region_Marker
+        (Cur        : ALI_Annotation_Maps.Cursor;
+         Sloc       : Source_Location;
+         Ann        : ALI_Annotation;
+         Start_Kind : Any_Annotation_Kind;
+         End_Kind   : Any_Annotation_Kind;
+         Regions    : in out ALI_Annotation_Maps.Map;
+         Stack      : in out ALI_Annotation_Cursor_Vectors.Vector);
+      --  Helper for Process: update the given Stack vector and Regions map.
+      --
+      --  Start_Kind and End_Kind indicate which annotation kinds should be
+      --  processed (the other kinds are ignored).
+
+      procedure File_End_Reset
+        (Regions : in out ALI_Annotation_Maps.Map;
+         Stack   : in out ALI_Annotation_Cursor_Vectors.Vector);
+      --  If Stack is not empty, create (in Regions) a region that starts from
+      --  its first element (to span until the end of the file) and discard the
+      --  others.
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process
+        (Cur          : ALI_Annotation_Maps.Cursor;
+         Sloc         : Source_Location;
+         Ann          : ALI_Annotation;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean)
+      is
+         pragma Unreferenced (CU, New_File);
+      begin
+         Process_Region_Marker
+           (Cur,
+            Sloc,
+            Ann,
+            Exempt_On,
+            Exempt_Off,
+            Exempted_Regions,
+            Exempted_Stack);
+         Process_Region_Marker
+           (Cur, Sloc, Ann, Cov_Off, Cov_On, Disabled_Regions, Disabled_Stack);
+
+         if Last_In_File then
+            File_End_Reset (Exempted_Regions, Exempted_Stack);
+            File_End_Reset (Disabled_Regions, Disabled_Stack);
+         end if;
+      end Process;
+
+      ---------------------------
+      -- Process_Region_Marker --
+      ---------------------------
+
+      procedure Process_Region_Marker
+        (Cur        : ALI_Annotation_Maps.Cursor;
+         Sloc       : Source_Location;
+         Ann        : ALI_Annotation;
+         Start_Kind : Any_Annotation_Kind;
+         End_Kind   : Any_Annotation_Kind;
+         Regions    : in out ALI_Annotation_Maps.Map;
+         Stack      : in out ALI_Annotation_Cursor_Vectors.Vector) is
+      begin
+         if Ann.Kind = Start_Kind then
+            if not Stack.Is_Empty then
+               Report
+                 (Sloc,
+                  "Ignoring annotation "
+                  & Ann.Kind'Image
+                  & ": nested regions are ignored",
+                  Kind => Warning);
+            end if;
+            Stack.Append (Cur);
+
+         elsif Ann.Kind = End_Kind then
+            if Stack.Is_Empty then
+               Report
+                 (Sloc,
+                  Ann.Kind'Image
+                  & " annotation found without a corresponding "
+                  & Start_Kind'Image,
+                  Kind => Warning);
+            else
+               if Stack.Length = 1 then
+                  declare
+                     use ALI_Annotation_Maps;
+                     Start_Cur : constant Cursor := Stack.Last_Element;
+                  begin
+                     Regions.Insert (Key (Start_Cur), Element (Start_Cur));
+                     Regions.Insert (Sloc, Ann);
+                  end;
+               end if;
+               Stack.Delete_Last;
+            end if;
+         end if;
+      end Process_Region_Marker;
+
+      --------------------
+      -- File_End_Reset --
+      --------------------
+
+      procedure File_End_Reset
+        (Regions : in out ALI_Annotation_Maps.Map;
+         Stack   : in out ALI_Annotation_Cursor_Vectors.Vector)
+      is
+         use ALI_Annotation_Maps;
+         Cur : Cursor;
+      begin
+         if Stack.Is_Empty then
+            return;
+         end if;
+
+         Cur := Stack.First_Element;
+         Regions.Insert (Key (Cur), Element (Cur));
+         Stack.Clear;
+      end File_End_Reset;
+
+      --  Start of processing for Compute_Regions
+
+   begin
+      Exempted_Regions.Clear;
+      Disabled_Regions.Clear;
+      Iterate_Annotations (Self, Process'Access);
+   end Compute_Regions;
+
+   ---------------------
+   -- Iterate_Regions --
+   ---------------------
+
+   procedure Iterate_Regions
+     (Self    : ALI_Annotation_Maps.Map;
+      Process :
+        access procedure
+          (Region       : Annotation_Region;
+           CU           : CU_Id;
+           New_File     : Boolean;
+           Last_In_File : Boolean))
+   is
+      use ALI_Annotation_Maps;
+
+      Current_Region : Annotation_Region :=
+        (Open => True, Sloc_Start => No_Location, others => <>);
+      --  Region that is being processed. It is updated each time we find an
+      --  annotation. After each call to Process, it is reset to this default
+      --  value (no region started) or to a value to start a new region.
+
+      function Has_Start return Boolean
+      is (Current_Region.Sloc_Start.Source_File /= No_Source_File);
+      --  Whether Current_Region is not empty
+
+      Last_New_File : Boolean := True;
+      --  Whether Current_Region contains annotations that belong to a new
+      --  source file (i.e. Process was not called yet, or the last call was
+      --  for another source file).
+
+      Last_CU : CU_Id := No_CU_Id;
+      --  CU for the current region. This may be different from Current_CU
+      --  because Process was not yet called for Current_Region while we are
+      --  processing an annotation for a new file.
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      --  File for the currently processed annotation
+   begin
+      for Cur in Self.Iterate loop
+         declare
+            Sloc     : constant Source_Location := Key (Cur);
+            Ann      : constant ALI_Annotation := Element (Cur);
+            New_File : constant Boolean := Sloc.Source_File /= Current_SFI;
+         begin
+            if New_File then
+               Current_SFI := Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+
+            if not Has_Start then
+
+               --  Current_Region is empty, so turn it into a region that
+               --  starts with Sloc/Ann.
+
+               pragma Assert (Is_Start (Ann.Kind));
+               Current_Region.Sloc_Start := Sloc;
+               Current_Region.Ann_Start := Ann;
+               Last_New_File := New_File;
+
+            --  In all the code below, we know that Current_Region is not
+            --  empty.
+
+            elsif New_File then
+
+               --  Ann belong to a new file, so it cannot contribute to
+               --  Current_Region: we have to call Process.
+
+               Process.all
+                 (Region       => Current_Region,
+                  CU           => Last_CU,
+                  New_File     => Last_New_File,
+                  Last_In_File => True);
+
+               --  Ann must start a new region
+
+               pragma Assert (Is_Start (Ann.Kind));
+               Current_Region :=
+                 (Open => True, Sloc_Start => Sloc, Ann_Start => Ann);
+               Last_New_File := True;
+
+            elsif Current_Region.Open then
+
+               --  Current_Region is open and Ann belongs to the same file, so
+               --  Ann must be the end bound of the current region.
+
+               pragma Assert (Is_End (Ann.Kind));
+               Current_Region :=
+                 (Open       => False,
+                  Sloc_Start => Current_Region.Sloc_Start,
+                  Ann_Start  => Current_Region.Ann_Start,
+                  Sloc_End   => Sloc,
+                  Ann_End    => Ann);
+
+            else
+               --  Current_Region is already complete, so Ann cannot contribute
+               --  to it: call Process to get rid of Current_Region and reset
+               --  it to a new region that starts at Ann.
+
+               Process.all
+                 (Region       => Current_Region,
+                  CU           => Last_CU,
+                  New_File     => Last_New_File,
+                  Last_In_File => False);
+
+               pragma Assert (Is_Start (Ann.Kind));
+               Current_Region :=
+                 (Open => True, Sloc_Start => Sloc, Ann_Start => Ann);
+               Last_New_File := False;
+            end if;
+
+            Last_CU := Current_CU;
+         end;
+      end loop;
+
+      --  If Process was not called on the current region, do it now
+
+      if Has_Start then
+         Process.all
+           (Region       => Current_Region,
+            CU           => Last_CU,
+            New_File     => Last_New_File,
+            Last_In_File => True);
+      end if;
+   end Iterate_Regions;
+
+   -------------------
+   -- Insert_Region --
+   -------------------
+
+   procedure Insert_Region
+     (Regions  : in out ALI_Annotation_Maps.Map;
+      Item     : Annotation_Region;
+      Inserted : out Boolean)
+   is
+      use ALI_Annotation_Maps;
+
+      function Same_File (Cur : Cursor) return Boolean
+      is (Has_Element (Cur)
+          and then Key (Cur).Source_File = Item.Sloc_Start.Source_File);
+      --  Return whether Cur points at an annotation that belong to the same
+      --  file as Item.
+
+      function Matches (Cur : Cursor) return Boolean
+      is (Same_File (Cur) and then Is_Start (Element (Cur).Kind));
+      --  Return whether Cur points at a region-starting annotation that
+      --  belongs to the same file as Item.
+
+      Cur        : Cursor := Regions.Floor (Item.Sloc_Start);
+      Intersects : Boolean;
+
+      --  Start of processing for Insert_Region
+   begin
+      --  Find an intersecting region (if any): set Intersects to False if
+      --  there is none. Otherwise, set it to True and have Cur point at the
+      --  annotation that starts the region that intersects with Item.
+      --
+      --  Note that sloc bounds are inclusive: if Left.Sloc_End =
+      --  Right.Sloc_Start, then we consider that Left and Right intersect.
+
+      if Regions.Is_Empty then
+         Intersects := False;
+
+      elsif Matches (Cur) then
+
+         --  A region starts before Item and ends after Item's start: it
+         --  intersects.
+
+         Intersects := True;
+
+      elsif Same_File (Cur)
+        and then Is_End (Element (Cur).Kind)
+        and then Key (Cur) = Item.Sloc_Start
+      then
+         --  We found a region that ends precisely where Item starts: they
+         --  intersect. Adjust Cur to refer to the corresponding Start marker.
+
+         Intersects := True;
+         Previous (Cur);
+         pragma Assert (Is_Start (Element (Cur).Kind));
+
+      else
+         --  Regions that start before Item also end before it: they do not
+         --  intersect with Item. However, maybe there is one starting between
+         --  Item's start and its end.
+
+         if Has_Element (Cur) then
+            Next (Cur);
+         else
+            Cur := Regions.First;
+         end if;
+
+         if Matches (Cur) then
+            pragma
+              Assert
+                (Item.Sloc_Start < Key (Cur)
+                   and then Is_Start (Element (Cur).Kind));
+            Intersects := Item.Open or else Key (Cur) <= Item.Sloc_End;
+         else
+            Intersects := False;
+         end if;
+      end if;
+
+      --  If there is an intersecting region, do not insert Item in Region, and
+      --  emit a warning if Item is not equal to the intersecting region.
+
+      if Intersects then
+         declare
+            Cur_End         : constant Cursor := Next (Cur);
+            Existing_Region : Annotation_Region;
+         begin
+            if Same_File (Cur_End) then
+               pragma Assert (Is_End (Element (Cur_End).Kind));
+               Existing_Region :=
+                 (Open       => False,
+                  Sloc_Start => Key (Cur),
+                  Ann_Start  => Element (Cur),
+                  Sloc_End   => Key (Cur_End),
+                  Ann_End    => Element (Cur_End));
+            else
+               Existing_Region :=
+                 (Open       => True,
+                  Sloc_Start => Key (Cur),
+                  Ann_Start  => Element (Cur));
+            end if;
+
+            if Existing_Region /= Item then
+
+               --  User-friendly special case for the warning on Exempt_On that
+               --  only differ by the justification message.
+
+               if Item.Ann_Start.Kind = Exempt_On
+                 and then Same_Sloc_Range (Existing_Region, Item)
+               then
+                  Report
+                    (Item.Sloc_Start, "Duplicate exemption region", Warning);
+                  Report
+                    (Item.Sloc_Start,
+                     "Discarding justification: "
+                     & (+Item.Ann_Start.Justification),
+                     Warning);
+                  Report
+                    (Item.Sloc_Start,
+                     "In favor of: "
+                     & (+Existing_Region.Ann_Start.Justification),
+                     Warning);
+               else
+                  Report
+                    (Item.Sloc_Start,
+                     "Ignoring annotation "
+                     & Item.Ann_Start.Kind'Image
+                     & " that intersects with region starting at "
+                     & Image (Existing_Region.Sloc_Start),
+                     Kind => Warning);
+               end if;
+            end if;
+            Inserted := False;
+         end;
+
+      else
+         Regions.Include (Item.Sloc_Start, Item.Ann_Start);
+         if not Item.Open then
+            Regions.Include (Item.Sloc_End, Item.Ann_End);
+         end if;
+         Inserted := True;
+      end if;
+   end Insert_Region;
 
    ---------------------
    -- Checkpoint_Load --
@@ -4337,7 +4953,9 @@ package body SC_Obligations is
       end if;
    end Image;
 
-   function Image (Self : Exemption_Request) return String is
+   function Image
+     (Self : Exemption_Request; Precise_Sloc : Boolean := False) return String
+   is
       Result : Unbounded_String;
    begin
       Append
@@ -4366,7 +4984,10 @@ package body SC_Obligations is
                   null;
             end case;
 
-            Append (Result, " of decision #" & Img (Self.Decision_Offset + 1));
+            if not Precise_Sloc then
+               Append
+                 (Result, " of decision #" & Img (Self.Decision_Offset + 1));
+            end if;
 
          when Branch                          =>
             null;
@@ -4380,6 +5001,23 @@ package body SC_Obligations is
       end if;
 
       return +Result;
+   end Image;
+
+   function Image (Self : Exemptable_SCO) return String is
+      Request : constant Exemption_Request :=
+        (case Self.Kind is
+           when Decision_Outcome   =>
+             (Kind            => Decision_Outcome,
+              Sloc            => First_Sloc (Self.SCO),
+              Decision_Offset => 0,
+              Outcome         => Self.Outcome),
+           when Decision_Condition =>
+             (Kind            => Decision_Condition,
+              Sloc            => First_Sloc (Enclosing_Decision (Self.SCO)),
+              Decision_Offset => 0,
+              Condition       => Index (Self.SCO)));
+   begin
+      return Image (Request, Precise_Sloc => True);
    end Image;
 
    ---------------
@@ -6455,85 +7093,128 @@ package body SC_Obligations is
    ---------------------
 
    procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map) is
-      Current_SFI : Source_File_Index := No_Source_File;
-      Current_CU  : CU_Id := No_CU_Id;
-      --  Current file being processed
-
-      Has_Relevant_Annotation : Boolean := False;
-      --  Whether at least one annotation was included in the annotations
-      --  fingerprint. If not, we want to keep the Annotations_Fingerprint
-      --  component set to the null hash, so that a unit with only-irrelevant
-      --  annotations has the same hash than a unit with no annotation at all.
-
       Hash_Ctx : Tracing_Hash;
       --  Hash context for the annotations fingerprint
 
-      procedure Set_Annotations_Fingerprint;
-      --  Set the annotations fingerprint for Current_CU if it is not null,
-      --  stored in Hash_Ctx.
+      procedure Process_Exempted_Region
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean);
+      --  Callback for Iterate_Regions for exemption annotations: try to insert
+      --  the given region in its CU's exemptions.
 
-      ---------------------------------
-      -- Set_Annotations_Fingerprint --
-      ---------------------------------
+      procedure Process_Disabled_Region
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean);
+      --  Callback for Iterate_Regions for coverage disabling annotations: try
+      --  to insert the given region in its CU's disabled regions, and in case
+      --  of success, update the annotations fingerprint accordingly.
 
-      procedure Set_Annotations_Fingerprint is
+      procedure Update_Hash
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean);
+      --  Contribute Region to the annotations fingerprint of CU
+
+      -----------------------------
+      -- Process_Exempted_Region --
+      -----------------------------
+
+      procedure Process_Exempted_Region
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean)
+      is
+         pragma Unreferenced (New_File, Last_In_File);
+         Dummy : Boolean;
       begin
-         if Current_CU /= No_CU_Id and then Has_Relevant_Annotation then
+         Insert_Region
+           (CU_Vector.Reference (CU).Exempted_Regions, Region, Dummy);
+      end Process_Exempted_Region;
+
+      -----------------------------
+      -- Process_Disabled_Region --
+      -----------------------------
+
+      procedure Process_Disabled_Region
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean)
+      is
+         Inserted : Boolean;
+      begin
+         Insert_Region
+           (CU_Vector.Reference (CU).Disabled_Regions, Region, Inserted);
+         if Inserted then
+            Update_Hash (Region, CU, New_File, Last_In_File);
+         end if;
+      end Process_Disabled_Region;
+
+      -----------------
+      -- Update_Hash --
+      -----------------
+
+      procedure Update_Hash
+        (Region       : Annotation_Region;
+         CU           : CU_Id;
+         New_File     : Boolean;
+         Last_In_File : Boolean) is
+      begin
+         --  If we are processing a new file, initialize the hash context for
+         --  it.
+
+         if New_File then
+            Hash_Ctx :=
+              Start_Hash
+                ("annotations of "
+                 & Get_Full_Name
+                     (Region.Sloc_Start.Source_File, Or_Simple => True),
+                 SCOs_Trace);
+         end if;
+
+         Update_Hash (Hash_Ctx, Image (Region.Sloc_Start));
+         Update_Hash
+           (Hash_Ctx, Any_Annotation_Kind'Image (Region.Ann_Start.Kind));
+         if Region.Ann_Start.Justification /= "" then
+            Update_Hash (Hash_Ctx, +Region.Ann_Start.Justification);
+         end if;
+
+         if not Region.Open then
+            Update_Hash (Hash_Ctx, Image (Region.Sloc_End));
+            Update_Hash
+              (Hash_Ctx, Any_Annotation_Kind'Image (Region.Ann_End.Kind));
+         end if;
+
+         --  If this is the last region for this file, fill in the fingerprint
+         --  to this file.
+
+         if Last_In_File then
             declare
                SID_Maps : SID_Info_Maps.Map renames
-                 CU_Vector.Reference (Current_CU).SIDs_Info;
+                 CU_Vector.Reference (CU).SIDs_Info;
                SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
             begin
                SID.Annotations_Fingerprint :=
                  Fingerprint_Type (Digest (Hash_Ctx));
             end;
          end if;
-      end Set_Annotations_Fingerprint;
+      end Update_Hash;
+
+      Exempted_Regions : ALI_Annotation_Maps.Map;
+      Disabled_Regions : ALI_Annotation_Maps.Map;
 
       --  Start of processing for Set_Annotations
 
    begin
-      --  As a reminder, Source_Location sort on the file index first, so we
-      --  are guaranteed to have annotations grouped by source files.
-
-      for Cur in Annotations.Iterate loop
-         declare
-            use ALI_Annotation_Maps;
-            Sloc : constant Source_Location := Key (Cur);
-            Ann  : constant ALI_Annotation := Element (Cur);
-         begin
-            --  If we are entering a new file, reset the hashing context and
-            --  dump the annotations fingerprint that was processed.
-
-            if Sloc.Source_File /= Current_SFI then
-               Set_Annotations_Fingerprint;
-               Current_SFI := Sloc.Source_File;
-               Current_CU := Comp_Unit (Current_SFI);
-               Has_Relevant_Annotation := False;
-               Hash_Ctx :=
-                 Start_Hash
-                   ("annotations of "
-                    & Get_Full_Name (Current_SFI, Or_Simple => True),
-                    SCOs_Trace);
-            end if;
-
-            --  Not all annotation kinds must be considered for consisency
-            --  checks: see the comment for SID_Info.Annotations_Fingerprint.
-
-            if Ann.Kind in Cov_On .. Cov_Off then
-               Has_Relevant_Annotation := True;
-               Update_Hash (Hash_Ctx, Image (Sloc));
-               Update_Hash (Hash_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
-               if Ann.Kind = Cov_Off and then Ann.Justification /= "" then
-                  Update_Hash (Hash_Ctx, +Ann.Justification);
-               end if;
-            end if;
-
-            CU_Vector.Reference (Current_CU).ALI_Annotations.Include
-              (Sloc, Ann);
-         end;
-      end loop;
-      Set_Annotations_Fingerprint;
+      Compute_Regions (Annotations, Exempted_Regions, Disabled_Regions);
+      Iterate_Regions (Exempted_Regions, Process_Exempted_Region'Access);
+      Iterate_Regions (Disabled_Regions, Process_Disabled_Region'Access);
    end Set_Annotations;
 
    ------------------------
@@ -6886,18 +7567,31 @@ package body SC_Obligations is
    -- Get_Annotations --
    ---------------------
 
-   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map is
+   function Get_Annotations
+     (CU : CU_Id; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map is
    begin
       if CU = No_CU_Id then
          return ALI_Annotation_Maps.Empty_Map;
       end if;
-      return CU_Vector.Element (CU).ALI_Annotations;
+      declare
+         Unit : CU_Info renames CU_Vector.Reference (CU);
+      begin
+         case Kind is
+            when Exemption        =>
+               return Unit.Exempted_Regions;
+
+            when Disable_Coverage =>
+               return Unit.Disabled_Regions;
+         end case;
+      end;
    end Get_Annotations;
 
    function Get_Annotations
-     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map is
+     (SFI : Source_File_Index; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map is
    begin
-      return Get_Annotations (Comp_Unit (SFI));
+      return Get_Annotations (Comp_Unit (SFI), Kind);
    end Get_Annotations;
 
    --------------------
@@ -6905,28 +7599,49 @@ package body SC_Obligations is
    --------------------
 
    function Get_Annotation
-     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor
+     (Sloc : Source_Location; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Cursor
    is
       CU : constant CU_Id := Comp_Unit (Sloc.Source_File);
    begin
       if CU = No_CU_Id then
          return ALI_Annotation_Maps.No_Element;
       end if;
-      return CU_Vector.Constant_Reference (CU).ALI_Annotations.Find (Sloc);
+      declare
+         Unit : CU_Info renames CU_Vector.Reference (CU);
+      begin
+         case Kind is
+            when Exemption        =>
+               return Unit.Exempted_Regions.Find (Sloc);
+
+            when Disable_Coverage =>
+               return Unit.Disabled_Regions.Find (Sloc);
+         end case;
+      end;
    end Get_Annotation;
 
    -------------------------
    -- Get_All_Annotations --
    -------------------------
 
-   function Get_All_Annotations return ALI_Annotation_Maps.Map is
+   function Get_All_Annotations
+     (Kind : ALI_Region_Annotation_Kind) return ALI_Annotation_Maps.Map
+   is
       use ALI_Annotation_Maps;
       Result : Map;
    begin
       for CU of CU_Vector loop
-         for Cur in CU.ALI_Annotations.Iterate loop
-            Result.Insert (Key (Cur), Element (Cur));
-         end loop;
+         case Kind is
+            when Exemption        =>
+               for Cur in CU.Exempted_Regions.Iterate loop
+                  Result.Insert (Key (Cur), Element (Cur));
+               end loop;
+
+            when Disable_Coverage =>
+               for Cur in CU.Disabled_Regions.Iterate loop
+                  Result.Insert (Key (Cur), Element (Cur));
+               end loop;
+         end case;
       end loop;
       return Result;
    end Get_All_Annotations;
@@ -6938,7 +7653,7 @@ package body SC_Obligations is
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-          .ALI_Annotations
+          .Exempted_Regions
           .Reference (Sloc);
    begin
       E.Violation_Count := E.Violation_Count + 1;
@@ -6951,7 +7666,7 @@ package body SC_Obligations is
    procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-          .ALI_Annotations
+          .Exempted_Regions
           .Reference (Sloc);
    begin
       E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
@@ -6965,9 +7680,9 @@ package body SC_Obligations is
       use ALI_Annotation_Maps;
    begin
       for CU of CU_Vector loop
-         for Cur in CU.ALI_Annotations.Iterate loop
+         for Cur in CU.Exempted_Regions.Iterate loop
             declare
-               A : ALI_Annotation renames CU.ALI_Annotations.Reference (Cur);
+               A : ALI_Annotation renames CU.Exempted_Regions.Reference (Cur);
             begin
                if A.Kind = Exempt_On then
                   A.Violation_Count := 0;
@@ -7213,11 +7928,9 @@ package body SC_Obligations is
                     Fingerprint   => Fingerprint_Type'(others => 0),
                     Created_Units => Discard_Created_Units);
             end if;
-            CU_Vector.Reference (CU_Map.Element (Sloc.Source_File))
-              .ALI_Annotations
-              .Include (Sloc, ALI_Annotation_Maps.Element (Cur));
          end;
       end loop;
+      Set_Annotations (ALI_Annotations);
    end Load_ALI;
 
    --------------
@@ -7899,9 +8612,58 @@ package body SC_Obligations is
       ------------
 
       procedure Insert (E : Exemptable_SCO) is
+         Region_Cur : ALI_Annotation_Maps.Cursor;
          Insert_Cur : Exemption_Maps.Cursor;
          Inserted   : Boolean;
       begin
+         --  Reject fine-grained exemptions that are covered by exemption
+         --  regions.
+
+         Region_Cur :=
+           CU_Vector (Last_CU).Exempted_Regions.Floor (Last_Sloc (E.SCO));
+         if ALI_Annotation_Maps.Has_Element (Region_Cur) then
+            declare
+               use ALI_Annotation_Maps;
+
+               SCO_First : constant Source_Location := First_Sloc (E.SCO);
+               Sloc      : constant Source_Location := Key (Region_Cur);
+               Ann       : constant ALI_Annotation := Element (Region_Cur);
+            begin
+               --  This exemption's SCO is covered by an exemption if the last
+               --  annotation that preceeds Last_SCO (E.SCO) is:
+               --
+               --  * an Exempt_On (as its region spans at least until SCO).
+               --  * an Exempt_Off that appears in E.SCO's sloc range (as its
+               --    region reaches the SCO).
+               --
+               --  In both case, make sure Region_Cur points at the region's
+               --  Exempt_On annotation.
+
+               if Is_End (Ann.Kind) then
+                  if First_Sloc (E.SCO) <= Sloc then
+                     Previous (Region_Cur);
+                     pragma Assert (Is_Start (Element (Region_Cur).Kind));
+                  else
+                     Region_Cur := No_Element;
+                  end if;
+               else
+                  pragma Assert (Is_Start (Ann.Kind));
+               end if;
+
+               if Has_Element (Region_Cur) then
+                  Report
+                    (SCO_First,
+                     "Ignoring "
+                     & Image (E)
+                     & " as it is already covered by the exemption region"
+                     & " starting at "
+                     & Image (Key (Region_Cur)),
+                     Warning);
+                  return;
+               end if;
+            end;
+         end if;
+
          Exemptions.Insert (E, Justification, Insert_Cur, Inserted);
          if not Inserted
            and then Exemption_Maps.Element (Insert_Cur) /= Justification
@@ -7950,6 +8712,7 @@ package body SC_Obligations is
                Unit  : CU_Info renames CU_Vector (Last_CU);
                Info  : Branch_Info;
                Found : Boolean;
+               Dummy : Boolean;
             begin
                Lookup_Branch_Info (Unit, UE.Sloc, Info, Found);
                if not Found then
@@ -7973,12 +8736,15 @@ package body SC_Obligations is
                --  Add an exemption region for all the statements guarded by
                --  this branch.
 
-               Unit.ALI_Annotations.Include
-                 ((UE.Sloc.Source_File, Info.Stmt_Start),
-                  (Exempt_On, Justification, others => <>));
-               Unit.ALI_Annotations.Include
-                 ((UE.Sloc.Source_File, Info.Stmt_End),
-                  (Exempt_Off, Justification));
+               Insert_Region
+                 (Regions  => Unit.Exempted_Regions,
+                  Item     =>
+                    (Open       => False,
+                     Sloc_Start => (Last_File, Info.Stmt_Start),
+                     Ann_Start  => (Exempt_On, Justification, others => <>),
+                     Sloc_End   => (Last_File, Info.Stmt_End),
+                     Ann_End    => (Exempt_Off, Justification)),
+                  Inserted => Dummy);
             end;
             goto Continue;
          end if;

@@ -2052,7 +2052,7 @@ package body Files_Table is
       --  this line.
 
       Annotations        : constant ALI_Annotation_Maps.Map :=
-        Get_Annotations (FI);
+        Get_Annotations (FI, Kind);
       Annotation_Cur     : Cursor :=
         Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
       Next_Annot_Cur     : Cursor;

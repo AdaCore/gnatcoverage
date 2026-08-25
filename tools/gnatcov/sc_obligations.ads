@@ -597,7 +597,11 @@ package SC_Obligations is
    end record;
 
    function "<" (Left, Right : Exemption_Request) return Boolean;
-   function Image (Self : Exemption_Request) return String;
+
+   function Image
+     (Self : Exemption_Request; Precise_Sloc : Boolean := False) return String;
+   --  If Precise_Sloc is True, assume that Self.Sloc precisely points at the
+   --  SCO that is exempted (i.e. omit offset information from the result).
 
    package Exemption_Request_Maps is new
      Ada.Containers.Ordered_Maps
@@ -641,6 +645,7 @@ package SC_Obligations is
    end record;
 
    function "<" (Left, Right : Exemptable_SCO) return Boolean;
+   function Image (Self : Exemptable_SCO) return String;
 
    --  Fine grained exemption containers: mappings from exemptable SCOs to the
    --  exemption justification.
@@ -760,6 +765,8 @@ package SC_Obligations is
       end case;
    end record;
 
+   type ALI_Region_Annotation_Kind is (Exemption, Disable_Coverage);
+
    package ALI_Annotation_Maps is new
      Ada.Containers.Ordered_Maps
        (Key_Type     => Source_Location,
@@ -769,19 +776,24 @@ package SC_Obligations is
    --  Set annotations. Add them to the right CU_Info according to their
    --  source location.
 
-   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map;
    function Get_Annotations
-     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map;
-   --  Return the set of annotations for the given compilation unit / source
-   --  file index.
+     (CU : CU_Id; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map;
+   function Get_Annotations
+     (SFI : Source_File_Index; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Map;
+   --  Return the annotations regions of the given kind for the given
+   --  compilation unit / source file index.
 
    function Get_Annotation
-     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor;
+     (Sloc : Source_Location; Kind : ALI_Region_Annotation_Kind)
+      return ALI_Annotation_Maps.Cursor;
    --  Accessor for the ALI_Annotation_Map, to avoid copying the entire map
    --  when only a single annotation is needed.
 
-   function Get_All_Annotations return ALI_Annotation_Maps.Map;
-   --  Return all annotations
+   function Get_All_Annotations
+     (Kind : ALI_Region_Annotation_Kind) return ALI_Annotation_Maps.Map;
+   --  Return all annotations of the given kind
 
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
    --  Increment the exempted line/message violation counter for exemption at
