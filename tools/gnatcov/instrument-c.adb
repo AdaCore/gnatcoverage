@@ -3777,6 +3777,41 @@ package body Instrument.C is
       Dispose_Index (CIdx);
    end Iterate_Comments;
 
+   -------------------------------
+   -- Iterate_Source_Annotations --
+   -------------------------------
+
+   procedure Iterate_Source_Annotations
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        access procedure
+          (Annot : ALI_Annotation; Span : Local_Source_Location_Range))
+   is
+      procedure Process_Comment
+        (Comment : Unbounded_String; First, Last : Source_Location);
+      --  Report the annotation carried by Comment, if it carries one
+
+      ---------------------
+      -- Process_Comment --
+      ---------------------
+
+      procedure Process_Comment
+        (Comment : Unbounded_String; First, Last : Source_Location)
+      is
+         Handled : Boolean;
+         Result  : ALI_Annotation;
+      begin
+         Analyze_Comment (Comment, First, Handled, Result);
+         if Handled then
+            Process.all (Result, (First_Sloc => First.L, Last_Sloc => Last.L));
+         end if;
+      end Process_Comment;
+
+   begin
+      Iterate_Comments (Filename, Lang, Process_Comment'Access);
+   end Iterate_Source_Annotations;
+
    ---------------------
    -- Start_Rewriting --
    ---------------------

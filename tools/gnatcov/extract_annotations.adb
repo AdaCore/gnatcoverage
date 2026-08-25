@@ -38,7 +38,6 @@ with Instrument.Ada_Preprocessing;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.Ada_Unit_Provider;
 with Instrument.C;
-with Instrument.C_Annotations;
 with Outputs;             use Outputs;
 with Project;
 with SC_Obligations;      use SC_Obligations;
@@ -1089,7 +1088,7 @@ procedure Extract_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
               (Ada_Instrumenter, File, Record_Annotation'Access);
 
          when C_Language | CPP_Language =>
-            Instrument.C_Annotations.Iterate_Source_Annotations
+            Instrument.C.Iterate_Source_Annotations
               (Filename, Lang, Record_Annotation'Access);
 
          when All_Languages             =>
