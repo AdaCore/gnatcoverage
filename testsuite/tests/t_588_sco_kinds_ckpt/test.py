@@ -17,12 +17,13 @@ xcov_args = build_and_run(
     gprsw=GPRswitches(root_project=gprfor(["main.adb"], srcdirs="..")),
     covlevel="stmt+mcdc+atcc+fun_call+gexpr",
     mains=["main"],
-    extra_coverage_args=[],
+    extra_coverage_args=["-axml"],
     extra_instr_args=["--dump-filename-simple"],
-) + ["-axml"]
+)
 
 xcov(xcov_args + ["--save-checkpoint=c.ckpt"])
-xcov_args.remove("main.srctrace")
+# Remove main.srctrace from the arguments list
+xcov_args.pop()
 xcov(xcov_args + ["--checkpoint=c.ckpt"])
 
 thistest.fail_if_diff(
