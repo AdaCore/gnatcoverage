@@ -280,8 +280,10 @@ package body Annotations.Report is
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
       use SC_Obligations.ALI_Annotation_Maps;
 
-      ALI_Annotations : constant ALI_Annotation_Maps.Map :=
-        Get_All_Annotations;
+      All_Exemptions : constant ALI_Annotation_Maps.Map :=
+        Get_All_Annotations (Exemption);
+      All_Disabled   : constant ALI_Annotation_Maps.Map :=
+        Get_All_Annotations (Disable_Coverage);
 
       Output : constant File_Access := Get_Output;
 
@@ -290,10 +292,12 @@ package body Annotations.Report is
 
       Total_Disabled_Cov_Regions : Natural := 0;
 
-      function Has_Exempted_Region return Boolean;
+      function Has_Exempted_Region return Boolean
+      is (not All_Exemptions.Is_Empty);
       --  True iff there's at least one exempted region
 
-      function Has_Disabled_Cov_Region return Boolean;
+      function Has_Disabled_Cov_Region return Boolean
+      is (not All_Disabled.Is_Empty);
       --  True iff there's at least one region with disabled coverage
 
       procedure Messages_For_Section
@@ -400,38 +404,6 @@ package body Annotations.Report is
          end loop;
          return Cur;
       end Next;
-
-      -------------------------
-      -- Has_Exempted_Region --
-      -------------------------
-
-      function Has_Exempted_Region return Boolean is
-         C : Cursor := ALI_Annotations.First;
-      begin
-         while Has_Element (C) loop
-            if Element (C).Kind = Exempt_On then
-               return True;
-            end if;
-            Next (C);
-         end loop;
-         return False;
-      end Has_Exempted_Region;
-
-      ----------------------------
-      -- Has_Disable_Cov_Region --
-      ----------------------------
-
-      function Has_Disabled_Cov_Region return Boolean is
-         C : Cursor := ALI_Annotations.First;
-      begin
-         while Has_Element (C) loop
-            if Element (C).Kind = Cov_Off then
-               return True;
-            end if;
-            Next (C);
-         end loop;
-         return False;
-      end Has_Disabled_Cov_Region;
 
       Non_Exempted_Str : constant String := "non-exempted ";
       Non_Exempted     : String renames
@@ -822,7 +794,7 @@ package body Annotations.Report is
       if Has_Exempted_Region then
          Pp.Chapter ("EXEMPTED REGIONS");
          Total_Exempted_Regions := 0;
-         Iterate (ALI_Annotations, Output_Exemption'Access, Exempt_On);
+         Iterate (All_Exemptions, Output_Exemption'Access, Exempt_On);
 
          New_Line (Output.all);
          Put_Line
@@ -836,7 +808,7 @@ package body Annotations.Report is
       if Has_Disabled_Cov_Region then
          Pp.Chapter ("COVERAGE DISABLED REGIONS");
          Total_Disabled_Cov_Regions := 0;
-         Iterate (ALI_Annotations, Output_Disable_Cov'Access, Cov_Off);
+         Iterate (All_Disabled, Output_Disable_Cov'Access, Cov_Off);
 
          New_Line (Output.all);
          Put_Line

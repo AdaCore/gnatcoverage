@@ -5822,10 +5822,9 @@ package body Instrument.Ada_Unit is
                     N.As_Extended_Return_Stmt;
                begin
                   Process_Expression (UIC, ER_N.F_Decl, 'X');
-
-                  Start_Statement_Block (UIC);
                   Traverse_Handled_Statement_Sequence (UIC, N => ER_N.F_Stmts);
                   End_Statement_Block (UIC);
+                  Start_Statement_Block (UIC);
                end;
 
             when Ada_Base_Loop_Stmt                                =>

@@ -137,6 +137,10 @@ to find the source coverage obligation to exempt:
 
    Statement_Or_Declaration_D;
 
+Because they would be redundant, fine grained exemptions (except manual
+decision evaluations, which are not genuine exemptions) are simply ignored when
+they appear inside an :ref:`exemption region <exemption_region>`.
+
 .. _fine_grained_exemption_decision_outcome:
 
 Decision Outcome Exemptions

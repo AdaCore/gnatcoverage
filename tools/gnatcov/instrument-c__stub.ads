@@ -20,6 +20,7 @@
 
 with Files_Handling;    use Files_Handling;
 with Instrument.Common; use Instrument.Common;
+with Slocs;
 
 package Instrument.C is
 
@@ -60,6 +61,22 @@ package Instrument.C is
 
    procedure Postprocess_Source
      (Preprocessed_Filename : String; Postprocessed_Filename : String)
+   is null;
+
+   procedure Iterate_Comments
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        not null access procedure
+          (Comment : Unbounded_String; First, Last : Slocs.Source_Location))
+   is null;
+
+   procedure Iterate_Source_Annotations
+     (Filename : String;
+      Lang     : Some_Language;
+      Process  :
+        access procedure
+          (Annot : ALI_Annotation; Span : Slocs.Local_Source_Location_Range))
    is null;
 
 end Instrument.C;

@@ -156,18 +156,9 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_End_Line (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_SCO
-     (Pp    : in out Dynamic_Html'Class;
-      SCO   : SCO_Id;
-      State : Line_State;
-      Kind  : SCO_Kind);
+     (Pp : in out Dynamic_Html'Class; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Statement
-     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
-
-   procedure Pretty_Print_Fun
-     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
-
-   procedure Pretty_Print_Call
      (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Start_Decision
@@ -176,6 +167,9 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_End_Decision (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_Condition
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
+
+   procedure Pretty_Print_Assertion
      (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Message (Pp : in out Dynamic_Html; M : Message);
@@ -238,7 +232,7 @@ package body Annotations.Dynamic_Html is
    ----------------------
 
    procedure Set_SCO_Fields
-     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State; Kind : SCO_Kind);
+     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State);
    --  Set the following field to the given JSON object:
    --    * id
    --    * text
@@ -656,14 +650,11 @@ package body Annotations.Dynamic_Html is
    ----------------------
 
    procedure Pretty_Print_SCO
-     (Pp    : in out Dynamic_Html'Class;
-      SCO   : SCO_Id;
-      State : Line_State;
-      Kind  : SCO_Kind)
+     (Pp : in out Dynamic_Html'Class; SCO : SCO_Id; State : Line_State)
    is
       SCO_JSON : constant JSON_Value := Create_Object;
    begin
-      Set_SCO_Fields (SCO_JSON, SCO, State, Kind);
+      Set_SCO_Fields (SCO_JSON, SCO, State);
       Append (Pp.Current_SCOs, SCO_JSON);
    end Pretty_Print_SCO;
 
@@ -674,28 +665,8 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_Statement
      (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
    begin
-      Pretty_Print_SCO (Pp, SCO, State, Statement);
+      Pretty_Print_SCO (Pp, SCO, State);
    end Pretty_Print_Statement;
-
-   ----------------------
-   -- Pretty_Print_Fun --
-   ----------------------
-
-   procedure Pretty_Print_Fun
-     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
-   begin
-      Pretty_Print_SCO (Pp, SCO, State, Fun);
-   end Pretty_Print_Fun;
-
-   -----------------------
-   -- Pretty_Print_Call --
-   -----------------------
-
-   procedure Pretty_Print_Call
-     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
-   begin
-      Pretty_Print_SCO (Pp, SCO, State, Call);
-   end Pretty_Print_Call;
 
    ---------------------------------
    -- Pretty_Print_Start_Decision --
@@ -708,7 +679,7 @@ package body Annotations.Dynamic_Html is
       Conditions    : JSON_Array;
    begin
       Clear (Pp.Current_Conditions);
-      Set_SCO_Fields (Decision_JSON, SCO, State, Decision);
+      Set_SCO_Fields (Decision_JSON, SCO, State);
       Pp.Current_Conditions := Conditions;
       Pp.Current_Decision := Decision_JSON;
    end Pretty_Print_Start_Decision;
@@ -734,9 +705,19 @@ package body Annotations.Dynamic_Html is
    is
       Condition_JSON : constant JSON_Value := Create_Object;
    begin
-      Set_SCO_Fields (Condition_JSON, SCO, State, Condition);
+      Set_SCO_Fields (Condition_JSON, SCO, State);
       Append (Pp.Current_Conditions, Condition_JSON);
    end Pretty_Print_Condition;
+
+   ----------------------------
+   -- Pretty_Print_Assertion --
+   ----------------------------
+
+   procedure Pretty_Print_Assertion
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
+   begin
+      Pretty_Print_SCO (Pp, SCO, State);
+   end Pretty_Print_Assertion;
 
    ----------------------------------------
    -- Pretty_Print_Start_Instruction_Set --
@@ -913,7 +894,7 @@ package body Annotations.Dynamic_Html is
    --------------------
 
    procedure Set_SCO_Fields
-     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State; Kind : SCO_Kind)
+     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State)
    is
       JSON_Annotations : JSON_Array;
    begin
@@ -925,7 +906,7 @@ package body Annotations.Dynamic_Html is
          Append (JSON_Annotations, Create (Annotation));
       end loop;
       Obj.Set_Field ("annotations", JSON_Annotations);
-      Obj.Set_Field ("kind", To_Lower (Kind'Image));
+      Obj.Set_Field ("kind", SCO_Kind_Image (SCO));
    end Set_SCO_Fields;
 
    ---------------

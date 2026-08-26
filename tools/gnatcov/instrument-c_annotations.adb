@@ -42,19 +42,6 @@ package body Instrument.C_Annotations is
    --  * Group 3: Arguments (call syntax, possibly empty).
    --  * Group 4: Single argument (legacy syntax).
 
-   procedure Analyze_Comment
-     (Comment : Unbounded_String;
-      Sloc    : Source_Location;
-      Handled : out Boolean;
-      Result  : out ALI_Annotation);
-   --  Analyze Comment, the full spelling of a source comment (including its
-   --  "//" or "/*" "*/" delimiters) found at Sloc, as a potential GNATCOV_*
-   --  annotation.
-   --
-   --  If it is one, set Handled to True and Result to the decoded annotation.
-   --  Otherwise set Handled to False, emitting a warning if the comment looked
-   --  like an annotation but could not be decoded.
-
    function Slice_Sloc
      (Buffer      : Unbounded_String;
       Buffer_Sloc : Source_Location;
@@ -835,7 +822,13 @@ package body Instrument.C_Annotations is
                null;
          end case;
 
-         UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+         --  Annotations to record in the CU are supposed to receive exemption
+         --  and coverage disabling regions: leave buffer control annotations
+         --  out (they are used only during instrumentation).
+
+         if Result.Kind not in Dump_Buffers | Reset_Buffers then
+            UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+         end if;
       end Process_Token;
 
       --  Start of processing for Populate_Annotations
@@ -843,41 +836,6 @@ package body Instrument.C_Annotations is
       Iterate_Tokens
         (UIC.TU, Get_Translation_Unit_Cursor (UIC.TU), Process_Token'Access);
    end Populate_Annotations;
-
-   -------------------------------
-   -- Iterate_Source_Annotations --
-   -------------------------------
-
-   procedure Iterate_Source_Annotations
-     (Filename : String;
-      Lang     : Some_Language;
-      Process  :
-        access procedure
-          (Annot : ALI_Annotation; Span : Local_Source_Location_Range))
-   is
-      procedure Process_Comment
-        (Comment : Unbounded_String; First, Last : Source_Location);
-      --  Report the annotation carried by Comment, if it carries one
-
-      ---------------------
-      -- Process_Comment --
-      ---------------------
-
-      procedure Process_Comment
-        (Comment : Unbounded_String; First, Last : Source_Location)
-      is
-         Handled : Boolean;
-         Result  : ALI_Annotation;
-      begin
-         Analyze_Comment (Comment, First, Handled, Result);
-         if Handled then
-            Process.all (Result, (First_Sloc => First.L, Last_Sloc => Last.L));
-         end if;
-      end Process_Comment;
-
-   begin
-      Iterate_Comments (Filename, Lang, Process_Comment'Access);
-   end Iterate_Source_Annotations;
 
    ---------------------
    -- Remap_Locations --

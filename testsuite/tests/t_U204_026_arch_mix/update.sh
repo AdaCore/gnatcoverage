@@ -10,6 +10,10 @@ then
     exit 1
 fi
 
+# Remove previous artifacts, so that we get rid of files that are no longer
+# necessary (the necessary ones will be regenerated).
+rm -rf gen *.trace *.txt
+
 # Update the linux artifacts
 cd ..
 rsync -ar t_U204_026_arch_mix/ /tmp/t_U204_026_arch_mix

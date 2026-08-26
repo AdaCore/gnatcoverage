@@ -2698,13 +2698,13 @@ package body Coverage.Source is
       --  processed.
 
       case SCI.Kind is
-         when Statement =>
+         when Statement         =>
             SCI.Basic_Block_Has_Code :=
               SCI.Basic_Block_Has_Code or CP_SCI.Basic_Block_Has_Code;
             SCI.Executed := SCI.Executed or CP_SCI.Executed;
             SCI.Line_Executed := SCI.Line_Executed or CP_SCI.Line_Executed;
 
-         when Decision  =>
+         when Decision          =>
             SCI.Known_Outcome_Taken :=
               SCI.Known_Outcome_Taken or CP_SCI.Known_Outcome_Taken;
 
@@ -2730,7 +2730,20 @@ package body Coverage.Source is
                end;
             end loop;
 
-         when others    =>
+         when Condition         =>
+            --  Handled as evaluation vectors with Decision
+            null;
+
+         when Fun_Call_SCO_Kind =>
+            SCI.Fun_Call_Executed :=
+              SCI.Fun_Call_Executed or CP_SCI.Fun_Call_Executed;
+
+         when Guarded_Expr      =>
+            SCI.GExpr_Executed :=
+              SCI.GExpr_Executed or else CP_SCI.GExpr_Executed;
+
+         when Operator          =>
+            --  Nothing to report
             null;
       end case;
    end Merge_Checkpoint_SCI;

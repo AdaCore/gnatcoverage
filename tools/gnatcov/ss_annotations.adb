@@ -471,7 +471,7 @@ package body SS_Annotations is
                --  grained annotations have their own detection mechanism.
 
                declare
-                  Cur            : Cursor := Get_Annotation (Sloc);
+                  Cur            : Cursor := Get_Annotation (Sloc, Exemption);
                   Existing_Annot : ALI_Annotation;
                begin
                   if not Has_Element (Cur) then
@@ -872,7 +872,8 @@ package body SS_Annotations is
                use ALI_Annotation_Maps;
                Cur : constant ALI_Annotation_Maps.Cursor :=
                  Get_Annotation
-                   ((Source_File => SFI, L => +Match_Res.Location.Start_Sloc));
+                   ((Source_File => SFI, L => +Match_Res.Location.Start_Sloc),
+                    Disable_Coverage);
             begin
                if Has_Element (Cur) then
                   if Element (Cur).Kind /= Kind then

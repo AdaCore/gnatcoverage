@@ -6,3 +6,5 @@
 !!! hello.adb:29:4: bad annotation exempt_bad1
 !!! hello.adb:30:4: bad annotation exempt_bad2
 !!! hello.adb:26:4: missing Exempt_Off BAD lone at end
+*** hello.adb:4:4: warning: EXEMPT_OFF annotation found without a corresponding EXEMPT_ON
+*** hello.adb:22:4: warning: Ignoring annotation EXEMPT_ON: nested regions are ignored

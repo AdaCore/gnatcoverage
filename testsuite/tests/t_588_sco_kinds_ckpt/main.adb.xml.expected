@@ -1,0 +1,675 @@
+<?xml version="1.0" ?>
+<source file="@@main.adb@@" coverage_level="stmt+mcdc+atcc+fun_call+gexpr">
+ <scope_metric scope_name="Main" scope_line="4">
+  <metric kind="total_lines_of_relevance" count="22"/>
+  <metric kind="fully_covered" count="21" ratio="95"/>
+  <metric kind="partially_covered" count="1" ratio="5"/>
+  <metric kind="not_covered" count="0" ratio="0"/>
+  <metric kind="undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="exempted_no_violation" count="0" ratio="0"/>
+  <metric kind="exempted" count="0" ratio="0"/>
+  <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="disabled_coverage" count="0" ratio="0"/>
+  <obligation_stats kind="Stmt">
+   <metric kind="total_obligations_of_relevance" count="10"/>
+   <metric kind="fully_covered" count="10" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="Decision">
+   <metric kind="total_obligations_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="1" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="MCDC">
+   <metric kind="total_obligations_of_relevance" count="2"/>
+   <metric kind="fully_covered" count="2" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="ATC">
+   <metric kind="total_obligations_of_relevance" count="1"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="1" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="ATCC">
+   <metric kind="total_obligations_of_relevance" count="2"/>
+   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="2" ratio="100"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="Function and call">
+   <metric kind="total_obligations_of_relevance" count="12"/>
+   <metric kind="fully_covered" count="12" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+  </obligation_stats>
+
+  <obligation_stats kind="Guarded expression">
+   <metric kind="total_obligations_of_relevance" count="0"/>
+   <metric kind="fully_covered" count="0"/>
+   <metric kind="partially_covered" count="0"/>
+   <metric kind="not_covered" count="0"/>
+   <metric kind="undetermined_coverage" count="0"/>
+   <metric kind="exempted_no_violation" count="0"/>
+   <metric kind="exempted" count="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0"/>
+   <metric kind="disabled_coverage" count="0"/>
+  </obligation_stats>
+
+  <scope_metric scope_name="Foo" scope_line="10">
+   <metric kind="total_lines_of_relevance" count="12"/>
+   <metric kind="fully_covered" count="12" ratio="100"/>
+   <metric kind="partially_covered" count="0" ratio="0"/>
+   <metric kind="not_covered" count="0" ratio="0"/>
+   <metric kind="undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="exempted_no_violation" count="0" ratio="0"/>
+   <metric kind="exempted" count="0" ratio="0"/>
+   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <obligation_stats kind="Stmt">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="1" ratio="100"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Decision">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="1" ratio="100"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="MCDC">
+    <metric kind="total_obligations_of_relevance" count="2"/>
+    <metric kind="fully_covered" count="2" ratio="100"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="ATC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="ATCC">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Function and call">
+    <metric kind="total_obligations_of_relevance" count="1"/>
+    <metric kind="fully_covered" count="1" ratio="100"/>
+    <metric kind="partially_covered" count="0" ratio="0"/>
+    <metric kind="not_covered" count="0" ratio="0"/>
+    <metric kind="undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="exempted_no_violation" count="0" ratio="0"/>
+    <metric kind="exempted" count="0" ratio="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
+   </obligation_stats>
+
+   <obligation_stats kind="Guarded expression">
+    <metric kind="total_obligations_of_relevance" count="0"/>
+    <metric kind="fully_covered" count="0"/>
+    <metric kind="partially_covered" count="0"/>
+    <metric kind="not_covered" count="0"/>
+    <metric kind="undetermined_coverage" count="0"/>
+    <metric kind="exempted_no_violation" count="0"/>
+    <metric kind="exempted" count="0"/>
+    <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
+   </obligation_stats>
+
+  </scope_metric>
+
+ </scope_metric>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="1" src="pragma Ada_2022;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="2" src="with Ada.Text_IO; use Ada.Text_IO;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="3" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="4" src="procedure Main"/>
+  </src>
+
+  <function id="36" text="procedure..." coverage="+">
+   <src>
+    <line num="4" column_begin="1" column_end="14" src="procedure Main"/>
+   </src>
+
+  </function>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="5" src="is"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="6" src="   type Animal is (Dog, Cat, Cow);"/>
+  </src>
+
+  <statement id="1" text="type Anim..." coverage="+">
+   <src>
+    <line num="6" column_begin="4" column_end="34" src="   type Animal is (Dog, Cat, Cow);"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="7" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="8" src="   function Foo (A : Animal; B, C : Boolean) return String;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="9" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="10" src="   function Foo (A : Animal; B, C : Boolean) return String is -- # fun"/>
+  </src>
+
+  <function id="12" text="function ..." coverage="+">
+   <src>
+    <line num="10" column_begin="4" column_end="58" src="   function Foo (A : Animal; B, C : Boolean) return String"/>
+   </src>
+
+  </function>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="11" src="   begin"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="12" src="      return                  -- # gexpr"/>
+  </src>
+
+  <statement id="2" text="return   ..." coverage="+">
+   <src>
+    <line num="12" column_begin="7" src="      return                  -- # gexpr"/>
+    <line num="13" src="        (case A is            -- # gexpr"/>
+    <line num="14" src="         when Dog =&gt; &quot;&quot;,      -- # gexpr"/>
+    <line num="15" src="         when Cat =&gt; &quot;Meow&quot;,  -- # gexpr"/>
+    <line num="16" src="         when Cow =&gt;          -- # gexpr"/>
+    <line num="17" src="           (if                -- # gexpr"/>
+    <line num="18" src="               B and then C   -- # gexpr"/>
+    <line num="19" src="            then"/>
+    <line num="20" src="               &quot;Moooh&quot;        -- # gepxr"/>
+    <line num="21" src="            else"/>
+    <line num="22" column_end="29" src="               &quot;No Moo :(&quot;));"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="13" src="        (case A is            -- # gexpr"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="14" src="         when Dog =&gt; &quot;&quot;,      -- # gexpr"/>
+  </src>
+
+  <guarded_expr id="3" text="when Dog ..." coverage="+">
+   <src>
+    <line num="14" column_begin="10" column_end="40" src="         when Dog =&gt; &quot;&quot;,      -- # gexpr"/>
+   </src>
+
+  </guarded_expr>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="15" src="         when Cat =&gt; &quot;Meow&quot;,  -- # gexpr"/>
+  </src>
+
+  <guarded_expr id="4" text="when Cat ..." coverage="+">
+   <src>
+    <line num="15" column_begin="10" column_end="40" src="         when Cat =&gt; &quot;Meow&quot;,  -- # gexpr"/>
+   </src>
+
+  </guarded_expr>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="16" src="         when Cow =&gt;          -- # gexpr"/>
+  </src>
+
+  <guarded_expr id="5" text="when Cow ..." coverage="+">
+   <src>
+    <line num="16" column_begin="10" src="         when Cow =&gt;          -- # gexpr"/>
+    <line num="17" src="           (if                -- # gexpr"/>
+    <line num="18" src="               B and then C   -- # gexpr"/>
+    <line num="19" src="            then"/>
+    <line num="20" src="               &quot;Moooh&quot;        -- # gepxr"/>
+    <line num="21" src="            else"/>
+    <line num="22" column_end="27" src="               &quot;No Moo :(&quot;)"/>
+   </src>
+
+  </guarded_expr>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="17" src="           (if                -- # gexpr"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="18" src="               B and then C   -- # gexpr"/>
+  </src>
+
+  <decision id="6" text="B and the..." coverage="+">
+   <src>
+    <line num="18" column_begin="16" column_end="27" src="               B and then C"/>
+   </src>
+
+   <condition id="8" text="B" coverage="+">
+    <src>
+     <line num="18" column_begin="16" column_end="16" src="               B"/>
+    </src>
+
+   </condition>
+
+   <condition id="9" text="C" coverage="+">
+    <src>
+     <line num="18" column_begin="27" column_end="27" src="                          C"/>
+    </src>
+
+   </condition>
+
+  </decision>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="19" src="            then"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="20" src="               &quot;Moooh&quot;        -- # gepxr"/>
+  </src>
+
+  <guarded_expr id="10" text="&quot;Moooh&quot;  ..." coverage="+">
+   <src>
+    <line num="20" column_begin="16" column_end="40" src="               &quot;Moooh&quot;        -- # gepxr"/>
+   </src>
+
+  </guarded_expr>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="21" src="            else"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="22" src="               &quot;No Moo :(&quot;)); -- # gexpr"/>
+  </src>
+
+  <guarded_expr id="11" text="&quot;No Moo :..." coverage="+">
+   <src>
+    <line num="22" column_begin="16" column_end="40" src="               &quot;No Moo :(&quot;)); -- # gexpr"/>
+   </src>
+
+  </guarded_expr>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="23" src="   end Foo;"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="24" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="25" src="   T : Boolean := True;"/>
+  </src>
+
+  <statement id="13" text="T : Boole..." coverage="+">
+   <src>
+    <line num="25" column_begin="4" column_end="23" src="   T : Boolean := True;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="26" src="   F : Boolean := False;"/>
+  </src>
+
+  <statement id="14" text="F : Boole..." coverage="+">
+   <src>
+    <line num="26" column_begin="4" column_end="24" src="   F : Boolean := False;"/>
+   </src>
+
+  </statement>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="27" src="begin"/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="!">
+  <src>
+   <line num="28" src="   pragma Assert (T and then not F);"/>
+  </src>
+
+  <statement id="15" text="pragma As..." coverage="+">
+   <src>
+    <line num="28" column_begin="4" column_end="36" src="   pragma Assert (T and then not F);"/>
+   </src>
+
+  </statement>
+
+  <contract_expression id="16" text="T and the..." coverage="-">
+   <src>
+    <line num="28" column_begin="19" column_end="34" src="                  T and then not F"/>
+   </src>
+
+  </contract_expression>
+
+  <message kind="violation" SCO="SCO #16: ASSERTION DECISION" message="never evaluated"/>
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="29" src=""/>
+  </src>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="30" src="   Put_Line (Foo (Dog, True, True));   -- # call"/>
+  </src>
+
+  <statement id="21" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="30" column_begin="4" column_end="36" src="   Put_Line (Foo (Dog, True, True));"/>
+   </src>
+
+  </statement>
+
+  <call id="22" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="30" column_begin="4" column_end="35" src="   Put_Line (Foo (Dog, True, True))"/>
+   </src>
+
+  </call>
+
+  <call id="23" text="Foo (Dog,..." coverage="+">
+   <src>
+    <line num="30" column_begin="14" column_end="34" src="             Foo (Dog, True, True)"/>
+   </src>
+
+  </call>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="31" src="   Put_Line (Foo (Cat, True, True));   -- # call"/>
+  </src>
+
+  <statement id="24" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="31" column_begin="4" column_end="36" src="   Put_Line (Foo (Cat, True, True));"/>
+   </src>
+
+  </statement>
+
+  <call id="25" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="31" column_begin="4" column_end="35" src="   Put_Line (Foo (Cat, True, True))"/>
+   </src>
+
+  </call>
+
+  <call id="26" text="Foo (Cat,..." coverage="+">
+   <src>
+    <line num="31" column_begin="14" column_end="34" src="             Foo (Cat, True, True)"/>
+   </src>
+
+  </call>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="32" src="   Put_Line (Foo (Cow, True, True));   -- # call"/>
+  </src>
+
+  <statement id="27" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="32" column_begin="4" column_end="36" src="   Put_Line (Foo (Cow, True, True));"/>
+   </src>
+
+  </statement>
+
+  <call id="28" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="32" column_begin="4" column_end="35" src="   Put_Line (Foo (Cow, True, True))"/>
+   </src>
+
+  </call>
+
+  <call id="29" text="Foo (Cow,..." coverage="+">
+   <src>
+    <line num="32" column_begin="14" column_end="34" src="             Foo (Cow, True, True)"/>
+   </src>
+
+  </call>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="33" src="   Put_Line (Foo (Cow, True, False));  -- # call"/>
+  </src>
+
+  <statement id="30" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="33" column_begin="4" column_end="37" src="   Put_Line (Foo (Cow, True, False));"/>
+   </src>
+
+  </statement>
+
+  <call id="31" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="33" column_begin="4" column_end="36" src="   Put_Line (Foo (Cow, True, False))"/>
+   </src>
+
+  </call>
+
+  <call id="32" text="Foo (Cow,..." coverage="+">
+   <src>
+    <line num="33" column_begin="14" column_end="35" src="             Foo (Cow, True, False)"/>
+   </src>
+
+  </call>
+
+ </src_mapping>
+
+ <src_mapping coverage="+">
+  <src>
+   <line num="34" src="   Put_Line (Foo (Cow, False, False)); -- # call"/>
+  </src>
+
+  <statement id="33" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="34" column_begin="4" column_end="38" src="   Put_Line (Foo (Cow, False, False));"/>
+   </src>
+
+  </statement>
+
+  <call id="34" text="Put_Line ..." coverage="+">
+   <src>
+    <line num="34" column_begin="4" column_end="37" src="   Put_Line (Foo (Cow, False, False))"/>
+   </src>
+
+  </call>
+
+  <call id="35" text="Foo (Cow,..." coverage="+">
+   <src>
+    <line num="34" column_begin="14" column_end="36" src="             Foo (Cow, False, False)"/>
+   </src>
+
+  </call>
+
+ </src_mapping>
+
+ <src_mapping coverage=".">
+  <src>
+   <line num="35" src="end Main;"/>
+  </src>
+
+ </src_mapping>
+
+</source>
+

@@ -11,6 +11,8 @@ then
     exit 1
 fi
 
+rm -f *.sid *.srctrace
+
 gnatcov instrument -P p.gpr -cstmt+mcdc
 cp obj/*.sid .
 gprbuild -P p.gpr --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr

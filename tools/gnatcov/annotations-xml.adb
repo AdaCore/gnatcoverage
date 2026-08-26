@@ -78,6 +78,7 @@ package body Annotations.Xml is
    Xml_Header      : constant String := "<?xml version=""1.0"" ?>";
    Index_File_Name : constant String := "index.xml";
    Trace_File_Name : constant String := "trace.xml";
+   Assertion_Str   : constant String := "contract_expression";
 
    function A (Name : String; Value : Character) return String;
    function A (Name : String; Value : Unbounded_String) return String;
@@ -180,6 +181,9 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Decision (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Condition
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
+
+   procedure Pretty_Print_Assertion
      (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
 
    procedure Print_Coverage_Stats
@@ -493,9 +497,13 @@ package body Annotations.Xml is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
         End_Lex_Element (Last_Sloc (SCO));
+      Kind       : constant String :=
+        (if Is_Assertion (SCO) and then Assertion_Coverage_Enabled
+         then Assertion_Str
+         else SCO_Kind_Image (SCO));
    begin
       Pp.ST
-        ("decision",
+        (Kind,
          A ("id", Img (Integer (SCO)))
          & A ("text", Pp.SCO_Text (SCO))
          & A ("coverage", State_Char (State)));
@@ -504,6 +512,17 @@ package body Annotations.Xml is
       end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
+
+   ----------------------------
+   -- Pretty_Print_Assertion --
+   ----------------------------
+
+   procedure Pretty_Print_Assertion
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State) is
+   begin
+      Pretty_Print_Start_Decision (Pp, SCO, State);
+      Pp.ET (Assertion_Str);
+   end Pretty_Print_Assertion;
 
    -----------------------------
    -- Pretty_Print_Start_File --
@@ -652,9 +671,10 @@ package body Annotations.Xml is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
         End_Lex_Element (Last_Sloc (SCO));
+      Kind       : constant String := SCO_Kind_Image (SCO);
    begin
       Pp.ST
-        ("statement",
+        (Kind,
          A ("id", Img (Integer (SCO)))
          & A ("text", Pp.SCO_Text (SCO))
          & A ("coverage", State_Char (State)));
@@ -662,7 +682,7 @@ package body Annotations.Xml is
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
       Pp.Src_Block (Sloc_Start, Sloc_End);
-      Pp.ET ("statement");
+      Pp.ET (Kind);
    end Pretty_Print_Statement;
 
    ----------------------
