@@ -23,7 +23,7 @@ with GNATCOLL.VFS;
 with Stable_Sloc;
 
 with Command_Line;
-with Instrument.Common;
+with Instrument;
 with Logging;
 with Slocs;
 with Strings;        use Strings;
@@ -82,11 +82,11 @@ package SS_Annotations is
    --  Call Import_External_Exemptions on all non-ignored source files
 
    function Get_Buffer_Annotations
-     (Filename : String) return Instrument.Common.Instr_Annotation_Map;
+     (Filename : String) return Instrument.Instr_Annotation_Map;
    --  Get the buffer annotations relevant to instrumentation for Filename
 
    function Get_Disabled_Cov_Annotations
-     (Filename : String) return Instrument.Common.Instr_Annotation_Map;
+     (Filename : String) return Instrument.Instr_Annotation_Map;
    --  Return the map of annotations that disable coverage regions for
    --  Filename.
    --
