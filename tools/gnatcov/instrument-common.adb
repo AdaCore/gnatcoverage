@@ -316,11 +316,13 @@ package body Instrument.Common is
       Set_Annotations (ALI_Annotations);
       Set_Fine_Grained_Exemptions (UIC.Fine_Grained_Exemptions);
 
-      --  Then import external annotations
+      --  Then import external annotations and compute annotations fingerprint
+      --  for each instrumented unit.
 
       for Cur in Created_Units.Iterate loop
          Import_External_Exemptions
            (Created_Unit_Maps.Key (Cur), Filter => Filter);
+         Compute_Annotations_Fingerprint (Created_Unit_Maps.Element (Cur));
       end loop;
 
       --  Resolve branch info in UIC.Branches and add them to SC_Obligations
