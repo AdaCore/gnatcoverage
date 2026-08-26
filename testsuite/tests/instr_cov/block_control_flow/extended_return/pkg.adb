@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package body Pkg is
 
    function Ext_Return (X : Integer) return Integer is
