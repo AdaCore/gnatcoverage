@@ -23,6 +23,42 @@ Once generated, annotation files should be passed to the |gcvins| or |gcvcov|
 commands with the :cmd-option:`--external-annotations` switch for them to be
 taken into account by |gcv|.
 
+.. _ext_annot_attribute:
+
+Designating the annotation file from the project
+################################################
+
+A project can designate its annotation file once, instead of repeating
+:cmd-option:`--external-annotations` on every command::
+
+    package Coverage is
+       for External_Annotations use "annotations.toml";
+    end Coverage;
+
+The name is interpreted from the directory of the project defining the
+attribute, and may be a path rather than a base name.
+
+Each project designates at most one file, but every project in the tree may
+designate its own. Which ones a command uses depends on what it does with them:
+
+* |gcvcov|, |gcvins| and |gcvshoan| **read** annotations, and load every file
+  the project tree designates: a project's annotations describe its own units,
+  and matter to whoever depends on it.
+
+* |gcvaddan| **writes** an annotation, and writes it to the file designated by
+  the project that owns the annotated unit -- not to the root project's. An
+  annotation belongs with the unit it applies to. If that project designates no
+  file, |gcv| says so and stops rather than choosing one.
+
+* |gcvdelan| rewrites the file the deleted annotation was loaded from, leaving
+  the other files untouched.
+
+The command line overrides the project throughout: :cmd-option:`--output`
+chooses the file to write, and :cmd-option:`--external-annotations` the files to
+read. Note that with an explicit :cmd-option:`--output`, |gcvaddan| and
+|gcvdelan| write back every annotation they loaded, which is how several files
+are deliberately combined into one.
+
 .. _gen_ext:
 
 Generating external annotations
@@ -57,7 +93,7 @@ Some notable command line options are:
     Unique identifier for the new annotation. If not specified, |gcv| will
     generate one based on the kind of annotation and the designated location.
 
-    This identifier must be unique across all external annotation files passed to
+    This identifier must be unique within the external annotation file passed to
     any |gcv| invocation, and is used in diagnostics, or in the other annotation
     manipulation commands, |gcvdelan| and |gcvshoan| to uniquely designate an
     annotation.
@@ -482,7 +518,7 @@ The semantics of each command line switch is:
     Unique IDENTIFIER of the annotation to be deleted.``
 
 :cmd-option:`--external-annotations=FILENAME`, |rarg|:
-    External annotation files from which the annotation will be loaded.
+    External annotation file from which the annotations will be loaded.
     If multiple files are passed to |gcv|, the annotations will be consolidated
     together and all written to the output file.
 
@@ -500,15 +536,18 @@ annotation files in a more user-friendly manner.
 The help section for the |gcvaddan| command can be displayed by running
 ``gnatcov show-annotations --help``. Its synopsis is::
 
-    gnatcov show-annotations --external-annotations=FILENAME [--kind=KIND] [-P PROJECT] [FILENAMES]
+    gnatcov show-annotations --external-annotations=FILENAME [--kind=KIND] [--format=FORMAT] [-P PROJECT] [FILENAMES]
 
 The semantics of the command line switches are as follow:
 
 :cmd-option:`--external-annotations=FILENAME`, |rarg|:
-    External annotation files from which annotations will be loaded
+    External annotation file from which annotations will be loaded
 
 :cmd-option:`--kind=KIND`, optional:
     Only display the annotations of kind KIND.
+
+:cmd-option:`--format=FORMAT`, optional:
+    Output format: ``text``, the default, or ``json``.
 
 :cmd-option:`-P PROJECT`, optional:
     Show all annotations applicable to all source files of the project tree
@@ -523,22 +562,74 @@ The output format is as follows:
 
 .. code-block::
 
-    BASENAME_1:
+    FILENAME_1:
     - START_LOCATION - END_LOCATION; id: IDENTIFIER; kind: KIND; [EXTRA_FIELDS]
     - ...
 
-    BASENAME_2:
+    FILENAME_2:
     - ...
 
-``BASENAME_i`` corresponds to the basename of each file for which there is an
-annotation. The each annotation is displayed on each line, starting by the
-location range for the annotation. If the annotation only concerns a single
-location, the ``END_LOCATION`` field will be identical to the
-``START_LOCATION``. The unique identifier of the annotation is then displayed in
-place of ``IDENTIFIER``, and the annotation kind is displayed in place of
-``KIND``. The ``EXTRA_FIELDS`` concerns options specific to each annotation
-kind, and are displayed as a semi-column separated list. See :ref:`gen_ext` for
-more details on the extra fields that each annotation kind supports.
+``FILENAME_i`` is the full name of each file for which there is an annotation.
+A base name would not designate a file, since several source directories may
+hold the same one. Each annotation is then displayed on its own line, starting
+with its location range. If the annotation only concerns a single location, the
+``END_LOCATION`` field will be identical to the ``START_LOCATION``. The unique
+identifier of the annotation is then displayed in place of ``IDENTIFIER``, and
+the annotation kind is displayed in place of ``KIND``. The ``EXTRA_FIELDS``
+concerns options specific to each annotation kind, and are displayed as a
+semi-column separated list. See :ref:`gen_ext` for more details on the extra
+fields that each annotation kind supports.
+
+With :cmd-option:`--format=json`, the same information is printed as a single
+JSON object, for tools rather than for readers:
+
+.. code-block:: json
+
+    {
+      "code": "ok",
+      "message": "",
+      "annotation_files": ["/path/to/annotations.toml"],
+      "annotations": [
+        {
+          "file": "/path/to/pkg.adb",
+          "id": "IDENTIFIER",
+          "kind": "Exempt_Region",
+          "stale": false,
+          "location": {"start_line": 4, "start_column": 7,
+                       "end_line": 6, "end_column": 13},
+          "justification": "defensive code"
+        }
+      ]
+    }
+
+``annotation_files`` lists the files in effect, including one a project
+designates but that does not exist yet, so that a client can watch them all for
+changes. Each annotation carries the fields of its kind, and a stale one
+carries ``diagnostic`` instead of ``location``. Unlike the text form, a
+justification holding a semicolon or a newline stays unambiguous.
+
+``code`` says whether there was anything to report, so that a client does not
+have to recognise a diagnostic by its wording:
+
+* ``ok``: the annotations are reported, ``annotations`` being empty when there
+  is none;
+* ``not_configured``: nothing designates an annotation file, so the feature is
+  simply not in use;
+* ``invalid_command_line``: the invocation itself is wrong.
+
+``message`` carries the corresponding diagnostic, empty for ``ok``.
+
+|gcv| still exits with a non-zero status for anything other than ``ok``, so the
+status remains what tells a failure from a success; ``code`` only tells the
+failures apart. A failure detected before the requested format is known, such
+as an unknown :cmd-option:`--format`, is reported on standard error with no
+report at all, so a client must be prepared for output that is not this object.
+
+The report goes to standard output unless :cmd-option:`--output` designates a
+file, in which case it is written there instead. A parser should be given a
+file of its own: standard output also carries whatever |gcv| has to say, and a
+warning landing in the middle of the document is a parse error rather than a
+diagnostic.
 
 .. _ext_annot_stability:
 
@@ -582,3 +673,84 @@ specifying the annotation identifier to be replaced, and forcing the
 replacement::
 
     gnatcov add-annotation --annotation-id=IDENTIFIER --force [OPTIONS]
+
+.. _ext_annot_vscode:
+
+Using external annotations from VS Code
+#######################################
+
+The Ada & SPARK VS Code extension displays the external annotations of a
+project, creates new ones from the editor and deletes existing ones.
+
+It does not read the annotation file itself. Annotations are stored as stable
+slocs, relative to an enclosing construct rather than absolute, so resolving
+them against the current source requires |gcv|: the extension runs |gcvshoan|
+and displays what it reports. |gcv| must therefore be on the ``PATH``.
+
+The files come from the ``Coverage'External_Annotations`` attribute, see
+:ref:`ext_annot_attribute`. There is no editor setting to keep in sync: a
+project without that attribute simply has the feature off.
+
+Displaying annotations
+----------------------
+
+.. figure:: vscode_screenshots/annotations-editor.png
+   :align: center
+
+   External annotations displayed in the editor, with the list of the project's
+   annotations in the sidebar
+
+An annotation covering a region is shown as a tinted background; one
+designating a single location, such as ``Exempt_On`` or ``Dump_Buffers``, as an
+inline badge naming its kind. Hovering shows the kind, the extra fields, the
+justification and the identifier.
+
+|gcv| resolves stable slocs against the file on disk, so the display refreshes
+on save rather than on every keystroke: annotations may drift slightly while
+typing. :menuselection:`Ada --> GNATcoverage - Refresh external annotations`
+refreshes explicitly, and :menuselection:`Ada --> GNATcoverage - Toggle
+display of external annotations` hides them.
+
+Stale annotations have no location, so they cannot be shown in the editor and
+are reported in the Problems panel instead. Otherwise an annotation that
+stopped matching its source would just disappear, wrongly suggesting that the
+exemption still applies.
+
+Browsing and deleting annotations
+---------------------------------
+
+.. figure:: vscode_screenshots/annotations-tree.png
+   :align: center
+
+   The annotations of a project, grouped by source file. The last entry is
+   stale, and so has no line number to jump to.
+
+The :guilabel:`GNATcoverage Annotations` view lists every annotation of the
+project, grouped by file. Selecting an entry jumps to the annotated code, and
+the trash icon deletes it.
+
+Deletion belongs here rather than in the editor because it is keyed by an
+identifier absent from the source, and because stale annotations have no
+location to act on.
+
+Creating annotations
+--------------------
+
+Select the code to annotate and choose :menuselection:`GNATcoverage - Create
+external annotation` from the editor context menu. The extension asks for the
+kind, and for a justification when the kind expects one.
+
+Only ``Exempt_Region`` requires a selection. The other kinds designate a single
+location and use the cursor. Either way the location is passed to |gcvaddan| as
+the user made it, so the same rules as on the command line apply: if no
+statement list encloses it, the annotation is created but ignored at
+instrumentation time, with a warning.
+
+For ``Dump_Buffers`` and ``Reset_Buffers`` the extension also asks which side of
+the designated statement the call goes on. Those are the only kinds that insert
+code, and so the only ones for which the question means anything; "after" is
+what places a buffer dump past the last statement of a list.
+
+The four decision kinds are not offered either: they designate a decision rather
+than a location and need extra parameters. Created with |gcvaddan|, they are
+displayed and deleted like any other.
