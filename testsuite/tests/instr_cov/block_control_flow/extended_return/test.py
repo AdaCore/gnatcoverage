@@ -24,7 +24,7 @@ check_xcov_reports(
     {
         "main.adb.xcov": {"+": {4, 7}},
         "pkg.ads.xcov": {},
-        "pkg.adb.xcov": {"+": {4, 6, 7}, "-": {9}},
+        "pkg.adb.xcov": {"+": {6, 8, 9}, "-": {11}},
     },
     discard_empty=False,
 )
