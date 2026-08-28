@@ -7,5 +7,4 @@ warning: Missing or empty justification for external exemption annotation "missi
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_2"
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_cov_2"
 warning: main.adb: 2:4: external Cov_On annotation with no previous Cov_Off annotation, ignoring it.
-warning: main.adb: 3:4: external COV_OFF annotation with no subsequent COV_ON annotation, ignoring it.
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_4"
