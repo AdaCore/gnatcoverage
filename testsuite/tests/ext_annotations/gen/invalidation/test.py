@@ -12,7 +12,7 @@ from SCOV.minicheck import (
     xcov,
 )
 from SUITE.context import thistest
-from SUITE.cutils import Wdir
+from SUITE.cutils import FilePathRefiner, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
@@ -78,6 +78,9 @@ thistest.fail_if_diff(
     baseline_file="../show_expected.txt",
     actual_file=show_log,
     failure_message='Unexpected "gnatcov show-annotations" output',
+    #  show-annotations reports full file names, so the baseline names files
+    #  through @@...@@ tags that the refiner expands to absolute paths.
+    output_refiners=[FilePathRefiner()],
 )
 
 # Run the coverage workflow, check for expected warnings and that no

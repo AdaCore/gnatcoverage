@@ -20,6 +20,7 @@ lib
 /tools/gnatcov/examples/support/conf.gpr
 /tools/gnatcov/examples/support/lib
 /tools/gnatcov/examples/support/obj
+/tools/gnatcov/local/
 /tools/gnatcov/rts-instr
 /tools/gnatcov/ada-rts/gnatcov_rts.ads
 /tools/gnatcov/share/lib-gnatcov_rts_full.*

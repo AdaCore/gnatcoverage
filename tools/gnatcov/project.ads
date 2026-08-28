@@ -215,6 +215,30 @@ package Project is
    with Pre => Is_Project_Loaded;
    --  Return a list of gnatcov switches defined by the root project
 
+   function External_Annotations return Unbounded_String
+   with Pre => Is_Project_Loaded;
+   --  Return the external annotation file designated by the
+   --  Coverage'External_Annotations attribute of the root project, as an
+   --  absolute name. A relative name, whether a base name or a path, is
+   --  interpreted from the directory of the project that defines the
+   --  attribute.
+   --
+   --  Return the empty string if the attribute is not defined.
+
+   function Annotation_File_For (Source : String) return Unbounded_String
+   with Pre => Is_Project_Loaded;
+   --  Return the external annotation file designated by the project that owns
+   --  Source, given by full name, as an absolute name.
+   --
+   --  Return the empty string if that project designates none, or if Source
+   --  belongs to no project in the tree.
+
+   function External_Annotations_In_Tree return String_Vectors.Vector
+   with Pre => Is_Project_Loaded;
+   --  Return the external annotation files designated by every project in the
+   --  tree, as absolute names: a project's annotations are relevant to whoever
+   --  depends on it, so a command that only reads them loads them all.
+
    function Output_Dir return String
    with Pre => Is_Project_Loaded;
    --  Return the output directory of the root project

@@ -23,6 +23,7 @@ with Ada.Text_IO;
 
 with Interfaces; use Interfaces;
 
+with GNATCOLL.JSON;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 with GPR2.Build.Source;
 with GPR2.Project.View;
@@ -118,6 +119,48 @@ package body SS_Annotations is
    with Pre => not Match.Success;
    --  Report the diagnostics for Match. Consider all failed matches as stale
    --  annotations that need to be re-generated.
+
+   procedure Require_Annotation_File
+     (Args : Command_Line.Parser.Parsed_Arguments);
+   --  Stop with an error unless an external annotation file is designated,
+   --  either on the command line or by the project
+
+   function Output_File_Of
+     (Args : Command_Line.Parser.Parsed_Arguments) return Virtual_File;
+   --  File that delete-annotation writes to: --output when passed, else the
+   --  first file the project designates. Stop with an error when neither
+   --  designates one.
+
+   function Annotation_Output_For
+     (Args : Command_Line.Parser.Parsed_Arguments; Source : Virtual_File)
+      return Virtual_File;
+   --  File that add-annotation writes to: --output when passed, else the
+   --  Coverage'External_Annotations of the project owning Source. Stop with an
+   --  error when neither designates one.
+
+   procedure Print_Annotations_Text (Results : Match_Result_Vec);
+   --  Print Results for a human reader, grouped by file
+
+   procedure Print_Annotations_JSON
+     (Args    : Command_Line.Parser.Parsed_Arguments;
+      Results : Match_Result_Vec;
+      Code    : String;
+      Message : String);
+   --  Print Results as a JSON object, for a machine reader such as an IDE.
+   --
+   --  The fields mirror what the text form shows rather than how annotations
+   --  are stored, so that consumers depend on the annotation model rather than
+   --  on the layout of the annotation file.
+   --
+   --  Code says whether there is anything to report, and Message carries the
+   --  matching diagnostic for a human reader. See Show_Annotations for the
+   --  codes and what they mean.
+
+   No_Annotation_File_Error : constant String :=
+     "no external annotation file: pass --external-annotations, or designate"
+     & " one through the Coverage'External_Annotations project attribute";
+   --  Diagnostic for a command that needs an annotation file when nothing
+   --  designates one
 
    function "+"
      (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location
@@ -405,16 +448,31 @@ package body SS_Annotations is
    --------------------------
 
    procedure Load_Ext_Annotations (Annotation_File : Unbounded_String) is
-      Load_Diags : constant Load_Diagnostic_Arr :=
-        Load_Entries
-          (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
-           DB => Ext_Annotation_DB);
    begin
-      Ext_Annotation_Trace.Trace
-        ("Loading external annotations from " & (+Annotation_File));
-      for Diag of Load_Diags loop
-         Warn (Format_Diagnostic (Diag));
-      end loop;
+      --  A file the project designates but that does not exist yet is not an
+      --  error: that is what a project looks like before its first annotation
+      --  is created. A file named on the command line is loaded whatever its
+      --  state, since the user asked for that one by name, and a missing one
+      --  is then reported as such.
+
+      if Annotations_From_Project
+        and then not Ada.Directories.Exists (+Annotation_File)
+      then
+         return;
+      end if;
+
+      declare
+         Load_Diags : constant Load_Diagnostic_Arr :=
+           Load_Entries
+             (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
+              DB => Ext_Annotation_DB);
+      begin
+         Ext_Annotation_Trace.Trace
+           ("Loading external annotations from " & (+Annotation_File));
+         for Diag of Load_Diags loop
+            Warn (Format_Diagnostic (Diag));
+         end loop;
+      end;
    end Load_Ext_Annotations;
 
    --------------------------------
@@ -1260,6 +1318,90 @@ package body SS_Annotations is
          Language   => Lang);
    end Add_Extracted_Annotation;
 
+   -----------------------------
+   -- Require_Annotation_File --
+   -----------------------------
+
+   procedure Require_Annotation_File
+     (Args : Command_Line.Parser.Parsed_Arguments) is
+   begin
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         Fatal_Error (No_Annotation_File_Error);
+      end if;
+   end Require_Annotation_File;
+
+   ---------------------------
+   -- Annotation_Output_For --
+   ---------------------------
+
+   function Annotation_Output_For
+     (Args : Command_Line.Parser.Parsed_Arguments; Source : Virtual_File)
+      return Virtual_File is
+   begin
+      --  The command line wins over the project
+
+      if Args.String_Args (Opt_Output).Present then
+         return Create (+US.To_String (Args.String_Args (Opt_Output).Value));
+      end if;
+
+      if not Project.Is_Project_Loaded then
+         Fatal_Error ("Missing --output switch");
+      end if;
+
+      --  An annotation belongs with the unit it applies to, so it goes to the
+      --  file designated by the project owning that unit rather than to the
+      --  root project's.
+
+      declare
+         File : constant Unbounded_String :=
+           Project.Annotation_File_For (+Source.Full_Name);
+
+         Owner : constant GPR2.Build.Source.Object :=
+           Project.Lookup_Source (+Source.Full_Name);
+         --  Looked up only to name the project in the diagnostic below
+      begin
+         if File = Null_Unbounded_String then
+            Fatal_Error
+              ("the project owning "
+               & Source.Display_Base_Name
+               & (if Owner.Is_Defined
+                  then " (" & String (Owner.Owning_View.Name) & ")"
+                  else "")
+               & " designates no Coverage'External_Annotations file: add the"
+               & " attribute to it, or pass --output");
+         end if;
+         return Create (+(+File));
+      end;
+   end Annotation_Output_For;
+
+   --------------------
+   -- Output_File_Of --
+   --------------------
+
+   function Output_File_Of
+     (Args : Command_Line.Parser.Parsed_Arguments) return Virtual_File is
+   begin
+      if Args.String_Args (Opt_Output).Present then
+         return Create (+US.To_String (Args.String_Args (Opt_Output).Value));
+      end if;
+
+      --  A project that states where its annotations live also states where
+      --  edits to them go, so the first designated file is the default output
+      --  of add-annotation and delete-annotation. Only the project is
+      --  considered: making --external-annotations imply an output would turn
+      --  a read-only switch into an in-place edit.
+
+      if Project.Is_Project_Loaded
+        and then Project.External_Annotations /= Null_Unbounded_String
+      then
+         return Create (+(+Project.External_Annotations));
+      end if;
+
+      Fatal_Error
+        ("missing --output switch, and the project designates no"
+         & " Coverage'External_Annotations file to update");
+   end Output_File_Of;
+
    --------------------
    -- Add_Annotation --
    --------------------
@@ -1368,13 +1510,9 @@ package body SS_Annotations is
          Fatal_Error (Target_File.Display_Full_Name & ": no such file");
       end if;
 
-      --  Require the -o/--output switch to be present
+      --  Determine the file to write the amended annotations to
 
-      if not Args.String_Args (Opt_Output).Present then
-         Fatal_Error ("Missing --output switch");
-      else
-         Output_File := Create (+US.To_String ((+Opt_Output)));
-      end if;
+      Output_File := Annotation_Output_For (Args, Target_File);
 
       --  Validate the arguments depending on the requested annotation kind
 
@@ -1633,7 +1771,17 @@ package body SS_Annotations is
       --  Finally, import the new entry and write everything to disk
 
       Replace_Entry (Ext_Annotation_DB, New_Annot_DB, Entry_Id, Entry_Id);
-      Write_Entries (Ext_Annotation_DB, Output_File);
+      --  Rewrite only the file the annotations came from. An explicit
+      --  --output keeps the older behaviour of writing back everything that
+      --  was loaded, which is how several files are deliberately combined.
+
+      Write_Entries
+        (Ext_Annotation_DB,
+         Output_File,
+         Origin =>
+           (if Args.String_Args (Opt_Output).Present
+            then No_File
+            else Output_File));
    end Add_Annotation;
 
    -----------------------
@@ -1647,18 +1795,7 @@ package body SS_Annotations is
       --  Require an external annotation file. They have already been loaded
       --  if present, but we still need to check.
 
-      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
-         Fatal_Error ("missing --external-annotations switch");
-      end if;
-
-      --  Require a file in which to store the amended entries
-
-      if not Args.String_Args (Opt_Output).Present then
-         Fatal_Error ("missing --output switch");
-      else
-         Output_File :=
-           Create (+US.To_String (Args.String_Args (Opt_Output).Value));
-      end if;
+      Require_Annotation_File (Args);
 
       --  Require an entry identifier
 
@@ -1668,26 +1805,47 @@ package body SS_Annotations is
          Identifier := Args.String_Args (Opt_Annotation_Id).Value;
       end if;
 
-      --  Check wether there actually is an entry associated with Identifier
+      --  Check whether there actually is an entry associated with Identifier,
+      --  and determine the file to store the amended entries in: the file the
+      --  entry was loaded from, so that deleting an annotation read from
+      --  another project rewrites that project's file rather than collapsing
+      --  everything into one.
 
-      if not Switches.Force then
-         declare
-            Entr : constant Entry_View :=
-              Query_Entry (Ext_Annotation_DB, Identifier);
-         begin
-            if Entr = No_Entry_View then
+      declare
+         Entr : constant Entry_View :=
+           Query_Entry (Ext_Annotation_DB, Identifier);
+      begin
+         if Entr = No_Entry_View then
+            if not Switches.Force then
                Fatal_Error
-                 ("No annotation associated with identifier """
-                  & (+Identifier)
-                  & """");
+                 ("No annotation associated with identifier " & (+Identifier));
             end if;
-         end;
-      end if;
+            Output_File := Output_File_Of (Args);
+
+         elsif Args.String_Args (Opt_Output).Present then
+
+            --  The command line wins over the project
+
+            Output_File := Output_File_Of (Args);
+         else
+            Output_File := Entr.Origin;
+         end if;
+      end;
 
       --  Delete the entry and write the remaining entries back to file
 
       Delete_Entry (Ext_Annotation_DB, Identifier);
-      Write_Entries (Ext_Annotation_DB, Output_File);
+      --  Rewrite only the file the annotations came from. An explicit
+      --  --output keeps the older behaviour of writing back everything that
+      --  was loaded, which is how several files are deliberately combined.
+
+      Write_Entries
+        (Ext_Annotation_DB,
+         Output_File,
+         Origin =>
+           (if Args.String_Args (Opt_Output).Present
+            then No_File
+            else Output_File));
    end Delete_Annotation;
 
    ----------------------
@@ -1697,19 +1855,124 @@ package body SS_Annotations is
    procedure Show_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
       Purpose_Filter : Unbounded_String;
       Match_Results  : Match_Result_Vec;
+      As_JSON        : Boolean := False;
+
+      procedure Emit (Code : String; Message : String);
+      --  Write the report where --output designates, or to standard output
+      --  when it designates nothing. Code and Message say whether there is
+      --  anything to report; only the JSON form carries them.
+
+      procedure Fail (Code : String; Message : String)
+      with No_Return;
+      --  Emit a report saying why there is nothing to show, then stop with
+      --  Message as any other fatal error would.
+      --
+      --  The exit status stays non-zero, so a client keeps using it to tell a
+      --  failure from a success and reads Code only to tell the failures
+      --  apart. Codes are "not_configured" when nothing designates an
+      --  annotation file, and "invalid_command_line" when the invocation
+      --  itself is wrong; a successful run reports "ok". Failures found before
+      --  the format is known, or outside this command, keep to a diagnostic on
+      --  standard error with no report at all.
+
+      ----------
+      -- Emit --
+      ----------
+
+      procedure Emit (Code : String; Message : String) is
+         Report : Ada.Text_IO.File_Type;
+
+         procedure Print;
+         --  Print the report in the requested format, to the current output
+
+         procedure Print is
+         begin
+            if As_JSON then
+               Print_Annotations_JSON (Args, Match_Results, Code, Message);
+            else
+               Print_Annotations_Text (Match_Results);
+            end if;
+         end Print;
+
+      begin
+         if Args.String_Args (Opt_Output).Present then
+
+            --  Both printers write to the current output, so redirecting it
+            --  covers either format without them having to know where the
+            --  report goes.
+            --
+            --  A report on its own file is what lets a consumer parse the
+            --  JSON: standard output also carries whatever gnatcov has to say,
+            --  and a warning landing in the middle of the document is a parse
+            --  error rather than a diagnostic.
+
+            Ada.Text_IO.Create
+              (Report,
+               Ada.Text_IO.Out_File,
+               US.To_String (Args.String_Args (Opt_Output).Value));
+            Ada.Text_IO.Set_Output (Report);
+
+            Print;
+
+            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
+            Ada.Text_IO.Close (Report);
+
+         else
+            Print;
+         end if;
+
+      exception
+         when others =>
+
+            --  Leaving the output redirected would swallow whatever gnatcov
+            --  prints next, the error being propagated included.
+
+            Ada.Text_IO.Set_Output (Ada.Text_IO.Standard_Output);
+            raise;
+      end Emit;
+
+      ----------
+      -- Fail --
+      ----------
+
+      procedure Fail (Code : String; Message : String) is
+      begin
+         Emit (Code, Message);
+         Fatal_Error (Message);
+      end Fail;
+
    begin
+      --  Decode the output format
+
+      if Args.String_Args (Opt_Show_Format).Present then
+         declare
+            Format : constant String :=
+              +Args.String_Args (Opt_Show_Format).Value;
+         begin
+            if Format = "json" then
+               As_JSON := True;
+            elsif Format /= "text" then
+               Fatal_Error
+                 ("Unknown output format (--format): """
+                  & Format
+                  & """, must be one of text, json");
+            end if;
+         end;
+      end if;
+
       --  Require an external annotation file. They have already been loaded
       --  if present, but we still need to check.
 
       if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
-         Fatal_Error ("missing --external-annotations switch");
+         Fail ("not_configured", No_Annotation_File_Error);
       end if;
 
       --  Require either a project or some files on the command line
 
       if not Project.Is_Project_Loaded and then Args.Remaining_Args.Is_Empty
       then
-         Fatal_Error ("Missing -P switch or positional FILES");
+         Fail
+           ("invalid_command_line", "Missing -P switch or positional FILES");
       end if;
 
       --  Check the annotation purpose if specified
@@ -1722,8 +1985,9 @@ package body SS_Annotations is
               Annotation_Kind (Annot_Kind_Str);
          begin
             if Annot_Kind in Unknown then
-               Fatal_Error
-                 ("Unknown annotation kind (--kind): """
+               Fail
+                 ("invalid_command_line",
+                  "Unknown annotation kind (--kind): """
                   & Annot_Kind_Str
                   & """, must be one of "
                   & Coverage_Options.Annotation_Kind_Options);
@@ -1793,129 +2057,283 @@ package body SS_Annotations is
       --  Post-process the match results and display the annotations
 
       Sort (Match_Results);
-      declare
-         use TOML;
-         Current_File : Virtual_File;
-      begin
-         for Match of Match_Results loop
-            if Match.File /= Current_File then
-               Current_File := Match.File;
-               if Current_File /= No_File then
-                  Ada.Text_IO.New_Line;
-               end if;
-               Ada.Text_IO.Put_Line (Current_File.Display_Base_Name & ":");
-            end if;
-            declare
-               Annot_Kind : constant Any_Annotation_Kind :=
-                 Annotation_Kind (Match.Annotation);
-
-               procedure Process_Decision_Offset;
-               --  Common helper to dump the "decision" annotation field
-
-               -----------------------------
-               -- Process_Decision_Offset --
-               -----------------------------
-
-               procedure Process_Decision_Offset is
-                  Offset : constant TOML_Value :=
-                    Match.Annotation.Get_Or_Null ("decision");
-               begin
-                  if not Offset.Is_Null and then Offset.As_Integer /= 0 then
-                     Ada.Text_IO.Put
-                       ("; Decision:" & Any_Integer'Image (Offset.As_Integer));
-                  end if;
-               end Process_Decision_Offset;
-
-            begin
-               if Match.Success then
-                  Ada.Text_IO.Put ("- " & Image (Match.Location) & "; ");
-               else
-                  Ada.Text_IO.Put ("- STALE ANNOTATION; ");
-               end if;
-
-               Ada.Text_IO.Put
-                 ("id: "
-                  & (+Match.Identifier)
-                  & "; kind: "
-                  & Kind_Image (Annot_Kind));
-
-               case Annot_Kind is
-                  when Exempt_On
-                     | Exempt_Region
-                     | Exempt_Decision_Outcome
-                     | Exempt_Decision_Condition
-                     | Exempt_Full_Decision
-                     | Manual_Decision_Evaluation
-                     | Exempt_Branch
-                     | Cov_Off                       =>
-                     if Annot_Kind = Exempt_Decision_Outcome then
-                        declare
-                           Outcome : constant TOML_Value :=
-                             Match.Annotation.Get ("outcome");
-                        begin
-                           Ada.Text_IO.Put
-                             ("; Outcome: "
-                              & Boolean'Image (Outcome.As_Boolean));
-                           Process_Decision_Offset;
-                        end;
-                     elsif Annot_Kind = Exempt_Decision_Condition then
-                        declare
-                           Condition : constant TOML_Value :=
-                             Match.Annotation.Get ("condition");
-                        begin
-                           Ada.Text_IO.Put
-                             ("; Condition: "
-                              & Img (Natural (Condition.As_Integer) + 1));
-                           Process_Decision_Offset;
-                        end;
-                     elsif Annot_Kind = Exempt_Full_Decision then
-                        Process_Decision_Offset;
-                     elsif Annot_Kind = Manual_Decision_Evaluation then
-                        declare
-                           Values : constant TOML_Value :=
-                             Match.Annotation.Get ("values");
-                        begin
-                           Ada.Text_IO.Put ("; Values: ");
-                           for I in 1 .. Values.Length loop
-                              Ada.Text_IO.Put
-                                (if Values.Item (I).As_Boolean
-                                 then 'T'
-                                 else 'F');
-                           end loop;
-                        end;
-                        Process_Decision_Offset;
-                     end if;
-                     Ada.Text_IO.Put
-                       ("; Justification: "
-                        & (+Get_Or_Null (Match.Annotation, "justification")));
-
-                  when Dump_Buffers | Reset_Buffers  =>
-                     Ada.Text_IO.Put
-                       ("; annotate after statement: "
-                        & Boolean'Image
-                            (Get_Or_Default
-                               (Match.Annotation, "insert_after", False)));
-                     if Annot_Kind = Dump_Buffers
-                       and then Match.Annotation.Has ("trace_prefix")
-                     then
-                        Ada.Text_IO.Put
-                          ("; trace filename prefix: "
-                           & (+Get_Or_Null
-                                 (Match.Annotation, "trace_prefix")));
-                     end if;
-
-                  when Unknown | Exempt_Off | Cov_On =>
-                     null;
-               end case;
-               if not Match.Success then
-                  Ada.Text_IO.Put ("; diagnostic: " & (+Match.Diagnostic));
-               end if;
-            end;
-            Ada.Text_IO.New_Line;
-         end loop;
-      end;
-
+      Emit ("ok", "");
    end Show_Annotations;
+
+   ----------------------------
+   -- Print_Annotations_Text --
+   ----------------------------
+
+   procedure Print_Annotations_Text (Results : Match_Result_Vec) is
+      use TOML;
+      Current_File : Virtual_File;
+   begin
+      for Match of Results loop
+         if Match.File /= Current_File then
+            Current_File := Match.File;
+            if Current_File /= No_File then
+               Ada.Text_IO.New_Line;
+            end if;
+            --  Report the full name: a base name does not designate a
+            --  file, since several source directories may hold the same
+            --  one, and gnatcov is also used without a project, where
+            --  there is nothing to make a name relative to.
+
+            Ada.Text_IO.Put_Line (Current_File.Display_Full_Name & ":");
+         end if;
+         declare
+            Annot_Kind : constant Any_Annotation_Kind :=
+              Annotation_Kind (Match.Annotation);
+
+            procedure Process_Decision_Offset;
+            --  Common helper to dump the "decision" annotation field
+
+            -----------------------------
+            -- Process_Decision_Offset --
+            -----------------------------
+
+            procedure Process_Decision_Offset is
+               Offset : constant TOML_Value :=
+                 Match.Annotation.Get_Or_Null ("decision");
+            begin
+               if not Offset.Is_Null and then Offset.As_Integer /= 0 then
+                  Ada.Text_IO.Put
+                    ("; Decision:" & Any_Integer'Image (Offset.As_Integer));
+               end if;
+            end Process_Decision_Offset;
+
+         begin
+            if Match.Success then
+               Ada.Text_IO.Put ("- " & Image (Match.Location) & "; ");
+            else
+               Ada.Text_IO.Put ("- STALE ANNOTATION; ");
+            end if;
+
+            Ada.Text_IO.Put
+              ("id: "
+               & (+Match.Identifier)
+               & "; kind: "
+               & Kind_Image (Annot_Kind));
+
+            case Annot_Kind is
+               when Exempt_On
+                  | Exempt_Region
+                  | Exempt_Decision_Outcome
+                  | Exempt_Decision_Condition
+                  | Exempt_Full_Decision
+                  | Manual_Decision_Evaluation
+                  | Exempt_Branch
+                  | Cov_Off                       =>
+                  if Annot_Kind = Exempt_Decision_Outcome then
+                     declare
+                        Outcome : constant TOML_Value :=
+                          Match.Annotation.Get ("outcome");
+                     begin
+                        Ada.Text_IO.Put
+                          ("; Outcome: " & Boolean'Image (Outcome.As_Boolean));
+                        Process_Decision_Offset;
+                     end;
+                  elsif Annot_Kind = Exempt_Decision_Condition then
+                     declare
+                        Condition : constant TOML_Value :=
+                          Match.Annotation.Get ("condition");
+                     begin
+                        Ada.Text_IO.Put
+                          ("; Condition: "
+                           & Img (Natural (Condition.As_Integer) + 1));
+                        Process_Decision_Offset;
+                     end;
+                  elsif Annot_Kind = Exempt_Full_Decision then
+                     Process_Decision_Offset;
+                  elsif Annot_Kind = Manual_Decision_Evaluation then
+                     declare
+                        Values : constant TOML_Value :=
+                          Match.Annotation.Get ("values");
+                     begin
+                        Ada.Text_IO.Put ("; Values: ");
+                        for I in 1 .. Values.Length loop
+                           Ada.Text_IO.Put
+                             (if Values.Item (I).As_Boolean then 'T' else 'F');
+                        end loop;
+                     end;
+                     Process_Decision_Offset;
+                  end if;
+                  Ada.Text_IO.Put
+                    ("; Justification: "
+                     & (+Get_Or_Null (Match.Annotation, "justification")));
+
+               when Dump_Buffers | Reset_Buffers  =>
+                  Ada.Text_IO.Put
+                    ("; annotate after statement: "
+                     & Boolean'Image
+                         (Get_Or_Default
+                            (Match.Annotation, "insert_after", False)));
+                  if Annot_Kind = Dump_Buffers
+                    and then Match.Annotation.Has ("trace_prefix")
+                  then
+                     Ada.Text_IO.Put
+                       ("; trace filename prefix: "
+                        & (+Get_Or_Null (Match.Annotation, "trace_prefix")));
+                  end if;
+
+               when Unknown | Exempt_Off | Cov_On =>
+                  null;
+            end case;
+            if not Match.Success then
+               Ada.Text_IO.Put ("; diagnostic: " & (+Match.Diagnostic));
+            end if;
+         end;
+         Ada.Text_IO.New_Line;
+      end loop;
+   end Print_Annotations_Text;
+
+   ----------------------------
+   -- Print_Annotations_JSON --
+   ----------------------------
+
+   procedure Print_Annotations_JSON
+     (Args    : Command_Line.Parser.Parsed_Arguments;
+      Results : Match_Result_Vec;
+      Code    : String;
+      Message : String)
+   is
+      use GNATCOLL.JSON;
+      use TOML;
+
+      Root   : constant JSON_Value := Create_Object;
+      Files  : JSON_Array := Empty_Array;
+      Annots : JSON_Array := Empty_Array;
+
+      function To_JSON (Match : Match_Result) return JSON_Value;
+      --  Structured form of one match result
+
+      -------------
+      -- To_JSON --
+      -------------
+
+      function To_JSON (Match : Match_Result) return JSON_Value is
+         Annot_Kind : constant Any_Annotation_Kind :=
+           Annotation_Kind (Match.Annotation);
+         Res        : constant JSON_Value := Create_Object;
+
+         procedure Set_Decision_Offset;
+         --  Common helper to set the "decision" annotation field
+
+         -------------------------
+         -- Set_Decision_Offset --
+         -------------------------
+
+         procedure Set_Decision_Offset is
+            Offset : constant TOML_Value :=
+              Match.Annotation.Get_Or_Null ("decision");
+         begin
+            if not Offset.Is_Null and then Offset.As_Integer /= 0 then
+               Res.Set_Field ("decision", Integer (Offset.As_Integer));
+            end if;
+         end Set_Decision_Offset;
+
+      begin
+         Res.Set_Field ("file", Match.File.Display_Full_Name);
+         Res.Set_Field ("id", +Match.Identifier);
+         Res.Set_Field ("kind", Kind_Image (Annot_Kind));
+         Res.Set_Field ("stale", not Match.Success);
+
+         if Match.Success then
+            declare
+               Loc : constant JSON_Value := Create_Object;
+            begin
+               Loc.Set_Field ("start_line", Match.Location.Start_Sloc.Line);
+               Loc.Set_Field
+                 ("start_column", Match.Location.Start_Sloc.Column);
+               Loc.Set_Field ("end_line", Match.Location.End_Sloc.Line);
+               Loc.Set_Field ("end_column", Match.Location.End_Sloc.Column);
+               Res.Set_Field ("location", Loc);
+            end;
+         else
+            Res.Set_Field ("diagnostic", +Match.Diagnostic);
+         end if;
+
+         case Annot_Kind is
+            when Exempt_On
+               | Exempt_Region
+               | Exempt_Decision_Outcome
+               | Exempt_Decision_Condition
+               | Exempt_Full_Decision
+               | Manual_Decision_Evaluation
+               | Exempt_Branch
+               | Cov_Off                       =>
+               if Annot_Kind = Exempt_Decision_Outcome then
+                  Res.Set_Field
+                    ("outcome", Match.Annotation.Get ("outcome").As_Boolean);
+                  Set_Decision_Offset;
+               elsif Annot_Kind = Exempt_Decision_Condition then
+
+                  --  Condition indices are stored 0-based and reported
+                  --  1-based, as in the text form.
+
+                  Res.Set_Field
+                    ("condition",
+                     Natural (Match.Annotation.Get ("condition").As_Integer)
+                     + 1);
+                  Set_Decision_Offset;
+               elsif Annot_Kind = Exempt_Full_Decision then
+                  Set_Decision_Offset;
+               elsif Annot_Kind = Manual_Decision_Evaluation then
+                  declare
+                     Values : constant TOML_Value :=
+                       Match.Annotation.Get ("values");
+                     Arr    : JSON_Array := Empty_Array;
+                  begin
+                     for I in 1 .. Values.Length loop
+                        Append (Arr, Create (Values.Item (I).As_Boolean));
+                     end loop;
+                     Res.Set_Field ("values", Arr);
+                  end;
+                  Set_Decision_Offset;
+               end if;
+               Res.Set_Field
+                 ("justification",
+                  +Get_Or_Null (Match.Annotation, "justification"));
+
+            when Dump_Buffers | Reset_Buffers  =>
+               Res.Set_Field
+                 ("insert_after",
+                  Get_Or_Default (Match.Annotation, "insert_after", False));
+               if Annot_Kind = Dump_Buffers
+                 and then Match.Annotation.Has ("trace_prefix")
+               then
+                  Res.Set_Field
+                    ("trace_prefix",
+                     +Get_Or_Null (Match.Annotation, "trace_prefix"));
+               end if;
+
+            when Unknown | Exempt_Off | Cov_On =>
+               null;
+         end case;
+
+         return Res;
+      end To_JSON;
+
+   begin
+      --  Report the annotation files in effect, including one the project
+      --  designates but that does not exist yet: a client watching them for
+      --  changes needs to know about the file a first annotation will create.
+
+      for File of Args.String_List_Args (Opt_Ext_Annotations) loop
+         Append (Files, Create (+File));
+      end loop;
+
+      for Match of Results loop
+         Append (Annots, To_JSON (Match));
+      end loop;
+
+      Root.Set_Field ("code", Code);
+      Root.Set_Field ("message", Message);
+      Root.Set_Field ("annotation_files", Files);
+      Root.Set_Field ("annotations", Annots);
+
+      Ada.Text_IO.Put_Line (Write (Root, Compact => False));
+   end Print_Annotations_JSON;
 
    --------------------------
    -- Validate_Annotations --

@@ -174,7 +174,8 @@ package Command_Line is
       Opt_Values,
       Opt_SS_Backend,
       Opt_Source_Encoding,
-      Opt_Ada_Default_Charset);
+      Opt_Ada_Default_Charset,
+      Opt_Show_Format);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -1061,8 +1062,9 @@ package Command_Line is
               | Cmd_Dump_Shared_Lib_Deps
               | Cmd_Add_Annotation
               | Cmd_Delete_Annotation
-              | Cmd_Extract_Annotations => True,
-              others                    => False),
+              | Cmd_Extract_Annotations
+              | Cmd_Show_Annotations => True,
+              others                 => False),
            At_Most_Once => False,
            Internal     => False),
       Opt_Output_Directory       =>
@@ -1730,6 +1732,16 @@ package Command_Line is
              & " instrument.",
            Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => True,
+           Internal     => False),
+      Opt_Show_Format            =>
+        Create
+          (Long_Name    => "--format",
+           Pattern      => "FORMAT",
+           Help         =>
+             "Output format: ""text"" (the default) for a human reader, or"
+             & " ""json"" for a machine reader.",
+           Commands     => (Cmd_Show_Annotations => True, others => False),
+           At_Most_Once => True,
            Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
@@ -2149,12 +2161,11 @@ package Command_Line is
         Create
           (Long_Name => "--external-annotations",
            Help      =>
-             "Specify external annotation files. For annotation commands that"
-             & " modify the set of external annotations (add-annotation,"
-             & " delete-annotation), all the annotations from all files"
-             & " (after addition / deletion) are written back to the file"
-             & " passed to --output, effectively combining the input"
-             & " annotation files.",
+             "Specify external annotation files. For the annotation commands"
+             & " that modify them (add-annotation, delete-annotation), the"
+             & " file each annotation was loaded from is the one rewritten,"
+             & " unless --output is passed: everything loaded is then written"
+             & " back to it, combining the input files.",
            Commands  =>
              (Cmd_Instrument | Cmd_Coverage | Cmd_All_Annotate => True,
               others                                           => False),

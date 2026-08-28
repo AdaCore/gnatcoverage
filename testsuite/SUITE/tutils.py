@@ -1453,7 +1453,8 @@ class Dump_Buffers(Reset_Buffers):
 
 def xcov_annotate(
     annotation: Ext_Annotation,
-    annot_out_file: str,
+    gprsw: GPRswitches | None = None,
+    annot_out_file: str | None = None,
     annot_in_files: list[str] | None = None,
     extra_args: list[str] | None = None,
     out: PIPE_VALUE | str | Path = PIPE,
@@ -1462,7 +1463,7 @@ def xcov_annotate(
     auto_config_args: bool = True,
     auto_target_args: bool = True,
     tolerate_messages: str | None = None,
-) -> None:
+) -> Run:
     """
     Invoke "gnatcov annotate" with the correct arguments to generate
     an external annotation.
@@ -1483,7 +1484,10 @@ def xcov_annotate(
     """
     args = ["add-annotation"]
     args.extend(annotation.cmd_line_args())
-    args.append(f"--output={annot_out_file}")
+    if gprsw:
+        args.extend(gprsw.cov_switches)
+    if annot_out_file:
+        args.append(f"--output={annot_out_file}")
     if annot_in_files:
         args.extend(
             [f"--external-annotations={file}" for file in annot_in_files]
@@ -1491,7 +1495,7 @@ def xcov_annotate(
     if extra_args:
         args.extend(extra_args)
 
-    xcov(
+    return xcov(
         args,
         out=out,
         env=env,
