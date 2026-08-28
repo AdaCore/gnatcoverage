@@ -104,22 +104,8 @@ def main():
         extra += ["-cargs", f"-mtriple={Platform.get().triplet}"]
 
     # Generate C files
-    def ccg_observe_objects(label: str) -> None:
-        import subprocess
-        import sys
-
-        subprocess.run(
-            [
-                sys.executable,
-                os.path.join(altrun_dir, "observe_objects.py"),
-                label,
-            ]
-        )
-
     gprbuild_args = ["gprbuild"] + common_args + extra
-    ccg_observe_objects(f"pre C generating gprbuild ({os.getcwd()})")
     run(gprbuild_args, "gprbuild invocation")
-    ccg_observe_objects(f"post C generating gprbuild ({os.getcwd()})")
 
     # Gather information about the project structure, we need the name of the
     # main (to generate an executable of the same name), the list of object
