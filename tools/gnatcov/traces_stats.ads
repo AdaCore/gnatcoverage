@@ -47,7 +47,8 @@ package Traces_Stats is
    --  Return a String image of obligation stats
 
    function Get_Total (Stats : Counter_Array) return Natural;
-   --  Return total line count, excluding No_Code lines
+   --  Return total line count, excluding lines that carry no coverage
+   --  obligation: No_Code lines and lines in a disabled coverage region.
 
    function Ratio (Part : Natural; Total : Natural) return Natural;
    --  Total and Part being a number of lines, compute the ratio of the two
