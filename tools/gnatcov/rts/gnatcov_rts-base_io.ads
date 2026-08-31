@@ -28,6 +28,8 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package GNATcov_RTS.Base_IO is
 
+   pragma Preelaborate;
+
    --  See the comment in gnatcov_rts_c-base_io.h for more information about
    --  this package.
 
