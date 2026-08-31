@@ -110,7 +110,8 @@ package Command_Line is
       Opt_UOI,
       Opt_Force_Parallelism,
       Opt_No_Auto_Source_Relocation,
-      Opt_In_Place);
+      Opt_In_Place,
+      Opt_Origins);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -944,6 +945,7 @@ package Command_Line is
              & " testing",
            Commands  => (Commands_With_Parallelism => True, others => False),
            Internal  => True),
+
       Opt_No_Auto_Source_Relocation    =>
         Create
           (Long_Name => "--no-auto-source-relocation",
@@ -959,7 +961,13 @@ package Command_Line is
              & " extracted from. The sources are modified in place: this is"
              & " meant as a one-shot migration to external annotations.",
            Commands   => (Cmd_Extract_Annotations => True, others => False),
-           Internal   => False));
+           Internal   => False),
+      Opt_Origins                      =>
+        Create
+          (Long_Name => "--origins",
+           Help      => "Compute coverage origins",
+           Commands  => (Cmd_Coverage => True, others => False),
+           Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project                =>

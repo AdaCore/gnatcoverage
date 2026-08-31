@@ -219,6 +219,13 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="origins_type">
+    <xs:sequence>
+      <xs:element name="filepath" type="xs:string"
+                  minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:complexType name="annotation_type">
     <xs:attribute name="text" type="xs:string"/>
   </xs:complexType>
@@ -258,6 +265,8 @@
     <xs:sequence>
       <xs:element name="src" type="src_type"
                   minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
+                  minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>
     <xs:attribute name="id" type="xs:integer" use="required"/>
@@ -267,6 +276,8 @@
   <xs:complexType name="decision_type">
     <xs:sequence>
       <xs:element name="src" type="src_type"
+                  minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
                   minOccurs="0" maxOccurs="1"/>
       <xs:element name="condition" type="condition_type"
                   minOccurs="0" maxOccurs="unbounded"/>
@@ -279,6 +290,8 @@
   <xs:complexType name="condition_type">
     <xs:sequence>
       <xs:element name="src" type="src_type"
+                  minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
                   minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>
@@ -300,6 +313,8 @@
     <xs:sequence>
       <xs:element name="src" type="src_type"
                   minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
+                  minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>
     <xs:attribute name="id" type="xs:integer" use="required"/>
@@ -310,6 +325,8 @@
     <xs:sequence>
       <xs:element name="src" type="src_type"
                   minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
+                  minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>
     <xs:attribute name="id" type="xs:integer" use="required"/>
@@ -319,6 +336,8 @@
   <xs:complexType name="guarded_expr_type">
     <xs:sequence>
       <xs:element name="src" type="src_type"
+                  minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
                   minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>

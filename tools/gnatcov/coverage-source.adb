@@ -16,9 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Unchecked_Deallocation;
+with Ada.Containers.Ordered_Maps;
 
 with Interfaces;
 
@@ -208,9 +208,10 @@ package body Coverage.Source is
    --  the same level so that Source_Coverage_Info.State's invariant holds.
 
    procedure Merge_Checkpoint_SCI
-     (SCO    : SCO_Id;
-      CP_SCI : Source_Coverage_Info;
-      Relocs : Checkpoint_Relocations);
+     (SCO           : SCO_Id;
+      CP_SCI        : Source_Coverage_Info;
+      Relocs        : Checkpoint_Relocations;
+      Ckpt_Filename : String);
    --  Merge the given checkpointed coverage information with current coverage
    --  info for SCO.
 
@@ -516,7 +517,7 @@ package body Coverage.Source is
                   end;
                end loop;
 
-               Merge_Checkpoint_SCI (SCO, Inserted_SCI, Relocs);
+               Merge_Checkpoint_SCI (SCO, Inserted_SCI, Relocs, +CLS.Filename);
             end Insert_Extra_Decision_SCI;
 
             --  Start of processing for Process_One_SCO
@@ -536,7 +537,7 @@ package body Coverage.Source is
                   CP_SCI : Source_Coverage_Info renames
                     CP_SCI_Vector (SCO_Cur).all;
                begin
-                  Merge_Checkpoint_SCI (SCO, CP_SCI, Relocs);
+                  Merge_Checkpoint_SCI (SCO, CP_SCI, Relocs, +CLS.Filename);
                end;
             end if;
          end Process_One_SCO;
@@ -2184,10 +2185,19 @@ package body Coverage.Source is
       Fingerprint     : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
-      MCDC_Buffer     : Coverage_Buffer)
+      MCDC_Buffer     : Coverage_Buffer;
+      Tracefile       : String := "")
    is
       BM : CU_Bit_Maps;
       ST : Scope_Traversal_Type;
+
+      Log_Origins : constant Boolean :=
+        Switches.Compute_Origins and then Tracefile /= "";
+      --  Record the origins of coverage if it was requested by the user. This
+      --  is done one tracefile at a time. If Tracefile is an empty string,
+      --  this call to Compute_Source_Coverage was performed to compute
+      --  coverage for a consolidated state. We do not compute de origins of
+      --  coverage in this case.
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
@@ -2243,6 +2253,13 @@ package body Coverage.Source is
          --  If bit is set, statement has been executed
 
          if Stmt_Buffer (J) then
+
+            if Log_Origins then
+               --  This statement is covered therefore Tracefile is an origin
+               --  of coverage. Record this.
+               Log_Coverage_Origin (Tracefile, BM.Statement_Bits (J));
+            end if;
+
             Update_SCI (BM.Statement_Bits (J), Set_Executed'Access);
          end if;
       end loop;
@@ -2269,6 +2286,13 @@ package body Coverage.Source is
 
                if Stmt_Buffer (J) then
                   for SCO of Stmt_Blocks.Element (Block_Index) loop
+
+                     if Log_Origins then
+                        --  This statement is covered therefore Tracefile is an
+                        --  origin of coverage. Record this.
+                        Log_Coverage_Origin (Tracefile, SCO);
+                     end if;
+
                      Update_SCI (SCO => SCO, Process => Set_Executed'Access);
                   end loop;
                end if;
@@ -2298,6 +2322,12 @@ package body Coverage.Source is
                end Set_Known_Outcome_Taken;
 
             begin
+               if Log_Origins and then Outcome_Info.Outcome then
+                  --  The outcome True of this decision has been reached
+                  --  therefore Tacefile is an origin of coverage. Record this.
+                  Log_Coverage_Origin (Tracefile, BM.Decision_Bits (J).D_SCO);
+               end if;
+
                Update_SCI (Outcome_Info.D_SCO, Set_Known_Outcome_Taken'Access);
             end;
          end if;
@@ -2329,6 +2359,18 @@ package body Coverage.Source is
                end Add_Evaluation;
 
             begin
+               if Log_Origins then
+                  for Cond in Cond_Values'Range loop
+                     if Cond_Values (Cond) = True then
+                        --  This condition is evaluated to True therefore
+                        --  Tracefile is an origin of coverage. Record this.
+                        Log_Coverage_Origin
+                          (Tracefile,
+                           SC_Obligations.Condition (MCDC_Info.D_SCO, Cond));
+                     end if;
+                  end loop;
+               end if;
+
                Update_SCI (MCDC_Info.D_SCO, Add_Evaluation'Access);
             end;
          end if;
@@ -2685,9 +2727,10 @@ package body Coverage.Source is
    --------------------------
 
    procedure Merge_Checkpoint_SCI
-     (SCO    : SCO_Id;
-      CP_SCI : Source_Coverage_Info;
-      Relocs : Checkpoint_Relocations)
+     (SCO           : SCO_Id;
+      CP_SCI        : Source_Coverage_Info;
+      Relocs        : Checkpoint_Relocations;
+      Ckpt_Filename : String)
    is
       SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
    begin
@@ -2703,6 +2746,11 @@ package body Coverage.Source is
               SCI.Basic_Block_Has_Code or CP_SCI.Basic_Block_Has_Code;
             SCI.Executed := SCI.Executed or CP_SCI.Executed;
             SCI.Line_Executed := SCI.Line_Executed or CP_SCI.Line_Executed;
+            if Switches.Compute_Origins and then CP_SCI.Executed then
+               --  This statement is covered therefore Tracefile is an origin
+               --  of coverage. Record this.
+               Log_Coverage_Origin (Ckpt_Filename, SCO);
+            end if;
 
          when Decision          =>
             SCI.Known_Outcome_Taken :=
@@ -2719,6 +2767,16 @@ package body Coverage.Source is
                SCI.Outcome_Taken := SCI.Outcome_Taken or CP_SCI.Outcome_Taken;
             end if;
 
+            if Switches.Compute_Origins
+              and then
+                (CP_SCI.Known_Outcome_Taken (True)
+                 or else CP_SCI.Outcome_Taken (True))
+            then
+               --  The outcome True of this decision has been reached therefore
+               --  Tacefile is an origin of coverage. Record this.
+               Log_Coverage_Origin (Ckpt_Filename, SCO);
+            end if;
+
             --  Merge evaluation vectors from checkpoint
 
             for Cur in CP_SCI.Evaluations.Iterate loop
@@ -2727,6 +2785,19 @@ package body Coverage.Source is
                begin
                   E.Decision := Remap_SCO_Id (Relocs, E.Decision);
                   SCI.Evaluations.Include (E);
+
+                  if Switches.Compute_Origins then
+                     for Cond in E.Values.First_Index .. E.Values.Last_Index
+                     loop
+                        if E.Values (Cond) = True then
+                           --  This condition is evaluated to True therefore
+                           --  Tracefile is an origin of coverage. Record this.
+                           Log_Coverage_Origin
+                             (Ckpt_Filename,
+                              SC_Obligations.Condition (E.Decision, Cond));
+                        end if;
+                     end loop;
+                  end if;
                end;
             end loop;
 
@@ -2737,10 +2808,16 @@ package body Coverage.Source is
          when Fun_Call_SCO_Kind =>
             SCI.Fun_Call_Executed :=
               SCI.Fun_Call_Executed or CP_SCI.Fun_Call_Executed;
+            if Switches.Compute_Origins and then CP_SCI.Fun_Call_Executed then
+               Log_Coverage_Origin (Ckpt_Filename, SCO);
+            end if;
 
          when Guarded_Expr      =>
             SCI.GExpr_Executed :=
               SCI.GExpr_Executed or else CP_SCI.GExpr_Executed;
+            if Switches.Compute_Origins and then CP_SCI.GExpr_Executed then
+               Log_Coverage_Origin (Ckpt_Filename, SCO);
+            end if;
 
          when Operator          =>
             --  Nothing to report

@@ -88,7 +88,8 @@ package Coverage.Source is
       Fingerprint     : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer     : Coverage_Buffer;
       Decision_Buffer : Coverage_Buffer;
-      MCDC_Buffer     : Coverage_Buffer);
+      MCDC_Buffer     : Coverage_Buffer;
+      Tracefile       : String := "");
    --  Analyze source instrumentation traces to determine the coverage state
    --  of each SCO. Generic actual for
    --  Instrument.Input_Traces.Generic_Read_Source_Trace_File.
