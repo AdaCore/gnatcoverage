@@ -9,9 +9,9 @@ package body GCVRT.Dz18441041 is
     procedure Dump_Buffers is
     begin
         GNATcov_RTS.Traces.Output.Base64.Write_Trace_File
-          (Buffers_Groups => GCVRT.FOO.List,
-           Program_Name   => "Foo",
-           Exec_Date      => 0);
+          (Buffers_Groups_List => GCVRT.FOO.Arrays_List,
+           Program_Name        => "Foo",
+           Exec_Date           => 0);
     end Dump_Buffers;
 
 

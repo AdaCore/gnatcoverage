@@ -32,16 +32,16 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 
 package body GNATcov_RTS.Traces.Output is
 
-   ------------------------------
-   -- Generic_Write_Trace_File --
-   ------------------------------
+   -----------------------------------
+   -- Generic_Write_Trace_File_List --
+   -----------------------------------
 
-   procedure Generic_Write_Trace_File
-     (Output         : in out Output_Stream;
-      Buffers_Groups : Coverage_Buffers_Group_Array;
-      Program_Name   : String;
-      Exec_Date      : Unsigned_64;
-      User_Data      : String := "")
+   procedure Generic_Write_Trace_File_List
+     (Output              : in out Output_Stream;
+      Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
+      Program_Name        : String;
+      Exec_Date           : Unsigned_64;
+      User_Data           : String := "")
    is
 
       Alignment : constant Unsigned_8 := 8;
@@ -117,7 +117,7 @@ package body GNATcov_RTS.Traces.Output is
       procedure Write_Padding (Output : in out Output_Stream; Count : Natural)
       is
          Alignment : constant Natural :=
-           Natural (Generic_Write_Trace_File.Alignment);
+           Natural (Generic_Write_Trace_File_List.Alignment);
          Pad_Count : constant Natural := Alignment - Count mod Alignment;
       begin
          if Pad_Count /= Alignment then
@@ -290,7 +290,7 @@ package body GNATcov_RTS.Traces.Output is
          Write_Buffer (Output, Buffer);
       end Write_Buffer;
 
-      --  Start of processing for Generic_Write_Trace_File
+      --  Start of processing for Generic_Write_Trace_File_List
 
    begin
       Write_Header (Output);
@@ -314,19 +314,55 @@ package body GNATcov_RTS.Traces.Output is
 
       Write_Info (Output, Info_User_Data, User_Data);
       Write_Info (Output, Info_End, "");
-      for I in Buffers_Groups'Range loop
+      for I in Buffers_Groups_List'Range loop
          declare
-            Buffers :
-              Coverage_Buffers_Group
-                (1 .. Integer (Buffers_Groups (I).Length));
-            for Buffers'Address use Buffers_Groups (I).Buffers;
-            pragma Import (C, Buffers);
+            Buffers_Groups :
+              Coverage_Buffers_Group_Array
+                (1 .. Integer (Buffers_Groups_List (I).Length));
+            for Buffers_Groups'Address use Buffers_Groups_List (I).Groups;
+            pragma Import (C, Buffers_Groups);
          begin
-            for J in Buffers'Range loop
-               Write_Entry (Output, Buffers (J).all);
+            for J in Buffers_Groups'Range loop
+               declare
+                  Buffers :
+                    Coverage_Buffers_Group
+                      (1 .. Integer (Buffers_Groups (J).Length));
+                  for Buffers'Address use Buffers_Groups (J).Buffers;
+                  pragma Import (C, Buffers);
+               begin
+                  for K in Buffers'Range loop
+                     Write_Entry (Output, Buffers (K).all);
+                  end loop;
+               end;
             end loop;
          end;
       end loop;
+   end Generic_Write_Trace_File_List;
+
+   ------------------------------
+   -- Generic_Write_Trace_File --
+   ------------------------------
+
+   procedure Generic_Write_Trace_File
+     (Output         : in out Output_Stream;
+      Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "")
+   is
+      procedure Write_Trace_File_List is new
+        Generic_Write_Trace_File_List (Output_Stream, Write_Bytes);
+
+      Buffers_Groups_C :
+        aliased constant GNATcov_RTS_Coverage_Buffers_Group_Array :=
+          (Buffers_Groups'Length, Buffers_Groups'Address);
+   begin
+      Write_Trace_File_List
+        (Output,
+         (1 => Buffers_Groups_C'Unchecked_Access),
+         Program_Name,
+         Exec_Date,
+         User_Data);
    end Generic_Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output;

@@ -112,4 +112,23 @@ package body GNATcov_RTS.Buffers.Lists is
       end loop;
    end Reset_Group_Array_Buffers;
 
+   ------------------------------------
+   -- Reset_Group_Array_List_Buffers --
+   ------------------------------------
+
+   procedure Reset_Group_Array_List_Buffers
+     (List : GNATcov_RTS_Coverage_Buffers_Group_Array_List)
+   is
+      Group_Arrays :
+        Coverage_Buffers_Group_Array_List (1 .. Integer (List.Length));
+      pragma Import (C, Group_Arrays);
+      for Group_Arrays'Address use List.Arrays;
+   begin
+      for I in Group_Arrays'Range loop
+         if Group_Arrays (I) /= null then
+            Reset_Group_Array_Buffers (Group_Arrays (I).all);
+         end if;
+      end loop;
+   end Reset_Group_Array_List_Buffers;
+
 end GNATcov_RTS.Buffers.Lists;

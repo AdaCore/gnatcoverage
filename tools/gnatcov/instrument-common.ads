@@ -173,6 +173,17 @@ package Instrument.Common is
    --  gives the possibility to link two separately-instrumented libraries in
    --  the same executable.
 
+   function Unit_Buffers_Array_List_Name
+     (Prj_Name : Ada_Qualified_Name) return String
+   is ("gnatcov_rts_buffers_array_list_" & To_Symbol_Name (Prj_Name));
+   --  Name of the symbol that designates the
+   --  gnatcov_rts_coverage_buffers_group_array_list struct, which aggregates
+   --  the coverage buffers group array emitted for this project with the
+   --  group arrays of the externally built projects in its closure (which
+   --  were instrumented separately, and thus define their own group array
+   --  symbol). Dump helpers go through this list so that they never need to
+   --  recompute the buffer symbol names of separately-instrumented units.
+
    function Project_Output_Dir
      (Project : GPR2.Project.View.Object; In_Extending : Boolean := True)
       return GNATCOLL.VFS.Virtual_File;
@@ -441,7 +452,7 @@ package Instrument.Common is
    function Img (Bit : Any_Bit_Id) return String
    is (Strings.Img (Integer (Bit)));
 
-   Runtime_Version : constant Natural := 12;
+   Runtime_Version : constant Natural := 13;
    Runtime_Error   : constant String :=
      "Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
@@ -545,9 +556,10 @@ package Instrument.Common is
    --  source instrumentation purposes.
 
    procedure Emit_Buffers_List_Unit
-     (Self        : Language_Instrumenter;
-      Instr_Units : Unit_Sets.Set;
-      Prj         : in out Prj_Desc)
+     (Self           : Language_Instrumenter;
+      Instr_Units    : Unit_Sets.Set;
+      Prj            : in out Prj_Desc;
+      Ext_Array_Syms : String_Sets.Set)
    is null;
    --  Emit in the root project a unit (in Self's language) to contain the list
    --  of coverage buffers for the given instrumented files.
@@ -556,11 +568,19 @@ package Instrument.Common is
    --  unique C symbol whose name is defined by the Unit_Buffers_Array_Name
    --  function. This procedure should thus be called only once, for one of
    --  the supported languages of the project.
+   --
+   --  Ext_Array_Syms contains the buffers group array symbol names
+   --  (Unit_Buffers_Array_Name) for the externally built projects in the
+   --  closure that were instrumented separately. The emitted unit also
+   --  defines a group array list symbol (Unit_Buffers_Array_List_Name) that
+   --  aggregates this project's group array with those arrays, for dump
+   --  helpers to use.
 
    function Emit_Buffers_List_Unit
      (Self           : Language_Instrumenter;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : in out Prj_Desc) return Compilation_Unit;
+      Prj            : in out Prj_Desc;
+      Ext_Array_Syms : String_Sets.Set) return Compilation_Unit;
    --  Same as above except Buffer_Symbols contains the list of C symbols
    --  holding coverage buffers for units of interest. Return the buffers list
    --  compilation unit.

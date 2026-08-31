@@ -56,16 +56,16 @@ package body @_UNIT_NAME_@ is
     begin
 @@IF@@ @_CHANNEL_IMG_@ = "bin-file"
         @_OUTPUT_PROCEDURE_@
-          (Buffers_Groups => @_BUFFER_LIST_UNIT_@.List,
-           Filename       => Filename,
-           Program_Name   => @_PROGRAM_NAME_@);
+          (Buffers_Groups_List => @_BUFFER_LIST_UNIT_@.Arrays_List,
+           Filename            => Filename,
+           Program_Name        => @_PROGRAM_NAME_@);
 
         Interfaces.C.Strings.Free (Filename);
 @@ELSE@@
         @_OUTPUT_PROCEDURE_@
-          (Buffers_Groups => @_BUFFER_LIST_UNIT_@.List,
-           Program_Name   => @_PROGRAM_NAME_@,
-           Exec_Date      => 0);
+          (Buffers_Groups_List => @_BUFFER_LIST_UNIT_@.Arrays_List,
+           Program_Name        => @_PROGRAM_NAME_@,
+           Exec_Date           => 0);
 @@END_IF@@
     end @_DUMP_PROCEDURE_@;
 
@@ -118,8 +118,8 @@ package body @_UNIT_NAME_@ is
 @@--  Emit Buffer reset procedure
     procedure @_RESET_PROCEDURE_@ is
     begin
-        @_SYS_LISTS_@.Reset_Group_Array_Buffers
-           (@_BUFFER_LIST_UNIT_@.C_LIST);
+        @_SYS_LISTS_@.Reset_Group_Array_List_Buffers
+           (@_BUFFER_LIST_UNIT_@.C_Arrays_List);
     end @_RESET_PROCEDURE_@;
 
 @@END_IF@@
