@@ -106,6 +106,9 @@ For our ``Eassert`` above, a typical :cmd-option:`=xcov` output for
   12 D:    pragma Annotate (Xcov, Cov_On);
   13 .: end Eassert;
 
+As disabled coverage regions carry no coverage obligation, the lines they cover
+are not accounted for in the coverage ratios of the reports. A unit whose code
+coverage is entirely disabled is thus reported as containing no code at all.
 
 In synthetic text reports, a single indication is emitted for each disabled
 coverage region as a whole, and the indications for all the regions are grouped

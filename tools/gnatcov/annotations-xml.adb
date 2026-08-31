@@ -909,18 +909,23 @@ package body Annotations.Xml is
 
       Total : constant Natural := Get_Total (Stats);
 
-      procedure Print_Metric_Ratio (Name : String; Amount : Natural);
+      procedure Print_Metric_Ratio
+        (Name : String; Amount : Natural; With_Ratio : Boolean := True);
       --  Emit a <metric> tag to represent the given metric, including a ratio
+      --  unless With_Ratio is False (for metrics that do not contribute to
+      --  Total).
 
       ------------------------
       -- Print_Metric_Ratio --
       ------------------------
 
-      procedure Print_Metric_Ratio (Name : String; Amount : Natural) is
+      procedure Print_Metric_Ratio
+        (Name : String; Amount : Natural; With_Ratio : Boolean := True)
+      is
          Attributes : constant String :=
            A ("kind", Name)
            & A ("count", Img (Amount))
-           & (if Total = 0
+           & (if Total = 0 or else not With_Ratio
               then ""
               else A ("ratio", Img (Ratio (Amount, Total))));
       begin
@@ -940,7 +945,8 @@ package body Annotations.Xml is
       Print_Metric_Ratio
         ("exempted_undetermined_coverage",
          Stats (Exempted_With_Undetermined_Cov));
-      Print_Metric_Ratio ("disabled_coverage", Stats (Disabled_Coverage));
+      Print_Metric_Ratio
+        ("disabled_coverage", Stats (Disabled_Coverage), With_Ratio => False);
 
    end Print_Coverage_Stats;
 

@@ -32,7 +32,7 @@ package body Traces_Stats is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
-         if J /= No_Code then
+         if J not in No_Code | Disabled_Coverage then
             Total := Total + Stats (J);
          end if;
       end loop;

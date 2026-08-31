@@ -14,7 +14,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-   <metric kind="disabled_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="9"/>
     <metric kind="fully_covered" count="9" ratio="100"/>
@@ -24,7 +24,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -36,7 +36,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -48,7 +48,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="ATC">
@@ -60,7 +60,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="ATCC">
@@ -72,7 +72,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <file name="@@main.adb@@">
@@ -84,7 +84,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-    <metric kind="disabled_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="9"/>
      <metric kind="fully_covered" count="9" ratio="100"/>
@@ -94,7 +94,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-     <metric kind="disabled_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -106,7 +106,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-     <metric kind="disabled_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="MCDC">
@@ -118,7 +118,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-     <metric kind="disabled_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="ATC">
@@ -130,7 +130,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-     <metric kind="disabled_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="ATCC">
@@ -142,7 +142,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
-     <metric kind="disabled_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
    </file>
