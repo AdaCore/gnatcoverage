@@ -188,6 +188,13 @@ package Project is
    --
    --  Mode controls which sources files to consider.
 
+   procedure Enumerate_Sources_Of_Interest
+     (Callback :
+        access procedure
+          (Project : GPR2.Project.View.Object;
+           File    : GPR2.Build.Source.Object));
+   --  Call Callback once for every source of interest in the main closure
+
    function Enumerate_Mains
      (Language : Any_Language)
       return GPR2.Build.Compilation_Unit.Unit_Location_Vector

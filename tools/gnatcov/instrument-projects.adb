@@ -702,12 +702,47 @@ begin
 
    --  Then, get the list of all units of interest
 
-   for Lang in Src_Supported_Language loop
-      if Src_Enabled_Languages (Lang) then
-         Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access, Lang, Mode => Only_UOI_Closures);
-      end if;
-   end loop;
+   Enumerate_Sources_Of_Interest (Add_Instrumented_Unit'Access);
+
+   --  Make sure that every unit of interest has at least one instrumented
+   --  part; otherwise warn the user.
+
+   declare
+      Warned_Units : String_Sets.Set;
+      --  Set of units for which the tool already warned
+
+      procedure Warn_If_Not_Instrumented
+        (Project : GPR2.Project.View.Object;
+         Source  : GPR2.Build.Source.Object);
+      --  Warn if the given unit of interest which Source is a part of has no
+      --  instrumented part.
+
+      ------------------------------
+      -- Warn_If_Not_Instrumented --
+      ------------------------------
+
+      procedure Warn_If_Not_Instrumented
+        (Project : GPR2.Project.View.Object; Source : GPR2.Build.Source.Object)
+      is
+         Unit_Name    : constant String := Unique_Unit_Name (Source);
+         Unit_Name_US : constant Unbounded_String := +Unit_Name;
+      begin
+         if not Instrumented_Sources.Contains (Unit_Name)
+           and then not Skip_Source (Source)
+           and then not Warned_Units.Contains (Unit_Name_US)
+           and then not Project.Is_Externally_Built
+         then
+            Outputs.Warn
+              ("All of the parts for the unit of interest "
+               & Unit_Name
+               & " were excluded. Consider using --excluded-units.");
+            Warned_Units.Insert (Unit_Name_US);
+         end if;
+      end Warn_If_Not_Instrumented;
+
+   begin
+      Enumerate_Sources_Of_Interest (Warn_If_Not_Instrumented'Access);
+   end;
 
    --  Remove all of the separate whose parent unit was not instrumented, as
    --  this is not supported. TODO??? We should probably issue a warning there.
