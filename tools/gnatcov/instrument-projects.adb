@@ -749,11 +749,14 @@ begin
       is
          Unit_Name    : constant String := Unique_Unit_Name (Source);
          Unit_Name_US : constant Unbounded_String := +Unit_Name;
+         Language     : constant Src_Supported_Language :=
+           To_Language (Source.Language);
       begin
          if not Instrumented_Sources.Contains (Unit_Name)
            and then not Skip_Source (Source)
            and then not Warned_Units.Contains (Unit_Name_US)
            and then not Project.Is_Externally_Built
+           and then Builtin_Support (Language)
          then
             Outputs.Warn
               ("All of the parts for the unit of interest "
