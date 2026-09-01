@@ -55,8 +55,7 @@ extern "C"
                                                    const char *tag,
                                                    unsigned simple);
 
-  /* Write a trace file in FILENAME to contain the data for all the coverage
-     buffers group arrays in BUFFERS_GROUPS_LIST.
+  /* Write a trace file in FILENAME to contain the data in BUFFERS_GROUPS.
 
      PROGRAM_NAME, EXEC_DATE, and USER_DATA are used to fill the
      corresponding metadata in the written trace file.
@@ -66,16 +65,6 @@ extern "C"
 
      If the source trace file creation fails, print an error message on the
      standard error.  */
-  extern void gnatcov_rts_write_trace_file_list (
-    const struct gnatcov_rts_coverage_buffers_group_array_list
-      *buffers_groups_list,
-    const char *filename, struct gnatcov_rts_string program_name,
-    uint64_t exec_date, struct gnatcov_rts_string user_data);
-
-  /* Likewise, for a single coverage buffers group array.  This is a
-     compatibility wrapper around gnatcov_rts_write_trace_file_list, kept so
-     that code written against previous versions of this runtime keeps
-     working.  */
   extern void gnatcov_rts_write_trace_file (
     const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
     const char *filename, struct gnatcov_rts_string program_name,

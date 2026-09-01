@@ -102,17 +102,15 @@ package Instrument.C is
 
    overriding
    procedure Emit_Buffers_List_Unit
-     (Self           : C_Family_Instrumenter_Type;
-      Instr_Units    : Unit_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set);
+     (Self        : C_Family_Instrumenter_Type;
+      Instr_Units : Unit_Sets.Set;
+      Prj         : in out Prj_Desc);
 
    overriding
    function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set) return Compilation_Unit;
+      Prj            : in out Prj_Desc) return Compilation_Unit;
 
    overriding
    function Buffer_Unit

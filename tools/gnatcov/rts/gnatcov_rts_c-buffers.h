@@ -97,17 +97,6 @@ extern "C"
     const struct gnatcov_rts_coverage_buffers_group **groups;
   };
 
-  /* List of coverage buffers group arrays.  Each instrumentation run
-     provides a coverage buffers group array for the units it instrumented
-     (see the gnatcov_rts_buffers_array_<project> symbols): such lists
-     aggregate that array with the arrays of separately-instrumented
-     (externally built) projects linked in the same program.  */
-  struct gnatcov_rts_coverage_buffers_group_array_list
-  {
-    unsigned length;
-    const struct gnatcov_rts_coverage_buffers_group_array **arrays;
-  };
-
   /*****************/
   /* Observability */
   /*****************/
@@ -116,10 +105,6 @@ extern "C"
      A higher number means a higher coverage. */
   uint64_t gnatcov_rts_sum_buffer_bits (
     const struct gnatcov_rts_coverage_buffers_group_array *arr);
-
-  /* Likewise, for all the group arrays in the given list.  */
-  uint64_t gnatcov_rts_sum_buffer_bits_list (
-    const struct gnatcov_rts_coverage_buffers_group_array_list *list);
 
   /*********************/
   /* Clear subprograms */
@@ -140,10 +125,6 @@ extern "C"
      zero. This clears the buffers of all coverage levels.  */
   extern void gnatcov_rts_reset_group_array (
     const struct gnatcov_rts_coverage_buffers_group_array *arr);
-
-  /* Likewise, for all the group arrays in the given list.  */
-  extern void gnatcov_rts_reset_group_array_list (
-    const struct gnatcov_rts_coverage_buffers_group_array_list *list);
 
 #ifdef __cplusplus
 }

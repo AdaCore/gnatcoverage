@@ -76,21 +76,6 @@ gnatcov_rts_sum_buffer_bits (
   return sum;
 }
 
-uint64_t
-gnatcov_rts_sum_buffer_bits_list (
-  const struct gnatcov_rts_coverage_buffers_group_array_list *list)
-{
-  if (list == NULL)
-    return 0;
-
-  unsigned i;
-  uint64_t sum = 0;
-  for (i = 0; i < list->length; i++)
-    sum += gnatcov_rts_sum_buffer_bits (list->arrays[i]);
-
-  return sum;
-}
-
 void
 gnatcov_rts_reset_buffers (const struct gnatcov_rts_coverage_buffers *buffs)
 {
@@ -127,16 +112,4 @@ gnatcov_rts_reset_group_array (
   unsigned i;
   for (i = 0; i < arr->length; i++)
     gnatcov_rts_reset_buffer_group (arr->groups[i]);
-}
-
-void
-gnatcov_rts_reset_group_array_list (
-  const struct gnatcov_rts_coverage_buffers_group_array_list *list)
-{
-  if (list == NULL)
-    return;
-
-  unsigned i;
-  for (i = 0; i < list->length; i++)
-    gnatcov_rts_reset_group_array (list->arrays[i]);
 }

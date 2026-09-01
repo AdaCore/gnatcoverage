@@ -888,8 +888,7 @@ package body Instrument.Common is
    function Emit_Buffers_List_Unit
      (Self           : Language_Instrumenter;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set) return Compilation_Unit
+      Prj            : in out Prj_Desc) return Compilation_Unit
    is
       pragma Unreferenced (Prj);
    begin

@@ -32,32 +32,10 @@ package GNATcov_RTS.Traces.Output.Base64 is
    pragma Preelaborate;
 
    procedure Write_Trace_File
-     (Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
-      Program_Name        : String;
-      Exec_Date           : Unsigned_64;
-      User_Data           : String := "");
-   --  Write a Base64-encoded trace file to the standard output for all the
-   --  coverage buffers group arrays in Buffers_Groups_List.
-
-   procedure Write_Trace_File_Wrapper
-     (Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
-      Program_Name        : String;
-      Exec_Date           : Unsigned_64;
-      User_Data           : String := "")
-   renames Write_Trace_File;
-   --  Renaming to mirror the API in GNATcov_RTS.Traces.Output.Files. This
-   --  avoids special cases in the generation of automatic buffer dumps: except
-   --  for the package that is WITHed, generated code is the same for
-   --  --dump-channel=bin-file and for base64-stdout.
-
-   procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;
       Exec_Date      : Unsigned_64;
       User_Data      : String := "");
-   --  Likewise, for a single coverage buffers group array. This is a
-   --  compatibility overload, kept so that code written against previous
-   --  versions of this runtime keeps working.
 
    procedure Write_Trace_File_Wrapper
      (Buffers_Groups : Coverage_Buffers_Group_Array;
@@ -65,5 +43,9 @@ package GNATcov_RTS.Traces.Output.Base64 is
       Exec_Date      : Unsigned_64;
       User_Data      : String := "")
    renames Write_Trace_File;
+   --  Renaming to mirror the API in GNATcov_RTS.Traces.Output.Files. This
+   --  avoids special cases in the generation of automatic buffer dumps: except
+   --  for the package that is WITHed, generated code is the same for
+   --  --dump-channel=bin-file and for base64-stdout.
 
 end GNATcov_RTS.Traces.Output.Base64;
