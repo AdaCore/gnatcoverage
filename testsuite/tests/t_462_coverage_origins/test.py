@@ -5,6 +5,8 @@ are correctly reported.
 
 import os
 
+from e3.fs import cp
+
 from SCOV.minicheck import build_and_run, xcov, run_cov_program
 from SUITE.cutils import Wdir, FilePathRefiner
 from SUITE.gprutils import GPRswitches
@@ -23,9 +25,14 @@ def delete_traces() -> None:
 
 
 def check_xml(expected: str) -> None:
+    # Create a copy of the XML report, so that all reports produced during the
+    # test execution are available once the testcase has completed.
+    label = expected.split(".")[0]
+    copy_filename = f"main_{label}.adb.xml"
+    cp(os.path.join("obj", "main.adb.xml"), copy_filename)
     thistest.fail_if_diff(
         os.path.join("..", expected),
-        os.path.join("obj", "main.adb.xml"),
+        copy_filename,
         output_refiners=[FilePathRefiner()],
     )
 
@@ -53,9 +60,11 @@ def instr_and_run_zero_one() -> list[str]:
 
 
 def test_with_checkpoint() -> None:
+    thistest.log("== test_with_checkpoint ==")
     xcov_args = instr_and_run_zero_one()
 
     # Create a checkpoint "c.ckpt"
+    thistest.log("* create c.ckpt")
     xcov(xcov_args + ["-Ttraces/", "--save-checkpoint=c.ckpt"])
 
     # Run the executable once more with argument 2. Rename the new trace to
@@ -64,6 +73,7 @@ def test_with_checkpoint() -> None:
     os.rename("main.srctrace", "traces/two.srctrace")
 
     # Commpute the coverage using "two.srctrace" and checkpoint "c.ckpt"
+    thistest.log("* consolidate with c.ckpt")
     xcov(xcov_args + ["-Ttraces/two.srctrace", "--checkpoint=c.ckpt"])
 
     # Check the XML report against the expected result. We only expected to
@@ -72,6 +82,7 @@ def test_with_checkpoint() -> None:
 
 
 def test_only_traces() -> None:
+    thistest.log("== test_only_traces ==")
     xcov_args = instr_and_run_zero_one()
 
     # Run the executable once more with argument 2. Rename the new trace to
