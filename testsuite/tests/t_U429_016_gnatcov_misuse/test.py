@@ -101,4 +101,22 @@ run_and_check(
     register_failure=True,
 )
 
+
+# Check the absence of warnings when --units is passed with --checkpoint *and*
+# a trace file.
+run_and_check(
+    [
+        "coverage",
+        f"-P{p}",
+        "--level=stmt",
+        "-axcov",
+        "--units=main",
+        "--checkpoint=c.ckpt",
+        trace_file,
+    ],
+    "ckpt_units.txt",
+    "",
+    register_failure=True,
+)
+
 thistest.result()
