@@ -3,12 +3,15 @@ Check the contents of XML reports to verify that coverage origins
 are correctly reported.
 """
 
+import dataclasses
 import os
+from typing import Any
 
 from e3.fs import cp
+import lxml.etree as etree
 
 from SCOV.minicheck import build_and_run, xcov, run_cov_program
-from SUITE.cutils import Wdir, FilePathRefiner
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, thistest, exepath_to
 
@@ -30,10 +33,83 @@ def check_xml(expected: str) -> None:
     label = expected.split(".")[0]
     copy_filename = f"main_{label}.adb.xml"
     cp(os.path.join("obj", "main.adb.xml"), copy_filename)
+
+    # Now read the XML report and extract a summary from it focused on coverage
+    # origins, so that we do not have to baseline the entire XML report.
+
+    @dataclasses.dataclass
+    class SCO:
+        src: str
+        kind: str
+        origins: list[str]
+
+    @dataclasses.dataclass
+    class SrcMapping:
+        src: str
+        scos: list[SCO]
+
+        @property
+        def has_origins(self) -> bool:
+            return any(s.origins for s in self.scos)
+
+    def get_src(item: Any) -> str:
+        """Return the source excerpt in an XML element."""
+        src = item[0]
+        assert src.tag == "src"
+        line = src[0]
+        assert line.tag == "line"
+        return line.attrib["src"]
+
+    src_mappings: list[SrcMapping] = []
+    with open(copy_filename) as f:
+        tree = etree.parse(f)
+    for root_child in tree.getroot():
+        if root_child.tag != "src_mapping":
+            continue
+
+        sm = SrcMapping(get_src(root_child), [])
+        src_mappings.append(sm)
+
+        def traverse(sm: SrcMapping, item: Any) -> None:
+            """Look for SCOs in the given XML element."""
+            for child in item:
+                if child.tag not in {
+                    "call",
+                    "condition",
+                    "contract_expression",
+                    "decision",
+                    "function",
+                    "guarded_expr",
+                    "statement",
+                }:
+                    continue
+
+                sco = SCO(get_src(child), child.tag, [])
+                sm.scos.append(sco)
+
+                for grandchild in child:
+                    if grandchild.tag == "origins":
+                        for filepath in grandchild:
+                            assert filepath.tag == "filepath"
+                            sco.origins.append(filepath.text)
+                traverse(sm, child)
+
+        traverse(sm, root_child)
+
+    # Write the extracted summary to a simple text file to compare against the
+    # baseline.
+    summary = f"summary_{label}.txt"
+    with open(summary, "w") as f:
+        for sm in src_mappings:
+            if sm.has_origins:
+                print(f"<src_mapping> for: {sm.src.strip()}", file=f)
+                for sco in sm.scos:
+                    print(f"  * SCO {sco.kind} for: {sco.src.strip()}", file=f)
+                    for origin in sco.origins:
+                        print(f"    origin: {origin}", file=f)
+
     thistest.fail_if_diff(
-        os.path.join("..", expected),
-        copy_filename,
-        output_refiners=[FilePathRefiner()],
+        os.path.join("..", expected), summary, ignore_white_chars=False
     )
 
 
@@ -78,7 +154,7 @@ def test_with_checkpoint() -> None:
 
     # Check the XML report against the expected result. We only expected to
     # find "two.srctrace" or "c.ckpt" as origins.
-    check_xml("with_checkpoint.xml.expected")
+    check_xml("with_checkpoint.expected")
 
 
 def test_only_traces() -> None:
@@ -95,7 +171,7 @@ def test_only_traces() -> None:
 
     # Check the XML report against the expected result. We only expected to
     # find "two.srctrace" or "c.ckpt" as origins.
-    check_xml("only_traces.xml.expected")
+    check_xml("only_traces.expected")
 
 
 # Run the tests
