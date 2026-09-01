@@ -13,11 +13,22 @@ from SUITE.tutils import gprfor
 
 wd = Wdir("tmp_")
 
+lib_gpr = gprfor(
+    mains=[],
+    srcdirs=["../src-lib"],
+    langs=["Ada"],
+    prjid="libpkg",
+    objdir="obj-lib",
+    extra="""
+       for Library_Name use "pkg";
+       for Library_Dir use "lib";
+    """,
+)
 
 build_and_run(
     gprsw=GPRswitches(
         root_project=gprfor(
-            mains=["main.adb"], srcdirs=["../src"], deps=["../libpkg.gpr"]
+            mains=["main.adb"], srcdirs=["../src"], deps=["libpkg.gpr"]
         ),
         projects=["libpkg"],
     ),
