@@ -102,7 +102,7 @@ package Instrument.C is
    overriding
    procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
+      Instr_Units : Unit_Project_Maps.Map;
       Prj         : in out Prj_Desc);
 
    overriding

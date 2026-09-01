@@ -25,7 +25,7 @@ package body Instrument.Debug_Dump is
 
    use Files_Table;
 
-   Units_To_Dump : Unit_Sets.Set;
+   Units_To_Dump : Unit_Project_Maps.Map;
 
    ---------------------------
    -- Write_Debug_Dump_File --
@@ -35,21 +35,26 @@ package body Instrument.Debug_Dump is
       JSON_Root : constant JSON_Value := Create_Object;
 
       function Generate_Entry_List_JSON
-        (CUs : Unit_Sets.Set) return JSON_Value;
+        (CUs : Unit_Project_Maps.Map) return JSON_Value;
       --  Create a JSON array from an entry map.
 
       ------------------------------
       -- Generate_Entry_List_JSON --
       ------------------------------
 
-      function Generate_Entry_List_JSON (CUs : Unit_Sets.Set) return JSON_Value
+      function Generate_Entry_List_JSON
+        (CUs : Unit_Project_Maps.Map) return JSON_Value
       is
+         use Unit_Project_Maps;
+
          Result : constant JSON_Value := Create_Object;
       begin
-         for CU of CUs loop
+         for Cur in CUs.Iterate loop
             declare
+               CU                  : Compilation_Unit renames Key (Cur);
                Entry_Obj           : constant JSON_Value := Create_Object;
-               Unit_Buffers_Symbol : constant String := Unit_Buffers_Name (CU);
+               Unit_Buffers_Symbol : constant String :=
+                 Unit_Buffers_Name (Element (Cur), CU);
             begin
                Entry_Obj.Set_Field
                  ("kind",
@@ -80,9 +85,10 @@ package body Instrument.Debug_Dump is
    -- Register_Buffer_Symbols_For_Unit --
    --------------------------------------
 
-   procedure Register_Buffer_Symbols_For_Unit (CU : Compilation_Unit) is
+   procedure Register_Buffer_Symbols_For_Unit
+     (CU : Compilation_Unit; Prj : Prj_Desc) is
    begin
-      Units_To_Dump.Include (CU);
+      Units_To_Dump.Include (CU, Prj);
    end Register_Buffer_Symbols_For_Unit;
 
 end Instrument.Debug_Dump;

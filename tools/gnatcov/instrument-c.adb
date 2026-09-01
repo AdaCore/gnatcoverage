@@ -341,8 +341,8 @@ package body Instrument.C is
    -- Generation of witness fragments --
    -------------------------------------
 
-   function Buffer_Slug (Filename : String) return String
-   is ("_b_" & Filename_Slug (Filename));
+   function Buffer_Slug (Prj : Prj_Desc; Filename : String) return String
+   is ("_b_" & File_Based_Slug (Prj, Filename));
    --  Return the buffer slug for the given file
 
    function Buffers_Subscript (Buffers_Index : Positive) return String
@@ -4932,7 +4932,7 @@ package body Instrument.C is
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group",
-            Unit_Buffers_Name (Unit),
+            Unit_Buffers_Name (Prj, Unit),
             Init_Expr =>
               "{" & Img (Buffers_Count) & ", &" & Buffers_Array & "[0]}");
       end;
@@ -5509,7 +5509,7 @@ package body Instrument.C is
              +New_Body_File
                 (Instrumenter => Self,
                  Prj          => Prj,
-                 Slug         => Buffer_Slug (+CU.Unit_Name)));
+                 Slug         => Buffer_Slug (Prj, +CU.Unit_Name)));
    exception
       when Exc : Ada.IO_Exceptions.Name_Error =>
          Fatal_Error
@@ -5794,14 +5794,16 @@ package body Instrument.C is
    overriding
    procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
+      Instr_Units : Unit_Project_Maps.Map;
       Prj         : in out Prj_Desc)
    is
+      use Unit_Project_Maps;
+
       Buffer_Symbols : String_Sets.Set;
       Ignore_CU      : Compilation_Unit;
    begin
-      for Instr_Unit of Instr_Units loop
-         Buffer_Symbols.Insert (+Unit_Buffers_Name (Instr_Unit));
+      for Cur in Instr_Units.Iterate loop
+         Buffer_Symbols.Insert (+Unit_Buffers_Name (Element (Cur), Key (Cur)));
       end loop;
       Ignore_CU :=
         C_Family_Instrumenter_Type'Class (Self).Emit_Buffers_List_Unit
