@@ -1,14 +1,5 @@
-<src_mapping> for: procedure Main
-  * SCO function for: procedure Main
-    origin: traces/one.srctrace
-    origin: traces/two.srctrace
-    origin: traces/zero.srctrace
-<src_mapping> for: X : constant Integer := Integer'Value (Argument (1));
-  * SCO statement for: X : constant Integer := Integer'Value (Argument (1));
-    origin: traces/one.srctrace
-    origin: traces/two.srctrace
-    origin: traces/zero.srctrace
-  * SCO call for: Argument (1)
+<src_mapping> for: procedure Process (X : Integer) is
+  * SCO function for: procedure Process (X : Integer)
     origin: traces/one.srctrace
     origin: traces/two.srctrace
     origin: traces/zero.srctrace

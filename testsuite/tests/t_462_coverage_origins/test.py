@@ -1,6 +1,6 @@
 """
-Check the contents of XML reports to verify that coverage origins
-are correctly reported.
+Check the contents of XML reports to verify that coverage origins are correctly
+reported.
 """
 
 import dataclasses
@@ -10,14 +10,14 @@ from typing import Any
 from e3.fs import cp
 import lxml.etree as etree
 
-from SCOV.minicheck import build_and_run, xcov, run_cov_program
+from SCOV.minicheck import build_and_run, xcov
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprfor, thistest, exepath_to
+from SUITE.tutils import gprfor, thistest
 
 wd = Wdir("tmp_")
 
-gpr = gprfor(["main.adb"], srcdirs="..")
+gpr = gprfor(["main_0.adb", "main_1.adb", "main_2.adb"], srcdirs="..")
 
 os.mkdir("traces")
 
@@ -31,8 +31,8 @@ def check_xml(expected: str) -> None:
     # Create a copy of the XML report, so that all reports produced during the
     # test execution are available once the testcase has completed.
     label = expected.split(".")[0]
-    copy_filename = f"main_{label}.adb.xml"
-    cp(os.path.join("obj", "main.adb.xml"), copy_filename)
+    copy_filename = f"process_{label}.adb.xml"
+    cp(os.path.join("obj", "process.adb.xml"), copy_filename)
 
     # Now read the XML report and extract a summary from it focused on coverage
     # origins, so that we do not have to baseline the entire XML report.
@@ -114,43 +114,40 @@ def check_xml(expected: str) -> None:
 
 
 def instr_and_run_zero_one() -> list[str]:
-    # Instrument main.adb and run the executable with arguments 0 and 1.
-    # Rename the resulting trace files "zero.srctrace" and "one.srctrace" and
-    # place them in "traces/".
+    # Instrument and run the two main executables.  Rename the resulting trace
+    # files "zero.srctrace" and "one.srctrace" and place them in "traces/".
     xcov_args = build_and_run(
-        gprsw=GPRswitches(root_project=gpr),
+        gprsw=GPRswitches(root_project=gpr, units=["process"]),
         covlevel="stmt+mcdc+atcc+fun_call+gexpr",
-        mains=["main"],
-        extra_coverage_args=[],
+        mains=["main_0", "main_1", "main_2"],
+        extra_coverage_args=["-axml", "--origins"],
         extra_instr_args=["--dump-filename-simple", "--instrument-block"],
-        exec_args=["0"],
-    ) + ["-axml", "--origins"]
-
-    os.rename("main.srctrace", "traces/zero.srctrace")
-
-    run_cov_program(executable=exepath_to("main"), exec_args=["1"])
-    os.rename("main.srctrace", "traces/one.srctrace")
-
-    xcov_args.remove("main.srctrace")
-    return xcov_args
+    )
+    traces = sorted(xcov_args[-3:])
+    os.rename(traces[0], "traces/zero.srctrace")
+    os.rename(traces[1], "traces/one.srctrace")
+    os.rename(traces[2], "traces/two.srctrace")
+    return xcov_args[:-3]
 
 
 def test_with_checkpoint() -> None:
     thistest.log("== test_with_checkpoint ==")
     xcov_args = instr_and_run_zero_one()
 
-    # Create a checkpoint "c.ckpt"
+    # Create a checkpoint "c.ckpt" using the first two traces
     thistest.log("* create c.ckpt")
-    xcov(xcov_args + ["-Ttraces/", "--save-checkpoint=c.ckpt"])
-
-    # Run the executable once more with argument 2. Rename the new trace to
-    # "traces/two.srctrace".
-    run_cov_program(executable=exepath_to("main"), exec_args=["2"])
-    os.rename("main.srctrace", "traces/two.srctrace")
+    xcov(
+        xcov_args
+        + [
+            "traces/zero.srctrace",
+            "traces/one.srctrace",
+            "--save-checkpoint=c.ckpt",
+        ]
+    )
 
     # Commpute the coverage using "two.srctrace" and checkpoint "c.ckpt"
     thistest.log("* consolidate with c.ckpt")
-    xcov(xcov_args + ["-Ttraces/two.srctrace", "--checkpoint=c.ckpt"])
+    xcov(xcov_args + ["traces/two.srctrace", "--checkpoint=c.ckpt"])
 
     # Check the XML report against the expected result. We only expected to
     # find "two.srctrace" or "c.ckpt" as origins.
@@ -161,13 +158,8 @@ def test_only_traces() -> None:
     thistest.log("== test_only_traces ==")
     xcov_args = instr_and_run_zero_one()
 
-    # Run the executable once more with argument 2. Rename the new trace to
-    # "traces/two.srctrace".
-    run_cov_program(executable=exepath_to("main"), exec_args=["2"])
-    os.rename("main.srctrace", "traces/two.srctrace")
-
     # Commpute the coverage using the three trace files
-    xcov(xcov_args + ["-Ttraces/"])
+    xcov(xcov_args + ["traces/"])
 
     # Check the XML report against the expected result. We only expected to
     # find "two.srctrace" or "c.ckpt" as origins.
