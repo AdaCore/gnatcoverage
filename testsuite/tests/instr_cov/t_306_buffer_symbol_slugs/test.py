@@ -118,32 +118,51 @@ cov_args = build_and_run(
     dump_trigger="manual",
     manual_prj_name="main_manual",
     trace_mode="src",
+    split_extracted=True,
 )
 
-traces = sorted(glob.glob("t[0-9].srctrace"))
-thistest.fail_if(
-    traces != ["t1.srctrace", "t2.srctrace"],
-    comment=f"unexpected traces: {traces}",
+# When the dump channel is "bin-file", the traces are created by the buffer
+# control annotations, and the source trace file names do not match what the
+# testsuite expects (t*.srctrace instead of main_manual*.srctrace), so there is
+# no source trace in cov_args (what we want here). For other dump channels, the
+# name of the source trace does match what the testsuite expects, so cov_args
+# includes them: we need to remove them manually.
+while cov_args[-1].endswith(".srctrace"):
+    cov_args.pop()
+
+actual_traces = sorted(glob.glob("*.srctrace"))
+expected_traces = (
+    [
+        "main_manual-main_manual.srctrace",
+        "main_manual-main_manual-1.srctrace",
+    ]
+    if env.is_cross
+    else ["t1.srctrace", "t2.srctrace"]
+)
+thistest.fail_if_not_equal(
+    "unexpected trace files",
+    "\n".join(sorted(expected_traces)),
+    "\n".join(actual_traces),
 )
 
-expected_cov = {
-    "t1": {
+expected_cov_list = [
+    {
         "main_manual.c.xcov": {"+": {6}, "-": {9, 11}},
         "foo.c.xcov": {"+": {6}},
     },
-    "t2": {
+    {
         "main_manual.c.xcov": {"+": {9}, "-": {6, 11}},
         "foo.c.xcov": {"-": {6}},
     },
-}
-for trace in traces:
+]
+for trace, expected_cov in zip(expected_traces, expected_cov_list):
     prefix = trace.split(".")[0]
     output_dir = f"output_{prefix}"
     xcov(
         cov_args + [f"--output-dir={output_dir}", trace],
         out=f"coverage_{prefix}.log",
     )
-    check_xcov_reports(output_dir, expected_cov[prefix])
+    check_xcov_reports(output_dir, expected_cov)
 
 # ----------------------------------------------------------------------------
 # Observability scenario: an Ada main queries the number of bits set in the
