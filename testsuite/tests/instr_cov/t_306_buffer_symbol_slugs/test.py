@@ -19,7 +19,7 @@ import os.path
 
 from e3.fs import cp
 
-from SCOV.instr import xcov_instrument
+from SCOV.instr import strip_base64_traces, xcov_instrument
 from SCOV.minicheck import (
     build_and_run,
     build_run_and_coverage,
@@ -36,7 +36,7 @@ from SUITE.tutils import (
     xcov,
 )
 
-tmp = Wdir("tmp_")
+tmp = Wdir("tmp_build")
 
 # Instrument, build and install the library project
 cp("../mylib", ".", recursive=True)
@@ -69,6 +69,7 @@ installed_mylib_gpr = os.path.join(gpr_install_dir, "mylib.gpr")
 # group array list that the automatic dump helper references must aggregate
 # the buffers group array defined in the installed library.
 
+tmp.to_subdir("tmp_auto")
 thistest.log("======== Automatic dump =========")
 build_run_and_coverage(
     gprsw=GPRswitches(
@@ -77,7 +78,6 @@ build_run_and_coverage(
             mains=["main.c"],
             deps=[installed_mylib_gpr],
             srcdirs=["../main"],
-            objdir="obj",
         ),
         externally_built_projects=True,
     ),
@@ -99,6 +99,7 @@ check_xcov_reports(
 # library buffers, so the "t2" trace must report the library function as not
 # covered.
 
+tmp.to_subdir("tmp_manual")
 thistest.log("======== Buffer control annotations =========")
 cov_args = build_and_run(
     gprsw=GPRswitches(
@@ -107,7 +108,6 @@ cov_args = build_and_run(
             mains=["main_manual.c"],
             deps=[installed_mylib_gpr],
             srcdirs=["../main_manual"],
-            objdir="obj_manual",
         ),
         externally_built_projects=True,
     ),
@@ -118,32 +118,51 @@ cov_args = build_and_run(
     dump_trigger="manual",
     manual_prj_name="main_manual",
     trace_mode="src",
+    split_extracted=True,
 )
 
-traces = sorted(glob.glob("t[0-9].srctrace"))
-thistest.fail_if(
-    traces != ["t1.srctrace", "t2.srctrace"],
-    comment=f"unexpected traces: {traces}",
+# When the dump channel is "bin-file", the traces are created by the buffer
+# control annotations, and the source trace file names do not match what the
+# testsuite expects (t*.srctrace instead of main_manual*.srctrace), so there is
+# no source trace in cov_args (what we want here). For other dump channels, the
+# name of the source trace does match what the testsuite expects, so cov_args
+# includes them: we need to remove them manually.
+while cov_args[-1].endswith(".srctrace"):
+    cov_args.pop()
+
+actual_traces = sorted(glob.glob("*.srctrace"))
+expected_traces = (
+    [
+        "main_manual-main_manual.srctrace",
+        "main_manual-main_manual-1.srctrace",
+    ]
+    if env.is_cross
+    else ["t1.srctrace", "t2.srctrace"]
+)
+thistest.fail_if_not_equal(
+    "unexpected trace files",
+    "\n".join(sorted(expected_traces)),
+    "\n".join(actual_traces),
 )
 
-expected_cov = {
-    "t1": {
+expected_cov_list = [
+    {
         "main_manual.c.xcov": {"+": {6}, "-": {9, 11}},
         "foo.c.xcov": {"+": {6}},
     },
-    "t2": {
+    {
         "main_manual.c.xcov": {"+": {9}, "-": {6, 11}},
         "foo.c.xcov": {"-": {6}},
     },
-}
-for trace in traces:
+]
+for trace, expected_cov in zip(expected_traces, expected_cov_list):
     prefix = trace.split(".")[0]
     output_dir = f"output_{prefix}"
     xcov(
         cov_args + [f"--output-dir={output_dir}", trace],
         out=f"coverage_{prefix}.log",
     )
-    check_xcov_reports(output_dir, expected_cov[prefix])
+    check_xcov_reports(output_dir, expected_cov)
 
 # ----------------------------------------------------------------------------
 # Observability scenario: an Ada main queries the number of bits set in the
@@ -152,6 +171,7 @@ for trace in traces:
 # list, so it must observe the buffers of the installed library (the only
 # unit of interest here).
 
+tmp.to_subdir("tmp_obs")
 thistest.log("======== Observability =========")
 build_run_and_coverage(
     gprsw=GPRswitches(
@@ -160,7 +180,6 @@ build_run_and_coverage(
             mains=["main_obs.adb"],
             deps=[installed_mylib_gpr],
             srcdirs=["../main_obs"],
-            objdir="obj_obs",
         ),
         projects=["mylib"],
         externally_built_projects=True,
@@ -171,9 +190,9 @@ build_run_and_coverage(
     trace_mode="src",
 )
 
-check_xcov_reports("obj_obs", {"foo.c.xcov": {"+": {6}}})
+check_xcov_reports("obj", {"foo.c.xcov": {"+": {6}}})
 
-output = contents_of("main_obs_output.txt")
+output = strip_base64_traces(contents_of("main_obs_output.txt"))
 thistest.fail_if_not_equal(
     what="wrong buffer bit counts in observability main output",
     expected="Before: 0\nAfter: 1",

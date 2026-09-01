@@ -409,3 +409,19 @@ def maybe_copy_runtime(test_dir: str) -> None:
         mkdir(rts_dest_path)
         sync_tree(rts_path, rts_dest_path)
         env.add_search_path(env_var="GPR_PROJECT_PATH", path=rts_dest_path)
+
+
+def strip_base64_traces(output: str) -> str:
+    """Remove base64 source traces from output (if any)."""
+    result = []
+    in_trace = False
+    for line in output.splitlines():
+        if in_trace:
+            if line.startswith("== End =="):
+                in_trace = False
+        else:
+            if line.startswith("== GNATcoverage source trace file =="):
+                in_trace = True
+            else:
+                result.append(line + "\n")
+    return "".join(result)
