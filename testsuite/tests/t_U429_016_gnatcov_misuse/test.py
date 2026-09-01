@@ -29,10 +29,10 @@ def check_output(output_file: str, expected_content: str) -> None:
     Check that the content of the "output_file" text file matches
     "expected_content".
     """
-    thistest.fail_if_no_match(
+    thistest.fail_if_not_equal(
         '"gnatcov coverage" output ({})'.format(output_file),
         expected_content,
-        contents_of(output_file),
+        contents_of(output_file).strip(),
     )
 
 
@@ -67,7 +67,9 @@ run_and_check(
     ["coverage", "--level=stmt", trace_file],
     "missing_scos.txt",
     "gnatcov: Please specify SCOs on the command line, specifying Units in"
-    " project or using \\[--units and -P\\]\\|--scos\\|--sid\\..*",
+    " project or using [--units and -P]|--scos|--sid."
+    "\nUsage: gnatcov coverage [OPTIONS] TRACE_FILEs"
+    "\nRun 'gnatcov coverage --help' for more information.",
 )
 
 thistest.result()
