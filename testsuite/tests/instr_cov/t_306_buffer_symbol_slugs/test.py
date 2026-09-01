@@ -19,7 +19,7 @@ import os.path
 
 from e3.fs import cp
 
-from SCOV.instr import xcov_instrument
+from SCOV.instr import strip_base64_traces, xcov_instrument
 from SCOV.minicheck import (
     build_and_run,
     build_run_and_coverage,
@@ -192,7 +192,7 @@ build_run_and_coverage(
 
 check_xcov_reports("obj", {"foo.c.xcov": {"+": {6}}})
 
-output = contents_of("main_obs_output.txt")
+output = strip_base64_traces(contents_of("main_obs_output.txt"))
 thistest.fail_if_not_equal(
     what="wrong buffer bit counts in observability main output",
     expected="Before: 0\nAfter: 1",
