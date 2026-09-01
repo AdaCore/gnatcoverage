@@ -16,8 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+--  This stub embeds no instrumenter, which says nothing about whether gnatcov
+--  supports C and C++: all programs but gnatcov64 delegate the C/C++
+--  instrumentation to gnatcov64. Set_Builtin_Support is the sole authority on
+--  that question.
+
 package body Instrument.C is
-begin
-   Builtin_Support (C_Language) := False;
-   Builtin_Support (CPP_Language) := False;
 end Instrument.C;
