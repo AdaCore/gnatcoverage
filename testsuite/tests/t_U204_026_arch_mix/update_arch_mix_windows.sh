@@ -17,7 +17,7 @@ git reset --hard wip
 cd /Users/itmgr/wave
 anod vcs --reset
 anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
-anod build gnatcov --smart
+anod build gnatcov --build-date 20260813 --smart
 anod install gnatall -Qstable
 eval $(anod printenv gnatcov)
 eval $(anod printenv gnatall -Qstable)

@@ -4957,9 +4957,9 @@ package body Instrument.C is
 
       Output_Proc : constant String :=
         (case Dump_Config.Channel is
-           when Binary_File            => "gnatcov_rts_write_trace_file_list",
+           when Binary_File            => "gnatcov_rts_write_trace_file",
            when Base64_Standard_Output =>
-             "gnatcov_rts_write_trace_file_base64_list");
+             "gnatcov_rts_write_trace_file_base64");
 
       Indent1 : constant String := "    ";
       Indent2 : constant String := Indent1 & "  ";
@@ -5019,13 +5019,13 @@ package body Instrument.C is
          end case;
          File.Put_Line ("#include <stdlib.h>");
 
-         --  Import the coverage buffers group array list
+         --  Import the coverage buffers
 
          Put_Extern_Decl
            (File,
             Instrumenter,
-            "const struct gnatcov_rts_coverage_buffers_group_array_list",
-            Unit_Buffers_Array_List_Name (Prj.Prj_Name));
+            "const struct gnatcov_rts_coverage_buffers_group_array",
+            Unit_Buffers_Array_Name (Prj.Prj_Name));
 
          --  Emit the procedure to write the trace file
 
@@ -5040,7 +5040,7 @@ package body Instrument.C is
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
-           (Indent2 & "&" & Unit_Buffers_Array_List_Name (Prj.Prj_Name) & ",");
+           (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ",");
          case Dump_Config.Channel is
             when Binary_File            =>
                declare
@@ -5106,12 +5106,9 @@ package body Instrument.C is
             File.New_Line;
             File.Put (Instrumenter.Extern_Prefix);
             File.Put_Line ("void " & Reset_Procedure & "(void) {");
-            File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array_list (");
+            File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array (");
             File.Put_Line
-              (Indent2
-               & "&"
-               & Unit_Buffers_Array_List_Name (Prj.Prj_Name)
-               & ");");
+              (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ");");
             File.Put_Line ("}");
          end if;
 
@@ -5799,10 +5796,9 @@ package body Instrument.C is
 
    overriding
    procedure Emit_Buffers_List_Unit
-     (Self           : C_Family_Instrumenter_Type;
-      Instr_Units    : Unit_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set)
+     (Self        : C_Family_Instrumenter_Type;
+      Instr_Units : Unit_Sets.Set;
+      Prj         : in out Prj_Desc)
    is
       Buffer_Symbols : String_Sets.Set;
       Ignore_CU      : Compilation_Unit;
@@ -5812,17 +5808,14 @@ package body Instrument.C is
       end loop;
       Ignore_CU :=
         C_Family_Instrumenter_Type'Class (Self).Emit_Buffers_List_Unit
-          (Buffer_Symbols => Buffer_Symbols,
-           Prj            => Prj,
-           Ext_Array_Syms => Ext_Array_Syms);
+          (Buffer_Symbols => Buffer_Symbols, Prj => Prj);
    end Emit_Buffers_List_Unit;
 
    overriding
    function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set) return Compilation_Unit
+      Prj            : in out Prj_Desc) return Compilation_Unit
    is
       Filename : constant String :=
         New_Body_File (Self, Prj, "c-" & To_Symbol_Name (Prj.Prj_Name));
@@ -5897,58 +5890,6 @@ package body Instrument.C is
          CU_File.Put_Line (Buffer_Group_Var_Name);
       end if;
       CU_File.Put_Line ("};");
-
-      --  Then emit the buffers group array list, which aggregates the group
-      --  array for this project with the group arrays of the externally
-      --  built projects in the closure (defined in their own buffers list
-      --  units, which were emitted when they were instrumented). This is
-      --  what dump helpers reference.
-
-      declare
-         List_Decl : constant String :=
-           "const struct gnatcov_rts_coverage_buffers_group_array_list "
-           & Unit_Buffers_Array_List_Name (Prj.Prj_Name);
-
-         Array_List_Var_Name : constant String :=
-           "__gcvrt_internal_array_list_" & To_Symbol_Name (Prj.Prj_Name);
-         List_Length         : constant String :=
-           Count_Type'Image (1 + Ext_Array_Syms.Length);
-      begin
-         --  Create extern declarations for the group arrays of externally
-         --  built projects.
-
-         for Sym of Ext_Array_Syms loop
-            Put_Extern_Decl
-              (CU_File,
-               Self,
-               "const struct gnatcov_rts_coverage_buffers_group_array",
-               +Sym);
-         end loop;
-
-         --  Then create an extern declaration for the group array list
-         --  (necessary in C++ to set the C linkage), and finally the
-         --  definition for that list.
-
-         CU_File.Put_Line (Self.Extern_Prefix & List_Decl & ";");
-
-         CU_File.Put_Line
-           ("const struct gnatcov_rts_coverage_buffers_group_array *"
-            & Array_List_Var_Name
-            & "[] = {");
-         CU_File.Put ("    &" & Unit_Buffers_Array_Name (Prj.Prj_Name));
-         for Sym of Ext_Array_Syms loop
-            CU_File.Put_Line (",");
-            CU_File.Put ("    &" & (+Sym));
-         end loop;
-         CU_File.New_Line;
-         CU_File.Put_Line ("};");
-
-         CU_File.Put_Line (List_Decl & " = {");
-         CU_File.Put_Line ("  " & List_Length & ",");
-         CU_File.Put_Line (Array_List_Var_Name);
-         CU_File.Put_Line ("};");
-      end;
-
       return CU_Name;
    end Emit_Buffers_List_Unit;
 

@@ -152,45 +152,24 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
-      Program_Name        : String;
-      Exec_Date           : Unsigned_64;
-      User_Data           : String := "")
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "")
    is
-      procedure Helper is new Generic_Write_Trace_File_List (Base64_Buffer);
+      procedure Helper is new Generic_Write_Trace_File (Base64_Buffer);
       Buffer : Base64_Buffer :=
         (Bytes => (others => 0), Next => 1, Columns => 0);
    begin
       TIO.New_Line;
       TIO.Put_Line ("== GNATcoverage source trace file ==");
-      Helper (Buffer, Buffers_Groups_List, Program_Name, Exec_Date, User_Data);
+      Helper (Buffer, Buffers_Groups, Program_Name, Exec_Date, User_Data);
       Flush (Buffer);
       if Buffer.Columns /= 0 then
          TIO.New_Line;
       end if;
       TIO.Put_Line ("== End ==");
       TIO.New_Line;
-   end Write_Trace_File;
-
-   ----------------------
-   -- Write_Trace_File --
-   ----------------------
-
-   procedure Write_Trace_File
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Program_Name   : String;
-      Exec_Date      : Unsigned_64;
-      User_Data      : String := "")
-   is
-      Buffers_Groups_C :
-        aliased constant GNATcov_RTS_Coverage_Buffers_Group_Array :=
-          (Buffers_Groups'Length, Buffers_Groups'Address);
-
-      Buffers_Groups_List : constant Coverage_Buffers_Group_Array_List :=
-        (1 => Buffers_Groups_C'Unchecked_Access);
-   begin
-      Write_Trace_File
-        (Buffers_Groups_List, Program_Name, Exec_Date, User_Data);
    end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Base64;

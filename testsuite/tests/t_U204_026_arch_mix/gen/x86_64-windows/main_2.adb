@@ -1,6 +1,6 @@
 pragma Style_Checks (Off); pragma Warnings (Off);pragma Style_Checks (Off); pragma Warnings (Off);with Pkg;
 
-with GNATcov_RTS.Buffers;with GCVRT.Pz5596b68c;with GCVRT.Dz1a336dab;with GNATcov_RTS;with GNATcov_RTS.Buffers;pragma Compile_Time_Error(GNATcov_RTS.Version/=13,"Incompatible GNATcov_RTS version, please use the GNATcov_RTS project provided with your GNATcoverage distribution.");procedure Main_2 is
+with GNATcov_RTS.Buffers;with GCVRT.Pz5596b68c;with GCVRT.Dz1a336dab;with GNATcov_RTS;with GNATcov_RTS.Buffers;pragma Compile_Time_Error(GNATcov_RTS.Version/=12,"Incompatible GNATcov_RTS version, please use the GNATcov_RTS project provided with your GNATcoverage distribution.");procedure Main_2 is
 GNATcov_Dump_Object:GCVRT.Dz1a336dab.Dump_Controlled_Type;begin
    GNATcov_RTS.Buffers.Witness(GCVRT.Pz5596b68c.Buffers_1.Statement_Buffer,0);Pkg.Compute (True, True);
 end Main_2;
