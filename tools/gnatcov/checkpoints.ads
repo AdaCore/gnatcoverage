@@ -66,7 +66,7 @@ package Checkpoints is
    --  20 -- Rework Scope_Entity to identify scopes by their Start/End_Sloc
    --        rather than their Start/End_SCO.
    --  21 -- Remove unit names (keep only filenames, no matter the language).
-   --  23 -- Rework preprocessing information: split it into macro expansion
+   --  22 -- Rework preprocessing information: split it into macro expansion
    --        and inclusion information maps, and make PP_Info a plain record
    --        with cross-file source location ranges.
    --

@@ -1099,6 +1099,7 @@ procedure GNATcov_Bits_Specific is
       Use_Full_Slugs := Args.Bool_Args (Opt_Full_Slugs);
       Force := Args.Bool_Args (Opt_Force);
       Split_Extracted_Traces := Args.Bool_Args (Opt_Split_Extracted_Traces);
+      Compute_Origins := Args.Bool_Args (Opt_Origins);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn

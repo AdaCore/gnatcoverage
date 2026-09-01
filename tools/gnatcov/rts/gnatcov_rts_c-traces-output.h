@@ -27,16 +27,29 @@ extern "C"
 
   /* Callback for trace writing routines. Write the N bytes starting at SOURCE
      to the OUTPUT stream (OUTPUT is just forwarded from
-     gnatcov_rts_generic_write_trace_file).  Return 0 if the write was
+     gnatcov_rts_generic_write_trace_file_list).  Return 0 if the write was
      successful and return any non-zero value in case of error.  */
   typedef int (*gnatcov_rts_write_bytes_callback) (void *output,
                                                    const void *source,
                                                    unsigned n);
 
-  /* Write a trace file to contain the given coverage BUFFERS_GROUPS to the
-     OUTPUT stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
-     USER_DATA are included as metadata in the trace file.  Return 0 if the
-     write was successful, and return any non-zero value in case of error.  */
+  /* Write a trace file to contain the coverage buffers for all the coverage
+     buffers group arrays in BUFFERS_GROUPS_LIST to the OUTPUT stream using
+     the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and USER_DATA are
+     included as metadata in the trace file.  Return 0 if the write was
+     successful, and return any non-zero value in case of error.  */
+  extern int gnatcov_rts_generic_write_trace_file_list (
+    void *output,
+    const struct gnatcov_rts_coverage_buffers_group_array_list
+      *buffers_groups_list,
+    struct gnatcov_rts_string program_name, uint64_t exec_date,
+    struct gnatcov_rts_string user_data,
+    gnatcov_rts_write_bytes_callback write_bytes);
+
+  /* Likewise, for a single coverage buffers group array.  This is a
+     compatibility wrapper around gnatcov_rts_generic_write_trace_file_list,
+     kept so that code written against previous versions of this runtime
+     keeps working.  */
   extern int gnatcov_rts_generic_write_trace_file (
     void *output,
     const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,

@@ -58,10 +58,34 @@ package GNATcov_RTS.Buffers.Lists is
    end record;
    pragma Convention (C, GNATcov_RTS_Coverage_Buffers_Group_Array);
 
+   type Coverage_Buffers_Group_Array_Access is
+     access constant GNATcov_RTS_Coverage_Buffers_Group_Array;
+   pragma Convention (C, Coverage_Buffers_Group_Array_Access);
+
+   type Coverage_Buffers_Group_Array_List is
+     array (Positive range <>) of Coverage_Buffers_Group_Array_Access;
+   pragma Convention (C, Coverage_Buffers_Group_Array_List);
+   --  Each instrumentation run provides a coverage buffers group array for
+   --  the units it instrumented (see the gnatcov_rts_buffers_array_<project>
+   --  symbols): such lists aggregate that array with the arrays of
+   --  separately-instrumented (externally built) projects linked in the same
+   --  program.
+
+   type GNATcov_RTS_Coverage_Buffers_Group_Array_List is record
+      Length : aliased unsigned;
+      Arrays : System.Address;
+      --  Address of a Coverage_Buffers_Group_Array_List array of Length items
+   end record;
+   pragma Convention (C, GNATcov_RTS_Coverage_Buffers_Group_Array_List);
+
    procedure Reset_Group_Array_Buffers
      (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array);
    --  Set the components of all the buffers in each group to zero, effectively
    --  resetting the coverage state of all obligations to "not covered".
+
+   procedure Reset_Group_Array_List_Buffers
+     (List : GNATcov_RTS_Coverage_Buffers_Group_Array_List);
+   --  Likewise, for all the group arrays in the given list
 
    Witness_Limited_Actual : Witness_Limited_Type;
    pragma

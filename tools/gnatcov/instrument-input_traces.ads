@@ -18,8 +18,9 @@
 
 --  Source trace files decoding
 
-private with Ada.Containers;
+with Ada.Containers;
 private with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Ordered_Sets;
 private with Ada.Unchecked_Deallocation;
 
 with SC_Obligations;
@@ -91,6 +92,39 @@ package Instrument.Input_Traces is
 
    procedure Release (Self : in out Consolidation_State);
    --  Release all resources associated to ``Self``
+
+   ----------------------
+   -- Coverage origins --
+   ----------------------
+
+   package Tracefile_Sets is new
+     Ada.Containers.Ordered_Sets (Unbounded_String);
+   --  Set type holding the names of tracefiles responsible for the coverage
+   --  of SCOs.
+
+   function "=" (Left, Right : Tracefile_Sets.Set) return Boolean
+   is (Left."=" (Right));
+
+   package Coverage_Origins_Maps is new
+     Ada.Containers.Ordered_Maps (SCO_Id, Tracefile_Sets.Set);
+   --  Map linking a SCO to the names of trace files that contribute to their
+   --  coverage.
+
+   procedure Log_Coverage_Origin (Tracefile : String; SCO : SCO_Id);
+   --  Add the Tracefile as and origin of coverage for SCO
+
+   Coverage_Origins : Coverage_Origins_Maps.Map :=
+     Coverage_Origins_Maps.Empty_Map;
+   --  The coverage origins map
+   --  Coverage origins are computed per-trace/checkpoint before consolidation.
+   --
+   --  A trace/checkpoint is an origin of coverage if a:
+   --  - STMT      SCO is covered,
+   --  - DECISION  SCO is evaluated to True
+   --  - CONDITION SCO is evaluated to True
+   --
+   --  Each sco has a list of trace/checkpoint files for which it filled the
+   --  above condition.
 
 private
 

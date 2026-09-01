@@ -149,10 +149,16 @@ is
      (Project : GPR2.Project.View.Object; Source : GPR2.Build.Source.Object);
    --  Add this source file to the list of units (of interest) to instrument
 
-   function Units_Of_Interest
-     (IC : Inst_Context; Project : GPR2.Project.View.Object)
-      return Unit_Sets.Set;
-   --  Return the list of units of interest in the project closure
+   procedure Compute_Buffers_List_Content
+     (IC             : Inst_Context;
+      Project        : GPR2.Project.View.Object;
+      Instr_Units    : out Unit_Sets.Set;
+      Ext_Array_Syms : out String_Sets.Set);
+   --  Compute what the buffers list unit for Project must reference:
+   --  Instr_Units is the set of units of interest in the project closure,
+   --  whose buffers group symbols are referenced directly. Units that belong
+   --  to an externally built project are instead represented by the buffers
+   --  group array symbol of that project, added to Ext_Array_Syms.
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
    --  Clean the instrumentation directories and print any relevant information
@@ -499,15 +505,15 @@ is
       end if;
    end Add_Instrumented_Unit;
 
-   -----------------------
-   -- Units_Of_Interest --
-   -----------------------
+   ----------------------------------
+   -- Compute_Buffers_List_Content --
+   ----------------------------------
 
-   function Units_Of_Interest
-     (IC : Inst_Context; Project : GPR2.Project.View.Object)
-      return Unit_Sets.Set
-   is
-      Result : Unit_Sets.Set;
+   procedure Compute_Buffers_List_Content
+     (IC             : Inst_Context;
+      Project        : GPR2.Project.View.Object;
+      Instr_Units    : out Unit_Sets.Set;
+      Ext_Array_Syms : out String_Sets.Set) is
    begin
       --  Include all units of interest, including those from externally
       --  built projects.
@@ -522,11 +528,28 @@ is
          if IC.Files_Of_Interest.Contains (S.Path_Name.Virtual_File)
            and then not Skip_Source (S)
          then
-            Result.Include (To_Compilation_Unit (S));
+            if S.Owning_View.Is_Externally_Built then
+
+               --  Units of externally built projects were instrumented
+               --  separately (this can only happen when
+               --  --externally-built-projects is in use, as sources of
+               --  externally built projects are not enumerated otherwise).
+               --  Refer to the buffers group array that the instrumentation
+               --  of that project emitted rather than to each unit's buffers
+               --  group symbol: the name of the latter depends on source file
+               --  paths, which may have changed since the project was
+               --  instrumented (e.g. if it was installed).
+
+               pragma Assert (Externally_Built_Projects_Processing_Enabled);
+               Ext_Array_Syms.Include
+                 (+Unit_Buffers_Array_Name
+                     (To_Qualified_Name (String (S.Owning_View.Name))));
+            else
+               Instr_Units.Include (To_Compilation_Unit (S));
+            end if;
          end if;
       end loop;
-      return Result;
-   end Units_Of_Interest;
+   end Compute_Buffers_List_Content;
 
    ---------------------
    -- Clean_And_Print --
@@ -702,12 +725,47 @@ begin
 
    --  Then, get the list of all units of interest
 
-   for Lang in Src_Supported_Language loop
-      if Src_Enabled_Languages (Lang) then
-         Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access, Lang, Mode => Only_UOI_Closures);
-      end if;
-   end loop;
+   Enumerate_Sources_Of_Interest (Add_Instrumented_Unit'Access);
+
+   --  Make sure that every unit of interest has at least one instrumented
+   --  part; otherwise warn the user.
+
+   declare
+      Warned_Units : String_Sets.Set;
+      --  Set of units for which the tool already warned
+
+      procedure Warn_If_Not_Instrumented
+        (Project : GPR2.Project.View.Object;
+         Source  : GPR2.Build.Source.Object);
+      --  Warn if the given unit of interest which Source is a part of has no
+      --  instrumented part.
+
+      ------------------------------
+      -- Warn_If_Not_Instrumented --
+      ------------------------------
+
+      procedure Warn_If_Not_Instrumented
+        (Project : GPR2.Project.View.Object; Source : GPR2.Build.Source.Object)
+      is
+         Unit_Name    : constant String := Unique_Unit_Name (Source);
+         Unit_Name_US : constant Unbounded_String := +Unit_Name;
+      begin
+         if not Instrumented_Sources.Contains (Unit_Name)
+           and then not Skip_Source (Source)
+           and then not Warned_Units.Contains (Unit_Name_US)
+           and then not Project.Is_Externally_Built
+         then
+            Outputs.Warn
+              ("All of the parts for the unit of interest "
+               & Unit_Name
+               & " were excluded. Consider using --excluded-units.");
+            Warned_Units.Insert (Unit_Name_US);
+         end if;
+      end Warn_If_Not_Instrumented;
+
+   begin
+      Enumerate_Sources_Of_Interest (Warn_If_Not_Instrumented'Access);
+   end;
 
    --  Remove all of the separate whose parent unit was not instrumented, as
    --  this is not supported. TODO??? We should probably issue a warning there.
@@ -988,10 +1046,18 @@ begin
                      --  instrumentation process, so skip it.
 
                      if not Is_Root_Prj then
-                        Instrumenter.Emit_Buffers_List_Unit
-                          (Instr_Units =>
-                             Units_Of_Interest (IC, LU_Info.Instr_Project),
-                           Prj         => Prj);
+                        declare
+                           Instr_Units    : Unit_Sets.Set;
+                           Ext_Array_Syms : String_Sets.Set;
+                        begin
+                           Compute_Buffers_List_Content
+                             (IC,
+                              LU_Info.Instr_Project,
+                              Instr_Units,
+                              Ext_Array_Syms);
+                           Instrumenter.Emit_Buffers_List_Unit
+                             (Instr_Units, Prj, Ext_Array_Syms);
+                        end;
                      end if;
                   end if;
                end;
@@ -1054,16 +1120,19 @@ begin
    --  C symbol importations).
 
    declare
-      Langs : constant GPR2.Containers.Language_Set :=
+      Instr_Units    : Unit_Sets.Set;
+      Ext_Array_Syms : String_Sets.Set;
+      Langs          : constant GPR2.Containers.Language_Set :=
         Root_Project_Info.Project.Language_Ids;
    begin
+      Compute_Buffers_List_Content
+        (IC, Root_Project_Info.Project, Instr_Units, Ext_Array_Syms);
       for Lang in Src_Supported_Language loop
          if Builtin_Support (Lang)
            and then Langs.Contains (To_Language_Id (Lang))
          then
             Instrumenters (Lang).Emit_Buffers_List_Unit
-              (Units_Of_Interest (IC, Root_Project_Info.Project),
-               Root_Project_Info.Desc);
+              (Instr_Units, Root_Project_Info.Desc, Ext_Array_Syms);
             Instrumenters (Lang).Emit_Observability_Unit
               (Root_Project_Info.Desc);
             exit;
