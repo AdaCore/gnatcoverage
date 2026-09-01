@@ -16,7 +16,7 @@ Wdir("tmp_")
 p = gprfor(
     mains=["main.cpp"],
     srcdirs=[".."],
-    langs=["Ada", "C++"],
+    langs=["Ada", "C", "C++"],
     extra=(
         "package Coverage is\n"
         '   for Excluded_Source_Files use ("main.cpp", "ada_helper.ads", '
@@ -29,7 +29,11 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=p),
     covlevel="stmt",
     mains=["main"],
-    extra_coverage_args=["--annotate=xcov"],
+    extra_instr_args=["--restricted-to-languages=Ada,C++"],
+    extra_coverage_args=[
+        "--annotate=xcov",
+        "--restricted-to-languages=Ada,C++",
+    ],
     trace_mode="src",
     tolerate_instrument_messages=".*",
     tolerate_coverage_messages=".*",
