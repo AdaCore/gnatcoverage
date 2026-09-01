@@ -252,7 +252,7 @@ package body SS_Annotations is
       Span             : Sloc_Span;
       Source           : GPR2.Build.Source.Object;
       Backend          : Unbounded_String := Null_Unbounded_String;
-      File_Prefix      : Unbounded_String := Null_Unbounded_String;
+      File_Prefix      : Virtual_File := No_File;
       Explicit_Backend : Boolean := False;
       Language         : Any_Language := All_Languages);
    --  Add to DB the entry named Identifier, described by Annotation, and
@@ -266,8 +266,10 @@ package body SS_Annotations is
    --  is not fatal: we retry with the "absolute" backend and warn about it.
    --
    --  File_Prefix is the prefix to strip from File's name in the created
-   --  entry. If empty and a project is loaded, compute it so that the entry
-   --  designates File through the shortest unambiguous name.
+   --  entry. If empty, compute one from the project through Source, so that
+   --  the entry designates File through the shortest name that is
+   --  unambiguous there. Without a project there is nothing to check a
+   --  shorter name against, so File's own name is what the entry keeps.
 
    ---------------------
    -- Annotation_Kind --
@@ -1120,12 +1122,12 @@ package body SS_Annotations is
       Span             : Sloc_Span;
       Source           : GPR2.Build.Source.Object;
       Backend          : Unbounded_String := Null_Unbounded_String;
-      File_Prefix      : Unbounded_String := Null_Unbounded_String;
+      File_Prefix      : Virtual_File := No_File;
       Explicit_Backend : Boolean := False;
       Language         : Any_Language := All_Languages)
    is
       SS_Backend  : Unbounded_String := Backend;
-      Prefix      : Unbounded_String := File_Prefix;
+      Prefix      : Virtual_File := File_Prefix;
       Actual_Lang : Any_Language := Language;
    begin
       --  Determine the backend to be used depending on the language, if not
@@ -1166,63 +1168,64 @@ package body SS_Annotations is
          end case;
       end if;
 
-      --  Compute a file prefix if there isn't one already specified, and we
-      --  have a project at hand.
+      --  Compute a file prefix if there isn't one already specified.
 
-      if US.Length (Prefix) = 0
-        and then Is_Project_Loaded
-        and then Source.Is_Defined
+      --  With no project to check a base name against there is nothing to
+      --  shorten to safely, so leave the name as the caller gave it: another
+      --  source may share its base name, and only the caller knows which one
+      --  is meant.
+
+      if Prefix = No_File and then Is_Project_Loaded and then Source.Is_Defined
       then
-         case To_Language_Or_All (Source.Language) is
-            when Ada_Language =>
 
-               --  Ada source files are guaranteed to be unique in a project,
-               --  so use the directory name as file prefix to end-up with only
-               --  the base name.
+         --  So that the entry designates the file by base name
 
-               Prefix := US.To_Unbounded_String (+File.Dir_Name);
+         Prefix := File.Dir;
 
-            when others       =>
-               --  For other sources, check if the source is unique in the
-               --  tree, if so, do the same thing.
+         --  Ada base names are unique in a project, so that is already the
+         --  shortest unambiguous name.
 
-               declare
-                  Count    : Natural := 0;
-                  Basename : constant GPR2.Simple_Name :=
-                    Source.Path_Name.Simple_Name;
-                  Prj_Dir  : constant Virtual_File :=
-                    Create (+String (Source.Owning_View.Dir_Name.Value));
-                  Rel_Path : constant String :=
-                    +Create (Relative_Path (File, Prj_Dir)).Dir_Name;
-               begin
-                  for View of Project.Project loop
-                     declare
-                        S : constant GPR2.Build.Source.Object :=
-                          View.Source (Basename);
-                     begin
-                        if S.Is_Defined then
-                           Count := Count + 1;
-                        end if;
-                     end;
-                  end loop;
+         if To_Language_Or_All (Source.Language) /= Ada_Language then
+            declare
+               Count    : Natural := 0;
+               Basename : constant GPR2.Simple_Name :=
+                 Source.Path_Name.Simple_Name;
+               Prj_Dir  : constant Virtual_File :=
+                 Create (+String (Source.Owning_View.Dir_Name.Value));
 
-                  --  If the basename is ambiguous, use the relative path from
-                  --  the project to the file, if it has no relative path
-                  --  components (./ or ..).
+               Resolved : constant Virtual_File :=
+                 Create (File.Full_Name, Normalize => True);
+               --  Relative_Path takes names as they come, so both sides have
+               --  to be resolved for its result to mean anything
 
-                  if Count > 1 then
-                     if Has_Relative_Component (Rel_Path) then
-                        Warn
-                          ("Could not generate adequate file prefix from"
-                           & " project, use --source-root if necessary.");
-                     else
-                        Prefix := US.To_Unbounded_String (Rel_Path);
+               Rel_Path : constant String :=
+                 +Create (Relative_Path (Resolved, Prj_Dir)).Dir_Name;
+            begin
+               for View of Project.Project loop
+                  declare
+                     S : constant GPR2.Build.Source.Object :=
+                       View.Source (Basename);
+                  begin
+                     if S.Is_Defined then
+                        Count := Count + 1;
                      end if;
+                  end;
+               end loop;
+
+               --  A path climbing out of the project is no better than the
+               --  base name. Only --source-root can disambiguate.
+
+               if Count > 1 then
+                  if Has_Relative_Component (Rel_Path) then
+                     Warn
+                       ("Could not generate adequate file prefix from"
+                        & " project, use --source-root if necessary.");
                   else
-                     Prefix := US.To_Unbounded_String (+File.Dir_Name);
+                     Prefix := Prj_Dir;
                   end if;
-               end;
-         end case;
+               end if;
+            end;
+         end if;
       end if;
 
       declare
@@ -1293,22 +1296,22 @@ package body SS_Annotations is
       Lang         : Any_Language := All_Languages;
       Insert_After : Boolean := False)
    is
-      SS_Span : constant Sloc_Span := (+Span.First_Sloc, +Span.Last_Sloc);
-      Source  : GPR2.Build.Source.Object;
+      SS_Span  : constant Sloc_Span := (+Span.First_Sloc, +Span.Last_Sloc);
+      Resolved : constant Virtual_File :=
+        Create (File.Full_Name, Normalize => True);
+      Source   : GPR2.Build.Source.Object;
    begin
       --  Look up the GPR2 source for File, so that Create_Entry can determine
       --  its language and an adequate file prefix. This is optional: without a
       --  project, Create_Entry falls back on the file extension.
 
       if Is_Project_Loaded then
-         Source :=
-           Project.Lookup_Source
-             (Create (File.Full_Name, Normalize => True).Display_Full_Name);
+         Source := Project.Lookup_Source (Resolved.Display_Full_Name);
       end if;
 
       Create_Entry
         (DB         => DB,
-         Identifier => Default_Identifier (Kind, File, SS_Span),
+         Identifier => Default_Identifier (Kind, Resolved, SS_Span),
          Annotation => To_TOML (Kind, Annot, Insert_After),
          File       => File,
          Span       => SS_Span,
@@ -1407,10 +1410,18 @@ package body SS_Annotations is
    procedure Add_Annotation (Args : Command_Line.Parser.Parsed_Arguments) is
       use TOML;
 
-      Annot_Kind    : Any_Annotation_Kind;
-      Start_Sloc    : Slocs.Local_Source_Location;
-      End_Sloc      : Slocs.Local_Source_Location;
-      Target_File   : Virtual_File;
+      Annot_Kind  : Any_Annotation_Kind;
+      Start_Sloc  : Slocs.Local_Source_Location;
+      End_Sloc    : Slocs.Local_Source_Location;
+      Target_File : Virtual_File;
+      --  The file as named on the command line. What the annotation entry
+      --  designates is derived from this, so that an entry keeps naming its
+      --  source the way the user does.
+
+      Resolved_File : Virtual_File;
+      --  Target_File resolved, for everything that has to identify the file
+      --  itself rather than name it
+
       Output_File   : Virtual_File;
       Justification : Unbounded_String;
       Outcome       : Boolean;
@@ -1461,7 +1472,8 @@ package body SS_Annotations is
       Entry_Purpose : Ada_Qualified_Name;
       Entry_Id      : Unbounded_String := +Opt_Annotation_Id;
       SS_Backend    : constant Unbounded_String := +Opt_SS_Backend;
-      File_Prefix   : constant Unbounded_String := +Opt_Source_Root;
+      File_Prefix   : constant Virtual_File :=
+        Create (+Parser.Value (Args, Opt_Source_Root), Normalize => True);
       Source        : GPR2.Build.Source.Object;
 
       --  Start of processing for Add_Annotation
@@ -1490,13 +1502,13 @@ package body SS_Annotations is
 
       Target_File := Create (+(+Args.Remaining_Args.Last_Element));
 
+      --  Lookup_Source and Annotation_Output_For match on the absolute path,
+      --  and come up empty for a relative one.
+
+      Resolved_File := Create (Target_File.Full_Name, Normalize => True);
+
       if Is_Project_Loaded then
-         declare
-            Normalized : constant Virtual_File :=
-              Create (Target_File.Full_Name, Normalize => True);
-         begin
-            Source := Project.Lookup_Source (Normalized.Display_Full_Name);
-         end;
+         Source := Project.Lookup_Source (Resolved_File.Display_Full_Name);
          if not Source.Is_Defined then
             Fatal_Error
               (Target_File.Display_Full_Name
@@ -1504,13 +1516,13 @@ package body SS_Annotations is
          end if;
       end if;
 
-      if not Target_File.Is_Regular_File then
+      if not Resolved_File.Is_Regular_File then
          Fatal_Error (Target_File.Display_Full_Name & ": no such file");
       end if;
 
       --  Determine the file to write the amended annotations to
 
-      Output_File := Annotation_Output_For (Args, Target_File);
+      Output_File := Annotation_Output_For (Args, Resolved_File);
 
       --  Validate the arguments depending on the requested annotation kind
 
@@ -1714,7 +1726,7 @@ package body SS_Annotations is
 
          if US.Length (Entry_Id) = 0 then
             Entry_Id :=
-              Default_Identifier (Annot_Kind, Target_File, Target_Span);
+              Default_Identifier (Annot_Kind, Resolved_File, Target_Span);
          end if;
 
          Entry_Purpose := Purpose (Annot_Kind);
@@ -1753,7 +1765,9 @@ package body SS_Annotations is
       declare
          Matches : constant Match_Result_Vec :=
            Match_Entries
-             ((1 => Target_File), Valid_Annotation_DB, To_Ada (Entry_Purpose));
+             ((1 => Resolved_File),
+              Valid_Annotation_DB,
+              To_Ada (Entry_Purpose));
       begin
          for Match of Matches loop
             if Match.Success and then Match.Location = (+Start_Sloc, +End_Sloc)
@@ -2015,7 +2029,7 @@ package body SS_Annotations is
             Files := new File_Array (1 .. Source_Files.Last_Index);
             for Cur in Source_Files.Iterate loop
                Files.all (String_Vectors.To_Index (Cur)) :=
-                 Create (+(+String_Vectors.Element (Cur)));
+                 Create (+(+String_Vectors.Element (Cur)), Normalize => True);
             end loop;
             Match_Results :=
               Match_Entries (Files.all, Valid_Annotation_DB, +Purpose_Filter);
