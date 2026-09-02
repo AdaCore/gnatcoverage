@@ -18,14 +18,8 @@ package GCVRT.FOO is
       1 => gnatcov_rts_buffers_z5596b68b_buffers'Access,
       2 => gnatcov_rts_buffers_z5596b68c_buffers'Access,
       3 => gnatcov_rts_buffers_z27afeb0c_buffers'Access);
-   C_List : aliased constant GNATcov_RTS.Buffers.Lists.GNATcov_RTS_Coverage_Buffers_Group_Array :=
+   C_List : constant GNATcov_RTS.Buffers.Lists.GNATcov_RTS_Coverage_Buffers_Group_Array :=
       ( 3, List'Address);
    pragma Export (C, C_List, "gnatcov_rts_buffers_array_foo");
-
-   Arrays_List : constant GNATcov_RTS.Buffers.Lists.Coverage_Buffers_Group_Array_List := (
-      1 => C_List'Access);
-   C_Arrays_List : constant GNATcov_RTS.Buffers.Lists.GNATcov_RTS_Coverage_Buffers_Group_Array_List :=
-      (1, Arrays_List'Address);
-   pragma Export (C, C_Arrays_List, "gnatcov_rts_buffers_array_list_foo");
 
 end GCVRT.FOO;

@@ -1,5 +1,7 @@
 #include "algo.h"
 
+extern int int_identity (int i);
+
 int
 main (void)
 {

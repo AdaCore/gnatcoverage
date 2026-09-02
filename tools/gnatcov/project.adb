@@ -924,7 +924,7 @@ package body Project is
            File    : GPR2.Build.Source.Object)) is
    begin
       for Lang in Src_Supported_Language loop
-         if Src_Enabled_Languages (Lang) then
+         if Src_Enabled_Languages (Lang) and then Builtin_Support (Lang) then
             Enumerate_Sources (Callback, Lang, Mode => Only_UOI_Closures);
          end if;
       end loop;

@@ -1157,16 +1157,6 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
 
-      if not Args.String_List_Args (Opt_Checkpoint).Is_Empty
-        and then
-          (not Args.String_List_Args (Opt_Units).Is_Empty
-           or else not Args.String_List_Args (Opt_Excluded_Units).Is_Empty)
-      then
-         Warn
-           ("Specifying units of interest through --units/--excluded-units"
-            & " has no effect on checkpoints");
-      end if;
-
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
       Copy_Arg_List (Opt_LLVM_JSON_Checkpoint, LLVM_JSON_Ckpt_Inputs);
 
@@ -1824,6 +1814,24 @@ procedure GNATcov_Bits_Specific is
          begin
             Enumerate_Excluded_Source_Files (Add_Source_File'Access);
          end;
+      end if;
+
+      --  --units/--excluded-units are indeed useless when reading a
+      --  checkpoint, but it is legitimate to both read checkpoints *and* trace
+      --  files in a single "gnatcov coverage" command. In that case,
+      --  --units/--excluded-units are used to the select unit info to import
+      --  in order to decode the traces. Warn only when these switches are
+      --  present while no trace file is provided.
+
+      if Trace_Inputs.Is_Empty
+        and then not Args.String_List_Args (Opt_Checkpoint).Is_Empty
+        and then
+          (not Args.String_List_Args (Opt_Units).Is_Empty
+           or else not Args.String_List_Args (Opt_Excluded_Units).Is_Empty)
+      then
+         Warn
+           ("Specifying units of interest through --units/--excluded-units"
+            & " has no effect on checkpoints");
       end if;
    end Process_Arguments;
 

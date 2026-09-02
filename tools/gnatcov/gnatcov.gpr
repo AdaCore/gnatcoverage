@@ -46,18 +46,21 @@ project Gnatcov is
    ------------------------
 
    C_Support : Boolean := external ("C_SUPPORT", "True");
-   --  Whether to include support source instrumentation for C
+   --  Whether this gnatcov supports the source instrumentation of C and C++
    --
-   --  Enabling this is useful for gnatcov64 only (at it is the only program
-   --  that is supposed to run the C/C++ instrumenter): it will create link
-   --  issue in some other configurations (because of the need for Clang link
-   --  options), and will just create bloat in others (link of Clang code that
-   --  is dead code in practice): force it to "False" in all but the
-   --  "gnatcov64" configuration.
+   --  This is a property of the installation, not of one program: "make bin"
+   --  builds all the parts below from a single value. Programs that do not
+   --  embed the instrumenter still need to have C_SUPPORT set to True, to
+   --  report that the installation as whole supports C/C++.
+
+   C_Instrumenter : Boolean := C_Support;
+   --  Whether to embed the C/C++ instrumenter in the program being built.
+   --
+   --  Only gnatcov64 ever runs it, to avoid bloat in other configurations.
 
    case Part is
       when "gnatcov64" => null;
-      when others      => C_Support := "False";
+      when others      => C_Instrumenter := "False";
    end case;
 
    type Build_Mode_Type is ("dev", "prod", "prof");
@@ -141,10 +144,21 @@ project Gnatcov is
             null;
       end case;
 
-      case C_Support is
+      case C_Instrumenter is
          when "False" =>
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
             for Body ("Instrument.C") use "instrument-c__stub.adb";
+         when "True" =>
+            null;
+      end case;
+
+      --  Keyed on C_Support, not C_Instrumenter: Builtin_Support tells
+      --  whether this gnatcov can produce SCOs for C and C++ at all. A
+      --  program that merely delegates the instrumentation still reports
+      --  "True".
+
+      case C_Support is
+         when "False" =>
             for Body ("Set_Builtin_Support")
                use "set_builtin_support_no_c.adb";
          when "True" =>
@@ -334,7 +348,7 @@ project Gnatcov is
    -------------------------------------------
 
    for Source_Dirs use (".", "libopcodes_bind", "templates");
-   case C_Support is
+   case C_Instrumenter is
       when "False" => for Excluded_Source_Files use ("clang-wrapper.cc");
       when "True"  => null;
    end case;

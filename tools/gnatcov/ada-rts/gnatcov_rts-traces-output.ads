@@ -44,36 +44,15 @@ package GNATcov_RTS.Traces.Output is
           (Stream : in out Output_Stream; Bytes : Uint8_Array) is <>;
       --  Write Bytes to the given Stream
 
-     procedure Generic_Write_Trace_File_List
-     (Output              : in out Output_Stream;
-      Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
-      Program_Name        : String;
-      Exec_Date           : Unsigned_64;
-      User_Data           : String := "");
-   --  Write a trace file to Output to contain the coverage data for all the
-   --  coverage buffers group arrays in Buffers_Groups_List.
-   --
-   --  Program_Name, Exec_Date, and User_Data are used to fill the
-   --  corresponding metadata in the written trace file.
-
-   generic
-      type Output_Stream (<>) is limited private;
-      --  Entity where the trace file is written
-
-      with
-        procedure Write_Bytes
-          (Stream : in out Output_Stream; Bytes : Uint8_Array) is <>;
-      --  Write Bytes to the given Stream
-
      procedure Generic_Write_Trace_File
      (Output         : in out Output_Stream;
       Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;
       Exec_Date      : Unsigned_64;
       User_Data      : String := "");
-   --  Likewise, for a single coverage buffers group array. This is a
-   --  compatibility wrapper around Generic_Write_Trace_File_List, kept so
-   --  that code written against previous versions of this runtime keeps
-   --  working.
+   --  Write a trace file to Output to contain the coverage data in Buffers.
+   --
+   --  Program_Name, Exec_Date, and User_Data are used to fill the
+   --  corresponding metadata in the written trace file.
 
 end GNATcov_RTS.Traces.Output;

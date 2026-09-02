@@ -29,21 +29,11 @@ package GNATcov_RTS.Traces.Output.Base64 is
    pragma Preelaborate;
 
    procedure Write_Trace_File
-     (Buffers_Groups_List : Coverage_Buffers_Group_Array_List;
-      Program_Name        : String;
-      Exec_Date           : Unsigned_64;
-      User_Data           : String := "");
-   --  Write a Base64-encoded trace file to the standard output
-   --  (Ada.Text_IO.Standard_Output) for all the coverage buffers group
-   --  arrays in Buffers_Groups_List.
-
-   procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;
       Exec_Date      : Unsigned_64;
       User_Data      : String := "");
-   --  Likewise, for a single coverage buffers group array. This is a
-   --  compatibility overload, kept so that code written against previous
-   --  versions of this runtime keeps working.
+   --  Write a Base64-encoded trace file to the standard output
+   --  (Ada.Text_IO.Standard_Output).
 
 end GNATcov_RTS.Traces.Output.Base64;

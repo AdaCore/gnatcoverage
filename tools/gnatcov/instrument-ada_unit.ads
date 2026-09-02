@@ -142,10 +142,9 @@ package Instrument.Ada_Unit is
 
    overriding
    procedure Emit_Buffers_List_Unit
-     (Self           : Ada_Instrumenter_Type;
-      Instr_Units    : Unit_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set);
+     (Self        : Ada_Instrumenter_Type;
+      Instr_Units : Unit_Sets.Set;
+      Prj         : in out Prj_Desc);
 
    overriding
    procedure Emit_Observability_Unit

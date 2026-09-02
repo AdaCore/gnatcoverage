@@ -11455,10 +11455,9 @@ package body Instrument.Ada_Unit is
 
    overriding
    procedure Emit_Buffers_List_Unit
-     (Self           : Ada_Instrumenter_Type;
-      Instr_Units    : Unit_Sets.Set;
-      Prj            : in out Prj_Desc;
-      Ext_Array_Syms : String_Sets.Set)
+     (Self        : Ada_Instrumenter_Type;
+      Instr_Units : Unit_Sets.Set;
+      Prj         : in out Prj_Desc)
    is
       Buffers_CU_Name : constant Ada_Qualified_Name :=
         Buffers_List_Unit (Prj.Prj_Name);
@@ -11561,7 +11560,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       File.Put_Line
-        ("   C_List : aliased constant GNATcov_RTS.Buffers.Lists"
+        ("   C_List : constant GNATcov_RTS.Buffers.Lists"
          & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
       File.Put_Line
         ("      (" & Instr_Units.Length'Image & ", List'Address);");
@@ -11569,59 +11568,6 @@ package body Instrument.Ada_Unit is
       File.Put_Line
         ("   pragma Export (C, C_List, """
          & Unit_Buffers_Array_Name (Prj.Prj_Name)
-         & """);");
-      File.New_Line;
-
-      --  Import the buffers group arrays of the externally built projects in
-      --  the closure (defined in their own buffers list units, emitted when
-      --  they were instrumented), then aggregate them with this project's
-      --  array in the buffers group array list that dump helpers reference.
-
-      declare
-         Index : Positive := 1;
-      begin
-         for Sym of Ext_Array_Syms loop
-            File.Put_Line
-              ("   Ext_Array_"
-               & Img (Index)
-               & " : aliased constant GNATcov_RTS.Buffers.Lists"
-               & ".GNATcov_RTS_Coverage_Buffers_Group_Array;");
-            File.Put_Line
-              ("   pragma Import (C, Ext_Array_"
-               & Img (Index)
-               & ", """
-               & (+Sym)
-               & """);");
-            Index := Index + 1;
-         end loop;
-      end;
-
-      File.Put_Line
-        ("   Arrays_List : constant GNATcov_RTS.Buffers.Lists"
-         & ".Coverage_Buffers_Group_Array_List := (");
-      File.Put ("      1 => C_List'Access");
-      for Index in 1 .. Natural (Ext_Array_Syms.Length) loop
-         File.Put_Line (",");
-         File.Put
-           ("      "
-            & Img (Index + 1)
-            & " => Ext_Array_"
-            & Img (Index)
-            & "'Access");
-      end loop;
-      File.Put_Line (");");
-
-      File.Put_Line
-        ("   C_Arrays_List : constant GNATcov_RTS.Buffers.Lists"
-         & ".GNATcov_RTS_Coverage_Buffers_Group_Array_List :=");
-      File.Put_Line
-        ("      ("
-         & Img (Natural (Ext_Array_Syms.Length) + 1)
-         & ", Arrays_List'Address);");
-
-      File.Put_Line
-        ("   pragma Export (C, C_Arrays_List, """
-         & Unit_Buffers_Array_List_Name (Prj.Prj_Name)
          & """);");
 
       File.New_Line;

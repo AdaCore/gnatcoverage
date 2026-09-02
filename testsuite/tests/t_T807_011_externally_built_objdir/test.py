@@ -11,16 +11,41 @@ from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
-from SUITE.tutils import gprbuild
+from SUITE.tutils import gprbuild, gprfor
 from SUITE.gprutils import GPRswitches
 
 
 tmp = Wdir("tmp_")
 
-opslib_gpr = os.path.join("..", "opslib", "opslib.gpr")
-tests_gpr = os.path.join("..", "tests.gpr")
-tests_obj_dir = os.path.join("..", "obj")
-sid_pattern = os.path.join("..", "opslib", "obj-opslib", "*.sid")
+opslib_gpr = gprfor(
+    mains=[],
+    srcdirs=["../opslib"],
+    langs=["Ada"],
+    prjid="opslib",
+    objdir="obj-opslib",
+    extra="""
+       for Library_Name use "opslib";
+       for Library_Dir use "lib-lib";
+
+       type Boolean is ("false", "true");
+       for Externally_Built use external ("OPSLIB_EXTERNALLY_BUILT", "false");
+    """,
+)
+tests_gpr = gprfor(
+    srcdirs=["../tests"],
+    deps=["opslib.gpr"],
+    mains=["test_inc.adb"],
+    prjid="tests",
+    objdir="obj-tests",
+    exedir="obj-tests",
+    extra="""
+       package Coverage is
+          for Units use ();
+       end Coverage;
+    """,
+)
+tests_obj_dir = "obj-tests"
+sid_pattern = os.path.join("obj-opslib", "*.sid")
 
 tests_gprsw = GPRswitches(
     root_project=tests_gpr,
