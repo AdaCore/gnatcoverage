@@ -48,10 +48,11 @@ thistest.fail_if_no_match(
     contents_of("instrument.log"),
 )
 
+# Make the following check insensitive to the order of emission for warnings
 thistest.fail_if_no_match(
     "gnatcov coverage output",
-    "warning: no SID file found for unit main.cpp\n"
-    "warning: no SID file found for unit ada_helper\n",
-    contents_of("coverage.log"),
+    "warning: no SID file found for unit ada_helper\n"
+    "warning: no SID file found for unit main.cpp",
+    "\n".join(sorted(contents_of("coverage.log").splitlines())),
 )
 thistest.result()
