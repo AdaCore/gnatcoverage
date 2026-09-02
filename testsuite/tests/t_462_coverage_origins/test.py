@@ -161,8 +161,8 @@ def test_only_traces() -> None:
     # Commpute the coverage using the three trace files
     xcov(xcov_args + ["traces/"])
 
-    # Check the XML report against the expected result. We only expected to
-    # find "two.srctrace" or "c.ckpt" as origins.
+    # Check the XML report against the expected result. We expect source traces
+    # origins only, never "c.ckpt".
     check_xml("only_traces.expected")
 
 
