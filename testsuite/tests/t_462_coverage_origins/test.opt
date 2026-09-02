@@ -1,4 +1,3 @@
 !src-traces DEAD no support for source coverage origins in binary traces
 5.04a1 DEAD Test uses Ada 2022
 7.1.2 DEAD Test uses Ada 2022
-!native DEAD Test uses command line arguments

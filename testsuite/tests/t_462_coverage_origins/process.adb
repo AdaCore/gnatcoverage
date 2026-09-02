@@ -1,8 +1,7 @@
 pragma Ada_2022;
 pragma Assertion_Policy (Check);
 
-with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Text_IO;      use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 --  The folling SCOs are present in this test. We expect to have origins for
 --  each of them:
@@ -14,11 +13,8 @@ with Ada.Text_IO;      use Ada.Text_IO;
 --  Call
 --  Guarded expression
 
-procedure Main
-is
-   X : constant Integer := Integer'Value (Argument (1));
+procedure Process (X : Integer) is
    Dummy : Integer := 0;
-
 begin
 
    -- DECISION     covered for X = 1
@@ -98,4 +94,4 @@ begin
          Foo (True,  True);
       end;
    end if;
-end Main;
+end Process;

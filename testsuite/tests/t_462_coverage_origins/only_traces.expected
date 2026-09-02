@@ -1,0 +1,171 @@
+<src_mapping> for: procedure Process (X : Integer) is
+  * SCO function for: procedure Process (X : Integer)
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+<src_mapping> for: Dummy : Integer := 0;
+  * SCO statement for: Dummy : Integer := 0;
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+<src_mapping> for: if X = 1 then
+  * SCO statement for: if X = 1
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+  * SCO decision for: X = 1
+    origin: traces/one.srctrace
+  * SCO condition for: X = 1
+    origin: traces/one.srctrace
+<src_mapping> for: Dummy := X;
+  * SCO statement for: Dummy := X;
+    origin: traces/one.srctrace
+<src_mapping> for: type Animal is (Dog, Cat, Cow);
+  * SCO statement for: type Animal is (Dog, Cat, Cow);
+    origin: traces/one.srctrace
+<src_mapping> for: function Gexpr (A : Animal; B, C : Boolean) return String is
+  * SCO function for: function Gexpr (A : Animal; B, C : Boolean) return String
+    origin: traces/one.srctrace
+<src_mapping> for: return
+  * SCO statement for: return
+    origin: traces/one.srctrace
+<src_mapping> for: when Dog => "",
+  * SCO guarded_expr for: when Dog => "",
+    origin: traces/one.srctrace
+<src_mapping> for: when Cat => "Meow",
+  * SCO guarded_expr for: when Cat => "Meow",
+    origin: traces/one.srctrace
+<src_mapping> for: when Cow =>
+  * SCO guarded_expr for: when Cow =>
+    origin: traces/one.srctrace
+<src_mapping> for: B and then C
+  * SCO decision for: B and then C
+    origin: traces/one.srctrace
+  * SCO condition for: B
+    origin: traces/one.srctrace
+  * SCO condition for: C
+    origin: traces/one.srctrace
+<src_mapping> for: "Moooh"
+  * SCO guarded_expr for: "Moooh"
+    origin: traces/one.srctrace
+<src_mapping> for: "No Moo :("));
+  * SCO guarded_expr for: "No Moo :("));
+    origin: traces/one.srctrace
+<src_mapping> for: Put_Line (Gexpr (Dog, True, True));
+  * SCO statement for: Put_Line (Gexpr (Dog, True, True));
+    origin: traces/one.srctrace
+  * SCO call for: Put_Line (Gexpr (Dog, True, True))
+    origin: traces/one.srctrace
+  * SCO call for: Gexpr (Dog, True, True)
+    origin: traces/one.srctrace
+<src_mapping> for: Put_Line (Gexpr (Cat, True, True));
+  * SCO statement for: Put_Line (Gexpr (Cat, True, True));
+    origin: traces/one.srctrace
+  * SCO call for: Put_Line (Gexpr (Cat, True, True))
+    origin: traces/one.srctrace
+  * SCO call for: Gexpr (Cat, True, True)
+    origin: traces/one.srctrace
+<src_mapping> for: Put_Line (Gexpr (Cow, True, True));
+  * SCO statement for: Put_Line (Gexpr (Cow, True, True));
+    origin: traces/one.srctrace
+  * SCO call for: Put_Line (Gexpr (Cow, True, True))
+    origin: traces/one.srctrace
+  * SCO call for: Gexpr (Cow, True, True)
+    origin: traces/one.srctrace
+<src_mapping> for: Put_Line (Gexpr (Cow, True, False));
+  * SCO statement for: Put_Line (Gexpr (Cow, True, False));
+    origin: traces/one.srctrace
+  * SCO call for: Put_Line (Gexpr (Cow, True, False))
+    origin: traces/one.srctrace
+  * SCO call for: Gexpr (Cow, True, False)
+    origin: traces/one.srctrace
+<src_mapping> for: Put_Line (Gexpr (Cow, False, False));
+  * SCO statement for: Put_Line (Gexpr (Cow, False, False));
+    origin: traces/one.srctrace
+  * SCO call for: Put_Line (Gexpr (Cow, False, False))
+    origin: traces/one.srctrace
+  * SCO call for: Gexpr (Cow, False, False)
+    origin: traces/one.srctrace
+<src_mapping> for: null;
+  * SCO statement for: null;
+    origin: traces/one.srctrace
+<src_mapping> for: Dummy_T : Boolean := True;
+  * SCO statement for: Dummy_T : Boolean := True;
+    origin: traces/one.srctrace
+<src_mapping> for: Dummy_F : Boolean := False;
+  * SCO statement for: Dummy_F : Boolean := False;
+    origin: traces/one.srctrace
+<src_mapping> for: pragma Assert (Dummy_T and then not Dummy_F);
+  * SCO statement for: pragma Assert (Dummy_T and then not Dummy_F);
+    origin: traces/one.srctrace
+  * SCO contract_expression for: Dummy_T and then not Dummy_F
+    origin: traces/one.srctrace
+<src_mapping> for: if X >= 0 then
+  * SCO statement for: if X >= 0
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+  * SCO decision for: X >= 0
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+  * SCO condition for: X >= 0
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+<src_mapping> for: Dummy := X;
+  * SCO statement for: Dummy := X;
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+<src_mapping> for: if X < 0 then
+  * SCO statement for: if X < 0
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+  * SCO decision for: X < 0
+  * SCO condition for: X < 0
+<src_mapping> for: if X = 2 then
+  * SCO statement for: if X = 2
+    origin: traces/one.srctrace
+    origin: traces/two.srctrace
+    origin: traces/zero.srctrace
+  * SCO decision for: X = 2
+    origin: traces/two.srctrace
+  * SCO condition for: X = 2
+    origin: traces/two.srctrace
+<src_mapping> for: procedure Foo (L,R : Boolean) is
+  * SCO function for: procedure Foo (L,R : Boolean)
+    origin: traces/two.srctrace
+<src_mapping> for: if L and then R then
+  * SCO statement for: if L and then R
+    origin: traces/two.srctrace
+  * SCO decision for: L and then R
+    origin: traces/two.srctrace
+  * SCO condition for: L
+    origin: traces/two.srctrace
+  * SCO condition for: R
+    origin: traces/two.srctrace
+<src_mapping> for: Dummy := X;
+  * SCO statement for: Dummy := X;
+    origin: traces/two.srctrace
+<src_mapping> for: Foo (False, False);
+  * SCO statement for: Foo (False, False);
+    origin: traces/two.srctrace
+  * SCO call for: Foo (False, False)
+    origin: traces/two.srctrace
+<src_mapping> for: Foo (True,  False);
+  * SCO statement for: Foo (True,  False);
+    origin: traces/two.srctrace
+  * SCO call for: Foo (True,  False)
+    origin: traces/two.srctrace
+<src_mapping> for: Foo (False, True);
+  * SCO statement for: Foo (False, True);
+    origin: traces/two.srctrace
+  * SCO call for: Foo (False, True)
+    origin: traces/two.srctrace
+<src_mapping> for: Foo (True,  True);
+  * SCO statement for: Foo (True,  True);
+    origin: traces/two.srctrace
+  * SCO call for: Foo (True,  True)
+    origin: traces/two.srctrace
