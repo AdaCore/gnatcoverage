@@ -783,10 +783,6 @@ package body Instrument.C_Annotations is
          end if;
       end Register;
 
-      Last_Cov_Off : Source_Location := Slocs.No_Location;
-      --  Track the source location of the previous GNATCOV_COV_OFF annotation.
-      --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
-
       --  Start of processing for Populate_Annotations
    begin
       --  First build the set of comment tokens (the only ones in which we can
@@ -815,28 +811,24 @@ package body Instrument.C_Annotations is
                goto Continue;
             end if;
 
-            --  Add an entry into UIC.Disable_Cov_Regions when needed
-
             case Result.Kind is
+
+               when Exempt_On | Exempt_Off       =>
+                  UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+
+               --  (Start/End)_Disable_Cov_Region take care of updating
+               --  UIC.Annotations.
+
                when Cov_Off                      =>
-                  Last_Cov_Off := Sloc;
+                  UIC.Start_Disable_Cov_Region (Sloc, Result.Justification);
 
                when Cov_On                       =>
-                  if Last_Cov_Off /= Slocs.No_Location then
-                     UIC.Disable_Cov_Regions.Append
-                       (Source_Location_Range'
-                          (Source_File => Sloc.Source_File,
-                           L           =>
-                             (First_Sloc => Last_Cov_Off.L,
-                              Last_Sloc  => Sloc.L)));
-                  else
-                     Last_Cov_Off := Slocs.No_Location;
-                  end if;
+                  UIC.End_Disable_Cov_Region (Sloc, Result.Justification);
 
                when Fine_Grained_Annotation_Kind =>
 
                   --  Fine grained exemptions go to the dedicated map only, not
-                  --  the general purpose annotaions map.
+                  --  the general purpose annotations map (UIC.Annotations).
 
                   Insert_Fine_Grained_Exemption
                     (UIC.Fine_Grained_Exemptions,
@@ -844,17 +836,15 @@ package body Instrument.C_Annotations is
                      Result.Justification);
                   goto Continue;
 
-               when others                       =>
+               when Dump_Buffers | Reset_Buffers =>
+
+                  --  Leave buffer control annotations out of UIC.Annotations
+                  --  (buffer control annotations are used only during
+                  --  instrumentation).
+
                   null;
+
             end case;
-
-            --  Annotations to record in the CU are supposed to receive
-            --  exemption and coverage disabling regions: leave buffer control
-            --  annotations out (they are used only during instrumentation).
-
-            if Result.Kind not in Dump_Buffers | Reset_Buffers then
-               UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
-            end if;
          end;
          <<Continue>>
       end loop;

@@ -45,16 +45,18 @@ def metric_tags(filename: str) -> list[str]:
 
 for filename, expected_stats_lines, expected_metrics_tags in [
     (
-        # dis.adb holds nothing but a disabled coverage region: both summary
-        # lines must agree that there is no code to report (disabled lines are
-        # not part of the total, so they must not be presented as a ratio to
-        # it).
+        # dis.adb holds nothing but a disabled coverage region. The
+        # instrumenter does not create any entity scope, since there is no
+        # coverage obligation, and so no metrics are emitted.
         "dis.adb",
         ["no code", "no code"],
-        [
-            '<metric kind="total_lines_of_relevance" count="0"/>',
-            '<metric kind="disabled_coverage" count="5"/>',
-        ],
+        [],
+    ),
+    (
+        # Likewise for unit.c
+        "unit.c",
+        ["no code", "no code"],
+        [],
     ),
     (
         # pkg.adb holds two coverable lines, both covered, plus a disabled
@@ -65,16 +67,6 @@ for filename, expected_stats_lines, expected_metrics_tags in [
             '<metric kind="total_lines_of_relevance" count="2"/>',
             '<metric kind="disabled_coverage" count="5"/>',
         ],
-    ),
-    (
-        # Like in dis.adb, unit.c holds nothing but a disabled coverage region.
-        # The fact that dis.adb has metrics is due to a bug in the Ada
-        # instrumenter, which creates a scope for the Dis procedure whereas it
-        # is not supposed to contain any statement (they are all disabled).
-        # This will be fixed later.
-        "unit.c",
-        ["no code", "no code"],
-        [],
     ),
 ]:
     thistest.fail_if_not_equal(

@@ -3746,17 +3746,15 @@ package body Instrument.Ada_Unit is
                Start_Statement_Block (UIC);
             end if;
 
-            --  Return before adding this annotation to this unit: buffer
-            --  control annotations are taken into account in a separate pass
-            --  (Replace_Manual_Indications).
-
-            return;
+         --  Do not add this annotation to this unit: buffer control
+         --  annotations are taken into account in a separate pass
+         --  (Replace_Manual_Indications).
 
          when Cov_Off                      =>
-            UIC.Disable_Coverage := True;
+            UIC.Start_Disable_Cov_Region (Sloc (N), Result.Justification);
 
          when Cov_On                       =>
-            UIC.Disable_Coverage := False;
+            UIC.End_Disable_Cov_Region (Sloc (N), Result.Justification);
 
          when Fine_Grained_Annotation_Kind =>
 
@@ -3767,13 +3765,11 @@ package body Instrument.Ada_Unit is
               (UIC.Fine_Grained_Exemptions,
                Result.Exemption_Req,
                Result.Justification);
-            return;
 
          when others                       =>
-            null;
+            UIC.Annotations.Append (Annotation_Couple'(Sloc (N), Result));
       end case;
 
-      UIC.Annotations.Append (Annotation_Couple'(Sloc (N), Result));
    end Process_Annotation;
 
    -----------------------------------------
@@ -10757,12 +10753,9 @@ package body Instrument.Ada_Unit is
 
       Append_Unit (UIC.SFI);
 
-      declare
-         Annots : constant Instr_Annotation_Map :=
-           Get_Disabled_Cov_Annotations (Filename);
-      begin
-         UIC.Populate_Ext_Disabled_Cov (Annots, UIC.SFI);
-      end;
+      --  Import the external disabled regions for this source
+
+      UIC.Populate_Ext_Disabled_Cov (UIC.SFI);
 
       Traverse_Declarations_Or_Statements
         (UIC      => UIC,

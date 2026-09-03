@@ -46,7 +46,6 @@ with Instrument.Setup_Config;
 with Outputs;                  use Outputs;
 with Paths;                    use Paths;
 with SCOs;
-with SS_Annotations;           use SS_Annotations;
 with Switches;
 with System;                   use System;
 with Table;
@@ -6156,12 +6155,7 @@ package body Instrument.C is
 
             --  Import the external disabled regions for this source
 
-            declare
-               Annots : constant Instr_Annotation_Map :=
-                 Get_Disabled_Cov_Annotations (+File.Full_Name);
-            begin
-               UIC.Populate_Ext_Disabled_Cov (Annots, SOI);
-            end;
+            UIC.Populate_Ext_Disabled_Cov (SOI);
 
          else
             SOI := No_Source_File;
