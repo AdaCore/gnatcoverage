@@ -27,7 +27,6 @@ with GNATCOLL.Utils; use GNATCOLL.Utils;
 with Diagnostics;        use Diagnostics;
 with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common;  use Instrument.Common;
-with Slocs;              use Slocs;
 with SS_Annotations;     use SS_Annotations;
 with Outputs;
 

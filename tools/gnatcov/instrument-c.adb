@@ -4291,11 +4291,7 @@ package body Instrument.C is
          --  Import annotations in our internal tables
 
          Filter_Annotations (UIC);
-         UIC.Import_Annotations (UIC.CUs, SCO_Map);
-         for Cur in UIC.CUs.Iterate loop
-            Import_External_Exemptions
-              (Created_Unit_Maps.Key (Cur), Filter => True);
-         end loop;
+         UIC.Import_Annotations (UIC.CUs, SCO_Map, Filter => True);
          Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
 
          for Cur in UIC.Instrumented_Entities.Iterate loop

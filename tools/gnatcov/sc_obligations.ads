@@ -776,6 +776,11 @@ package SC_Obligations is
    --  Set annotations. Add them to the right CU_Info according to their
    --  source location.
 
+   procedure Compute_Annotations_Fingerprint (CU : CU_Id);
+   --  Assuming that the final set of regions to disable coverage for the given
+   --  unit, compute the corresponding annotations fingerprint and assign it to
+   --  CU.
+
    function Get_Annotations
      (CU : CU_Id; Kind : ALI_Region_Annotation_Kind)
       return ALI_Annotation_Maps.Map;

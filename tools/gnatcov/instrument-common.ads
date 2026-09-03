@@ -70,7 +70,6 @@ with GPR2.Path_Name;
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;
 with Namet;          use Namet;
-with Slocs;          use Slocs;
 with Text_Files;
 
 package Instrument.Common is
@@ -423,10 +422,15 @@ package Instrument.Common is
    procedure Import_Annotations
      (UIC           : in out Unit_Inst_Context;
       Created_Units : Created_Unit_Maps.Map;
-      SCO_Map       : LL_HL_SCO_Map);
-   --  Import ALI annotations for this unit in the global annotations table.
+      SCO_Map       : LL_HL_SCO_Map;
+      Filter        : Boolean);
+   --  Import ALI annotations (both in-source and external ones) for this unit
+   --  in the global annotations table.
+   --
    --  This should be called once the unit was instrumented and its low level
    --  SCOS have been transformed into high-level ones.
+   --
+   --  Filter is passed to SS_Annotations.Import_External_Exemptions
 
    procedure Import_Non_Instrumented_LL_SCOs
      (UIC : Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
@@ -787,44 +791,6 @@ package Instrument.Common is
      (Self : in out Analysis_Options; Args : String_Vectors.Vector);
    --  Extract analysis options from the Args command line arguments and update
    --  Self accordingly.
-
-   subtype Instr_Annotation_Kind is
-     Any_Annotation_Kind range Dump_Buffers .. Any_Annotation_Kind'Last;
-   --  Annotation kinds that are relevant for the instrumentation step
-
-   type Instr_Annotation (Kind : Instr_Annotation_Kind := Dump_Buffers) is
-   record
-
-      Insert_After : Boolean := False;
-      --  For instrumenters where this is applicable, consider that the
-      --  annotation should apply after the designated entity rather than
-      --  before.
-
-      --  Explicitly list all annotation kinds to get a compilation warning
-      --  when adding new annotation kind in ALI_Files but not here.
-
-      case Kind is
-         when Dump_Buffers =>
-            Trace_Prefix : Unbounded_String;
-            --  Optional trace prefix for the buffer dump, left empty if not
-            --  specified.
-
-         when Cov_Off =>
-            Justification : Unbounded_String;
-            --  Justification for why the region is disabled for coverage
-
-         when Reset_Buffers | Cov_On =>
-            null;
-      end case;
-   end record;
-   --  Represents one annotation, with all the relevant information needed by
-   --  the instrumenters.
-
-   package Instr_Annotation_Maps is new
-     Ada.Containers.Ordered_Maps
-       (Key_Type     => Local_Source_Location,
-        Element_Type => Instr_Annotation);
-   subtype Instr_Annotation_Map is Instr_Annotation_Maps.Map;
 
    procedure Populate_Ext_Disabled_Cov
      (UIC    : in out Unit_Inst_Context;

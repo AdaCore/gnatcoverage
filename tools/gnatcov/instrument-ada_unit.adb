@@ -67,8 +67,7 @@ package body Instrument.Ada_Unit is
 
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
-
-   use type Slocs.Local_Source_Location;
+   package Lk_Slocs renames Langkit_Support.Slocs;
 
    Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
      (GPR2.S_Spec => 'S', GPR2.S_Body => 'B', GPR2.S_Separate => 'U');
@@ -472,10 +471,11 @@ package body Instrument.Ada_Unit is
    --  in the form of a quoted string literal), return a name
    --  suitable for construction of a regular identifier.
 
-   function Sloc (N : Ada_Node'Class) return Source_Location
-   is (Start_Sloc (N.Sloc_Range));
+   function Sloc (N : Ada_Node'Class) return Lk_Slocs.Source_Location
+   is (Lk_Slocs.Start_Sloc (N.Sloc_Range));
 
-   function "+" (Sloc : Source_Location) return Slocs.Local_Source_Location
+   function "+"
+     (Sloc : Lk_Slocs.Source_Location) return Slocs.Local_Source_Location
    is ((Natural (Sloc.Line), Natural (Sloc.Column)));
 
    function Unit_File_Index (N : Ada_Node'Class) return Source_File_Index
@@ -539,7 +539,7 @@ package body Instrument.Ada_Unit is
    --  declarative part (the public or the private one).
 
    function Inclusive_End_Sloc
-     (SL : Source_Location_Range) return Source_Location;
+     (SL : Lk_Slocs.Source_Location_Range) return Lk_Slocs.Source_Location;
    --  End slocs from Libadalang nodes are exclusive: the correspond to the
    --  source location for the (hypothetical) character right after the last
    --  character that was consumed to produce the node. In gnatcov, we need the
@@ -2816,7 +2816,7 @@ package body Instrument.Ada_Unit is
       Witness_Flavor : Statement_Witness_Flavor;
       Fun_Witness    : out Node_Rewriting_Handle)
    is
-      Loc_Range : constant Source_Location_Range := Sloc_Range (Spec);
+      Loc_Range : constant Lk_Slocs.Source_Location_Range := Sloc_Range (Spec);
    begin
       --  Add a function coverage SCO to the specification Spec
 
@@ -4015,9 +4015,9 @@ package body Instrument.Ada_Unit is
             then Pragma_Name (N.As_Pragma_Node)
             else Namet.No_Name);
 
-         SR   : constant Source_Location_Range := N.Sloc_Range;
-         From : Source_Location := Start_Sloc (SR);
-         To   : Source_Location := Inclusive_End_Sloc (SR);
+         SR   : constant Lk_Slocs.Source_Location_Range := N.Sloc_Range;
+         From : Lk_Slocs.Source_Location := Start_Sloc (SR);
+         To   : Lk_Slocs.Source_Location := Inclusive_End_Sloc (SR);
          --  Source location bounds used to produre a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain themselves other statements
@@ -6811,7 +6811,7 @@ package body Instrument.Ada_Unit is
 
       procedure Instrument_GExpr
         (E                 : Expr;
-         SR                : Source_Location_Range;
+         SR                : Lk_Slocs.Source_Location_Range;
          Parent_Handle     : Node_Rewriting_Handle;
          Parent_Member_Ref : Struct_Member_Ref);
       --  Instrument a guarded expression.
@@ -6952,7 +6952,7 @@ package body Instrument.Ada_Unit is
                   --
                   --  The if-expression alone suffices.
 
-                  Location : constant Source_Location_Range :=
+                  Location : constant Lk_Slocs.Source_Location_Range :=
                     (if Node.Kind = Ada_Op_Concat
                      then
                        (Node
@@ -7125,7 +7125,7 @@ package body Instrument.Ada_Unit is
 
       procedure Instrument_GExpr
         (E                 : Expr;
-         SR                : Source_Location_Range;
+         SR                : Lk_Slocs.Source_Location_Range;
          Parent_Handle     : Node_Rewriting_Handle;
          Parent_Member_Ref : Struct_Member_Ref) is
       begin
@@ -7235,7 +7235,7 @@ package body Instrument.Ada_Unit is
          --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
 
          type Hash_Entry is record
-            Sloc      : Source_Location;
+            Sloc      : Lk_Slocs.Source_Location;
             SCO_Index : Nat;
          end record;
          --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
@@ -7421,7 +7421,7 @@ package body Instrument.Ada_Unit is
          --------------------
 
          procedure Output_Element (N : Ada_Node) is
-            N_SR : constant Source_Location_Range := N.Sloc_Range;
+            N_SR : constant Lk_Slocs.Source_Location_Range := N.Sloc_Range;
             SCO  : SCO_Id;
          begin
 
@@ -7464,7 +7464,7 @@ package body Instrument.Ada_Unit is
             E      : Expr'Class;
             New_SI : aliased in out Default_MCDC_State_Inserter)
          is
-            Loc : Source_Location := No_Source_Location;
+            Loc : Lk_Slocs.Source_Location := Lk_Slocs.No_Source_Location;
             --  Node whose Sloc is used for the decision
 
             Nam : Name_Id := Namet.No_Name;
@@ -8504,9 +8504,9 @@ package body Instrument.Ada_Unit is
    ------------------------
 
    function Inclusive_End_Sloc
-     (SL : Source_Location_Range) return Source_Location is
+     (SL : Lk_Slocs.Source_Location_Range) return Lk_Slocs.Source_Location is
    begin
-      return Result : Source_Location := End_Sloc (SL) do
+      return Result : Lk_Slocs.Source_Location := End_Sloc (SL) do
          pragma Assert (Result.Column > 1);
          Result.Column := Result.Column - 1;
       end return;
@@ -8670,7 +8670,7 @@ package body Instrument.Ada_Unit is
       Decl : Basic_Decl)
    is
       function Local_Sloc
-        (Sloc : Source_Location) return Slocs.Local_Source_Location
+        (Sloc : Lk_Slocs.Source_Location) return Slocs.Local_Source_Location
       is ((Line => Natural (Sloc.Line), Column => Natural (Sloc.Column)));
 
       Decl_SFI      : constant Source_File_Index :=
@@ -10427,9 +10427,9 @@ package body Instrument.Ada_Unit is
       procedure Insert_One (Cur : Instr_Annotation_Maps.Cursor) is
          Loc      : constant Slocs.Local_Source_Location :=
            Instr_Annotation_Maps.Key (Cur);
-         LAL_Loc  : constant Source_Location :=
-           (Line   => Langkit_Support.Slocs.Line_Number (Loc.Line),
-            Column => Langkit_Support.Slocs.Column_Number (Loc.Column));
+         LAL_Loc  : constant Lk_Slocs.Source_Location :=
+           (Line   => Lk_Slocs.Line_Number (Loc.Line),
+            Column => Lk_Slocs.Column_Number (Loc.Column));
          Annot    : constant Instr_Annotation :=
            Instr_Annotation_Maps.Element (Cur);
          Cur_Node : Ada_Node := Unit.Root.Lookup (LAL_Loc);
@@ -10805,13 +10805,7 @@ package body Instrument.Ada_Unit is
 
          --  Import annotations in our internal tables
 
-         UIC.Import_Annotations (Created_Units, SCO_Map);
-
-         --  Import external exemption annotations
-
-         for Cur in Created_Units.Iterate loop
-            Import_External_Exemptions (Created_Unit_Maps.Key (Cur));
-         end loop;
+         UIC.Import_Annotations (Created_Units, SCO_Map, Filter => False);
 
          --  Import non-instrumented SCOs in the internal tables
 
