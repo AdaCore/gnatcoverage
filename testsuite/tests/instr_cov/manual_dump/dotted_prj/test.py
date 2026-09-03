@@ -39,7 +39,7 @@ check_xcov_reports(
         "main_c.c.xcov": {"+": {6}, "-": {7}},
         "pkg_c.c.xcov": {},
         "main.adb.xcov": {"+": {5}},
-        "pkg.adb.xcov": {},
+        "pkg.adb.xcov": {"+": {5}},
         "pkg.ads.xcov": {},
     },
 )
