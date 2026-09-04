@@ -43,44 +43,39 @@ def metric_tags(filename: str) -> list[str]:
     ][:2]
 
 
-# dis.adb holds nothing but a disabled coverage region: both summary lines must
-# agree that there is no code to report.
-
-thistest.fail_if_not_equal(
-    "dis.adb summary",
-    ["no code", "no code"],
-    stats_lines("obj/xcov/dis.adb.xcov"),
-)
-
-# pkg.adb holds two coverable lines, both covered, plus a disabled region: the
-# disabled lines must be left out of the ratio.
-
-thistest.fail_if_not_equal(
-    "pkg.adb summary",
-    ["100% of 2 lines covered", "100% statement coverage (2 out of 2)"],
-    stats_lines("obj/xcov/pkg.adb.xcov"),
-)
-
-# Likewise for the XML report: disabled lines are not part of the total, so
-# they must not be presented as a ratio of it (pkg.adb has more disabled lines
-# than lines of relevance).
-
-thistest.fail_if_not_equal(
-    "dis.adb.xml metrics",
-    [
-        '<metric kind="total_lines_of_relevance" count="0"/>',
-        '<metric kind="disabled_coverage" count="5"/>',
-    ],
-    metric_tags("obj/xml/dis.adb.xml"),
-)
-
-thistest.fail_if_not_equal(
-    "pkg.adb.xml metrics",
-    [
-        '<metric kind="total_lines_of_relevance" count="2"/>',
-        '<metric kind="disabled_coverage" count="5"/>',
-    ],
-    metric_tags("obj/xml/pkg.adb.xml"),
-)
+for filename, expected_stats_lines, expected_metrics_tags in [
+    (
+        # dis.adb holds nothing but a disabled coverage region: both summary
+        # lines must agree that there is no code to report (disabled lines are
+        # not part of the total, so they must not be presented as a ratio to
+        # it).
+        "dis.adb",
+        ["no code", "no code"],
+        [
+            '<metric kind="total_lines_of_relevance" count="0"/>',
+            '<metric kind="disabled_coverage" count="5"/>',
+        ],
+    ),
+    (
+        # pkg.adb holds two coverable lines, both covered, plus a disabled
+        # region: the disabled lines must be left out of the ratio.
+        "pkg.adb",
+        ["100% of 2 lines covered", "100% statement coverage (2 out of 2)"],
+        [
+            '<metric kind="total_lines_of_relevance" count="2"/>',
+            '<metric kind="disabled_coverage" count="5"/>',
+        ],
+    ),
+]:
+    thistest.fail_if_not_equal(
+        f"{filename} xcov summary",
+        expected_stats_lines,
+        stats_lines(f"obj/xcov/{filename}.xcov"),
+    )
+    thistest.fail_if_not_equal(
+        f"{filename} XML metrics",
+        expected_metrics_tags,
+        metric_tags(f"obj/xml/{filename}.xml"),
+    )
 
 thistest.result()
