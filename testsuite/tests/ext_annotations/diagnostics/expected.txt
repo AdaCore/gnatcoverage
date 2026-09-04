@@ -4,7 +4,7 @@ warning: Entry "unknown_kind_exempt" has an unknown annotation kind, it will be 
 warning: Entry "unknown_kind_cov" has an unknown annotation kind, it will be ignored.
 warning: Entry "unknown_kind_buffers" has an unknown annotation kind, it will be ignored.
 warning: Missing or empty justification for external exemption annotation "missing_justif", it will be ignored.
-warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_2"
-warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_cov_2"
-warning: main.adb: 2:4: external Cov_On annotation with no previous Cov_Off annotation, ignoring it.
-warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_4"
+*** main.adb:3:4: warning: Conflicting annotations for this line, ignoring the external annotation "duplicate_2"
+*** main.adb:3:4: warning: Conflicting annotations for this line, ignoring the external annotation "duplicate_cov_2"
+*** main.adb:2:4: warning: COV_ON annotation found without a corresponding COV_OFF
+*** main.adb:3:4: warning: Conflicting annotations for this line, ignoring the external annotation "duplicate_4"
