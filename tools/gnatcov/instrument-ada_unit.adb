@@ -486,9 +486,15 @@ package body Instrument.Ada_Unit is
    is ((Source_File => Unit_File_Index (N), L => +Sloc (N)));
 
    function Coverage_Disabled
+     (UIC : Ada_Unit_Inst_Context; Sloc : Local_Source_Location) return Boolean
+   is (UIC.Disable_Coverage or else UIC.Is_Disabled_Region ((UIC.SFI, Sloc)));
+   --  Whether coverage is disabled at Sloc, either because we are past an
+   --  in-source Cov_Off annotation (UIC.Disable_Coverage), or because N lies
+   --  in a region disabled by an external annotation.
+
+   function Coverage_Disabled
      (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
-   is (UIC.Disable_Coverage
-       or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N))));
+   is (Coverage_Disabled (UIC, +Sloc (N)));
    --  Whether coverage is disabled for N, either because we are past an
    --  in-source Cov_Off annotation (UIC.Disable_Coverage), or because N lies
    --  in a region disabled by an external annotation.
@@ -4035,9 +4041,7 @@ package body Instrument.Ada_Unit is
             else Insertion_N);
 
       begin
-         if UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +From))
-         then
+         if Coverage_Disabled (UIC, +From) then
             return;
          end if;
          case Kind (N) is
@@ -4950,10 +4954,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if UIC.Disable_Instrumentation
-           or else UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
-         then
+         if UIC.Disable_Instrumentation or else Coverage_Disabled (UIC, N) then
             UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
@@ -7859,10 +7860,7 @@ package body Instrument.Ada_Unit is
          --  Start of processing for Process_Decisions
 
       begin
-         if N.Is_Null
-           or else UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
-         then
+         if N.Is_Null or else Coverage_Disabled (UIC, N) then
             return;
          end if;
          Hash_Entries.Init;
