@@ -21,8 +21,9 @@ with Ada.Directories; use Ada.Directories;
 
 with GNAT.Regpat; use GNAT.Regpat;
 
-with Clang.Index;    use Clang.Index;
-with GNATCOLL.Utils; use GNATCOLL.Utils;
+with Clang.CX_Source_Location; use Clang.CX_Source_Location;
+with Clang.Index;              use Clang.Index;
+with GNATCOLL.Utils;           use GNATCOLL.Utils;
 
 with Diagnostics;        use Diagnostics;
 with Instrument.C_Utils; use Instrument.C_Utils;
@@ -251,6 +252,11 @@ package body Instrument.C_Annotations is
    --  file) leveraging line directives to do so, then add the column of the
    --  location to that offset to obtain the actual offset in Str
    --  that corresponds to LINE:COL in Filename.
+
+   package Token_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_Location,
+        Element_Type => Token_T);
 
    ----------------
    -- Slice_Sloc --
@@ -753,87 +759,105 @@ package body Instrument.C_Annotations is
    --------------------------
 
    procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context) is
+      Tokens : Token_Maps.Map;
+
+      procedure Register (Token : Token_T);
+      --  If Token is a comment, register it in Tokens.
+      --
+      --  Since the same source file can be included multiple times, this
+      --  assumes that two tokens at the same sloc are identical in order to
+      --  de-duplicate them.
+
+      --------------
+      -- Register --
+      --------------
+
+      procedure Register (Token : Token_T) is
+         Sloc : Source_Location_T;
+      begin
+         if Get_Token_Kind (Token) = Token_Comment then
+            Sloc := Get_Token_Location (UIC.TU, Token);
+            if Is_Source_Of_Interest (UIC, Sloc) then
+               Tokens.Include (Instrument.C_Utils.Sloc (Sloc), Token);
+            end if;
+         end if;
+      end Register;
 
       Last_Cov_Off : Source_Location := Slocs.No_Location;
       --  Track the source location of the previous GNATCOV_COV_OFF annotation.
       --  Used to detect GNATCOV_COV_OFF/GNATCOV_COV_ON pairs.
 
-      procedure Process_Token (Token : Token_T);
-      --  Try to parse an annotation in the given token
-
-      -------------------
-      -- Process_Token --
-      -------------------
-
-      procedure Process_Token (Token : Token_T) is
-         Sloc    : Source_Location;
-         Handled : Boolean;
-         Result  : ALI_Annotation;
-      begin
-         --  Skip this token if it's not a comment in which we can find a
-         --  GNATCOV_* marker.
-
-         if Get_Token_Kind (Token) /= Token_Comment then
-            return;
-         end if;
-
-         Sloc := Instrument.C_Utils.Sloc (Get_Token_Location (UIC.TU, Token));
-         Analyze_Comment
-           (Comment => +Get_Token_Spelling (UIC.TU, Token),
-            Sloc    => Sloc,
-            Handled => Handled,
-            Result  => Result);
-
-         if not Handled then
-            return;
-         end if;
-
-         --  Add an entry into UIC.Disable_Cov_Regions when needed
-
-         case Result.Kind is
-            when Cov_Off                      =>
-               Last_Cov_Off := Sloc;
-
-            when Cov_On                       =>
-               if Last_Cov_Off /= Slocs.No_Location then
-                  UIC.Disable_Cov_Regions.Append
-                    (Source_Location_Range'
-                       (Source_File => Sloc.Source_File,
-                        L           =>
-                          (First_Sloc => Last_Cov_Off.L,
-                           Last_Sloc  => Sloc.L)));
-               else
-                  Last_Cov_Off := Slocs.No_Location;
-               end if;
-
-            when Fine_Grained_Annotation_Kind =>
-
-               --  Fine grained exemptions go to the dedicated map only, not
-               --  the general purpose annotaions map.
-
-               Insert_Fine_Grained_Exemption
-                 (UIC.Fine_Grained_Exemptions,
-                  Result.Exemption_Req,
-                  Result.Justification);
-               return;
-
-            when others                       =>
-               null;
-         end case;
-
-         --  Annotations to record in the CU are supposed to receive exemption
-         --  and coverage disabling regions: leave buffer control annotations
-         --  out (they are used only during instrumentation).
-
-         if Result.Kind not in Dump_Buffers | Reset_Buffers then
-            UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
-         end if;
-      end Process_Token;
-
       --  Start of processing for Populate_Annotations
    begin
+      --  First build the set of comment tokens (the only ones in which we can
+      --  find a GNATCOV_* marker) in this translation unit.
+
       Iterate_Tokens
-        (UIC.TU, Get_Translation_Unit_Cursor (UIC.TU), Process_Token'Access);
+        (UIC.TU, Get_Translation_Unit_Cursor (UIC.TU), Register'Access);
+
+      --  Then iterate on the comment tokens. Since they are sorted by sloc,
+      --  tokens are de-duplicated and grouped by source files.
+
+      for Cur in Tokens.Iterate loop
+         declare
+            Sloc    : constant Source_Location := Token_Maps.Key (Cur);
+            Token   : constant Token_T := Token_Maps.Element (Cur);
+            Handled : Boolean;
+            Result  : ALI_Annotation;
+         begin
+            Analyze_Comment
+              (Comment => +Get_Token_Spelling (UIC.TU, Token),
+               Sloc    => Sloc,
+               Handled => Handled,
+               Result  => Result);
+
+            if not Handled then
+               goto Continue;
+            end if;
+
+            --  Add an entry into UIC.Disable_Cov_Regions when needed
+
+            case Result.Kind is
+               when Cov_Off                      =>
+                  Last_Cov_Off := Sloc;
+
+               when Cov_On                       =>
+                  if Last_Cov_Off /= Slocs.No_Location then
+                     UIC.Disable_Cov_Regions.Append
+                       (Source_Location_Range'
+                          (Source_File => Sloc.Source_File,
+                           L           =>
+                             (First_Sloc => Last_Cov_Off.L,
+                              Last_Sloc  => Sloc.L)));
+                  else
+                     Last_Cov_Off := Slocs.No_Location;
+                  end if;
+
+               when Fine_Grained_Annotation_Kind =>
+
+                  --  Fine grained exemptions go to the dedicated map only, not
+                  --  the general purpose annotaions map.
+
+                  Insert_Fine_Grained_Exemption
+                    (UIC.Fine_Grained_Exemptions,
+                     Result.Exemption_Req,
+                     Result.Justification);
+                  goto Continue;
+
+               when others                       =>
+                  null;
+            end case;
+
+            --  Annotations to record in the CU are supposed to receive
+            --  exemption and coverage disabling regions: leave buffer control
+            --  annotations out (they are used only during instrumentation).
+
+            if Result.Kind not in Dump_Buffers | Reset_Buffers then
+               UIC.Annotations.Append (Annotation_Couple'(Sloc, Result));
+            end if;
+         end;
+         <<Continue>>
+      end loop;
    end Populate_Annotations;
 
    ---------------------
