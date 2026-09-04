@@ -36,7 +36,6 @@ with Files_Table;        use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common;  use Instrument.Common;
 with Logging;
-with Slocs;              use Slocs;
 
 package Instrument.C is
 

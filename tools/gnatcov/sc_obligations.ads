@@ -776,6 +776,11 @@ package SC_Obligations is
    --  Set annotations. Add them to the right CU_Info according to their
    --  source location.
 
+   procedure Compute_Annotations_Fingerprint (CU : CU_Id);
+   --  Assuming that the final set of regions to disable coverage for the given
+   --  unit, compute the corresponding annotations fingerprint and assign it to
+   --  CU.
+
    function Get_Annotations
      (CU : CU_Id; Kind : ALI_Region_Annotation_Kind)
       return ALI_Annotation_Maps.Map;
@@ -1474,6 +1479,10 @@ package SC_Obligations is
       Pragma_Favor_Top_Level,
       Pragma_Finalize_Storage_Only,
       Pragma_First_Controlling_Parameter,
+      Pragma_Flare,
+      Pragma_Flare_0_1,
+      Pragma_Flare_Extensions,
+      Pragma_Flare_Extensions_0_1,
       Pragma_Ghost,
       Pragma_Global,
       Pragma_Gnat_Annotate,
@@ -1801,6 +1810,10 @@ package SC_Obligations is
       Pragma_External                       => False,
       Pragma_Finalize_Storage_Only          => False,
       Pragma_First_Controlling_Parameter    => False,
+      Pragma_Flare                          => False,
+      Pragma_Flare_0_1                      => False,
+      Pragma_Flare_Extensions               => False,
+      Pragma_Flare_Extensions_0_1           => False,
       Pragma_Ghost                          => False,
       Pragma_Global                         => False,
       Pragma_Gnat_Annotate                  => False,

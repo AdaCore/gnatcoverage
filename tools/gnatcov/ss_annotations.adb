@@ -33,16 +33,15 @@ with TOML;
 with Stable_Sloc;            use Stable_Sloc;
 with Stable_Sloc.TOML_Utils; use Stable_Sloc.TOML_Utils;
 
-with Coverage_Options;  use Coverage_Options;
-with Command_Line;      use Command_Line;
-with Files_Table;       use Files_Table;
-with Hex_Images;        use Hex_Images;
-with Instrument;        use Instrument;
-with Instrument.Common; use Instrument.Common;
-with Outputs;           use Outputs;
-with Paths;             use Paths;
-with Project;           use Project;
-with Switches_GPR;      use Switches_GPR;
+with Coverage_Options; use Coverage_Options;
+with Command_Line;     use Command_Line;
+with Files_Table;      use Files_Table;
+with Hex_Images;       use Hex_Images;
+with Instrument;       use Instrument;
+with Outputs;          use Outputs;
+with Paths;            use Paths;
+with Project;          use Project;
+with Switches_GPR;     use Switches_GPR;
 
 package body SS_Annotations is
    use type Unbounded_String;
@@ -176,10 +175,10 @@ package body SS_Annotations is
         function Convert
           (Kind      : Expected_Annot_Kind;
            Match_Res : Match_Result;
-           Success   : out Boolean) return Instrument.Common.Instr_Annotation;
+           Success   : out Boolean) return Instr_Annotation;
       Purpose_Prefix : String;
    function Generic_Get_Annotations
-     (Filename : String) return Instrument.Common.Instr_Annotation_Map;
+     (Filename : String) return Instr_Annotation_Map;
    --  Match the annotations on File for the entries for which the purpose
    --  starts with Purpose_Prefix. Warn and discard the match results that
    --  either failed, or for which the purpose does not lie in
@@ -193,7 +192,7 @@ package body SS_Annotations is
    function Convert_Buffer_Annotation
      (Kind      : Buffer_Annotation_Kind;
       Match_Res : Match_Result;
-      Success   : out Boolean) return Instrument.Common.Instr_Annotation;
+      Success   : out Boolean) return Instr_Annotation;
    --  Convert Match_Res to a buffer annotation, assuming the annotation in
    --  Match Res is of kind Kind.
    --
@@ -725,7 +724,7 @@ package body SS_Annotations is
    -----------------------------
 
    function Generic_Get_Annotations
-     (Filename : String) return Instrument.Common.Instr_Annotation_Map
+     (Filename : String) return Instr_Annotation_Map
    is
       VF         : constant Virtual_File := Create (+Filename);
       Matches    : Match_Result_Vec;
@@ -821,7 +820,7 @@ package body SS_Annotations is
    function Convert_Buffer_Annotation
      (Kind      : Buffer_Annotation_Kind;
       Match_Res : Match_Result;
-      Success   : out Boolean) return Instrument.Common.Instr_Annotation
+      Success   : out Boolean) return Instr_Annotation
    is
       use TOML;
       New_Annotation : Instr_Annotation (Kind);
@@ -874,7 +873,7 @@ package body SS_Annotations is
       function Convert_Cov_Annotation
         (Kind      : Cov_Annotation_Kind;
          Match_Res : Match_Result;
-         Success   : out Boolean) return Instrument.Common.Instr_Annotation;
+         Success   : out Boolean) return Instr_Annotation;
       --  Convert Match_Res to a Cov_On/Cov_Off annotation, assuming the
       --  annotation in Match Res is of kind Kind.
       --
@@ -895,7 +894,7 @@ package body SS_Annotations is
       function Convert_Cov_Annotation
         (Kind      : Cov_Annotation_Kind;
          Match_Res : Match_Result;
-         Success   : out Boolean) return Instrument.Common.Instr_Annotation
+         Success   : out Boolean) return Instr_Annotation
       is
          use TOML;
          New_Annotation : Instr_Annotation (Kind);

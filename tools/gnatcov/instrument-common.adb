@@ -28,12 +28,13 @@ with GPR2.Project.Registry.Attribute;
 
 with Coverage;
 with Diagnostics;
-with JSON;         use JSON;
-with Outputs;      use Outputs;
+with JSON;           use JSON;
+with Outputs;        use Outputs;
 with SCOs;
-with Paths;        use Paths;
-with Project;      use Project;
-with Switches_GPR; use Switches_GPR;
+with Paths;          use Paths;
+with Project;        use Project;
+with SS_Annotations; use SS_Annotations;
+with Switches_GPR;   use Switches_GPR;
 
 package body Instrument.Common is
 
@@ -301,16 +302,28 @@ package body Instrument.Common is
    procedure Import_Annotations
      (UIC           : in out Unit_Inst_Context;
       Created_Units : Created_Unit_Maps.Map;
-      SCO_Map       : LL_HL_SCO_Map)
+      SCO_Map       : LL_HL_SCO_Map;
+      Filter        : Boolean)
    is
       ALI_Annotations : ALI_Annotation_Maps.Map;
    begin
+      --  First import in-source annotations
+
       for Couple of UIC.Annotations loop
          ALI_Annotations.Insert
            (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
       Set_Annotations (ALI_Annotations);
       Set_Fine_Grained_Exemptions (UIC.Fine_Grained_Exemptions);
+
+      --  Then import external annotations and compute annotations fingerprint
+      --  for each instrumented unit.
+
+      for Cur in Created_Units.Iterate loop
+         Import_External_Exemptions
+           (Created_Unit_Maps.Key (Cur), Filter => Filter);
+         Compute_Annotations_Fingerprint (Created_Unit_Maps.Element (Cur));
+      end loop;
 
       --  Resolve branch info in UIC.Branches and add them to SC_Obligations
 

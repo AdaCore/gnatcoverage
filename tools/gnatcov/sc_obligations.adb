@@ -307,33 +307,21 @@ package body SC_Obligations is
 
    procedure Iterate_Regions
      (Self    : ALI_Annotation_Maps.Map;
-      Process :
-        access procedure
-          (Region       : Annotation_Region;
-           CU           : CU_Id;
-           New_File     : Boolean;
-           Last_In_File : Boolean));
+      Process : access procedure (Region : Annotation_Region; CU : CU_Id));
    --  Assuming that Self is a set of annotations for well-formed regions (see
    --  Compute_Regions), call Process on each region it contains.
    --
    --  * Region is the region that is currently processed.
    --  * CU is the compilation unit that owns the source file for the region.
-   --  * New_File is whether this is the first call to Process for the current
-   --    source file.
-   --  * Last_In_File is whether this is the last call to Process for the
-   --    current source file.
 
    procedure Insert_Region
-     (Regions  : in out ALI_Annotation_Maps.Map;
-      Item     : Annotation_Region;
-      Inserted : out Boolean);
+     (Regions : in out ALI_Annotation_Maps.Map; Item : Annotation_Region);
    --  Assuming that Self is a set of annotations for well-formed regions (see
    --  Compute_Regions), try to insert a new region to it.
    --
    --  This succeeds iff Item does not intersect with an existing region in
-   --  Regions: set Inserted to whether that was the case. If Item could not be
-   --  inserted and is not equal to an existing region in Regions, emit a
-   --  warning to say that it is discarded.
+   --  Regions. If Item could not be inserted and is not equal to an existing
+   --  region in Regions, emit a warning to say that it is discarded.
 
    package CU_Info_Vectors is new
      Ada.Containers.Vectors
@@ -3602,12 +3590,7 @@ package body SC_Obligations is
 
    procedure Iterate_Regions
      (Self    : ALI_Annotation_Maps.Map;
-      Process :
-        access procedure
-          (Region       : Annotation_Region;
-           CU           : CU_Id;
-           New_File     : Boolean;
-           Last_In_File : Boolean))
+      Process : access procedure (Region : Annotation_Region; CU : CU_Id))
    is
       use ALI_Annotation_Maps;
 
@@ -3621,15 +3604,14 @@ package body SC_Obligations is
       is (Current_Region.Sloc_Start.Source_File /= No_Source_File);
       --  Whether Current_Region is not empty
 
-      Last_New_File : Boolean := True;
-      --  Whether Current_Region contains annotations that belong to a new
-      --  source file (i.e. Process was not called yet, or the last call was
-      --  for another source file).
-
       Last_CU : CU_Id := No_CU_Id;
       --  CU for the current region. This may be different from Current_CU
       --  because Process was not yet called for Current_Region while we are
       --  processing an annotation for a new file.
+      --
+      --  Note that some source files may contain annotations, but no coverage
+      --  obligation at all, so we end up without any CU for them: silently
+      --  discard these annotations, as we have nowhere to register them.
 
       Current_SFI : Source_File_Index := No_Source_File;
       Current_CU  : CU_Id := No_CU_Id;
@@ -3654,28 +3636,31 @@ package body SC_Obligations is
                pragma Assert (Is_Start (Ann.Kind));
                Current_Region.Sloc_Start := Sloc;
                Current_Region.Ann_Start := Ann;
-               Last_New_File := New_File;
 
             --  In all the code below, we know that Current_Region is not
             --  empty.
 
-            elsif New_File then
+            elsif
+            --  Ann belong to a new file, so it cannot contribute to
+            --  Current_Region: we have to call Process.
 
-               --  Ann belong to a new file, so it cannot contribute to
-               --  Current_Region: we have to call Process.
+              New_File
 
-               Process.all
-                 (Region       => Current_Region,
-                  CU           => Last_CU,
-                  New_File     => Last_New_File,
-                  Last_In_File => True);
+              --  Current_Region is already complete, so Ann cannot contribute
+              --  to it: call Process to get rid of Current_Region and reset
+              --  it to a new region that starts at Ann.
+
+              or else not Current_Region.Open
+            then
+               if Last_CU /= No_CU_Id then
+                  Process.all (Current_Region, Last_CU);
+               end if;
 
                --  Ann must start a new region
 
                pragma Assert (Is_Start (Ann.Kind));
                Current_Region :=
                  (Open => True, Sloc_Start => Sloc, Ann_Start => Ann);
-               Last_New_File := True;
 
             elsif Current_Region.Open then
 
@@ -3689,22 +3674,6 @@ package body SC_Obligations is
                   Ann_Start  => Current_Region.Ann_Start,
                   Sloc_End   => Sloc,
                   Ann_End    => Ann);
-
-            else
-               --  Current_Region is already complete, so Ann cannot contribute
-               --  to it: call Process to get rid of Current_Region and reset
-               --  it to a new region that starts at Ann.
-
-               Process.all
-                 (Region       => Current_Region,
-                  CU           => Last_CU,
-                  New_File     => Last_New_File,
-                  Last_In_File => False);
-
-               pragma Assert (Is_Start (Ann.Kind));
-               Current_Region :=
-                 (Open => True, Sloc_Start => Sloc, Ann_Start => Ann);
-               Last_New_File := False;
             end if;
 
             Last_CU := Current_CU;
@@ -3713,12 +3682,8 @@ package body SC_Obligations is
 
       --  If Process was not called on the current region, do it now
 
-      if Has_Start then
-         Process.all
-           (Region       => Current_Region,
-            CU           => Last_CU,
-            New_File     => Last_New_File,
-            Last_In_File => True);
+      if Has_Start and then Last_CU /= No_CU_Id then
+         Process.all (Current_Region, Last_CU);
       end if;
    end Iterate_Regions;
 
@@ -3727,9 +3692,7 @@ package body SC_Obligations is
    -------------------
 
    procedure Insert_Region
-     (Regions  : in out ALI_Annotation_Maps.Map;
-      Item     : Annotation_Region;
-      Inserted : out Boolean)
+     (Regions : in out ALI_Annotation_Maps.Map; Item : Annotation_Region)
    is
       use ALI_Annotation_Maps;
 
@@ -3852,7 +3815,6 @@ package body SC_Obligations is
                      Kind => Warning);
                end if;
             end if;
-            Inserted := False;
          end;
 
       else
@@ -3860,7 +3822,6 @@ package body SC_Obligations is
          if not Item.Open then
             Regions.Include (Item.Sloc_End, Item.Ann_End);
          end if;
-         Inserted := True;
       end if;
    end Insert_Region;
 
@@ -7093,48 +7054,24 @@ package body SC_Obligations is
    ---------------------
 
    procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map) is
-      Hash_Ctx : Tracing_Hash;
-      --  Hash context for the annotations fingerprint
-
       procedure Process_Exempted_Region
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean);
+        (Region : Annotation_Region; CU : CU_Id);
       --  Callback for Iterate_Regions for exemption annotations: try to insert
       --  the given region in its CU's exemptions.
 
       procedure Process_Disabled_Region
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean);
+        (Region : Annotation_Region; CU : CU_Id);
       --  Callback for Iterate_Regions for coverage disabling annotations: try
-      --  to insert the given region in its CU's disabled regions, and in case
-      --  of success, update the annotations fingerprint accordingly.
-
-      procedure Update_Hash
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean);
-      --  Contribute Region to the annotations fingerprint of CU
+      --  to insert the given region in its CU's disabled regions.
 
       -----------------------------
       -- Process_Exempted_Region --
       -----------------------------
 
       procedure Process_Exempted_Region
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean)
-      is
-         pragma Unreferenced (New_File, Last_In_File);
-         Dummy : Boolean;
+        (Region : Annotation_Region; CU : CU_Id) is
       begin
-         Insert_Region
-           (CU_Vector.Reference (CU).Exempted_Regions, Region, Dummy);
+         Insert_Region (CU_Vector.Reference (CU).Exempted_Regions, Region);
       end Process_Exempted_Region;
 
       -----------------------------
@@ -7142,69 +7079,10 @@ package body SC_Obligations is
       -----------------------------
 
       procedure Process_Disabled_Region
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean)
-      is
-         Inserted : Boolean;
+        (Region : Annotation_Region; CU : CU_Id) is
       begin
-         Insert_Region
-           (CU_Vector.Reference (CU).Disabled_Regions, Region, Inserted);
-         if Inserted then
-            Update_Hash (Region, CU, New_File, Last_In_File);
-         end if;
+         Insert_Region (CU_Vector.Reference (CU).Disabled_Regions, Region);
       end Process_Disabled_Region;
-
-      -----------------
-      -- Update_Hash --
-      -----------------
-
-      procedure Update_Hash
-        (Region       : Annotation_Region;
-         CU           : CU_Id;
-         New_File     : Boolean;
-         Last_In_File : Boolean) is
-      begin
-         --  If we are processing a new file, initialize the hash context for
-         --  it.
-
-         if New_File then
-            Hash_Ctx :=
-              Start_Hash
-                ("annotations of "
-                 & Get_Full_Name
-                     (Region.Sloc_Start.Source_File, Or_Simple => True),
-                 SCOs_Trace);
-         end if;
-
-         Update_Hash (Hash_Ctx, Image (Region.Sloc_Start));
-         Update_Hash
-           (Hash_Ctx, Any_Annotation_Kind'Image (Region.Ann_Start.Kind));
-         if Region.Ann_Start.Justification /= "" then
-            Update_Hash (Hash_Ctx, +Region.Ann_Start.Justification);
-         end if;
-
-         if not Region.Open then
-            Update_Hash (Hash_Ctx, Image (Region.Sloc_End));
-            Update_Hash
-              (Hash_Ctx, Any_Annotation_Kind'Image (Region.Ann_End.Kind));
-         end if;
-
-         --  If this is the last region for this file, fill in the fingerprint
-         --  to this file.
-
-         if Last_In_File then
-            declare
-               SID_Maps : SID_Info_Maps.Map renames
-                 CU_Vector.Reference (CU).SIDs_Info;
-               SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
-            begin
-               SID.Annotations_Fingerprint :=
-                 Fingerprint_Type (Digest (Hash_Ctx));
-            end;
-         end if;
-      end Update_Hash;
 
       Exempted_Regions : ALI_Annotation_Maps.Map;
       Disabled_Regions : ALI_Annotation_Maps.Map;
@@ -7216,6 +7094,38 @@ package body SC_Obligations is
       Iterate_Regions (Exempted_Regions, Process_Exempted_Region'Access);
       Iterate_Regions (Disabled_Regions, Process_Disabled_Region'Access);
    end Set_Annotations;
+
+   -------------------------------------
+   -- Compute_Annotations_Fingerprint --
+   -------------------------------------
+
+   procedure Compute_Annotations_Fingerprint (CU : CU_Id) is
+      Ctx : Tracing_Hash :=
+        Start_Hash ("annotations of " & Image (CU), SCOs_Trace);
+   begin
+      for Cur in CU_Vector.Constant_Reference (CU).Disabled_Regions.Iterate
+      loop
+         declare
+            Sloc : constant Source_Location := ALI_Annotation_Maps.Key (Cur);
+            A    : constant ALI_Annotation :=
+              ALI_Annotation_Maps.Element (Cur);
+         begin
+            Update_Hash (Ctx, Image (Sloc));
+            Update_Hash (Ctx, Any_Annotation_Kind'Image (A.Kind));
+            if A.Justification /= "" then
+               Update_Hash (Ctx, +A.Justification);
+            end if;
+         end;
+      end loop;
+
+      declare
+         SID_Maps : SID_Info_Maps.Map renames
+           CU_Vector.Reference (CU).SIDs_Info;
+         SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
+      begin
+         SID.Annotations_Fingerprint := Fingerprint_Type (Digest (Ctx));
+      end;
+   end Compute_Annotations_Fingerprint;
 
    ------------------------
    -- Get_Scope_Entities --
@@ -8712,7 +8622,6 @@ package body SC_Obligations is
                Unit  : CU_Info renames CU_Vector (Last_CU);
                Info  : Branch_Info;
                Found : Boolean;
-               Dummy : Boolean;
             begin
                Lookup_Branch_Info (Unit, UE.Sloc, Info, Found);
                if not Found then
@@ -8737,14 +8646,13 @@ package body SC_Obligations is
                --  this branch.
 
                Insert_Region
-                 (Regions  => Unit.Exempted_Regions,
-                  Item     =>
+                 (Regions => Unit.Exempted_Regions,
+                  Item    =>
                     (Open       => False,
                      Sloc_Start => (Last_File, Info.Stmt_Start),
                      Ann_Start  => (Exempt_On, Justification, others => <>),
                      Sloc_End   => (Last_File, Info.Stmt_End),
-                     Ann_End    => (Exempt_Off, Justification)),
-                  Inserted => Dummy);
+                     Ann_End    => (Exempt_Off, Justification)));
             end;
             goto Continue;
          end if;
