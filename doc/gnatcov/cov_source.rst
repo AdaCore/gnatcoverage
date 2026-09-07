@@ -159,6 +159,12 @@ The available options are as follows:
     Specify a directory in which missing source files will be searched when
     producing annotated source outputs. See :ref:`rebase_opts`
 
+:cmd-option:`--origins`:
+    Activate the logging of coverage origins in XML and DHTML report formats.
+    An origin of coverage of a Source Coverage Obligation (SCO) is a trace
+    file or checkpoint which contributes to the computation of the "covered"
+    or "partially covered" state of the SCO for a given coverage level.
+
 A lot of options are available to control the set of units for which coverage
 is to be assessed. They may be combined in multiple ways and attributed within
 the project files are available to refine the set of units to include or
