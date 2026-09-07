@@ -858,7 +858,7 @@ package body Instrument.Common is
          declare
             Off_Annot : constant Instr_Annotation := Element (Cur);
             Off_Sloc  : constant Local_Source_Location := Key (Cur);
-            On_Annot  : Instr_Annotation;
+            On_Sloc   : Local_Source_Location := No_Local_Location;
          begin
 
             --  First comes the Cov_Off annotation
@@ -871,24 +871,26 @@ package body Instrument.Common is
                   (Kind          => Cov_Off,
                    Justification => Off_Annot.Justification)));
 
-            --  Then the Cov_On annotation
+            --  Then the Cov_On annotation. It is optional for the last pair:
+            --  in that case the region logically goes until the end of the
+            --  source file.
 
             Next (Cur);
-            pragma Assert (Has_Element (Cur));
-            On_Annot := Element (Cur);
-            pragma Assert (On_Annot.Kind = Cov_On);
+            if Has_Element (Cur) then
+               pragma Assert (Element (Cur).Kind = Cov_On);
+               On_Sloc := Key (Cur);
+               UIC.Annotations.Append
+                 (Annotation_Couple'
+                    ((Source_File => SFI, L => On_Sloc),
+                     (Kind          => Cov_On,
+                      Justification => US.Null_Unbounded_String)));
+            end if;
 
-            UIC.Annotations.Append
-              (Annotation_Couple'
-                 ((Source_File => SFI, L => Key (Cur)),
-                  (Kind          => Cov_On,
-                   Justification => US.Null_Unbounded_String)));
-
-            --  And the region annotation
+            --  Add the region annotation
 
             UIC.Disable_Cov_Regions.Append
               (Source_Location_Range'
-                 (SFI, (First_Sloc => Off_Sloc, Last_Sloc => Key (Cur))));
+                 (SFI, (First_Sloc => Off_Sloc, Last_Sloc => On_Sloc)));
          end;
          Next (Cur);
       end loop;

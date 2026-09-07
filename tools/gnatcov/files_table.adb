@@ -587,7 +587,22 @@ package body Files_Table is
 
       FI.Lines.Reserve_Capacity (Ada.Containers.Count_Type (Line));
       for J in FI.Lines.Last_Index + 1 .. Line loop
-         FI.Lines.Append (Create_Line_Info);
+         declare
+            LI : constant Line_Info_Access := Create_Line_Info;
+         begin
+            FI.Lines.Append (LI);
+
+            --  If this source file has trailing exemptions/disable cov
+            --  markers that appear at or before the current line, propagate
+            --  them.
+
+            if J >= FI.Trailing_Exemption.L.Line then
+               LI.Exemption := FI.Trailing_Exemption;
+            end if;
+            if J >= FI.Trailing_Disabled_Cov.L.Line then
+               LI.Disabled_Cov := FI.Trailing_Disabled_Cov;
+            end if;
+         end;
       end loop;
    end Expand_Line_Table;
 
@@ -2140,9 +2155,18 @@ package body Files_Table is
          --  we won't process are lines without SCOs in them.
 
          if Current_Line_Num > Last_Line_Num then
-            exit when
-              not (Current_Annotation.Kind = Start_Annotation
-                   and then Annotation_In_File (Next_Annot_Cur));
+            if not (Current_Annotation.Kind = Start_Annotation
+                    and then Annotation_In_File (Next_Annot_Cur))
+            then
+               case Kind is
+                  when Exemption        =>
+                     Info.Trailing_Exemption := Current_Annot_Sloc;
+
+                  when Disable_Coverage =>
+                     Info.Trailing_Disabled_Cov := Current_Annot_Sloc;
+               end case;
+               exit;
+            end if;
             Last_Line_Num := Key (Next_Annot_Cur).L.Line;
             Expand_Line_Table (FI, Last_Line_Num);
          end if;

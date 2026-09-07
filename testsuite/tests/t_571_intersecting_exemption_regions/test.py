@@ -143,8 +143,8 @@ single_check(
         " without a corresponding EXEMPT_ON",
     ],
     expected_cov={
-        "lone_exempt_off.adb.xcov": {"#": {3, 4, 5}},
-        "lone_exempt_on.adb.xcov": {"+": {3}, "#": {4, 5}},
+        "lone_exempt_off.adb.xcov": {"#": {3, 4, 5, 6}},
+        "lone_exempt_on.adb.xcov": {"+": {3}, "#": {4, 5, 6}},
     },
 )
 
@@ -394,7 +394,7 @@ with build_and_run_wrapper(
                 " justification: J2",
                 "*** exempt_overlap.adb:10:1: warning: In favor of: J",
             ],
-            {"+": {5, 7, 9}, "#": {10, 11, 12, 13}},
+            {"+": {5, 7, 9}, "#": {10, 11, 12, 13, 14, 15}},
             "J2",
         ),
         # Sloc bounds are inclusive: regions intersect when one's start bound

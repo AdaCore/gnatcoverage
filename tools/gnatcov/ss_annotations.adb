@@ -968,8 +968,9 @@ package body SS_Annotations is
       --  Start of processing for Get_Disabled_Cov_Annotations
 
    begin
-      --  Filter out any annotations that do not come in pairs, and ensure
-      --  the map starts with an Cov_Off annotation.
+      --  Filter out any annotations that do not come in pairs (except if the
+      --  last annotation is a lone Cov_Off), and ensure the map starts with an
+      --  Cov_Off annotation.
 
       if Has_Element (Cur) and then Element (Cur).Kind = Cov_On then
          Warn
@@ -989,9 +990,7 @@ package body SS_Annotations is
       while Has_Element (Cur) loop
          pragma Assert (Element (Cur).Kind = Expected_Kind);
          Aux := Next (Cur);
-         if (if Has_Element (Aux)
-             then Element (Aux).Kind /= Next_Expected_Kind
-             else Element (Cur).Kind = Cov_Off)
+         if Has_Element (Aux) and then Element (Aux).Kind /= Next_Expected_Kind
          then
             Warn
               (Ada.Directories.Simple_Name (Filename)
