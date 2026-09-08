@@ -34,16 +34,16 @@
                   "uri": "a.adb"
                 },
                 "region": {
-                  "startColumn": 7,
+                  "startColumn": 22,
                   "startLine": 6
                 }
               }
             }
           ],
           "message": {
-            "text": "statement not executed"
+            "text": "decision never evaluated"
           },
-          "ruleId": "STMT"
+          "ruleId": "ATC"
         },
         {
           "kind": "fail",

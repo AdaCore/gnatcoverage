@@ -18,4 +18,5 @@ end Test_Nested;
 -- /fail_2_ac/       a=>l+, c=>l! ## a=>0, c=>ac!,ac!
 --# nested.adb
 -- /success/         l+ ## 0
+-- /prag/            l. ## 0
 -- /fail/            a=>l+, c=>l! ## a=>0, c=>ac!

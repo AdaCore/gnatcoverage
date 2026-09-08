@@ -1,34 +1,32 @@
 stmt
 
 Global:
-        -  74%, !   0%, +  25%     out of 31 obligations
+        -  70%, !   0%, +  29%     out of 27 obligations
 
 
 bar:
-        - 100%, !   0%, +   0%     out of 11 obligations
+        - 100%, !   0%, +   0%     out of 10 obligations
 
     bar.adb:
-        - 100%, !   0%, +   0%     out of 11 obligations
+        - 100%, !   0%, +   0%     out of 10 obligations
     bar.ads:
         -   -%, !   -%, +   -%     out of 0 obligations
 
 foo:
-        - 100%, !   0%, +   0%     out of 11 obligations
+        - 100%, !   0%, +   0%     out of 8 obligations
 
     b.ads:
         - 100%, !   0%, +   0%     out of 1 obligations
     foo.adb:
-        - 100%, !   0%, +   0%     out of 10 obligations
+        - 100%, !   0%, +   0%     out of 7 obligations
     foo.ads:
         -   -%, !   -%, +   -%     out of 0 obligations
 
-lib:
         -   0%, !   0%, + 100%     out of 1 obligations
 
     lib.ads:
         -   0%, !   0%, + 100%     out of 1 obligations
 
-main:
         -  12%, !   0%, +  87%     out of 8 obligations
 
     a.adb:

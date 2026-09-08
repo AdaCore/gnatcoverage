@@ -3,16 +3,16 @@
  <scope_metric scope_name="Main" scope_line="4">
   <metric kind="total_lines_of_relevance" count="22"/>
   <metric kind="fully_covered" count="21" ratio="95"/>
-  <metric kind="partially_covered" count="1" ratio="5"/>
-  <metric kind="not_covered" count="0" ratio="0"/>
+  <metric kind="partially_covered" count="0" ratio="0"/>
+  <metric kind="not_covered" count="1" ratio="5"/>
   <metric kind="undetermined_coverage" count="0" ratio="0"/>
   <metric kind="exempted_no_violation" count="0" ratio="0"/>
   <metric kind="exempted" count="0" ratio="0"/>
   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
   <metric kind="disabled_coverage" count="0"/>
   <obligation_stats kind="Stmt">
-   <metric kind="total_obligations_of_relevance" count="10"/>
-   <metric kind="fully_covered" count="10" ratio="100"/>
+   <metric kind="total_obligations_of_relevance" count="9"/>
+   <metric kind="fully_covered" count="9" ratio="100"/>
    <metric kind="partially_covered" count="0" ratio="0"/>
    <metric kind="not_covered" count="0" ratio="0"/>
    <metric kind="undetermined_coverage" count="0" ratio="0"/>
@@ -218,7 +218,7 @@
    <line num="4" src="procedure Main"/>
   </src>
 
-  <function id="36" text="procedure..." coverage="+">
+  <function id="35" text="procedure..." coverage="+">
    <src>
     <line num="4" column_begin="1" column_end="14" src="procedure Main"/>
    </src>
@@ -495,26 +495,19 @@
 
  </src_mapping>
 
- <src_mapping coverage="!">
+ <src_mapping coverage="-">
   <src>
    <line num="28" src="   pragma Assert (T and then not F);"/>
   </src>
 
-  <statement id="15" text="pragma As..." coverage="+">
-   <src>
-    <line num="28" column_begin="4" column_end="36" src="   pragma Assert (T and then not F);"/>
-   </src>
-
-  </statement>
-
-  <contract_expression id="16" text="T and the..." coverage="-">
+  <contract_expression id="15" text="T and the..." coverage="-">
    <src>
     <line num="28" column_begin="19" column_end="34" src="                  T and then not F"/>
    </src>
 
   </contract_expression>
 
-  <message kind="violation" SCO="SCO #16: ASSERTION DECISION" message="never evaluated"/>
+  <message kind="violation" SCO="SCO #15: ASSERTION DECISION" message="never evaluated"/>
  </src_mapping>
 
  <src_mapping coverage=".">
@@ -529,21 +522,21 @@
    <line num="30" src="   Put_Line (Foo (Dog, True, True));   -- # call"/>
   </src>
 
-  <statement id="21" text="Put_Line ..." coverage="+">
+  <statement id="20" text="Put_Line ..." coverage="+">
    <src>
     <line num="30" column_begin="4" column_end="36" src="   Put_Line (Foo (Dog, True, True));"/>
    </src>
 
   </statement>
 
-  <call id="22" text="Put_Line ..." coverage="+">
+  <call id="21" text="Put_Line ..." coverage="+">
    <src>
     <line num="30" column_begin="4" column_end="35" src="   Put_Line (Foo (Dog, True, True))"/>
    </src>
 
   </call>
 
-  <call id="23" text="Foo (Dog,..." coverage="+">
+  <call id="22" text="Foo (Dog,..." coverage="+">
    <src>
     <line num="30" column_begin="14" column_end="34" src="             Foo (Dog, True, True)"/>
    </src>
@@ -557,21 +550,21 @@
    <line num="31" src="   Put_Line (Foo (Cat, True, True));   -- # call"/>
   </src>
 
-  <statement id="24" text="Put_Line ..." coverage="+">
+  <statement id="23" text="Put_Line ..." coverage="+">
    <src>
     <line num="31" column_begin="4" column_end="36" src="   Put_Line (Foo (Cat, True, True));"/>
    </src>
 
   </statement>
 
-  <call id="25" text="Put_Line ..." coverage="+">
+  <call id="24" text="Put_Line ..." coverage="+">
    <src>
     <line num="31" column_begin="4" column_end="35" src="   Put_Line (Foo (Cat, True, True))"/>
    </src>
 
   </call>
 
-  <call id="26" text="Foo (Cat,..." coverage="+">
+  <call id="25" text="Foo (Cat,..." coverage="+">
    <src>
     <line num="31" column_begin="14" column_end="34" src="             Foo (Cat, True, True)"/>
    </src>
@@ -585,21 +578,21 @@
    <line num="32" src="   Put_Line (Foo (Cow, True, True));   -- # call"/>
   </src>
 
-  <statement id="27" text="Put_Line ..." coverage="+">
+  <statement id="26" text="Put_Line ..." coverage="+">
    <src>
     <line num="32" column_begin="4" column_end="36" src="   Put_Line (Foo (Cow, True, True));"/>
    </src>
 
   </statement>
 
-  <call id="28" text="Put_Line ..." coverage="+">
+  <call id="27" text="Put_Line ..." coverage="+">
    <src>
     <line num="32" column_begin="4" column_end="35" src="   Put_Line (Foo (Cow, True, True))"/>
    </src>
 
   </call>
 
-  <call id="29" text="Foo (Cow,..." coverage="+">
+  <call id="28" text="Foo (Cow,..." coverage="+">
    <src>
     <line num="32" column_begin="14" column_end="34" src="             Foo (Cow, True, True)"/>
    </src>
@@ -613,21 +606,21 @@
    <line num="33" src="   Put_Line (Foo (Cow, True, False));  -- # call"/>
   </src>
 
-  <statement id="30" text="Put_Line ..." coverage="+">
+  <statement id="29" text="Put_Line ..." coverage="+">
    <src>
     <line num="33" column_begin="4" column_end="37" src="   Put_Line (Foo (Cow, True, False));"/>
    </src>
 
   </statement>
 
-  <call id="31" text="Put_Line ..." coverage="+">
+  <call id="30" text="Put_Line ..." coverage="+">
    <src>
     <line num="33" column_begin="4" column_end="36" src="   Put_Line (Foo (Cow, True, False))"/>
    </src>
 
   </call>
 
-  <call id="32" text="Foo (Cow,..." coverage="+">
+  <call id="31" text="Foo (Cow,..." coverage="+">
    <src>
     <line num="33" column_begin="14" column_end="35" src="             Foo (Cow, True, False)"/>
    </src>
@@ -641,21 +634,21 @@
    <line num="34" src="   Put_Line (Foo (Cow, False, False)); -- # call"/>
   </src>
 
-  <statement id="33" text="Put_Line ..." coverage="+">
+  <statement id="32" text="Put_Line ..." coverage="+">
    <src>
     <line num="34" column_begin="4" column_end="38" src="   Put_Line (Foo (Cow, False, False));"/>
    </src>
 
   </statement>
 
-  <call id="34" text="Put_Line ..." coverage="+">
+  <call id="33" text="Put_Line ..." coverage="+">
    <src>
     <line num="34" column_begin="4" column_end="37" src="   Put_Line (Foo (Cow, False, False))"/>
    </src>
 
   </call>
 
-  <call id="35" text="Foo (Cow,..." coverage="+">
+  <call id="34" text="Foo (Cow,..." coverage="+">
    <src>
     <line num="34" column_begin="14" column_end="36" src="             Foo (Cow, False, False)"/>
    </src>
