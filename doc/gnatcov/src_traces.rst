@@ -768,13 +768,19 @@ Assertion Coverage limitations (ATC and ATCC)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Assertion coverage is only supported for the Ada language. However there are
-language constructs for which gnatcov is unable to perform coverage analysis
-for assertions:
+language constructs for which gnatcov is unable to perform complete coverage
+analysis for assertions:
 
-* Preconditions and postconditions expressed as pragmas;
-
-* Contracts for types and functions expressed as aspects for versions of the
-  language anterior to Ada 2022.
+* ATCC for type and subprogram contracts, whether expressed as aspects or as
+  pragmas for Ada 2012 and prior versions.
+*
+* Contracts for types and functions, whether expressed as aspects or as
+  pragmas, when using Ada 2012 and prior versions, are analyzed for ATC only.
+  For these constructs, ATCC coverage requires instrumenting in Ada 2022 mode:
+  |gcv| emits a warning when instrumenting contracts for ATCC in pre-2022 mode
+  and reports them as ``Undetermined_Coverage`` (the ATC results remain valid).
+  Note that a line holding such a contract is annotated ``?`` in the report,
+  even when its ATC obligation is covered.
 
 Guarded expression coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
