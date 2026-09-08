@@ -486,9 +486,15 @@ package body Instrument.Ada_Unit is
    is ((Source_File => Unit_File_Index (N), L => +Sloc (N)));
 
    function Coverage_Disabled
+     (UIC : Ada_Unit_Inst_Context; Sloc : Local_Source_Location) return Boolean
+   is (UIC.Disable_Coverage or else UIC.Is_Disabled_Region ((UIC.SFI, Sloc)));
+   --  Whether coverage is disabled at Sloc, either because we are past an
+   --  in-source Cov_Off annotation (UIC.Disable_Coverage), or because N lies
+   --  in a region disabled by an external annotation.
+
+   function Coverage_Disabled
      (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
-   is (UIC.Disable_Coverage
-       or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N))));
+   is (Coverage_Disabled (UIC, +Sloc (N)));
    --  Whether coverage is disabled for N, either because we are past an
    --  in-source Cov_Off annotation (UIC.Disable_Coverage), or because N lies
    --  in a region disabled by an external annotation.
@@ -3740,17 +3746,15 @@ package body Instrument.Ada_Unit is
                Start_Statement_Block (UIC);
             end if;
 
-            --  Return before adding this annotation to this unit: buffer
-            --  control annotations are taken into account in a separate pass
-            --  (Replace_Manual_Indications).
-
-            return;
+         --  Do not add this annotation to this unit: buffer control
+         --  annotations are taken into account in a separate pass
+         --  (Replace_Manual_Indications).
 
          when Cov_Off                      =>
-            UIC.Disable_Coverage := True;
+            UIC.Start_Disable_Cov_Region (Sloc (N), Result.Justification);
 
          when Cov_On                       =>
-            UIC.Disable_Coverage := False;
+            UIC.End_Disable_Cov_Region (Sloc (N), Result.Justification);
 
          when Fine_Grained_Annotation_Kind =>
 
@@ -3761,13 +3765,11 @@ package body Instrument.Ada_Unit is
               (UIC.Fine_Grained_Exemptions,
                Result.Exemption_Req,
                Result.Justification);
-            return;
 
          when others                       =>
-            null;
+            UIC.Annotations.Append (Annotation_Couple'(Sloc (N), Result));
       end case;
 
-      UIC.Annotations.Append (Annotation_Couple'(Sloc (N), Result));
    end Process_Annotation;
 
    -----------------------------------------
@@ -4035,9 +4037,7 @@ package body Instrument.Ada_Unit is
             else Insertion_N);
 
       begin
-         if UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +From))
-         then
+         if Coverage_Disabled (UIC, +From) then
             return;
          end if;
          case Kind (N) is
@@ -4950,10 +4950,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if UIC.Disable_Instrumentation
-           or else UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
-         then
+         if UIC.Disable_Instrumentation or else Coverage_Disabled (UIC, N) then
             UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
@@ -7859,10 +7856,7 @@ package body Instrument.Ada_Unit is
          --  Start of processing for Process_Decisions
 
       begin
-         if N.Is_Null
-           or else UIC.Disable_Coverage
-           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
-         then
+         if N.Is_Null or else Coverage_Disabled (UIC, N) then
             return;
          end if;
          Hash_Entries.Init;
@@ -10759,12 +10753,9 @@ package body Instrument.Ada_Unit is
 
       Append_Unit (UIC.SFI);
 
-      declare
-         Annots : constant Instr_Annotation_Map :=
-           Get_Disabled_Cov_Annotations (Filename);
-      begin
-         UIC.Populate_Ext_Disabled_Cov (Annots, UIC.SFI);
-      end;
+      --  Import the external disabled regions for this source
+
+      UIC.Populate_Ext_Disabled_Cov (UIC.SFI);
 
       Traverse_Declarations_Or_Statements
         (UIC      => UIC,

@@ -22,7 +22,7 @@ annotations = generate_annotations(
 tmp = Wdir("tmp_")
 
 warnings = [
-    r"warning: Exemption annotation at main\.c:\d+:\d+ intersects a coverage"
+    r"\*\*\* main\.c:16:5: warning: Exemption annotation intersects a coverage"
     r" obligation \(.*\), ignoring it",
     re.escape(
         "*** main.c:18:31: warning: EXEMPT_OFF annotation found without a"

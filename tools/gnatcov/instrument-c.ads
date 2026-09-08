@@ -506,10 +506,10 @@ package Instrument.C is
    --  Helper object to instrument a source file
 
    function Is_Source_Of_Interest
-     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean;
-   --  Track the source file from which N originates in
-   --  UIC.Sources_Of_Interest. Return whether this source file is a source of
-   --  interest.
+     (UIC : in out C_Unit_Inst_Context; Sloc : Source_Location_T)
+      return Boolean;
+   --  Track the source file that Sloc references in UIC.Sources_Of_Interest.
+   --  Return whether this source file is a source of interest.
 
    function C_String_Literal (Str : String) return String;
    --  Turn Str into the corresponding C string literal. For instance:
