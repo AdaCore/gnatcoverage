@@ -89,6 +89,8 @@ package Slocs is
       Source_File : Source_File_Index;
       L           : Local_Source_Location_Range;
    end record;
+   --  When Source_Location_Range.L.Last_Sloc is No_Source_Location, the range
+   --  is interpreted as going until the end of the source file.
 
    No_Range : constant Source_Location_Range :=
      (No_Source_File, No_Local_Range);

@@ -453,6 +453,16 @@ package Files_Table is
             Unit : Owning_Unit;
             --  Information about the unit this source file belongs to
 
+            Trailing_Exemption    : Source_Location := Slocs.No_Location;
+            Trailing_Disabled_Cov : Source_Location := Slocs.No_Location;
+            --  Set in Populate_Annotations to the location of the last "start
+            --  annotation" in this file if it is not followed by the
+            --  corresponding "end annotation".
+            --
+            --  Keeping track of this allows us to initialize
+            --  Line_Info.Exemption/.Disabled_Cov when expanding the line
+            --  table after Populate_Annotations has been called.
+
          when Library_File =>
             Main_Source : Source_File_Index := No_Source_File;
             --  Main source file. For Ada, this is a simple name; for C this

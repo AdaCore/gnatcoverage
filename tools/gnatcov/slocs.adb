@@ -242,8 +242,11 @@ package body Slocs is
       return Boolean is
    begin
       return
-        First_Sloc (Sloc_Range) <= Sloc
-        and then Sloc <= Last_Sloc (Sloc_Range);
+        Sloc.Source_File = Sloc_Range.Source_File
+        and then First_Sloc (Sloc_Range) <= Sloc
+        and then
+          (Last_Sloc (Sloc_Range) = No_Location
+           or else Sloc <= Last_Sloc (Sloc_Range));
    end In_Range;
 
    ---------------
