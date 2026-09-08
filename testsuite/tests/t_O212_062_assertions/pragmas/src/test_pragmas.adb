@@ -19,5 +19,5 @@ end Test_Pragmas;
 -- /cut_1/    a=>l+, c=>l! ## a=>0, c=>0
 -- /cut_2/    a=>l+, c=>l! ## a=>0, c=>ac!
 -- /cut_3/    a=>l+, c=>l! ## a=>0, c=>ac!
--- /fail/     l! ## aT-
+-- /fail/     l- ## aT-
 -- /catch/    l+ ## 0

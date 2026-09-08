@@ -1,4 +1,5 @@
 pragma Ada_2012;
+pragma Assertion_Policy (Check);
 
 with Pkg_Type_Invariant; use Pkg_Type_Invariant;
 

@@ -17,17 +17,18 @@ end Test_Fail_But_Ok_Cond;
 --# functions.adb
 -- /foo_hi_decl/     l- ## s-
 -- /foo_loop_1/      l- ## s-
--- /foo_inv_1/       l- ## s-
+-- /foo_inv_1/       l- ## a-
 -- /foo_loop_2/      l- ## s-
--- /foo_inv_2/       l- ## s-
+-- /foo_inv_2/       l- ## a-
 -- /foo_return/      l- ## s-
 -- /id_pre/          l- ## a-
 -- /id_post/         l- ## a-
 -- /id_ret/          l- ## s-
--- /nested_1/        l- ## s-
--- /nested_2/        l- ## s-
--- /nested_3/        l- ## s-
+-- /nested_1/        l- ## a-
+-- /nested_2/        l- ## a-
+-- /nested_3/        l- ## a-
 -- /same_ret/        l- ## s-
 -- # fail_but_ok_cond.adb
--- /assertion/       l! ## aT-
+-- /assertion/       l- ## aT-
+-- /after_assert/    l- ## s-
 -- /catch/           l+ ## 0

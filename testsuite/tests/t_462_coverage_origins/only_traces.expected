@@ -96,8 +96,6 @@
   * SCO statement for: Dummy_F : Boolean := False;
     origin: traces/one.srctrace
 <src_mapping> for: pragma Assert (Dummy_T and then not Dummy_F);
-  * SCO statement for: pragma Assert (Dummy_T and then not Dummy_F);
-    origin: traces/one.srctrace
   * SCO contract_expression for: Dummy_T and then not Dummy_F
     origin: traces/one.srctrace
 <src_mapping> for: if X >= 0 then
