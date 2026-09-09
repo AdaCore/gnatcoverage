@@ -35,12 +35,14 @@ with Stable_Sloc.TOML_Utils; use Stable_Sloc.TOML_Utils;
 
 with Coverage_Options; use Coverage_Options;
 with Command_Line;     use Command_Line;
+with Diagnostics;      use Diagnostics;
 with Files_Table;      use Files_Table;
 with Hex_Images;       use Hex_Images;
 with Instrument;       use Instrument;
 with Outputs;          use Outputs;
 with Paths;            use Paths;
 with Project;          use Project;
+with Slocs;            use Slocs;
 with Switches_GPR;     use Switches_GPR;
 
 package body SS_Annotations is
@@ -552,12 +554,13 @@ package body SS_Annotations is
                             Existing_Annot.Justification
                             /= Annot.Justification)
                      then
-                        Warn
-                          (Slocs.Image (Sloc)
-                           & ": Conflicting annotations for this line,"
+                        Report
+                          (Sloc,
+                           "Conflicting annotations for this line,"
                            & " ignoring the external annotation """
                            & (+Match.Identifier)
-                           & """");
+                           & """",
+                           Kind => Warning);
                      end if;
                      return;
                   end if;
@@ -567,12 +570,13 @@ package body SS_Annotations is
                         SCO : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
                      begin
                         if SCO /= No_SCO_Id then
-                           Warn
-                             ("Exemption annotation at "
-                              & Slocs.Image (Sloc)
-                              & " intersects a coverage obligation ("
+                           Report
+                             (Sloc,
+                              "Exemption annotation intersects a coverage"
+                              & " obligation ("
                               & Image (SCO, True)
-                              & "), ignoring it");
+                              & "), ignoring it",
+                              Kind => Warning);
                            return;
                         end if;
                      end;
@@ -791,14 +795,13 @@ package body SS_Annotations is
             --  Tolerate duplicate annotations if they are the same
 
             if not Success and then Result.Reference (Cur) /= Annot then
-               Warn
-                 (Ada.Directories.Simple_Name (Filename)
-                  & ":"
-                  & Slocs.Image (Sloc)
-                  & ": Conflicting annotations for this line, ignoring the"
+               Report
+                 ((Get_Index_From_Full_Name (Filename, Stub_File), Sloc),
+                  "Conflicting annotations for this line, ignoring the"
                   & " external annotation """
                   & (+Match.Identifier)
-                  & """");
+                  & """",
+                  Kind => Warning);
             end if;
 
             Ext_Annotation_Trace.Trace
@@ -905,12 +908,13 @@ package body SS_Annotations is
                New_Annotation.Justification :=
                  Get_Or_Null (Match_Res.Annotation, "justification");
                if New_Annotation.Justification = Null_Unbounded_String then
-                  Warn
-                    (Slocs.Image (To_Sloc (Match_Res.Location.Start_Sloc, SFI))
-                     & ": Missing or empty justification for external"
+                  Report
+                    (To_Sloc (Match_Res.Location.Start_Sloc, SFI),
+                     "Missing or empty justification for external"
                      & " disabled coverage region annotation """
                      & (+Match_Res.Identifier)
-                     & """");
+                     & """",
+                     Kind => Warning);
                end if;
 
             when Cov_On  =>
@@ -942,14 +946,13 @@ package body SS_Annotations is
                   end if;
 
                   if not Success then
-                     Warn
-                       (Ada.Directories.Simple_Name (Filename)
-                        & ":"
-                        & Image (Match_Res.Location.Start_Sloc)
-                        & ": Conflicting annotations for this line, ignoring"
+                     Report
+                       (To_Sloc (Match_Res.Location.Start_Sloc, SFI),
+                        "Conflicting annotations for this line, ignoring"
                         & " the external annotation """
                         & (+Match_Res.Identifier)
-                        & """");
+                        & """",
+                        Kind => Warning);
                   end if;
 
                end if;
@@ -973,12 +976,12 @@ package body SS_Annotations is
       --  Cov_Off annotation.
 
       if Has_Element (Cur) and then Element (Cur).Kind = Cov_On then
-         Warn
-           (Ada.Directories.Simple_Name (Filename)
-            & ": "
-            & Slocs.Image (Key (Cur))
-            & ": external Cov_On annotation with no previous Cov_Off"
-            & " annotation, ignoring it.");
+         Report
+           (Source_Location'(SFI, Key (Cur)),
+            Cov_On'Image
+            & " annotation found without a corresponding "
+            & Cov_Off'Image,
+            Kind => Warning);
          Aux := Cur;
          Next (Cur);
          Res.Delete (Aux);
@@ -992,15 +995,12 @@ package body SS_Annotations is
          Aux := Next (Cur);
          if Has_Element (Aux) and then Element (Aux).Kind /= Next_Expected_Kind
          then
-            Warn
-              (Ada.Directories.Simple_Name (Filename)
-               & ": "
-               & Slocs.Image (Key (Cur))
-               & ": external "
-               & Expected_Kind'Image
-               & " annotation with no subsequent "
-               & Next_Expected_Kind'Image
-               & " annotation, ignoring it.");
+            Report
+              (Source_Location'(SFI, Key (Cur)),
+               Expected_Kind'Image
+               & " annotation found without a corresponding "
+               & Next_Expected_Kind'Image,
+               Kind => Warning);
             Res.Delete (Cur);
          else
             Tmp := Expected_Kind;

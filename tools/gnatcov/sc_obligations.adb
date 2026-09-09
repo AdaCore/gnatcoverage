@@ -313,6 +313,9 @@ package body SC_Obligations is
    --
    --  * Region is the region that is currently processed.
    --  * CU is the compilation unit that owns the source file for the region.
+   --    It can be No_CU_Id if no compilation unit was created for the
+   --    corresponding source file yet, or for files that contain annotations,
+   --    but no coverage obligation at all.
 
    procedure Insert_Region
      (Regions : in out ALI_Annotation_Maps.Map; Item : Annotation_Region);
@@ -3608,10 +3611,6 @@ package body SC_Obligations is
       --  CU for the current region. This may be different from Current_CU
       --  because Process was not yet called for Current_Region while we are
       --  processing an annotation for a new file.
-      --
-      --  Note that some source files may contain annotations, but no coverage
-      --  obligation at all, so we end up without any CU for them: silently
-      --  discard these annotations, as we have nowhere to register them.
 
       Current_SFI : Source_File_Index := No_Source_File;
       Current_CU  : CU_Id := No_CU_Id;
@@ -3652,9 +3651,7 @@ package body SC_Obligations is
 
               or else not Current_Region.Open
             then
-               if Last_CU /= No_CU_Id then
-                  Process.all (Current_Region, Last_CU);
-               end if;
+               Process.all (Current_Region, Last_CU);
 
                --  Ann must start a new region
 
@@ -3682,7 +3679,7 @@ package body SC_Obligations is
 
       --  If Process was not called on the current region, do it now
 
-      if Has_Start and then Last_CU /= No_CU_Id then
+      if Has_Start then
          Process.all (Current_Region, Last_CU);
       end if;
    end Iterate_Regions;
@@ -7071,7 +7068,9 @@ package body SC_Obligations is
       procedure Process_Exempted_Region
         (Region : Annotation_Region; CU : CU_Id) is
       begin
-         Insert_Region (CU_Vector.Reference (CU).Exempted_Regions, Region);
+         if CU /= No_CU_Id then
+            Insert_Region (CU_Vector.Reference (CU).Exempted_Regions, Region);
+         end if;
       end Process_Exempted_Region;
 
       -----------------------------
@@ -7081,7 +7080,9 @@ package body SC_Obligations is
       procedure Process_Disabled_Region
         (Region : Annotation_Region; CU : CU_Id) is
       begin
-         Insert_Region (CU_Vector.Reference (CU).Disabled_Regions, Region);
+         if CU /= No_CU_Id then
+            Insert_Region (CU_Vector.Reference (CU).Disabled_Regions, Region);
+         end if;
       end Process_Disabled_Region;
 
       Exempted_Regions : ALI_Annotation_Maps.Map;

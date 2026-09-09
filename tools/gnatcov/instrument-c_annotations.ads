@@ -21,13 +21,12 @@
 with Ada.Containers.Ordered_Maps;
 
 with Instrument.C; use Instrument.C;
-with Slocs;
 
 package Instrument.C_Annotations is
 
    procedure Analyze_Comment
      (Comment : Unbounded_String;
-      Sloc    : Slocs.Source_Location;
+      Sloc    : Source_Location;
       Handled : out Boolean;
       Result  : out ALI_Annotation);
    --  Analyze Comment, the full spelling of a source comment (including its

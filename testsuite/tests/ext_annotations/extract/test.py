@@ -71,6 +71,7 @@ tmp = Wdir("tmp_")
 
 # 1. Baseline: the in-source annotations, as they are
 
+thistest.log("== in_source ==")
 wd = Wdir("in_source")
 gprsw = setup("in_source")
 build_run_and_coverage(
@@ -85,6 +86,7 @@ wd.to_homedir()
 # 2. Extraction alone must not touch the sources, and must produce one
 #    Exempt_Region per Exempt_On/Exempt_Off pair plus the Cov_Off/Cov_On pair.
 
+thistest.log("== extract_only ==")
 wd = Wdir("extract_only")
 gprsw = setup("extract_only")
 xcov(
@@ -144,6 +146,7 @@ wd.to_homedir()
 # 3. Migration: -i removes the annotations from the sources, and the generated
 #    annotations must yield the very same coverage as the in-source ones.
 
+thistest.log("== in_place ==")
 wd = Wdir("in_place")
 gprsw = setup("in_place")
 xcov(

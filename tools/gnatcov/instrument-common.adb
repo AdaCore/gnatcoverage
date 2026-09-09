@@ -49,6 +49,40 @@ package body Instrument.Common is
    --  Convenience function to allocate a new coverage buffer bit: increment
    --  Last_Bit and return the new Last_Bit.
 
+   function Just_Before (Sloc : Source_Location) return Source_Location
+   is (Source_File => Sloc.Source_File,
+       L           =>
+         (if Sloc.L.Column = 1
+          then (Sloc.L.Line - 1, Natural'Last)
+          else (Sloc.L.Line, Sloc.L.Column - 1)))
+   with Pre => Sloc.L /= (1, 1);
+   --  Return the source location that is logically just before Sloc
+
+   function Just_After (Sloc : Source_Location) return Source_Location
+   is (Source_File => Sloc.Source_File,
+       L           =>
+         (if Sloc.L.Column = Natural'Last
+          then (Sloc.L.Line + 1, 1)
+          else (Sloc.L.Line, Sloc.L.Column + 1)))
+   with Pre => Sloc.L /= (Natural'Last, Natural'Last);
+   --  Return the source location that is logically just after Sloc
+
+   procedure Close_Disable_Cov_Regions_Stack
+     (UIC : in out Unit_Inst_Context; Sloc : Source_Location);
+   --  Helper for (Start/End)_Disable_Cov_Region).
+   --
+   --  Close all still open disabled coverage regions when Sloc belongs to a
+   --  new file.
+
+   procedure Disable_Cov_Regions_Append
+     (UIC  : in out Unit_Inst_Context;
+      Sloc : Source_Location;
+      A    : ALI_Annotation);
+   --  Helper for (Start/End)_Disable_Cov_Region).
+   --
+   --  Add a coverage disabling marker to both UIC.Disable_Cov_Regions and
+   --  UIC.Annotations.
+
    -------------------
    -- Buffer_Symbol --
    -------------------
@@ -826,19 +860,244 @@ package body Instrument.Common is
       end loop;
    end Import_From_Args;
 
+   -------------------------------------
+   -- Close_Disable_Cov_Regions_Stack --
+   -------------------------------------
+
+   procedure Close_Disable_Cov_Regions_Stack
+     (UIC : in out Unit_Inst_Context; Sloc : Source_Location)
+   is
+      Stack : Source_Location_Vectors.Vector renames
+        UIC.Disable_Cov_Regions_Stack;
+   begin
+      --  If Sloc belongs to the same file as still open regions, there is
+      --  nothing to close.
+
+      if Stack.Is_Empty
+        or else Stack.Last_Element.Source_File = Sloc.Source_File
+      then
+         return;
+      end if;
+
+      --  Reset UIC.Disable_Coverage so that previous markers do not leak to
+      --  this new source file.
+
+      UIC.Disable_Coverage := False;
+
+      --  Close all still open regions (from a previous file). For the first
+      --  one, insert an end marker just before the next start marker (if any).
+      --  The nested ones must be ignored.
+
+      declare
+         use ALI_Annotation_Maps;
+
+         Cur        : Cursor;
+         Start_Sloc : constant Source_Location := Stack.First_Element;
+         End_Sloc   : Source_Location;
+      begin
+         --  Step 1: look for the start marker corresponding to Start_Sloc
+
+         Cur := UIC.Disable_Cov_Regions.Find (Start_Sloc);
+         if Has_Element (Cur) then
+
+            --  Step 2: if we found it, look for a marker that follows it in
+            --  the same file.
+
+            Next (Cur);
+            if Has_Element (Cur) then
+               End_Sloc := Key (Cur);
+               if End_Sloc.Source_File = Start_Sloc.Source_File then
+
+                  --  Step 3: if we found that next marker, insert an end
+                  --  marker just before it.
+                  --
+                  --  Note that at this point, Cur must boint to a Cov_Off
+                  --  marker because if we had a Cov_On one, then it would
+                  --  necessarily be preceeded by a Cov_Off marker (Cov_On are
+                  --  inserted only when it makes regions well-formed).
+
+                  pragma Assert (Element (Cur).Kind = Cov_Off);
+                  End_Sloc := Just_Before (End_Sloc);
+                  Disable_Cov_Regions_Append
+                    (UIC, End_Sloc, (Cov_On, US.Null_Unbounded_String));
+               end if;
+            end if;
+         end if;
+
+         Stack.Clear;
+      end;
+   end Close_Disable_Cov_Regions_Stack;
+
+   --------------------------------
+   -- Disable_Cov_Regions_Append --
+   --------------------------------
+
+   procedure Disable_Cov_Regions_Append
+     (UIC  : in out Unit_Inst_Context;
+      Sloc : Source_Location;
+      A    : ALI_Annotation) is
+   begin
+      UIC.Disable_Cov_Regions.Insert (Sloc, A);
+      UIC.Annotations.Append (Annotation_Couple'(Sloc, A));
+   end Disable_Cov_Regions_Append;
+
+   ------------------------------
+   -- Start_Disable_Cov_Region --
+   ------------------------------
+
+   procedure Start_Disable_Cov_Region
+     (UIC           : in out Unit_Inst_Context;
+      Sloc          : Source_Location;
+      Justification : Unbounded_String)
+   is
+      use ALI_Annotation_Maps;
+
+      Cur    : Cursor;
+      Stack  : Source_Location_Vectors.Vector renames
+        UIC.Disable_Cov_Regions_Stack;
+      Nested : Boolean;
+   begin
+      Close_Disable_Cov_Regions_Stack (UIC, Sloc);
+
+      --  Push a new item on the stack so that we can pair it with the
+      --  corresponding end marker even when both are ignored for coverage
+      --  disabling purposes (this avoids extra warnings and is more user
+      --  friendly).
+
+      Nested := not Stack.Is_Empty;
+      Stack.Append (Sloc);
+
+      if Nested then
+         Diagnostics.Report
+           (Sloc,
+            "Ignoring annotation "
+            & Cov_Off'Image
+            & ": nested regions are ignored",
+            Kind => Diagnostics.Warning);
+         return;
+      end if;
+
+      --  Start a new region only if Sloc is not inside an already
+      --  existing region...
+
+      Cur := UIC.Disable_Cov_Regions.Floor (Sloc);
+      if Has_Element (Cur)
+        and then Key (Cur).Source_File = Sloc.Source_File
+        and then (Element (Cur).Kind = Cov_Off or else Key (Cur) = Sloc)
+      then
+         Diagnostics.Report
+           (Sloc,
+            "Ignoring annotation "
+            & Cov_Off'Image
+            & " that intersects with region starting at "
+            & Image (Key (Cur)),
+            Kind => Diagnostics.Warning);
+         return;
+      end if;
+
+      --  ... and if there is no Cov_Off marker just after Sloc from
+      --  external annotations: we would not have room to terminate the
+      --  region that starts at Sloc before it.
+
+      Cur := UIC.Disable_Cov_Regions.Ceiling (Sloc);
+      if Has_Element (Cur) and then Key (Cur) = Just_After (Sloc) then
+         pragma Assert (Element (Cur).Kind = Cov_Off);
+         Diagnostics.Report
+           (Sloc,
+            "Ignoring annotation "
+            & Cov_Off'Image
+            & " that intersects with region starting at "
+            & Image (Key (Cur)),
+            Kind => Diagnostics.Warning);
+         return;
+      end if;
+
+      Disable_Cov_Regions_Append (UIC, Sloc, (Cov_Off, Justification));
+      UIC.Disable_Coverage := True;
+   end Start_Disable_Cov_Region;
+
+   ----------------------------
+   -- End_Disable_Cov_Region --
+   ----------------------------
+
+   procedure End_Disable_Cov_Region
+     (UIC           : in out Unit_Inst_Context;
+      Sloc          : Source_Location;
+      Justification : Unbounded_String)
+   is
+      use ALI_Annotation_Maps;
+
+      Stack : Source_Location_Vectors.Vector renames
+        UIC.Disable_Cov_Regions_Stack;
+   begin
+      Close_Disable_Cov_Regions_Stack (UIC, Sloc);
+
+      if Stack.Is_Empty then
+         Diagnostics.Report
+           (Sloc,
+            Cov_On'Image
+            & " annotation found without a corresponding "
+            & Cov_Off'Image,
+            Kind => Diagnostics.Warning);
+      elsif Stack.Length = 1 then
+         declare
+            Start_Sloc : constant Source_Location := Stack.First_Element;
+            End_Sloc   : Source_Location := Sloc;
+            Cur        : Cursor := UIC.Disable_Cov_Regions.Find (Start_Sloc);
+         begin
+            --  If this Cov_On marker corresponds to a Cov_Off marker that was
+            --  ignored, silently ignore the Cov_On one, as a warning was
+            --  already emitted for the Cov_Off marker.
+
+            if Has_Element (Cur) then
+
+               --  The current region cannot end at End_Sloc if another region
+               --  exists between Start_Sloc and End_Sloc: adjust End_Sloc in
+               --  that case.
+
+               Next (Cur);
+               if Has_Element (Cur) then
+                  pragma Assert (Element (Cur).Kind = Cov_Off);
+                  if Key (Cur) <= End_Sloc then
+                     End_Sloc := Just_Before (Key (Cur));
+                  end if;
+               end if;
+
+               Disable_Cov_Regions_Append
+                 (UIC, End_Sloc, (Cov_On, Justification));
+               UIC.Disable_Coverage := False;
+            end if;
+         end;
+         Stack.Delete_Last;
+      else
+         Stack.Delete_Last;
+      end if;
+   end End_Disable_Cov_Region;
+
    ------------------------
    -- Is_Disabled_Region --
    ------------------------
 
    function Is_Disabled_Region
-     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean is
+     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean
+   is
+      use ALI_Annotation_Maps;
+
+      Cur      : constant Cursor := UIC.Disable_Cov_Regions.Floor (Sloc);
+      Cur_Sloc : Source_Location;
    begin
-      for Disabled_Region of UIC.Disable_Cov_Regions loop
-         if In_Range (Sloc, Disabled_Region) then
-            return True;
-         end if;
-      end loop;
-      return False;
+      if not Has_Element (Cur) then
+         return False;
+      end if;
+      Cur_Sloc := Key (Cur);
+
+      --  Sloc is in a disabled region only if we can find a Cov_Off
+      --  directive in the same file before it or if we have found a Cov_On
+      --  directive at the exact locations (annotation bounds are inclusive).
+
+      return
+        Cur_Sloc.Source_File = Sloc.Source_File
+        and then (Cur_Sloc.L = Sloc.L or else Element (Cur).Kind = Cov_Off);
    end Is_Disabled_Region;
 
    -------------------------------
@@ -846,19 +1105,21 @@ package body Instrument.Common is
    -------------------------------
 
    procedure Populate_Ext_Disabled_Cov
-     (UIC    : in out Unit_Inst_Context;
-      Annots : Instr_Annotation_Map;
-      SFI    : Source_File_Index)
+     (UIC : in out Unit_Inst_Context; SFI : Source_File_Index)
    is
       use Instr_Annotation_Maps;
-      Cur : Instr_Annotation_Maps.Cursor := Annots.First;
+      Ext_Annots : constant Instr_Annotation_Map :=
+        Get_Disabled_Cov_Annotations (Get_Full_Name (SFI));
+
+      Cur : Instr_Annotation_Maps.Cursor := Ext_Annots.First;
    begin
       while Has_Element (Cur) loop
-
          declare
             Off_Annot : constant Instr_Annotation := Element (Cur);
-            Off_Sloc  : constant Local_Source_Location := Key (Cur);
-            On_Sloc   : Local_Source_Location := No_Local_Location;
+            Off_LSloc : constant Local_Source_Location := Key (Cur);
+            Off_Sloc  : constant Source_Location := (SFI, Off_LSloc);
+            On_LSloc  : Local_Source_Location := No_Local_Location;
+            On_Sloc   : Source_Location;
          begin
 
             --  First comes the Cov_Off annotation
@@ -867,9 +1128,12 @@ package body Instrument.Common is
 
             UIC.Annotations.Append
               (Annotation_Couple'
-                 ((Source_File => SFI, L => Off_Sloc),
+                 (Off_Sloc,
                   (Kind          => Cov_Off,
                    Justification => Off_Annot.Justification)));
+            UIC.Disable_Cov_Regions.Insert
+              (Off_Sloc,
+               (Kind => Cov_Off, Justification => Off_Annot.Justification));
 
             --  Then the Cov_On annotation. It is optional for the last pair:
             --  in that case the region logically goes until the end of the
@@ -878,19 +1142,17 @@ package body Instrument.Common is
             Next (Cur);
             if Has_Element (Cur) then
                pragma Assert (Element (Cur).Kind = Cov_On);
-               On_Sloc := Key (Cur);
+               On_LSloc := Key (Cur);
+               On_Sloc := (SFI, On_LSloc);
                UIC.Annotations.Append
                  (Annotation_Couple'
-                    ((Source_File => SFI, L => On_Sloc),
+                    (On_Sloc,
                      (Kind          => Cov_On,
                       Justification => US.Null_Unbounded_String)));
+               UIC.Disable_Cov_Regions.Insert
+                 (On_Sloc,
+                  (Kind => Cov_On, Justification => US.Null_Unbounded_String));
             end if;
-
-            --  Add the region annotation
-
-            UIC.Disable_Cov_Regions.Append
-              (Source_Location_Range'
-                 (SFI, (First_Sloc => Off_Sloc, Last_Sloc => On_Sloc)));
          end;
          Next (Cur);
       end loop;

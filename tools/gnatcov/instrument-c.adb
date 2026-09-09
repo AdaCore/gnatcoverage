@@ -46,7 +46,6 @@ with Instrument.Setup_Config;
 with Outputs;                  use Outputs;
 with Paths;                    use Paths;
 with SCOs;
-with SS_Annotations;           use SS_Annotations;
 with Switches;
 with System;                   use System;
 with Table;
@@ -2656,7 +2655,9 @@ package body Instrument.C is
             Append (Trailing_Braces, '}');
          end if;
 
-         if Is_Null (N) or not Is_Source_Of_Interest (UIC, N) then
+         if Is_Null (N)
+           or not Is_Source_Of_Interest (UIC, Get_Cursor_Location (N))
+         then
             return;
          end if;
 
@@ -3226,7 +3227,7 @@ package body Instrument.C is
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
 
-         if Is_Source_Of_Interest (UIC, N) then
+         if Is_Source_Of_Interest (UIC, Get_Cursor_Location (N)) then
             Cursor_Kind := Kind (N);
             case Cursor_Kind is
 
@@ -6100,18 +6101,18 @@ package body Instrument.C is
    ---------------------------
 
    function Is_Source_Of_Interest
-     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean
+     (UIC : in out C_Unit_Inst_Context; Sloc : Source_Location_T)
+      return Boolean
    is
-      --  Determine the file from which N originates
+      --  Determine the file referenced by Sloc
 
       C_File : aliased String_T;
       Line   : aliased unsigned;
       Column : aliased unsigned;
-      Loc    : constant Source_Location_T := Get_Cursor_Location (N);
       File   : Virtual_File;
    begin
       Get_Presumed_Location
-        (Location => Loc,
+        (Location => Sloc,
          Filename => C_File'Access,
          Line     => Line'Access,
          Column   => Column'Access);
@@ -6122,7 +6123,7 @@ package body Instrument.C is
       --  switch for users who want to cover the runtime.
 
       if Instrument.Setup_Config.Every_File_Of_Interest then
-         if Location_Is_In_System_Header (Loc) then
+         if Location_Is_In_System_Header (Sloc) then
             return False;
          else
             --  If this source is of interest, and if it was not done yet,
@@ -6154,12 +6155,7 @@ package body Instrument.C is
 
             --  Import the external disabled regions for this source
 
-            declare
-               Annots : constant Instr_Annotation_Map :=
-                 Get_Disabled_Cov_Annotations (+File.Full_Name);
-            begin
-               UIC.Populate_Ext_Disabled_Cov (Annots, SOI);
-            end;
+            UIC.Populate_Ext_Disabled_Cov (SOI);
 
          else
             SOI := No_Source_File;

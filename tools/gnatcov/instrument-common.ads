@@ -340,10 +340,10 @@ package Instrument.Common is
        (Index_Type   => Positive,
         Element_Type => Annotation_Couple);
 
-   package Sloc_Range_Vectors is new
+   package Source_Location_Vectors is new
      Ada.Containers.Vectors
        (Index_Type   => Positive,
-        Element_Type => Source_Location_Range);
+        Element_Type => Source_Location);
 
    package Nat_Vectors is new
      Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Nat);
@@ -413,10 +413,22 @@ package Instrument.Common is
       Blocks : SCO_Id_Vector_Vector;
       --  This is used when the block coverage level is enabled: list of blocks
 
-      Disable_Cov_Regions : Sloc_Range_Vectors.Vector;
-      --  List of regions where coverage is disabled, as delimited by
-      --  GNATCOV_COV_OFF/ON markers or external annotations.
+      Disable_Cov_Regions : ALI_Annotation_Maps.Map;
+      --  Set of annotations that designate regions where coverage is disabled
 
+      Disable_Cov_Regions_Stack : Source_Location_Vectors.Vector;
+      --  Helper data structure for (Start/End)_Disable_Cov_Region.
+      --
+      --  Stack of source locations for the last Cov_Off annotations that were
+      --  found which where not closed by Cov_On annotations for the current
+      --  source file. Used to both keep track of nested regions, and to
+      --  automatically close regions when the Cov_On marker is
+      --  missing/misplaced.
+      --
+      --  Note that the stack is cleared when switching to another source file,
+      --  so as an invariant, all source locations in this stack belong to the
+      --  same file, and source location are sorted (first slocs at the bottow
+      --  of the stack).
    end record;
 
    procedure Import_Annotations
@@ -436,6 +448,36 @@ package Instrument.Common is
      (UIC : Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
    --  Import the low level SCO in UIC marked as non-instrumented in the high
    --  level non-instrumented SCO_Id sets.
+
+   procedure Populate_Ext_Disabled_Cov
+     (UIC : in out Unit_Inst_Context; SFI : Source_File_Index);
+   --  Populate UIC.Annotations and UIC.Disabled_Cov_Regions with external
+   --  annotations for SFI.
+   --
+   --  This procedure must be called exactly once per instrumented source file,
+   --  and that call must happen before calls to Start_Disable_Cov_Regions and
+   --  End_Disable_Cov_Region.
+
+   procedure Start_Disable_Cov_Region
+     (UIC           : in out Unit_Inst_Context;
+      Sloc          : Source_Location;
+      Justification : Unbounded_String);
+   --  Extend UIC.Annotations and UIC.Disabled_Cov_Regions to start a disabled
+   --  coverage region at Sloc. Update UIC.Disable_Coverage accordingly.
+   --
+   --  If this would create an overlapping with an existing region, emit a
+   --  warning and return early.
+
+   procedure End_Disable_Cov_Region
+     (UIC           : in out Unit_Inst_Context;
+      Sloc          : Source_Location;
+      Justification : Unbounded_String);
+   --  Extend UIC.Annotations and UIC.Disabled_Cov_Regions to end a disabled
+   --  coverage region at Sloc. Update UIC.Disable_Coverage accordingly.
+   --
+   --  If this would create an overlapping with an existing region, emit a
+   --  warning, end the previous region started with Start_Disable_Cov_Region
+   --  (if any) and return early.
 
    function Is_Disabled_Region
      (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean;
@@ -791,13 +833,6 @@ package Instrument.Common is
      (Self : in out Analysis_Options; Args : String_Vectors.Vector);
    --  Extract analysis options from the Args command line arguments and update
    --  Self accordingly.
-
-   procedure Populate_Ext_Disabled_Cov
-     (UIC    : in out Unit_Inst_Context;
-      Annots : Instr_Annotation_Map;
-      SFI    : Source_File_Index);
-   --  Populate the Annotations and Disabled_Cov_Regions of UIC with the
-   --  annotations in Annots. The resulting annotations are tied to SFI.
 
    function Dependency_File
      (Prj : Prj_Desc; Filename : GNATCOLL.VFS.Virtual_File)
