@@ -369,10 +369,10 @@ package body Paths is
          if Path (I) = '.'
            and then Path (I + 1) in '.' | GNAT.OS_Lib.Directory_Separator
          then
-            return False;
+            return True;
          end if;
       end loop;
-      return True;
+      return False;
    end Has_Relative_Component;
 
 end Paths;
