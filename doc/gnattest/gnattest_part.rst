@@ -1312,8 +1312,13 @@ automatically generate test cases for all of the supported subprogram profiles.
 The number of generated test cases can be configured through the
 ``--gen-test-num`` switch.
 
-``gnattest`` can automatically generate test cases unless any of the following
-are true:
+.. _supported_tgen_types:
+
+Supported types
+"""""""""""""""
+
+``gnattest`` can natively generate test cases for any type unless any of the
+following are true:
 
 1. Any of the subprogram's "in" or "in out" mode parameters are of an
    Access type or contain a sub-component of an Access type.
@@ -1323,6 +1328,12 @@ are true:
 4. Any of the subprogram's "in" or "out" mode parameters are tagged types.
 5. Any of the subprogram's "in" or "out" mode parameters is a private type of
    a nested package.
+
+For types not respecting the above restrictions, it is possible to generate
+test inputs using a :ref:`proxy generation function<proxy_generation>`
+
+Test input generation strategies
+""""""""""""""""""""""""""""""""
 
 Input value generation currently follows a simple strategy for each input
 parameter of the subprogram under test. Parameters of scalar types, and scalar
@@ -1357,6 +1368,61 @@ The content of these files are re-generated each time ``gnattest`` is invoked,
 independently of the presence of the ``--gen-test-vectors`` switch on the
 command line. It is thus not necessary to re-invoke ``gnattest`` with that
 switch more than once, unless the goal is to generate additional test inputs.
+
+.. _proxy_generation:
+
+Test input generation through a proxy subprogram
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to assign to each type, even those not natively supported, a 
+*proxy function*, which GNATtest will use every time it need to generate a
+value for the return type of the proxy function. For a given type ``T``, a
+subprogram is eligible to be the proxy of ``T`` if it meets the following
+conditions:
+
+* The proxy must be a function whose return type is ``T``;
+* The proxy must have no out parameters;
+* The proxy must have at least one ``in`` or ``in out`` parameters, and all
+  the input parameters should either be :ref:`natively supported<supported_tgen_types>`
+  or have a proxy subprogram themselves;
+* The proxy subprogram must be visible from the package in which ``T`` is
+  declared.
+ 
+A proxy subprogram can be designated explicitly, by using the ``TGen_Proxy =>
+<Proxy Name>`` aspect on the type definition, or gnattest can automatically
+identify one for types that are not natively supported.
+
+When searching for a proxy subprogram, GNATtest will inspect first the unit in
+which the target type is declared, then, if enabled through
+``--detect-tgen-proxies``, the entire codebase. This switch can also be used to
+disable automatic proxy subprogram detection.
+
+Once a proxy is defined for a given type, GNATtest will generate test inputs
+for the proxy. These test inputs are written to the serialized test files. When
+executing the tests or loading the test inputs in GNATfuzz, the input values
+for the proxy are de-serialized, then the proxy subprogram called to obtain a
+value for its return type. In particular, this means that it is not possible to
+serialize Ada values for a type with a proxy, and thus **test input dumping from
+pre-existing tests is not supported for proxy annotated types**.
+
+For example, given the following Ada package:
+
+.. code:: Ada
+
+   package Pkg is
+
+      type Int_Acc is access all Integer with
+        TGen_Proxy => Make_Access;
+
+      function Make_Access (Val : Integer) return Int_Acc;
+
+      procedure Print_Int_Acc (Acc : Int_Acc);
+
+   end Pkg;
+
+When generating test inputs for ``Print_Int_Acc``, GNATtest will first generate
+integer values, and invoke ``Make_Access`` with those values as parameters when
+executing the test.
 
 ..
    TODO: document the --unparse switch
