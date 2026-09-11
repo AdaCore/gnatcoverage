@@ -1281,6 +1281,11 @@ corpus for a fuzzing session, and to integrate inputs of interest found by
 GNATfuzz back into the test harness. For more details, see section
 :ref:`Gnattest_Gnatfuzz`.
 
+Test input generation and execution is supported on native platforms, as well
+as cross bareboard targets, provided that the Ada runtime is of an embedded
+profile. Test input generation for target with only light or light tasking
+profiles is not supported.
+
 .. _Tgen_Env:
 
 Setting up the test generation runtime
@@ -1311,6 +1316,22 @@ Generating test inputs
 automatically generate test cases for all of the supported subprogram profiles.
 The number of generated test cases can be configured through the
 ``--gen-test-num`` switch.
+
+As mentioned in section :ref:`Tgen_Env`, test input generation requires
+executing code to determine some of the characteristics of the types at hand.
+This means that for both native and cross targets, a GNAT Pro toolchain for the
+corresponding target must be available in the environment. 
+
+For cross targets, the test input generation harness will be executed through
+GNATemulator. GNATtest may thus compile it against a different runtime than the
+one specified through the ``--RTS`` switch, to use one corresponding to a board
+supported by GNATemulator for the given target. This should have no impact on
+the definition of the various types, as only the target CPU helps define the
+size of predefined types. The mapping between targets and the runtime used for
+test input generation is defined under
+:file:`<gnatdas_install_dir>/share/tgen/tgen_target_runtimes.json`, users may
+copy and modify it, and feed the modified mapping to GNATtest using the
+``tgen-target-config=FILE`` command line option.
 
 .. _supported_tgen_types:
 
