@@ -1282,7 +1282,7 @@ GNATfuzz back into the test harness. For more details, see section
 :ref:`Gnattest_Gnatfuzz`.
 
 Test input generation and execution is supported on native platforms, as well
-as cross bareboard targets, provided that the Ada runtime is of an embedded
+as cross bareboard targets provided that the Ada runtime is of an embedded
 profile. Test input generation for target with only light or light tasking
 profiles is not supported.
 
@@ -1331,7 +1331,7 @@ size of predefined types. The mapping between targets and the runtime used for
 test input generation is defined under
 :file:`<gnatdas_install_dir>/share/tgen/tgen_target_runtimes.json`, users may
 copy and modify it, and feed the modified mapping to GNATtest using the
-``tgen-target-config=FILE`` command line option.
+``--tgen-target-config=FILE`` command line option.
 
 .. _supported_tgen_types:
 
