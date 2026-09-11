@@ -1,0 +1,15 @@
+library project Mylib is
+   for Languages use ("C");
+   for Object_Dir use "obj";
+   for Library_Name use "mylib";
+   for Library_Dir use "lib";
+
+   --  TODO??? (eng/gpr/gpr-issues#865) Unlike ALI files (and thus SID files
+   --  for Ada libraries, which gnatcov names after them), gprinstall does not
+   --  install the SID files of C units on its own: request it explicitly.
+   --  Remove this workaround once the gprinstall issue is fixed.
+
+   package Install is
+      for Artifacts ("lib/mylib") use ("lib/*.sid");
+   end Install;
+end Mylib;

@@ -845,6 +845,7 @@ begin
    --  default spec / body suffixes.
 
    Prj.Prj_Name := To_Qualified_Name ("main");
+   Prj.Artificial := True;
    Prj.Output_Dir := GNATCOLL.VFS.Create (+Instr_Dir.Directory_Name);
    Prj.Naming_Scheme :=
      (Spec_Suffix     =>

@@ -157,9 +157,36 @@ package Instrument.Common is
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
-   function Unit_Buffers_Name (Unit : Compilation_Unit) return String;
+   function File_Based_Slug (Prj : Prj_Desc; Filename : String) return String
+   is (if Prj.Artificial
+       then Filename_Slug (Filename)
+       else Source_Slug (Prj.Prj_Name, Filename));
+   --  Slug identifying a file-based compilation unit in generated names: both
+   --  the buffer symbols it defines and the unit that holds them go through
+   --  this, so that they are named after the same thing.
+   --
+   --  Prj describes the project that owns Filename. When it is artificial,
+   --  fall back to naming the unit after its full name: nothing recomputes
+   --  these names from another location, and homonym sources have nothing else
+   --  to tell them apart.
+
+   function Unit_Buffers_Name
+     (Prj : Prj_Desc; Unit : Compilation_Unit) return String;
    --  Name of the symbol that references the
    --  gnatcov_rts_coverage_buffers_group struct for this file.
+   --
+   --  Prj describes the project that owns Unit. Its name takes part in the
+   --  symbol name for file-based languages, which have no unit name to build a
+   --  location-independent one from. Any project that links against a
+   --  separately instrumented library recomputes these symbol names, so they
+   --  must not depend on where the library sources sit (see Source_Slug).
+
+   package Unit_Project_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Compilation_Unit,
+        Element_Type => Prj_Desc);
+   --  Units of interest, each mapped to the description of the project that
+   --  owns it. Unit_Buffers_Name needs both.
 
    function Unit_Buffers_Array_Name
      (Prj_Name : Ada_Qualified_Name) return String
@@ -592,7 +619,7 @@ package Instrument.Common is
 
    procedure Emit_Buffers_List_Unit
      (Self        : Language_Instrumenter;
-      Instr_Units : Unit_Sets.Set;
+      Instr_Units : Unit_Project_Maps.Map;
       Prj         : in out Prj_Desc)
    is null;
    --  Emit in the root project a unit (in Self's language) to contain the list

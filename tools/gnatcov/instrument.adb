@@ -46,6 +46,10 @@ package body Instrument is
    is (Hex_Image (Unsigned_32 (Ada.Strings.Hash (S))));
    --  Return the 8-bytes image of a hash for S
 
+   function Slug_From_Hash (Fullname, Identity_Hash : String) return String;
+   --  Return the slug for the source file Fullname, whose identity hashes to
+   --  Identity_Hash. Unless --full-slug is passed, the slug is just the hash.
+
    -------------------
    -- Language_Kind --
    -------------------
@@ -150,20 +154,53 @@ package body Instrument is
    -------------------
 
    function Filename_Slug (Fullname : String) return String is
+   begin
+      return Slug_From_Hash (Fullname, Hash_32_Image (Fullname));
+   end Filename_Slug;
+
+   -----------------
+   -- Source_Slug --
+   -----------------
+
+   function Source_Slug
+     (Prj_Name : Ada_Qualified_Name; Fullname : String) return String
+   is
+      use Ada.Directories;
+
+      Identity : constant String :=
+        Qualified_Name_Slug (Prj_Name, Use_Hash => False)
+        & "/"
+        & Paths.Fold_Filename_Casing (Simple_Name (Fullname));
+      --  Everything installing a project preserves: its name and the simple
+      --  names of its sources.
+      --
+      --  Spell the project name with Qualified_Name_Slug, which escapes the
+      --  separator it uses between identifiers. The C symbol spelling joins
+      --  them with a plain underscore, which would give P.Child and P_Child
+      --  the same identity, and homonym sources in those two projects the same
+      --  slug.
+
+   begin
+      return Slug_From_Hash (Fullname, Hash_32_Image (Identity));
+   end Source_Slug;
+
+   --------------------
+   -- Slug_From_Hash --
+   --------------------
+
+   function Slug_From_Hash (Fullname, Identity_Hash : String) return String is
       use Ada.Directories;
       Result : Ada_Identifier;
-
-      Full_Name_Hash : constant String := Hash_32_Image (Fullname);
    begin
       if not Switches.Use_Full_Slugs then
 
-         --  Prefix the hash with "z_" to ensure the filename slug doesn't
-         --  start with a digit.
+         --  Prefix the hash with "z" to ensure the slug doesn't start with a
+         --  digit.
 
-         return "z" & Full_Name_Hash;
+         return "z" & Identity_Hash;
       end if;
 
-      --  We use the basename slug, followed by a hash of the fullname, which
+      --  We use the basename slug, followed by the identity hash, which
       --  makes us confident that homonym files will be correctly handled.
 
       --  File names can contain characters that cannot appear in identifiers.
@@ -187,9 +224,9 @@ package body Instrument is
 
       --  Then, suffix with the hash
 
-      Append (Result, Full_Name_Hash);
+      Append (Result, Identity_Hash);
       return To_String (Result);
-   end Filename_Slug;
+   end Slug_From_Hash;
 
    -----------------------
    -- To_Qualified_Name --
