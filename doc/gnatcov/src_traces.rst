@@ -743,6 +743,14 @@ MC/DC coverage for each decision will be reported as ``Undetermined_Coverage``
 state. Should the default limit not be satisfactory, it can be tuned with the
 option :cmd-option:`--path-count-limit`.
 
+The MC/DC instrumentation of a decision also requires declaring a state
+variable next to it. For decisions that appear where no declarative part is
+available, such as contracts on types and on declarations, this is only
+possible with the declare expressions introduced in Ada 2022. On earlier
+versions of the language, |gcv| emits a warning and reports the MC/DC coverage
+of such decisions as ``Undetermined_Coverage``. Their decision coverage is
+unaffected.
+
 Function and call coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
