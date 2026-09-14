@@ -92,7 +92,9 @@ build_docs:
         - doc/**/*
       when: always
   script:
-    - generic_anod_ci
+    # Explicitly depend on master gnattest & gnatfuzz to make sure any change
+    # referencing new parts of these docs can be resolved to the latest version.
+    - generic_anod_ci --add-dep eng/das/test/gnattest --add-dep eng/das/fuzz/gnatfuzz
     - . /tmp/ci_env.sh
     - anod build gnatdas-doc -Qwarn-errors $ANOD_BUILD_DATE_ARG
     - DOC_BSN=$(anod eval gnatdas-doc -Qwarn-errors build_space_name)
