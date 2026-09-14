@@ -50,6 +50,7 @@ class TestCase:
     def run(self) -> None:
         """Run the testcase."""
         for params in GhostTestParams.all_params():
+            thistest.log(f"== {params.slug} ==")
             wd = Wdir("tmp_" + params.slug)
 
             adc_files = [adc_file, *self.extra_adc]
