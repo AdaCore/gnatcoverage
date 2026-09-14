@@ -150,9 +150,10 @@ is
    --  Add this source file to the list of units (of interest) to instrument
 
    function Units_Of_Interest
-     (IC : Inst_Context; Project : GPR2.Project.View.Object)
-      return Unit_Sets.Set;
-   --  Return the list of units of interest in the project closure
+     (IC : in out Inst_Context; Project : GPR2.Project.View.Object)
+      return Unit_Project_Maps.Map;
+   --  Return the list of units of interest in the project closure, each mapped
+   --  to the description of the project that owns it
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
    --  Clean the instrumentation directories and print any relevant information
@@ -494,7 +495,8 @@ is
             CU : constant Files_Table.Compilation_Unit :=
               To_Compilation_Unit (Source);
          begin
-            Instrument.Debug_Dump.Register_Buffer_Symbols_For_Unit (CU);
+            Instrument.Debug_Dump.Register_Buffer_Symbols_For_Unit
+              (CU, Get_Or_Create_Project_Info (IC, Source.Owning_View).Desc);
          end;
       end if;
    end Add_Instrumented_Unit;
@@ -504,10 +506,10 @@ is
    -----------------------
 
    function Units_Of_Interest
-     (IC : Inst_Context; Project : GPR2.Project.View.Object)
-      return Unit_Sets.Set
+     (IC : in out Inst_Context; Project : GPR2.Project.View.Object)
+      return Unit_Project_Maps.Map
    is
-      Result : Unit_Sets.Set;
+      Result : Unit_Project_Maps.Map;
    begin
       --  Include all units of interest, including those from externally
       --  built projects.
@@ -522,7 +524,9 @@ is
          if IC.Files_Of_Interest.Contains (S.Path_Name.Virtual_File)
            and then not Skip_Source (S)
          then
-            Result.Include (To_Compilation_Unit (S));
+            Result.Include
+              (To_Compilation_Unit (S),
+               Get_Or_Create_Project_Info (IC, S.Owning_View).Desc);
          end if;
       end loop;
       return Result;

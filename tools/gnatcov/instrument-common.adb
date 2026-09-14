@@ -147,12 +147,14 @@ package body Instrument.Common is
    -- Unit_Buffers_Name --
    -----------------------
 
-   function Unit_Buffers_Name (Unit : Compilation_Unit) return String is
+   function Unit_Buffers_Name
+     (Prj : Prj_Desc; Unit : Compilation_Unit) return String
+   is
       Slug : constant String :=
         (case Unit.Language is
            when Unit_Based_Language =>
              Qualified_Name_Slug (To_Qualified_Name (+Unit.Unit_Name)),
-           when File_Based_Language => Filename_Slug (+Unit.Unit_Name));
+           when File_Based_Language => File_Based_Slug (Prj, +Unit.Unit_Name));
    begin
       return To_Symbol_Name (Sys_Buffers) & "_" & Slug & "_buffers";
    end Unit_Buffers_Name;

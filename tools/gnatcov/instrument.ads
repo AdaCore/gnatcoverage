@@ -120,6 +120,23 @@ package Instrument is
    --
    --  One can use this slug to generate unique names for this unit.
 
+   function Source_Slug
+     (Prj_Name : Ada_Qualified_Name; Fullname : String) return String;
+   --  Given a source file to instrument (absolute filename) and the name of
+   --  the project that owns it, return a unique identifier to describe it.
+   --
+   --  Unlike Filename_Slug, the result does not depend on the directory the
+   --  source sits in. Use it for the symbols that a project depending on an
+   --  instrumented library must name in order to reach that library's
+   --  coverage buffers. Installing a library moves its sources, so a slug
+   --  computed from the source full name no longer matches the one used when
+   --  the library was instrumented.
+   --
+   --  A project cannot hold two sources with the same simple name, and
+   --  project names are unique in a closure, so the pair still designates a
+   --  single source. This holds only for an actual project: see the Artificial
+   --  component of Prj_Desc.
+
    function To_Qualified_Name (Name : String) return Ada_Qualified_Name;
    --  Convert a String qualified name into our format
 
@@ -239,6 +256,12 @@ package Instrument is
       Prj_Name : Ada_Qualified_Name;
       --  Name for the project
 
+      Artificial : Boolean := False;
+      --  Set when this description does not come from an actual project.
+      --  Integrated instrumentation has none: it uses a single placeholder
+      --  name for every source it processes, so Prj_Name and a source simple
+      --  name together do not designate a single source (see Source_Slug).
+
       Output_Dir : GNATCOLL.VFS.Virtual_File;
       --  Where the instrumented sources and coverage buffer units are
       --  generated.
@@ -280,8 +303,6 @@ package Instrument is
    end record;
    --  This record stores the information that is required from the project
    --  for instrumentation purposes.
-
-   type Prj_Desc_Access is access Prj_Desc;
 
    function Load_From_Command_Line return Prj_Desc;
 

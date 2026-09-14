@@ -11021,7 +11021,7 @@ package body Instrument.Ada_Unit is
 
       T : Translate_Set :=
         Assoc ("UNIT_NAME", Pkg_Name)
-        & Assoc ("UNIT_BUFFERS_NAME", Unit_Buffers_Name (Unit))
+        & Assoc ("UNIT_BUFFERS_NAME", Unit_Buffers_Name (Prj, Unit))
         & Assoc ("LAST_INDEX", Last_Buffer_Index'Image);
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => False);
@@ -11441,9 +11441,11 @@ package body Instrument.Ada_Unit is
    overriding
    procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
+      Instr_Units : Unit_Project_Maps.Map;
       Prj         : in out Prj_Desc)
    is
+      use Unit_Project_Maps;
+
       Buffers_CU_Name : constant Ada_Qualified_Name :=
         Buffers_List_Unit (Prj.Prj_Name);
       Unit_Name       : constant String := To_Ada (Buffers_CU_Name);
@@ -11469,7 +11471,7 @@ package body Instrument.Ada_Unit is
       File.Put_Line
         ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
-      for Instr_Unit of Instr_Units loop
+      for Cur in Instr_Units.Iterate loop
 
          --  Even though Ada buffer units are not explicitly referenced in the
          --  generated code (we import all the coverage buffers from their C
@@ -11477,13 +11479,17 @@ package body Instrument.Ada_Unit is
          --  need to "with" them. Otherwise, gprbuild would not include them in
          --  the link as they would not be in the dependency closure.
 
-         if Instr_Unit.Language = Unit_Based_Language then
-            File.Put_Line
-              ("with "
-               & To_Ada
-                   (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
-               & ";");
-         end if;
+         declare
+            Instr_Unit : Files_Table.Compilation_Unit renames Key (Cur);
+         begin
+            if Instr_Unit.Language = Unit_Based_Language then
+               File.Put_Line
+                 ("with "
+                  & To_Ada
+                      (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
+                  & ";");
+            end if;
+         end;
       end loop;
       File.New_Line;
       File.Put_Line ("package " & Unit_Name & " is");
@@ -11493,9 +11499,10 @@ package body Instrument.Ada_Unit is
 
       --  Import all the coverage buffers
 
-      for Instr_Unit of Instr_Units loop
+      for Cur in Instr_Units.Iterate loop
          declare
-            Buffer_Name : constant String := Unit_Buffers_Name (Instr_Unit);
+            Buffer_Name : constant String :=
+              Unit_Buffers_Name (Element (Cur), Key (Cur));
          begin
             File.Put_Line
               ("   "
@@ -11524,12 +11531,12 @@ package body Instrument.Ada_Unit is
          Index : Positive := 1;
          Last  : constant Natural := Natural (Instr_Units.Length);
       begin
-         for Instr_Unit of Instr_Units loop
+         for Cur in Instr_Units.Iterate loop
             File.Put
               ("      "
                & Img (Index)
                & " => "
-               & Unit_Buffers_Name (Instr_Unit)
+               & Unit_Buffers_Name (Element (Cur), Key (Cur))
                & "'Access");
             if Index = Last then
                File.Put_Line (");");

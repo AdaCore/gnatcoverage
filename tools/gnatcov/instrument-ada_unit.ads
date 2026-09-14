@@ -143,7 +143,7 @@ package Instrument.Ada_Unit is
    overriding
    procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
+      Instr_Units : Unit_Project_Maps.Map;
       Prj         : in out Prj_Desc);
 
    overriding

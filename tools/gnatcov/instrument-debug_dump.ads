@@ -24,8 +24,8 @@ package Instrument.Debug_Dump is
    --  Write the debug information as JSON to File_Name
 
    procedure Register_Buffer_Symbols_For_Unit
-     (CU : Files_Table.Compilation_Unit);
-   --  Save the given compilation unit for dumping its buffer symbols to a
-   --  debug file.
+     (CU : Files_Table.Compilation_Unit; Prj : Prj_Desc);
+   --  Save the given compilation unit, owned by the project described by Prj,
+   --  for dumping its buffer symbols to a debug file.
 
 end Instrument.Debug_Dump;
