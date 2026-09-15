@@ -289,6 +289,11 @@ package body Project is
    --  Return the verbosity level for the GPR2 reporter
 
    overriding
+   function User_Verbosity
+     (Self : Reporter) return GPR2.Reporter.User_Verbosity_Level;
+   --  Return the user verbosity level for the GPR2 reporter
+
+   overriding
    procedure Internal_Report
      (Self    : in out Reporter;
       Message : GPR2.Message.Object;
@@ -2147,6 +2152,21 @@ package body Project is
          return Self.Inner.Verbosity;
       end if;
    end Verbosity;
+
+   --------------------
+   -- User_Verbosity --
+   --------------------
+
+   overriding
+   function User_Verbosity
+     (Self : Reporter) return GPR2.Reporter.User_Verbosity_Level is
+   begin
+      if Quiet then
+         return GPR2.Reporter.Important_Only;
+      else
+         return GPR2.Reporter.Unset;
+      end if;
+   end User_Verbosity;
 
    ---------------------
    -- Internal_Report --
