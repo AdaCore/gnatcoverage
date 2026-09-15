@@ -16,7 +16,8 @@ wd = "s_pkg"
 warning_pat = (
     r"warning: Could not preserve comments while pre-processing .*test_pkg\.c"
     r", annotations in comments within this file or included headers will not"
-    r" be taken into account"
+    r" be taken into account\. Use external annotations"
+    r" \(--external-annotations\) for this unit instead\."
 )
 
 TestCase(
