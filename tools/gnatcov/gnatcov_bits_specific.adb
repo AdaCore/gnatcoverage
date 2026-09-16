@@ -1897,6 +1897,20 @@ begin
       Perf_Counters.Enable;
    end if;
 
+   --  Honor the requested Ada language version for every instrumentation
+   --  command: when instrumenting in parallel, the per-source work runs in
+   --  instrument-source subprocesses, which need it as well.
+
+   if Args.Command in Cmd_Instrument then
+      declare
+         V : constant String := Value (Args, Opt_Ada, "2012");
+      begin
+         if not Set_Language_Version (Global_Language_Version, From => V) then
+            Fatal_Error ("Bad Ada language version: " & V);
+         end if;
+      end;
+   end if;
+
    --  Now execute the specified command
 
    case Args.Command is
@@ -2072,15 +2086,6 @@ begin
 
          begin
             Create_Matcher (Excluded_Source_Files, Matcher, Has_Matcher);
-
-            declare
-               V : constant String := Value (Args, Opt_Ada, "2012");
-            begin
-               if not Set_Language_Version (Global_Language_Version, From => V)
-               then
-                  Fatal_Error ("Bad Ada language version: " & V);
-               end if;
-            end;
 
             --  Emit warnings if we detect an incompatibility between the
             --  selected RTS and the selected dump configuration.

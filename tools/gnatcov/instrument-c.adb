@@ -3606,7 +3606,9 @@ package body Instrument.C is
               ("Could not preserve comments while pre-processing "
                & (+Filename.Full_Name)
                & ", annotations in comments within this file or included"
-               & " headers will not be taken into account");
+               & " headers will not be taken into account. Use external"
+               & " annotations (--external-annotations) for this unit"
+               & " instead.");
          end if;
       end if;
       --  Clear the search path so that we populate it from the include search
