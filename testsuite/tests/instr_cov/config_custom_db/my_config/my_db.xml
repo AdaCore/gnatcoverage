@@ -3,7 +3,10 @@
   <compiler_description>
       <name>MY_GCC</name>
       <executable>gcc</executable>
-      <version>1.0</version>
+      <version>
+        <external>$EXEC -v</external>
+        <grep regexp="^gcc \S+ (\S+) \d+ (\(prerelease\) )?\(?for GNAT Pro" group="1"></grep>
+      </version>
       <languages>C</languages>
   </compiler_description>
 
