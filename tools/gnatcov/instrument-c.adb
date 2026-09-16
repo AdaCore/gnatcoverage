@@ -3477,6 +3477,12 @@ package body Instrument.C is
       Preprocessor_Output_File     : Ada.Text_IO.File_Type;
       --  File containing the preprocessor output (used to get include search
       --  paths).
+
+      Dep_File : constant Virtual_File := Dependency_File (Prj, Filename);
+      --  Dependency file for this source, used by incremental instrumentation
+
+      Comments_Preserved : Boolean := True;
+      --  Whether the preprocessing command that succeeded kept the comments
    begin
       Import_Options
         (Self         => Options,
@@ -3488,6 +3494,7 @@ package body Instrument.C is
       --  Add the file to the instrumentation artifacts
 
       Prj.Instr_Artifacts.Insert (PP_Filename);
+      Prj.Instr_Artifacts.Insert (Dep_File);
 
       Base_Cmd :=
         (Command => Prj.Compiler_Driver (Instrumenter.Language), others => <>);
@@ -3503,39 +3510,15 @@ package body Instrument.C is
 
       Append_Arg (Base_Cmd, +Filename.Full_Name);
 
-      --  Register the preprocessing command. We need it to preprocess the file
-      --  when producing the report, and getting the text of macro expansions.
-      --  We don't need the options added afterwards, as they are just there
-      --  for the instrumentation process (and we do not want to pass a -o
-      --  option, as it would make paths too opaque at gnatcov coverage time).
-
-      --  Keep the code comments as they may contain exemption / coverage
-      --  disabling markers. This argument needs to be kept last in Base_Cmd as
-      --  we may need to remove it later if preprocessing with comments
-      --  preserved fails.
-
-      Append_Arg (Base_Cmd, "-C");
-
-      PP_Cmds.Include
-        (Get_Index_From_Generic_Name
-           (+Filename.Full_Name, Kind => Files_Table.Source_File),
-         Base_Cmd);
-
       Cmd := Base_Cmd;
 
       --  Add the switches to generate a dependency file for incremental
       --  instrumentation purposes.
 
       if Instrumenter.Instr_Mode = Project_Instrumentation then
-         declare
-            Dep_File : constant Virtual_File :=
-              Dependency_File (Prj, Filename);
-         begin
-            Append_Arg (Cmd, "-MMD");
-            Append_Arg (Cmd, "-MF");
-            Append_Arg (Cmd, Dep_File.Display_Full_Name);
-            Prj.Instr_Artifacts.Insert (Dep_File);
-         end;
+         Append_Arg (Cmd, "-MMD");
+         Append_Arg (Cmd, "-MF");
+         Append_Arg (Cmd, Dep_File.Display_Full_Name);
       end if;
 
       Append_Args (Cmd, Options.Dep_File_Options);
@@ -3545,6 +3528,12 @@ package body Instrument.C is
       Append_Arg (Cmd, "-v");
       Append_Arg (Cmd, "-o");
       Append_Arg (Cmd, +Preprocessed_File.Full_Name);
+
+      --  Keep the code comments as they may contain exemption / coverage
+      --  disabling markers. This argument must stay last: it is the only one
+      --  we may have to remove below.
+
+      Append_Arg (Cmd, "-C");
 
       --  Run the preprocessing command, keep track of whether it was
       --  successful for later
@@ -3577,18 +3566,8 @@ package body Instrument.C is
          --  emit a warning as we'll loose any annotations in the preprocessed
          --  files or included headers.
 
-         Base_Cmd.Arguments.Delete_Last;
-
-         PP_Cmds.Replace
-           (Get_Index_From_Generic_Name
-              (+Filename.Full_Name, Kind => Files_Table.Source_File),
-            Base_Cmd);
-
-         Cmd := Base_Cmd;
-
-         Append_Arg (Cmd, "-v");
-         Append_Arg (Cmd, "-o");
-         Append_Arg (Cmd, +Preprocessed_File.Full_Name);
+         Cmd.Arguments.Delete_Last;
+         Comments_Preserved := False;
 
          Success :=
            Run_Command
@@ -3611,6 +3590,24 @@ package body Instrument.C is
                & " instead.");
          end if;
       end if;
+
+      --  Register the preprocessing command. We need it to preprocess the file
+      --  when producing the report, and getting the text of macro expansions.
+      --  We don't need the options that are only there for the instrumentation
+      --  process (and we do not want to pass a -o option, as it would make
+      --  paths too opaque at gnatcov coverage time). Comments are the
+      --  exception: the report stage must see the source the same way the
+      --  instrumentation did.
+
+      if Comments_Preserved then
+         Append_Arg (Base_Cmd, "-C");
+      end if;
+
+      PP_Cmds.Include
+        (Get_Index_From_Generic_Name
+           (+Filename.Full_Name, Kind => Files_Table.Source_File),
+         Base_Cmd);
+
       --  Clear the search path so that we populate it from the include search
       --  paths in the logs.
 
