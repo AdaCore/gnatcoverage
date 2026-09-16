@@ -25,7 +25,13 @@ gprfor(srcdirs=[], prjid="p", mains=[], objdir="obj-p")
 # joining the identifiers of the first one with an underscore yields the
 # second one.
 dotted = gprfor(
-    prjid="p.child", srcdirs=["../src1"], mains=[], objdir="obj-dotted"
+    prjid="p.child",
+    srcdirs=["../src1"],
+    mains=[],
+    objdir="obj-dotted",
+    # gprbuild1 makes this dependency mandatory, even though P is not actually
+    # referenced in the p.child project file.
+    deps=["p"],
 )
 underscored = gprfor(
     prjid="p_child", srcdirs=["../src2"], mains=[], objdir="obj-underscored"
