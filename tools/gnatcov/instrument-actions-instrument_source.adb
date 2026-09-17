@@ -402,6 +402,18 @@ package body Instrument.Actions.Instrument_Source is
          return Containers.Empty_Filename_Set;
       end if;
 
+      --  Defensive code to not read the dependency file if it does not exist:
+      --  not supposed to happen if the compiler ran successfully and take the
+      --  -MMD switch into account. In this case, return that the source file
+      --  has no known dependency, so that the actions API conservatively
+      --  triggers instrumentation every time.
+
+      if not Self.Dep_File.Exists then
+         Instrument.Sources_Trace.Trace
+           ("No dependency file " & Self.Dep_File.String_Value);
+         return Containers.Empty_Filename_Set;
+      end if;
+
       if not Self.Deps_Cache.Is_Empty then
          return Self.Deps_Cache;
       end if;

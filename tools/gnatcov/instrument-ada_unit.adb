@@ -2191,7 +2191,19 @@ package body Instrument.Ada_Unit is
            (if N_Spec.F_Subp_Params.Is_Null
             then No_Param_Spec_List
             else N_Spec.F_Subp_Params.F_Params);
-         Result.Ctrl_Type := N_Spec.P_Primitive_Subp_Tagged_Type;
+
+         begin
+            Result.Ctrl_Type := N_Spec.P_Primitive_Subp_Tagged_Type;
+         exception
+            when Exc : Property_Error =>
+               Report
+                 (Node => N_Spec,
+                  Msg  =>
+                    "Could not determine the subprogram controlling type: "
+                    & Switches.Exception_Info (Exc),
+                  Kind => Warning);
+               Result.Ctrl_Type := No_Base_Type_Decl;
+         end;
 
          Result.Append_List :=
            (if Insert_Info.RH_Private_List /= No_Node_Rewriting_Handle
