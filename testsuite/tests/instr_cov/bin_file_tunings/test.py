@@ -69,10 +69,10 @@ for tc in [
         {"FOO": "foo.srctrace"},
         "foo.srctrace",
     ),
-    # Check that with --dump-file-name-prefix, the given prefix replaces the
+    # Check that with --dump-filename-prefix, the given prefix replaces the
     # program basename.
     Testcase("prefix", ["--dump-filename-prefix=bar"], {}, "bar-*.srctrace"),
-    # Check that with --dump-file-name-simple, the produced trace has a
+    # Check that with --dump-filename-simple, the produced trace has a
     # deterministic name.
     Testcase(
         "simple", ["--dump-filename-simple"], {}, f"{trace_prefix}.srctrace"
