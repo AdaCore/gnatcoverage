@@ -1843,7 +1843,7 @@ package body SS_Annotations is
                   Outputs.Warn
                     ("Pre-existing annotation with identifier "
                      & (+Match.Identifier)
-                     & "matches the same region.");
+                     & " matches the same region.");
                end if;
             end loop;
          end;
