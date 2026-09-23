@@ -222,10 +222,15 @@ package body SS_Annotations is
    --  diagnostics.
 
    function Default_Identifier
-     (Kind : Any_Annotation_Kind; File : Virtual_File; Span : Sloc_Span)
-      return Unbounded_String;
-   --  Return the identifier to use for the annotation of the given Kind
-   --  covering Span in File, when the user did not provide one explicitly.
+     (Kind : Any_Annotation_Kind;
+      Data : TOML.TOML_Value;
+      File : Virtual_File;
+      Span : Sloc_Span) return Unbounded_String;
+   --  Return the identifier to use for the given annotation Kind/Data covering
+   --  Span in File, when the user did not provide one explicitly.
+   --
+   --  Note that Data is assumed to be well formed: see the implementation of
+   --  To_TOML for a description of what fields are expected for which kind.
 
    function To_TOML
      (Kind         : Any_Annotation_Kind;
@@ -1020,16 +1025,67 @@ package body SS_Annotations is
    ------------------------
 
    function Default_Identifier
-     (Kind : Any_Annotation_Kind; File : Virtual_File; Span : Sloc_Span)
-      return Unbounded_String
-   is (+Kind_Image (Kind)
-       & "-"
-       & Hex_Image
-           (Unsigned_32
-              (Ada.Strings.Hash
-                 (File.Display_Full_Name
-                  & Slocs.Image (+Span.Start_Sloc)
-                  & Slocs.Image (+Span.End_Sloc)))));
+     (Kind : Any_Annotation_Kind;
+      Data : TOML.TOML_Value;
+      File : Virtual_File;
+      Span : Sloc_Span) return Unbounded_String
+   is
+      Hash_Input : Unbounded_String;
+   begin
+      return Result : Unbounded_String do
+         US.Append (Result, Kind_Image (Kind));
+         US.Append (Result, "-");
+
+         US.Append (Hash_Input, File.Display_Full_Name);
+         US.Append (Hash_Input, ":");
+         US.Append (Hash_Input, Slocs.Image (+Span.Start_Sloc));
+         US.Append (Hash_Input, "-");
+         US.Append (Hash_Input, Slocs.Image (+Span.End_Sloc));
+         US.Append (Hash_Input, ": ");
+
+         case Kind is
+            when Exempt_Decision_Outcome    =>
+               US.Append
+                 (Hash_Input, Boolean'Image (Data.Get ("outcome").As_Boolean));
+               US.Append
+                 (Hash_Input,
+                  TOML.Any_Integer'Image (Data.Get ("decision").As_Integer));
+
+            when Exempt_Decision_Condition  =>
+               US.Append
+                 (Hash_Input,
+                  TOML.Any_Integer'Image (Data.Get ("condition").As_Integer));
+               US.Append
+                 (Hash_Input,
+                  TOML.Any_Integer'Image (Data.Get ("decision").As_Integer));
+
+            when Exempt_Full_Decision       =>
+               US.Append
+                 (Hash_Input,
+                  TOML.Any_Integer'Image (Data.Get ("decision").As_Integer));
+
+            when Manual_Decision_Evaluation =>
+               declare
+                  Values : constant TOML.TOML_Value := Data.Get ("values");
+               begin
+                  for I in 1 .. Values.Length loop
+                     US.Append
+                       (Hash_Input,
+                        (if Values.Item (I).As_Boolean then 'T' else 'F'));
+                  end loop;
+               end;
+               US.Append
+                 (Hash_Input,
+                  TOML.Any_Integer'Image (Data.Get ("decision").As_Integer));
+
+            when others                     =>
+               null;
+         end case;
+
+         US.Append
+           (Result, Hex_Image (Unsigned_32 (Ada.Strings.Hash (+Hash_Input))));
+      end return;
+   end Default_Identifier;
 
    -------------
    -- To_TOML --
@@ -1300,6 +1356,8 @@ package body SS_Annotations is
       Resolved : constant Virtual_File :=
         Create (File.Full_Name, Normalize => True);
       Source   : GPR2.Build.Source.Object;
+      Data     : constant TOML.TOML_Value :=
+        To_TOML (Kind, Annot, Insert_After);
    begin
       --  Look up the GPR2 source for File, so that Create_Entry can determine
       --  its language and an adequate file prefix. This is optional: without a
@@ -1311,8 +1369,8 @@ package body SS_Annotations is
 
       Create_Entry
         (DB         => DB,
-         Identifier => Default_Identifier (Kind, Resolved, SS_Span),
-         Annotation => To_TOML (Kind, Annot, Insert_After),
+         Identifier => Default_Identifier (Kind, Data, Resolved, SS_Span),
+         Annotation => Data,
          File       => File,
          Span       => SS_Span,
          Source     => Source,
@@ -1718,6 +1776,8 @@ package body SS_Annotations is
                  Insert_After => Args.Bool_Args (Opt_Annotate_After));
          end Annotation;
 
+         A : constant TOML_Value := Annotation;
+
          --  Start of processing for the entry creation
 
       begin
@@ -1726,7 +1786,7 @@ package body SS_Annotations is
 
          if US.Length (Entry_Id) = 0 then
             Entry_Id :=
-              Default_Identifier (Annot_Kind, Resolved_File, Target_Span);
+              Default_Identifier (Annot_Kind, A, Resolved_File, Target_Span);
          end if;
 
          Entry_Purpose := Purpose (Annot_Kind);
@@ -1734,7 +1794,7 @@ package body SS_Annotations is
          Create_Entry
            (DB               => New_Annot_DB,
             Identifier       => Entry_Id,
-            Annotation       => Annotation,
+            Annotation       => A,
             File             => Target_File,
             Span             => Target_Span,
             Source           => Source,
@@ -1761,24 +1821,33 @@ package body SS_Annotations is
       --  Now check whether there is an entry matching the same region, for the
       --  same purpose. If so, warn about it so the user doesn't get a surprise
       --  at coverage time.
+      --
+      --  Different fine grained exemptions are often useful in the same
+      --  location, so do not warn for them.
 
-      declare
-         Matches : constant Match_Result_Vec :=
-           Match_Entries
-             ((1 => Resolved_File),
-              Valid_Annotation_DB,
-              To_Ada (Entry_Purpose));
-      begin
-         for Match of Matches loop
-            if Match.Success and then Match.Location = (+Start_Sloc, +End_Sloc)
-            then
-               Outputs.Warn
-                 ("Pre-existing annotation with identifier "
-                  & (+Match.Identifier)
-                  & "matches the same region.");
-            end if;
-         end loop;
-      end;
+      if Annot_Kind not in Fine_Grained_Annotation_Kind then
+         declare
+            Matches : constant Match_Result_Vec :=
+              Match_Entries
+                ((1 => Resolved_File),
+                 Valid_Annotation_DB,
+                 To_Ada (Entry_Purpose));
+         begin
+            for Match of Matches loop
+               if Match.Success
+                 and then
+                   Annotation_Kind (Match.Annotation)
+                   not in Fine_Grained_Annotation_Kind
+                 and then Match.Location = (+Start_Sloc, +End_Sloc)
+               then
+                  Outputs.Warn
+                    ("Pre-existing annotation with identifier "
+                     & (+Match.Identifier)
+                     & "matches the same region.");
+               end if;
+            end loop;
+         end;
+      end if;
 
       --  Finally, import the new entry and write everything to disk
 
