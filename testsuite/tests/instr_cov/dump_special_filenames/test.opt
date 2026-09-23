@@ -1,0 +1,4 @@
+!native DEAD Checks the bin-file dump channel
+--  Run this test only on Unix platforms: this is enough to check code
+--  generators.
+windows DEAD Use of special characters forbidden in filenames
