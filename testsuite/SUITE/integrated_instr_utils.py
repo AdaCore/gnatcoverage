@@ -25,8 +25,7 @@ def find_files_with_exts(
     Recursively find source files with the given extensions, starting at
     root_dir. If root_dir is None, start at the current directory.
     """
-    root_dir = root_dir or os.getcwd()
-    root_path = Path(os.getcwd())
+    root_path = Path(root_dir or os.getcwd())
     return [str(p) for p in root_path.rglob("*") if p.suffix in exts]
 
 
