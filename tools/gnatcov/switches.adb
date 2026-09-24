@@ -220,11 +220,14 @@ package body Switches is
         Args.String_Args (Opt_Dump_Filename_Env_Var);
       Dump_Filename_Prefix_Opt  : String_Option renames
         Args.String_Args (Opt_Dump_Filename_Prefix);
+      Dump_Filename_Tag_Opt     : String_Option renames
+        Args.String_Args (Opt_Dump_Filename_Tag);
 
       Dump_Channel          : Any_Dump_Channel;
       Dump_Filename_Simple  : Boolean := False;
       Dump_Filename_Env_Var : Unbounded_String;
       Dump_Filename_Prefix  : Unbounded_String;
+      Dump_Filename_Tag     : Unbounded_String;
    begin
       --  First, load the config from Default_Dump_Config, then override it
       --  using command-line arguments.
@@ -320,6 +323,7 @@ package body Switches is
             Dump_Filename_Simple := Default_Dump_Config.Filename_Simple;
             Dump_Filename_Env_Var := Default_Dump_Config.Filename_Env_Var;
             Dump_Filename_Prefix := Default_Dump_Config.Filename_Prefix;
+            Dump_Filename_Tag := Default_Dump_Config.Filename_Tag;
 
          when others      =>
             null;
@@ -333,6 +337,9 @@ package body Switches is
       end if;
       if Dump_Filename_Prefix_Opt.Present then
          Dump_Filename_Prefix := Dump_Filename_Prefix_Opt.Value;
+      end if;
+      if Dump_Filename_Tag_Opt.Present then
+         Dump_Filename_Tag := Dump_Filename_Tag_Opt.Value;
       end if;
 
       --  Now, re-create an Any_Dump_Config record from the overriden config
@@ -356,7 +363,8 @@ package body Switches is
                   Manual_Indication_Files => Manual_Indication_Files,
                   Filename_Simple         => Dump_Filename_Simple,
                   Filename_Env_Var        => Dump_Filename_Env_Var,
-                  Filename_Prefix         => Dump_Filename_Prefix);
+                  Filename_Prefix         => Dump_Filename_Prefix,
+                  Filename_Tag            => Dump_Filename_Tag);
 
             when Base64_Standard_Output =>
                Dump_Config :=
@@ -412,6 +420,11 @@ package body Switches is
                  (Create
                     ("--dump-filename-prefix="
                      & (+Dump_Config.Filename_Prefix)));
+            end if;
+            if Dump_Config.Filename_Tag /= "" then
+               Result.Append
+                 (Create
+                    ("--dump-filename-tag=" & (+Dump_Config.Filename_Tag)));
             end if;
 
          when Base64_Standard_Output =>

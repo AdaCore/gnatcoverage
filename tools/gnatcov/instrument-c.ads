@@ -155,13 +155,10 @@ package Instrument.C is
    is (Switches.C_Language);
 
    function Create_C_Instrumenter
-     (Tag             : Unbounded_String;
-      Instr_Mode      : Instrumentation_Mode;
-      RTS_Source_Dirs : File_Vectors.Vector) return C_Instrumenter_Type
+     (Instr_Mode : Instrumentation_Mode; RTS_Source_Dirs : File_Vectors.Vector)
+      return C_Instrumenter_Type
    is (C_Instrumenter_Type'
-         (Tag             => Tag,
-          Instr_Mode      => Instr_Mode,
-          RTS_Source_Dirs => RTS_Source_Dirs));
+         (Instr_Mode => Instr_Mode, RTS_Source_Dirs => RTS_Source_Dirs));
    --  Create a C instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
@@ -179,13 +176,10 @@ package Instrument.C is
    is ("extern ""C"" ");
 
    function Create_CPP_Instrumenter
-     (Tag             : Unbounded_String;
-      Instr_Mode      : Instrumentation_Mode;
-      RTS_Source_Dirs : File_Vectors.Vector) return CPP_Instrumenter_Type
+     (Instr_Mode : Instrumentation_Mode; RTS_Source_Dirs : File_Vectors.Vector)
+      return CPP_Instrumenter_Type
    is (CPP_Instrumenter_Type'
-         (Tag             => Tag,
-          Instr_Mode      => Instr_Mode,
-          RTS_Source_Dirs => RTS_Source_Dirs));
+         (Instr_Mode => Instr_Mode, RTS_Source_Dirs => RTS_Source_Dirs));
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 

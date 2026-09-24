@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Environment_Variables;
 
 with GNATCOLL.Traces;
 with GNATCOLL.OS.Process;
@@ -69,6 +70,7 @@ package body Instrument.Actions.Instrument_Source is
       Self.Instrumenter := Instrumenter;
       Self.Prj_Info := Prj_Info;
       Self.Dump_Config := Dump_Config;
+      Self.Explicit_Tag := False;
       Self.Artifacts := Artifact_Sets.Empty_Set;
 
       --  Make the dump config explicit and hardcode the filename prefix here
@@ -89,6 +91,17 @@ package body Instrument.Actions.Instrument_Source is
                          Self.LU_Info.Main_Part_Src.Path_Name.Simple_Name,
                        At_Pos => 0)
                       .Simple_Name));
+         end if;
+
+         --  If no dump filename tag was specified to "gnatcov instrument", use
+         --  the default one created for the whole project (this environment
+         --  variable is set in this case in instrument-projects.adb).
+
+         if Dump_Config.Filename_Tag = "" then
+            Self.Dump_Config.Filename_Tag :=
+              +Ada.Environment_Variables.Value ("GNATCOV_INSTR_TAG");
+         else
+            Self.Explicit_Tag := True;
          end if;
       end if;
 
@@ -273,7 +286,21 @@ package body Instrument.Actions.Instrument_Source is
 
       if Self.LU_Info.Is_Main or else Self.Dump_Config.Manual_Trigger then
          for Arg of Unparse_Config (Self.Dump_Config) loop
-            Cmd_Line.Add_Argument (+Arg.Arg, Arg.Mode);
+            declare
+               S : constant String := +Arg.Arg;
+            begin
+               --  Do not include --dump-filename-tag in the signature if the
+               --  tag was automatically generated, to avoid triggering
+               --  spurious re-instrumentation just because we generated a
+               --  different random tag.
+
+               Cmd_Line.Add_Argument
+                 (S,
+                  (if Has_Prefix (S, "--dump-filename-tag")
+                     and then not Self.Explicit_Tag
+                   then GPR2.Build.Command_Line.Ignore
+                   else Arg.Mode));
+            end;
          end loop;
       end if;
 
