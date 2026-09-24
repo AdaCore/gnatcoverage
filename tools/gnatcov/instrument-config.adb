@@ -28,11 +28,8 @@ with Strings;             use Strings;
 --  Return the instrumenter configuration generated from the command line
 
 function Instrument.Config return Language_Instrumenter'Class is
-   use Command_Line.Parser;
    Language : constant Some_Language :=
      To_Language (+Args.String_Args (Opt_Lang).Value);
-   Tag      : constant Unbounded_String :=
-     Value_Or_Null (Args.String_Args (Opt_Dump_Filename_Tag));
 
    function RTS_Source_Dirs return File_Vectors.Vector;
    --  Return the list of source directories from the Opt_RTS_Source_Dirs
@@ -60,7 +57,6 @@ begin
            Create_Ada_Instrumenter
              (Default_Charset            =>
                 Args.String_Args (Opt_Ada_Default_Charset).Value,
-              Tag                        => Tag,
               Config_Pragmas_Mapping     =>
                 +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
               Mapping_Filename           =>
@@ -70,12 +66,10 @@ begin
 
       when C_Language   =>
          return
-           Create_C_Instrumenter
-             (Tag, Project_Instrumentation, RTS_Source_Dirs);
+           Create_C_Instrumenter (Project_Instrumentation, RTS_Source_Dirs);
 
       when CPP_Language =>
          return
-           Create_CPP_Instrumenter
-             (Tag, Project_Instrumentation, RTS_Source_Dirs);
+           Create_CPP_Instrumenter (Project_Instrumentation, RTS_Source_Dirs);
    end case;
 end Instrument.Config;

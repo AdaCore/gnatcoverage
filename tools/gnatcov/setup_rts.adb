@@ -1430,6 +1430,17 @@ package body Setup_RTS is
                Filename_Simple         => Get ("dump-filename-simple"),
                Filename_Env_Var        => Get ("dump-filename-env-var"),
                Filename_Prefix         => Get ("dump-filename-prefix"),
+
+               --  To accomodate with coverage runtimes installed by older
+               --  versions of gnatcov, tolerate missing dump filename tags
+               --  (--dump-filename-tag used to be ignored): pretend that it
+               --  was just not passed to "gnatcov setup" in this case.
+
+               Filename_Tag            =>
+                 (if J.Has_Field ("dump-filename-tag")
+                  then Get ("dump-filename-tag")
+                  else US.Null_Unbounded_String),
+
                Manual_Indication_Files => File_Sets.Empty_Set);
 
          when Base64_Standard_Output =>
@@ -1494,6 +1505,7 @@ package body Setup_RTS is
                J.Set_Field
                  ("dump-filename-env-var", Dump_Cfg.Filename_Env_Var);
                J.Set_Field ("dump-filename-prefix", Dump_Cfg.Filename_Prefix);
+               J.Set_Field ("dump-filename-tag", Dump_Cfg.Filename_Tag);
 
             when Base64_Standard_Output =>
                null;

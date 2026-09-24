@@ -24,7 +24,7 @@
 @@--  FILENAME_SIMPLE  (String): Dump file name base
 @@--  FILENAME_ENV_VAR (String): Environment variable to retrieve expected dump filename at runtime
 @@--  FILENAME_PREFIX  (String): Dump file name prefix in auto-dump trigger cases
-@@--  TAG              (String): Unique string to avoid trace name clash
+@@--  FILENAME_TAG     (String): Dump file name component in auto-dump trigger cases
 @@--
 @@--  WITNESS_DUMMY_TYPE (String): Qualified name for the generated dummy type
 @@--
@@ -50,7 +50,7 @@ package body @_UNIT_NAME_@ is
               (Prefix  => "@_FILENAME_PREFIX_@",
 @@END_IF@@
                Env_Var => @_FILENAME_ENV_VAR_@,
-               Tag     => "@_TAG_@",
+               Tag     => "@_FILENAME_TAG_@",
                Simple  => @_CAPITALIZE:FILENAME_SIMPLE_@);
 @@END_IF@@
     begin
