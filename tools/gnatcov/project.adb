@@ -26,12 +26,8 @@ with GNAT.Regexp;
 with GNATCOLL.Traces;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
---  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
-
 with GPR2;
-pragma Warnings (Off, "not referenced");
 with GPR2.Build.Source.Sets;
-pragma Warnings (On, "not referenced");
 with GPR2.Containers;
 with GPR2.Message;
 with GPR2.Options;
