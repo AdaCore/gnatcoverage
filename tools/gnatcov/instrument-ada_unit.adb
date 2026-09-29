@@ -342,7 +342,8 @@ package body Instrument.Ada_Unit is
      (
      --  Aspects
 
-     Dynamic_Predicate,
+     Default_Initial_Condition,
+      Dynamic_Predicate,
       Invariant,
       Ghost_Predicate,
       Post,
@@ -352,6 +353,7 @@ package body Instrument.Ada_Unit is
       Predicate,
       Static_Predicate,
       Type_Invariant,
+      Type_Invariant_Class,
 
       --  Pragmas
 
@@ -385,37 +387,43 @@ package body Instrument.Ada_Unit is
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
 
+   function Precompute_Symbol (N : Text_Type) return Symbol_Type
+   is (Find (Symbols, Canonicalize (N).Symbol));
+
    function Precompute_Symbol (S : All_Symbols) return Symbol_Type
-   is (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
+   is (Precompute_Symbol (To_Wide_Wide_String (S'Image)));
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
-     (Dynamic_Predicate       => Precompute_Symbol (Dynamic_Predicate),
-      Ghost_Predicate         => Precompute_Symbol (Ghost_Predicate),
-      Invariant               => Precompute_Symbol (Invariant),
-      Post                    => Precompute_Symbol (Post),
-      Postcondition           => Precompute_Symbol (Postcondition),
-      Pre                     => Precompute_Symbol (Pre),
-      Precondition            => Precompute_Symbol (Precondition),
-      Predicate               => Precompute_Symbol (Predicate),
-      Static_Predicate        => Precompute_Symbol (Static_Predicate),
-      Type_Invariant          => Precompute_Symbol (Type_Invariant),
-      Convention              => Precompute_Symbol (Convention),
-      Profile                 => Precompute_Symbol (Profile),
-      Debug                   => Precompute_Symbol (Debug),
-      Restrictions            => Precompute_Symbol (Restrictions),
-      No_Dependence           => Precompute_Symbol (No_Dependence),
-      No_Finalization         => Precompute_Symbol (No_Finalization),
-      No_Tasking              => Precompute_Symbol (No_Tasking),
-      Pure_Barriers           => Precompute_Symbol (Pure_Barriers),
-      Simple_Barriers         => Precompute_Symbol (Simple_Barriers),
-      GNAT_Extended_Ravenscar => Precompute_Symbol (GNAT_Extended_Ravenscar),
-      GNAT_Ravenscar_EDF      => Precompute_Symbol (Dynamic_Predicate),
-      Jorvik                  => Precompute_Symbol (Jorvik),
-      Ravenscar               => Precompute_Symbol (Ravenscar),
-      Restricted              => Precompute_Symbol (Restricted),
-      Xcov                    => Precompute_Symbol (Xcov),
-      Dump_Buffers            => Precompute_Symbol (Dump_Buffers),
-      Reset_Buffers           => Precompute_Symbol (Reset_Buffers));
+     (Default_Initial_Condition =>
+        Precompute_Symbol (Default_Initial_Condition),
+      Dynamic_Predicate         => Precompute_Symbol (Dynamic_Predicate),
+      Ghost_Predicate           => Precompute_Symbol (Ghost_Predicate),
+      Invariant                 => Precompute_Symbol (Invariant),
+      Post                      => Precompute_Symbol (Post),
+      Postcondition             => Precompute_Symbol (Postcondition),
+      Pre                       => Precompute_Symbol (Pre),
+      Precondition              => Precompute_Symbol (Precondition),
+      Predicate                 => Precompute_Symbol (Predicate),
+      Static_Predicate          => Precompute_Symbol (Static_Predicate),
+      Type_Invariant            => Precompute_Symbol (Type_Invariant),
+      Type_Invariant_Class      => Precompute_Symbol ("Type_Invariant'Class"),
+      Convention                => Precompute_Symbol (Convention),
+      Profile                   => Precompute_Symbol (Profile),
+      Debug                     => Precompute_Symbol (Debug),
+      Restrictions              => Precompute_Symbol (Restrictions),
+      No_Dependence             => Precompute_Symbol (No_Dependence),
+      No_Finalization           => Precompute_Symbol (No_Finalization),
+      No_Tasking                => Precompute_Symbol (No_Tasking),
+      Pure_Barriers             => Precompute_Symbol (Pure_Barriers),
+      Simple_Barriers           => Precompute_Symbol (Simple_Barriers),
+      GNAT_Extended_Ravenscar   => Precompute_Symbol (GNAT_Extended_Ravenscar),
+      GNAT_Ravenscar_EDF        => Precompute_Symbol (Dynamic_Predicate),
+      Jorvik                    => Precompute_Symbol (Jorvik),
+      Ravenscar                 => Precompute_Symbol (Ravenscar),
+      Restricted                => Precompute_Symbol (Restricted),
+      Xcov                      => Precompute_Symbol (Xcov),
+      Dump_Buffers              => Precompute_Symbol (Dump_Buffers),
+      Reset_Buffers             => Precompute_Symbol (Reset_Buffers));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type
    is (Precomputed_Symbols (S));
@@ -4050,7 +4058,7 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type);
+         Name : All_Symbols);
       --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise,
       --  register decision of contrat of name Name of declaration node D
 
@@ -4369,7 +4377,7 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type)
+         Name : All_Symbols)
       is
          Decision : Expr;
       begin
@@ -4380,7 +4388,9 @@ package body Instrument.Ada_Unit is
             return;
          end if;
 
-         Decision := P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name));
+         Decision :=
+           P_Get_Aspect_Spec_Expr
+             (D, To_Unbounded_Text (Get (Precomputed_Symbols (Name)).all));
          if Decision.Is_Null then
             return;
          end if;
@@ -4413,8 +4423,8 @@ package body Instrument.Ada_Unit is
       procedure Process_Contracts
         (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class) is
       begin
-         Process_Contract (UIC, D, "Pre");
-         Process_Contract (UIC, D, "Post");
+         Process_Contract (UIC, D, Pre);
+         Process_Contract (UIC, D, Post);
       end Process_Contracts;
 
       ------------------------------------
@@ -6228,12 +6238,12 @@ package body Instrument.Ada_Unit is
                      Typ := 's';
                   else
                      Typ := 't';
-                     Process_Contract (UIC, N.As_Basic_Decl, "Type_Invariant");
+                     Process_Contract (UIC, N.As_Basic_Decl, Type_Invariant);
                      Process_Contract
-                       (UIC, N.As_Basic_Decl, "Type_Invariant'Class");
+                       (UIC, N.As_Basic_Decl, Type_Invariant_Class);
                   end if;
                   Process_Contract
-                    (UIC, N.As_Basic_Decl, "Default_Initial_Condition");
+                    (UIC, N.As_Basic_Decl, Default_Initial_Condition);
 
                   Instrument_Statement (UIC, N, Typ);
                end;
