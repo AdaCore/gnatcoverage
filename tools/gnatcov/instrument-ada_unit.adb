@@ -4036,8 +4036,7 @@ package body Instrument.Ada_Unit is
       Is_Block                   : Boolean := True)
    is
       procedure Instrument_Statement
-        (UIC         : in out Ada_Unit_Inst_Context;
-         N           : Ada_Node'Class;
+        (N           : Ada_Node'Class;
          Typ         : Character;
          Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
       --  Instrument the statement N, or register it into the current block
@@ -4123,8 +4122,7 @@ package body Instrument.Ada_Unit is
       --------------------------
 
       procedure Instrument_Statement
-        (UIC         : in out Ada_Unit_Inst_Context;
-         N           : Ada_Node'Class;
+        (N           : Ada_Node'Class;
          Typ         : Character;
          Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
       is
@@ -4499,7 +4497,7 @@ package body Instrument.Ada_Unit is
                E := E.As_Paren_Expr.F_Expr;
             end if;
 
-            Instrument_Statement (UIC, E, 'X', Insertion_N);
+            Instrument_Statement (E, 'X', Insertion_N);
             Process_Expression (UIC, E, 'X');
          end Process_Expr_Func_Stmt;
 
@@ -4562,7 +4560,7 @@ package body Instrument.Ada_Unit is
             --  Add witness statement for the single statement
 
             Instrument_Statement
-              (UIC => UIC, N => N, Typ => ' ', Insertion_N => Single_Stmt_RH);
+              (N => N, Typ => ' ', Insertion_N => Single_Stmt_RH);
 
             --  Process the returned expression for any decisions if we are
             --  dealing with an expression function
@@ -5051,10 +5049,7 @@ package body Instrument.Ada_Unit is
             --  use the whole null procedure declaration to provide a sloc.
 
             Instrument_Statement
-              (UIC         => UIC,
-               N           => N,
-               Typ         => 'X',
-               Insertion_N => NP_Nodes.Null_Stmt);
+              (N => N, Typ => 'X', Insertion_N => NP_Nodes.Null_Stmt);
          end if;
 
          --  Preemptively end the block to force the instrumentation of the
@@ -5715,7 +5710,7 @@ package body Instrument.Ada_Unit is
                Exit_Scope (UIC);
 
             when Ada_Exit_Stmt                                     =>
-               Instrument_Statement (UIC, N, 'E');
+               Instrument_Statement (N, 'E');
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
                Process_Expression (UIC, As_Exit_Stmt (N).F_Cond_Expr, 'E');
@@ -5741,7 +5736,7 @@ package body Instrument.Ada_Unit is
                        when others          => raise Program_Error));
 
             when Ada_If_Stmt                                       =>
-               Instrument_Statement (UIC, N, 'I');
+               Instrument_Statement (N, 'I');
                End_Statement_Block (UIC);
 
                declare
@@ -5782,8 +5777,7 @@ package body Instrument.Ada_Unit is
                      begin
                         Start_Statement_Block (UIC);
                         Instrument_Statement
-                          (UIC,
-                           Ada_Node (Elif),
+                          (Ada_Node (Elif),
                            'I',
                            Insertion_N => Handle (Elif.F_Cond_Expr));
                         End_Statement_Block (UIC);
@@ -5842,7 +5836,7 @@ package body Instrument.Ada_Unit is
                Start_Statement_Block (UIC);
 
             when Ada_Case_Stmt                                     =>
-               Instrument_Statement (UIC, N, 'C');
+               Instrument_Statement (N, 'C');
                End_Statement_Block (UIC);
 
                declare
@@ -5883,7 +5877,7 @@ package body Instrument.Ada_Unit is
             --  ACCEPT statement
 
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts      =>
-               Instrument_Statement (UIC, N, 'A');
+               Instrument_Statement (N, 'A');
                End_Statement_Block (UIC);
 
                if N.Kind = Ada_Accept_Stmt_With_Stmts then
@@ -5904,7 +5898,7 @@ package body Instrument.Ada_Unit is
             --  conditional_entry_call, and asynchronous_select).
 
             when Ada_Select_Stmt                                   =>
-               Instrument_Statement (UIC, N, 'S');
+               Instrument_Statement (N, 'S');
                End_Statement_Block (UIC);
 
                declare
@@ -5959,7 +5953,7 @@ package body Instrument.Ada_Unit is
                null;
 
             when Ada_Goto_Stmt | Ada_Raise_Stmt | Ada_Requeue_Stmt =>
-               Instrument_Statement (UIC, N, ' ');
+               Instrument_Statement (N, ' ');
                End_Statement_Block (UIC);
 
                --  Open a new statement block for statements afterwards
@@ -5970,7 +5964,7 @@ package body Instrument.Ada_Unit is
             --  have to process the return expression for decisions.
 
             when Ada_Return_Stmt                                   =>
-               Instrument_Statement (UIC, N, ' ');
+               Instrument_Statement (N, ' ');
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
                Process_Expression (UIC, N.As_Return_Stmt.F_Return_Expr, 'X');
@@ -5978,7 +5972,7 @@ package body Instrument.Ada_Unit is
             --  Extended return statement
 
             when Ada_Extended_Return_Stmt                          =>
-               Instrument_Statement (UIC, N, 'R');
+               Instrument_Statement (N, 'R');
                declare
                   ER_N : constant Extended_Return_Stmt :=
                     N.As_Extended_Return_Stmt;
@@ -6000,7 +5994,7 @@ package body Instrument.Ada_Unit is
                      --  WHILE loop
 
                      if ISC.Kind = Ada_While_Loop_Spec then
-                        Instrument_Statement (UIC, N, 'W');
+                        Instrument_Statement (N, 'W');
                         Process_Expression
                           (UIC, ISC.As_While_Loop_Spec.F_Expr, 'W');
 
@@ -6023,7 +6017,7 @@ package body Instrument.Ada_Unit is
                         --  Still go through them to generate SCOs, for the
                         --  sake of completeness.
 
-                        Instrument_Statement (UIC, N, 'F');
+                        Instrument_Statement (N, 'F');
                         declare
                            LS : constant For_Loop_Spec := ISC.As_For_Loop_Spec;
                         begin
@@ -6121,7 +6115,7 @@ package body Instrument.Ada_Unit is
                         --  Note: conservatively assume that the check policy
                         --  for pragma debug is enabled.
 
-                        Instrument_Statement (UIC, N, 'P');
+                        Instrument_Statement (N, 'P');
                         if Prag_Args.Children_Count = 2 then
 
                            --  Case of a dyadic pragma Debug: first argument
@@ -6146,7 +6140,7 @@ package body Instrument.Ada_Unit is
                         --  a warning if the annotation could not be processed.
 
                         Process_Annotation (UIC, N, Prag_Args);
-                        Instrument_Statement (UIC, N, 'P');
+                        Instrument_Statement (N, 'P');
 
                      --  Even though Compile_Time_* pragmas do contain
                      --  decisions, we cannot instrument them, as they would
@@ -6156,7 +6150,7 @@ package body Instrument.Ada_Unit is
 
                      when Name_Compile_Time_Error | Name_Compile_Time_Warning
                      =>
-                        Instrument_Statement (UIC, N, 'P');
+                        Instrument_Statement (N, 'P');
 
                      --  Instrumentation relies on Ada_95 features, which is
                      --  not valid Ada_83, so we remove the pragma.
@@ -6192,7 +6186,7 @@ package body Instrument.Ada_Unit is
 
                      when others
                      =>
-                        Instrument_Statement (UIC, N, 'P');
+                        Instrument_Statement (N, 'P');
                         Process_Expression (UIC, N, 'X', Preelab);
                   end case;
                end;
@@ -6202,11 +6196,11 @@ package body Instrument.Ada_Unit is
             --  are present.
 
             when Ada_Number_Decl | Ada_Object_Decl                 =>
-               Instrument_Statement (UIC, N, 'o');
+               Instrument_Statement (N, 'o');
                Process_Expression (UIC, N, 'X', Preelab);
 
             when Ada_Protected_Type_Decl | Ada_Task_Type_Decl      =>
-               Instrument_Statement (UIC, N, 't');
+               Instrument_Statement (N, 't');
                declare
                   Disc_N : constant Discriminant_Part :=
                     (case N.Kind is
@@ -6222,7 +6216,7 @@ package body Instrument.Ada_Unit is
                Traverse_Sync_Definition (UIC, N);
 
             when Ada_Single_Protected_Decl | Ada_Single_Task_Decl  =>
-               Instrument_Statement (UIC, N, 'o');
+               Instrument_Statement (N, 'o');
 
                Traverse_Sync_Definition (UIC, N);
 
@@ -6245,7 +6239,7 @@ package body Instrument.Ada_Unit is
                   Process_Contract
                     (UIC, N.As_Basic_Decl, Default_Initial_Condition);
 
-                  Instrument_Statement (UIC, N, Typ);
+                  Instrument_Statement (N, Typ);
                end;
 
                --  Process any embedded decisions
@@ -6294,8 +6288,7 @@ package body Instrument.Ada_Unit is
                | Ada_Generic_Instantiation                         =>
                Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
                Instrument_Statement
-                 (UIC,
-                  N,
+                 (N,
                   (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
                Exit_Scope (UIC);
 
@@ -6304,7 +6297,7 @@ package body Instrument.Ada_Unit is
                Start_Statement_Block (UIC);
 
             when Ada_Call_Stmt                                     =>
-               Instrument_Statement (UIC, N, ' ');
+               Instrument_Statement (N, ' ');
 
                if Enabled (Fun_Call) then
                   Append_SCO
@@ -6368,7 +6361,7 @@ package body Instrument.Ada_Unit is
                   end case;
 
                   if Typ /= ASCII.NUL then
-                     Instrument_Statement (UIC, N, Typ);
+                     Instrument_Statement (N, Typ);
                   end if;
 
                   if Is_Select_Stmt_Alternative
