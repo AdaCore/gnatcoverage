@@ -1968,7 +1968,7 @@ package SC_Obligations is
 
       Pragma_Debug                          => True,
       Pragma_Predicate                      => True,
-      Pragma_Contract_Cases                 => True,
+      Pragma_Contract_Cases                 => False,
 
       Pragma_Loop_Invariant                 => True,
       Pragma_Invariant                      => True,

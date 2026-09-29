@@ -342,10 +342,16 @@ package body Instrument.Ada_Unit is
      (
      --  Aspects
 
-     Default_Initial_Condition,
+     Assert,
+      Assert_And_Cut,
+      Assume,
+      Check,
+      Contract_Cases,
+      Default_Initial_Condition,
       Dynamic_Predicate,
       Invariant,
       Ghost_Predicate,
+      Loop_Invariant,
       Post,
       Postcondition,
       Pre,
@@ -394,11 +400,17 @@ package body Instrument.Ada_Unit is
    is (Precompute_Symbol (To_Wide_Wide_String (S'Image)));
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
-     (Default_Initial_Condition =>
+     (Assert                    => Precompute_Symbol (Assert),
+      Assert_And_Cut            => Precompute_Symbol (Assert_And_Cut),
+      Assume                    => Precompute_Symbol (Assume),
+      Check                     => Precompute_Symbol (Check),
+      Contract_Cases            => Precompute_Symbol (Contract_Cases),
+      Default_Initial_Condition =>
         Precompute_Symbol (Default_Initial_Condition),
       Dynamic_Predicate         => Precompute_Symbol (Dynamic_Predicate),
       Ghost_Predicate           => Precompute_Symbol (Ghost_Predicate),
       Invariant                 => Precompute_Symbol (Invariant),
+      Loop_Invariant            => Precompute_Symbol (Loop_Invariant),
       Post                      => Precompute_Symbol (Post),
       Postcondition             => Precompute_Symbol (Postcondition),
       Pre                       => Precompute_Symbol (Pre),
@@ -424,6 +436,22 @@ package body Instrument.Ada_Unit is
       Xcov                      => Precompute_Symbol (Xcov),
       Dump_Buffers              => Precompute_Symbol (Dump_Buffers),
       Reset_Buffers             => Precompute_Symbol (Reset_Buffers));
+
+   function "+" (N : Name_Id) return All_Symbols
+   is (case N is
+         when Name_Assert         => Assert,
+         when Name_Assert_And_Cut => Assert_And_Cut,
+         when Name_Assume         => Assume,
+         when Name_Check          => Check,
+         when Name_Contract_Cases => Contract_Cases,
+         when Name_Invariant      => Invariant,
+         when Name_Loop_Invariant => Loop_Invariant,
+         when Name_Postcondition  => Postcondition,
+         when Name_Precondition   => Precondition,
+         when Name_Type_Invariant => Type_Invariant,
+         when others              =>
+           raise Constraint_Error
+             with "unexpected Name_Id: " & Name_Id'Image (N));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type
    is (Precomputed_Symbols (S));
@@ -3985,12 +4013,23 @@ package body Instrument.Ada_Unit is
      (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
    --  Process default expressions for formals in N_Spec
 
+   procedure Process_Contract_Expr
+     (UIC       : in out Ada_Unit_Inst_Context;
+      E         : Expr'Class;
+      Name      : All_Symbols;
+      Is_Pragma : Boolean);
+   --  Assuming that E is a contract expression associated to pragma/aspect
+   --  Name and that assertion coverage is enabled, register it as a decision.
+   --
+   --  Is_Pragma determines whether this contract is specified through a pragma
+   --  (False) or an aspect (True).
+
    procedure Process_Contract
      (UIC  : in out Ada_Unit_Inst_Context;
       D    : Basic_Decl'Class;
       Name : All_Symbols);
-   --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise, register
-   --  decision of contrat of name Name of declaration node D
+   --  If declaration D has an aspect Name, register its decision as a
+   --  contract.
 
    procedure Process_Contracts
      (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class);
@@ -5994,7 +6033,8 @@ package body Instrument.Ada_Unit is
 
                   Has_Standalone_Expr : constant Boolean :=
                     Nam
-                    in Name_Invariant
+                    in Name_Contract_Cases
+                     | Name_Invariant
                      | Name_Postcondition
                      | Name_Precondition
                      | Name_Type_Invariant;
@@ -6011,46 +6051,44 @@ package body Instrument.Ada_Unit is
                         | Name_Assert_And_Cut
                         | Name_Assume
                         | Name_Check
+                        | Name_Contract_Cases
                         | Name_Invariant
                         | Name_Loop_Invariant
                         | Name_Postcondition
                         | Name_Precondition
                         | Name_Type_Invariant
                      =>
-                        --  We consider that the assertion policy is
-                        --  "disabled", except if any level of assertion
-                        --  coverage is enabled.
+                        --  Let Process_Contract_Expr process inner decisions
+                        --  and actual contracts depending on whether
+                        --  assertion coverage is enabled.
                         --
-                        --  In the compiler, we initially set the type to 'p'
-                        --  (disabled pragma), and then switch it to 'P'
-                        --  if/when the policy is determined to be enabled
-                        --  later on.
+                        --  For simple expressions, we must do the filtering
+                        --  here.
 
-                        if Assertion_Coverage_Enabled then
-                           declare
-                              Index : constant Positive :=
-                                (case Nam is
-                                   when Name_Check
-                                      | Name_Type_Invariant
-                                      | Name_Invariant => 2,
-                                   when others         => 1);
-                           begin
-                              if not Is_Null (Prag_Args.Child (Index)) then
-                                 if Has_Standalone_Expr then
-                                    Process_Standalone_Expression
-                                      (UIC,
-                                       Prag_Arg_Expr (Prag_Args, Index),
-                                       'P');
-                                 else
-                                    Process_Expression
-                                      (UIC,
-                                       Prag_Arg_Expr (Prag_Args, Index),
-                                       'P',
-                                       Preelab);
-                                 end if;
+                        declare
+                           Index : constant Positive :=
+                             (case Nam is
+                                when Name_Check
+                                   | Name_Type_Invariant
+                                   | Name_Invariant => 2,
+                                when others         => 1);
+                        begin
+                           if not Is_Null (Prag_Args.Child (Index)) then
+                              if Has_Standalone_Expr then
+                                 Process_Contract_Expr
+                                   (UIC,
+                                    Prag_Arg_Expr (Prag_Args, Index),
+                                    +Nam,
+                                    True);
+                              elsif Assertion_Coverage_Enabled then
+                                 Process_Expression
+                                   (UIC,
+                                    Prag_Arg_Expr (Prag_Args, Index),
+                                    'P',
+                                    Preelab);
                               end if;
-                           end;
-                        end if;
+                           end if;
+                        end;
 
                      when Name_Debug
                      =>
@@ -7592,22 +7630,40 @@ package body Instrument.Ada_Unit is
 
                   if T in 'a' | 'A' then
 
-                     --  See Process_Contracts: the parent node for this
+                     --  See Process_Contract(_Expr): the parent node for this
                      --  decision is either the aspect association (default
                      --  assertion level), or an aggregate that provides one
                      --  decision per assertion level.
+                     --
+                     --  For Contract_Cases aspects, we also expect:
+                     --
+                     --  * an extra inner layer of Alternatives_List (for guard
+                     --    expressions).
+                     --
+                     --  * an extra outer layer of Aggregate (for consequence
+                     --    expressions).
 
                      declare
                         N : Ada_Node;
                      begin
                         N := E.Parent;
-                        if E.Parent.Kind /= Ada_Aspect_Assoc then
+                        if N.Kind = Ada_Alternatives_List then
+                           N := N.Parent;
+                        end if;
+                        if N.Kind /= Ada_Aspect_Assoc then
                            pragma Assert (N.Kind = Ada_Aggregate_Assoc);
                            N := N.Parent;
                            pragma Assert (N.Kind = Ada_Assoc_List);
                            N := N.Parent;
                            pragma Assert (N.Kind = Ada_Aggregate);
                            N := N.Parent;
+                           if N.Kind = Ada_Aggregate_Assoc then
+                              N := N.Parent;
+                              pragma Assert (N.Kind = Ada_Assoc_List);
+                              N := N.Parent;
+                              pragma Assert (N.Kind = Ada_Aggregate);
+                              N := N.Parent;
+                           end if;
                            pragma Assert (N.Kind = Ada_Aspect_Assoc);
                         end if;
                         Nam := Aspect_Assoc_Name (N.As_Aspect_Assoc);
@@ -7939,7 +7995,8 @@ package body Instrument.Ada_Unit is
                      AN : constant Aspect_Assoc := N.As_Aspect_Assoc;
                   begin
                      if Aspect_Assoc_Name (AN)
-                        in As_Symbol (Dynamic_Predicate)
+                        in As_Symbol (Contract_Cases)
+                         | As_Symbol (Dynamic_Predicate)
                          | As_Symbol (Invariant)
                          | As_Symbol (Ghost_Predicate)
                          | As_Symbol (Post)
@@ -8025,6 +8082,12 @@ package body Instrument.Ada_Unit is
    is
       Saved_SI : constant Any_MCDC_State_Inserter := UIC.MCDC_State_Inserter;
    begin
+      --  Never instrument contracts if assertion coverage is not enabled
+
+      if T in 'P' | 'A' and then not Assertion_Coverage_Enabled then
+         return;
+      end if;
+
       --  The purpose of this Process_Expression wrapper is to avoid creating
       --  local MCDC state variables outside of the expression itself: hide the
       --  current state inserter during the call.
@@ -8053,6 +8116,111 @@ package body Instrument.Ada_Unit is
       UIC.Disable_Instrumentation := Saved_Disable_Instrumentation;
    end Process_Formal_Default_Exprs;
 
+   ---------------------------
+   -- Process_Contract_Expr --
+   ---------------------------
+
+   procedure Process_Contract_Expr
+     (UIC       : in out Ada_Unit_Inst_Context;
+      E         : Expr'Class;
+      Name      : All_Symbols;
+      Is_Pragma : Boolean)
+   is
+      T : constant Character := (if Is_Pragma then 'P' else 'A');
+
+      procedure Process_Expr (E : Expr'Class);
+      --  Helper to process the contract for a given assertion level
+
+      ------------------
+      -- Process_Expr --
+      ------------------
+
+      procedure Process_Expr (E : Expr'Class) is
+      begin
+         --  For Contract_Cases aspects/pragmas, we expect the expression to
+         --  be an aggregate that associates guard expressions to
+         --  consequence expressions:
+         --
+         --  * The guard expressions are treated as regular decisions (when
+         --    there are at least 2 cases) or as preconditions (when there is
+         --    only 1 case) we treat only the latter as contracts.
+         --  * The consequence expressions are always treated as
+         --    postconditions.
+         --
+         --  Note that if we treat guard expressions as regular decisions, we
+         --  must instrument them even when assertion coverage is *not*
+         --  enabled, hence the seemingly duplicated Assertion_Coverage_Enabled
+         --  checks below.
+         --
+         --  For MCDC, we may need to create locals when instrumenting a
+         --  decision: these locals cannot go to the scope that contains D, so
+         --  call Process_Standalone_Expression.
+
+         if Name = Contract_Cases and then E.Kind = Ada_Aggregate then
+            declare
+               Assocs         : constant Assoc_List := E.As_Aggregate.F_Assocs;
+               Multiple_Cases : constant Boolean := Assocs.Children_Count > 1;
+
+               --  When there are multiple cases, guard expressions can be
+               --  expected to evaluate to False, so we process them as regular
+               --  decisions (not assertions). Do not use 'X' so that they are
+               --  considered as decisions even when not instrumenting for
+               --  MC/DC.
+
+               Guard_T       : constant Character :=
+                 (if Multiple_Cases then 'I' else T);
+               Consequence_T : constant Character := T;
+            begin
+               for Assoc of Assocs loop
+                  declare
+                     A : constant Aggregate_Assoc := Assoc.As_Aggregate_Assoc;
+                  begin
+                     for D of A.F_Designators loop
+                        if D.Kind in Ada_Expr then
+                           Process_Standalone_Expression
+                             (UIC, D.As_Expr, Guard_T);
+                        end if;
+                     end loop;
+
+                     Process_Standalone_Expression
+                       (UIC, A.F_R_Expr, Consequence_T);
+                  end;
+               end loop;
+            end;
+         else
+            Process_Standalone_Expression (UIC, E, T);
+         end if;
+      end Process_Expr;
+
+      --  Start of processing for Process_Contract_Expr
+   begin
+      --  Contracts expressions can associate one decision per assertion level:
+      --
+      --     (Level_1 => Decision_1, Level_2 => Decision_2)
+      --
+      --  or they can provide a single expression that acts as a decision
+      --  for the default assertion level.
+      --
+      --  For Contract_Cases, we also expect aggregate once passed the
+      --  assertion levels layer: consider that there is an aggregate layer for
+      --  assertion levels only if the aggregate's nested items are themselves
+      --  aggregates.
+
+      if E.Kind = Ada_Aggregate
+        and then
+          (Name /= Contract_Cases
+           or else
+             E.As_Aggregate.F_Assocs.Child (1).As_Aggregate_Assoc.F_R_Expr.Kind
+             = Ada_Aggregate)
+      then
+         for Assoc of E.As_Aggregate.F_Assocs loop
+            Process_Expr (Assoc.As_Aggregate_Assoc.F_R_Expr);
+         end loop;
+      else
+         Process_Expr (E);
+      end if;
+   end Process_Contract_Expr;
+
    ----------------------
    -- Process_Contract --
    ----------------------
@@ -8062,40 +8230,12 @@ package body Instrument.Ada_Unit is
       D    : Basic_Decl'Class;
       Name : All_Symbols)
    is
-      Decision : Expr;
-   begin
-      --  If assertion coverage is not enabled, or if the contract is not
-      --  present, there is nothing to do.
-
-      if not Assertion_Coverage_Enabled then
-         return;
-      end if;
-
-      Decision :=
+      Contract : constant Expr :=
         P_Get_Aspect_Spec_Expr
           (D, To_Unbounded_Text (Get (Precomputed_Symbols (Name)).all));
-      if Decision.Is_Null then
-         return;
-      end if;
-
-      --  Contracts can associate one decision per assertion level:
-      --
-      --     (Level_1 => Decision_1, Level_2 => Decision_2)
-      --
-      --  or they can provide a single expression that acts as a decision for
-      --  the default assertion level.
-      --
-      --  For MCDC, we may need to create locals when instrumenting a decision:
-      --  these locals cannot go to the scope that contains D, so call
-      --  Process_Standalone_Expression.
-
-      if Decision.Kind = Ada_Aggregate then
-         for Assoc of Decision.As_Aggregate.F_Assocs loop
-            Process_Standalone_Expression
-              (UIC, Assoc.As_Aggregate_Assoc.F_R_Expr, 'A');
-         end loop;
-      else
-         Process_Standalone_Expression (UIC, Decision, 'A');
+   begin
+      if not Contract.Is_Null then
+         Process_Contract_Expr (UIC, Contract, Name, Is_Pragma => False);
       end if;
    end Process_Contract;
 
@@ -8106,6 +8246,7 @@ package body Instrument.Ada_Unit is
    procedure Process_Contracts
      (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class) is
    begin
+      Process_Contract (UIC, D, Contract_Cases);
       Process_Contract (UIC, D, Pre);
       Process_Contract (UIC, D, Post);
    end Process_Contracts;
