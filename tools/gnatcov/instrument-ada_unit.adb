@@ -6912,20 +6912,9 @@ package body Instrument.Ada_Unit is
       --  aspect with no prior declaration.
 
       if Aspects /= No_Aspect_Spec and then Assertion_Coverage_Enabled then
-         declare
-            Assocs  : constant Aspect_Assoc_List := Aspects.F_Aspect_Assocs;
-            Idx     : Positive := 1;
-            Has_Elt : Boolean := Assocs.Aspect_Assoc_List_Has_Element (Idx);
-         begin
-            while Has_Elt loop
-               Process_Expression
-                 (UIC,
-                  As_Ada_Node (Assocs.Aspect_Assoc_List_Element (Idx).F_Expr),
-                  'A');
-               Idx := Idx + 1;
-               Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
-            end loop;
-         end;
+         for Assoc of Aspects.F_Aspect_Assocs loop
+            Process_Expression (UIC, As_Ada_Node (Assoc.F_Expr), 'A');
+         end loop;
       end if;
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
