@@ -621,6 +621,9 @@ package body SC_Obligations is
                   Aspect_Name : Aspect_Id := No_Aspect;
                   --  For an aspect decision, name of the aspect
 
+                  Pragma_Decision_Name : Pragma_Id := Pragma_Id'First;
+                  --  For a pragma decision, corresponding pragma identifier
+
                   Path_Count : Natural := 0;
                   --  Count of distinct paths through the BDD from the root
                   --  condition to any outcome.
@@ -674,6 +677,9 @@ package body SC_Obligations is
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id;
    --  Return the innermost enclosing SCO with the given Kind (if SCO has the
    --  given Kind, returns SCO itself).
+
+   function Decision_Pragma_Name (SCO : SCO_Id) return Pragma_Id;
+   --  Name of the pragma SCO belongs to, for a pragma decision
 
    function Nested (Left, Right : SCO_Descriptor) return Boolean;
    --  Return whether R is nested in L, exclusive at boundaries
@@ -1707,6 +1713,7 @@ package body SC_Obligations is
             SC_Obligations.BDD.Read (CLS, SCOD.Decision_BDD);
             SCOD.Degraded_Origins := CLS.Read_Boolean;
             SCOD.Aspect_Name := Aspect_Id'Val (CLS.Read_U8);
+            SCOD.Pragma_Decision_Name := Pragma_Id'Val (CLS.Read_U16);
             SCOD.Path_Count := CLS.Read_Integer;
 
             --  See the TODO in the declaration of Checkpoint_Version
@@ -3222,6 +3229,7 @@ package body SC_Obligations is
             BDD.Write (CSS, Value.Decision_BDD);
             CSS.Write (Value.Degraded_Origins);
             CSS.Write_U8 (Aspect_Id'Pos (Value.Aspect_Name));
+            CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Decision_Name));
             CSS.Write_Integer (Value.Path_Count);
 
          when Operator          =>
@@ -5076,6 +5084,41 @@ package body SC_Obligations is
       Origin_To_CUs_Map.Reference (Cur).Insert (CU);
    end Register_CU;
 
+   --------------------------
+   -- Decision_Pragma_Name --
+   --------------------------
+
+   function Decision_Pragma_Name (SCO : SCO_Id) return Pragma_Id is
+      SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
+      S_SCO : SCO_Id;
+   begin
+      pragma Assert (SCOD.Kind = Decision);
+      pragma Assert (SCOD.D_Kind = Pragma_Decision);
+
+      --  The instrumenter records the name on the decision itself
+
+      if SCOD.Pragma_Decision_Name /= Pragma_Unknown then
+         return SCOD.Pragma_Decision_Name;
+      end if;
+
+      --  Low level decision entries read from ALI files have no name field:
+      --  the name is only on the enclosing pragma statement there.
+
+      S_SCO := Enclosing_Statement (SCO);
+      if S_SCO = No_SCO_Id then
+         return Pragma_Unknown;
+      end if;
+
+      declare
+         S_SCOD : SCO_Descriptor renames SCO_Vector (S_SCO);
+      begin
+         return
+           (if S_SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
+            then S_SCOD.Pragma_Name
+            else Pragma_Unknown);
+      end;
+   end Decision_Pragma_Name;
+
    ------------------
    -- Is_Assertion --
    ------------------
@@ -5087,12 +5130,9 @@ package body SC_Obligations is
       case SCOD.D_Kind is
          when Pragma_Decision =>
             --  False for pragma Debug, True for all others (i.e. Assert,
-            --  Pre/Postcondition, Check). Note: the pragma name is stored
-            --  in the enclosing statement SCO.
+            --  Pre/Postcondition, Check)
 
-            return
-              SCO_Vector (Enclosing_Statement (SCO)).Pragma_Name
-              /= Pragma_Debug;
+            return Decision_Pragma_Name (SCO) /= Pragma_Debug;
 
          when Aspect          =>
             --  Always True for aspects (Pre/Post/Predicate/Invariant)
@@ -5110,56 +5150,13 @@ package body SC_Obligations is
    ---------------------------
 
    function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean is
-      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean;
-      --  True if the pragma statement of SCOD belongs to the list of pragmas
-      --  supported by assertion coverage.
-
-      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean
-      is
-      begin
-         pragma
-           Assert
-             (SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement);
-
-         return
-           SCOD.Pragma_Name
-           in Pragma_Assert
-            | Pragma_Assert_And_Cut
-            | Pragma_Assume
-            | Pragma_Check
-            | Pragma_Loop_Invariant
-            | Pragma_Precondition
-            | Pragma_Postcondition
-            | Pragma_Type_Invariant;
-      end Is_Pragma_Stmt_To_Cover;
-
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
       if Switches.Postcond_Only then
-         return Is_Postcond_Aspect (SCO);
-      end if;
-
-      if SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement then
-         return Is_Pragma_Stmt_To_Cover (SCOD);
+         return Is_Postcond (SCO);
 
       elsif SCOD.Kind = Decision then
-         case SCOD.D_Kind is
-            when Pragma_Decision =>
-               return
-                 Is_Pragma_Stmt_To_Cover
-                   (SCO_Vector (Enclosing_Statement (SCO)));
-
-            when Aspect          =>
-               return
-                 SCOD.Aspect_Name
-                 in Aspect_Default_Initial_Condition
-                  | Aspect_Post
-                  | Aspect_Pre
-                  | Aspect_Type_Invariant;
-
-            when others          =>
-               return False;
-         end case;
+         return Is_Assertion (SCO);
 
       elsif SCOD.Kind = Condition then
          return Is_Assertion_To_Cover (Enclosing_Decision (SCO));
@@ -5169,18 +5166,26 @@ package body SC_Obligations is
       end if;
    end Is_Assertion_To_Cover;
 
-   ------------------------
-   -- Is_Postcond_Aspect --
-   ------------------------
+   -----------------
+   -- Is_Postcond --
+   -----------------
 
-   function Is_Postcond_Aspect (SCO : SCO_Id) return Boolean is
+   function Is_Postcond (SCO : SCO_Id) return Boolean is
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
-   begin
-      return
+
+      Is_Postcond_Aspect : constant Boolean :=
         SCOD.Kind = Decision
         and then SCOD.D_Kind in Aspect
-        and then SCOD.Aspect_Name = Aspect_Post;
-   end Is_Postcond_Aspect;
+        and then SCOD.Aspect_Name in Aspect_Post | Aspect_Postcondition;
+      Is_Postcond_Pragma : constant Boolean :=
+        SCOD.Kind = Decision
+        and then SCOD.D_Kind in Pragma_Decision
+        and then
+          Decision_Pragma_Name (SCO)
+          in Pragma_Post | Pragma_Post_Class | Pragma_Postcondition;
+   begin
+      return Is_Postcond_Aspect or else Is_Postcond_Pragma;
+   end Is_Postcond;
 
    -------------------
    -- Is_Expression --
@@ -5188,7 +5193,6 @@ package body SC_Obligations is
 
    function Is_Expression (SCO : SCO_Id) return Boolean is
       D_Kind : Decision_Kind;
-      S_SCO  : SCO_Id;
    begin
       pragma Assert (Kind (SCO) = Decision);
 
@@ -5205,27 +5209,21 @@ package body SC_Obligations is
          return False;
       end if;
 
-      S_SCO := Enclosing_Statement (SCO);
-      if S_SCO = No_SCO_Id then
-         return False;
-      end if;
+      --  Assertion decisions are expressions only where assertion coverage
+      --  can account for them. Binary traces have none, so there assertions
+      --  stay plain decisions, save for the few pragmas that were already
+      --  treated as expressions before assertion coverage existed.
 
-      declare
-         S_SCOD : SCO_Descriptor renames SCO_Vector.Reference (S_SCO);
-      begin
-         --  Return whether S_SCOD is a pragma Assert/Check/Pre/Post
-
-         return
-           (S_SCOD.S_Kind = Disabled_Pragma_Statement
-            or else S_SCOD.S_Kind = Pragma_Statement)
-           and then
-             S_SCOD.Pragma_Name
-             in Pragma_Assert
-              | Pragma_Check
-              | Pragma_Precondition
-              | Pragma_Postcondition
-              | Pragma_Loop_Invariant;
-      end;
+      return
+        (if Provider (SCO_Vector.Reference (SCO).Origin) = Instrumenter
+         then Is_Assertion (SCO)
+         else
+           Decision_Pragma_Name (SCO)
+           in Pragma_Assert
+            | Pragma_Check
+            | Pragma_Precondition
+            | Pragma_Postcondition
+            | Pragma_Loop_Invariant);
    end Is_Expression;
 
    ----------------------
@@ -6132,9 +6130,9 @@ package body SC_Obligations is
             State.Current_Decision :=
               Add_SCO
                 (SCO_Descriptor'
-                   (Kind             => Decision,
-                    Origin           => CU,
-                    Control_Location =>
+                   (Kind                 => Decision,
+                    Origin               => CU,
+                    Control_Location     =>
 
                       --  Control locations are only useful for dominance
                       --  markers, which are only used with binary traces. As
@@ -6147,11 +6145,13 @@ package body SC_Obligations is
                        then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
                        else No_Location),
 
-                    D_Kind           => To_Decision_Kind (SCOE.C1),
-                    Last_Cond_Index  => 0,
-                    Aspect_Name      =>
+                    D_Kind               => To_Decision_Kind (SCOE.C1),
+                    Last_Cond_Index      => 0,
+                    Aspect_Name          =>
                       Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                    others           => <>));
+                    Pragma_Decision_Name =>
+                      Case_Insensitive_Get_Pragma_Id (SCOE.Pragma_Aspect_Name),
+                    others               => <>));
             pragma Assert (not SCOE.Last);
 
             State.Current_BDD :=

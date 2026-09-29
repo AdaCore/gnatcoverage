@@ -34,7 +34,7 @@ package GCVRT.Bz5596b68b is
         (Fingerprint             => (106, 13, 66, 61, 138, 186, 69, 82, 48, 55, 131, 49, 211, 239, 150, 134, 208, 146, 21, 201),
          Filename                => (Filename'Address, Filename'Length),
          Bit_Maps_Fingerprint    => (228, 252, 99, 232, 172, 243, 155, 56, 89, 239, 143, 211, 57, 206, 9, 239, 178, 154, 99, 251),
-         Annotations_Fingerprint => (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+         Annotations_Fingerprint => (218, 57, 163, 238, 94, 107, 75, 13, 50, 85, 191, 239, 149, 96, 24, 144, 175, 216, 7, 9),
          Statement               => Statement_Buffer'Address,
          Decision                => Decision_Buffer'Address,
          MCDC                    => MCDC_Buffer'Address,
