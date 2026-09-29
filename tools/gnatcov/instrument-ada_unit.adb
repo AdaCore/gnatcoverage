@@ -6045,10 +6045,10 @@ package body Instrument.Ada_Unit is
 
                   Has_Standalone_Expr : constant Boolean :=
                     Nam
-                    in Name_Type_Invariant
-                     | Name_Invariant
+                    in Name_Invariant
+                     | Name_Postcondition
                      | Name_Precondition
-                     | Name_Postcondition;
+                     | Name_Type_Invariant;
 
                   --  Whether they are expressed as pragmas or aspects,
                   --  contracts are executed when the related entity (type,
@@ -6058,15 +6058,15 @@ package body Instrument.Ada_Unit is
 
                begin
                   case Nam is
-                     when Name_Type_Invariant
-                        | Name_Invariant
-                        | Name_Precondition
-                        | Name_Postcondition
-                        | Name_Assert
+                     when Name_Assert
                         | Name_Assert_And_Cut
                         | Name_Assume
                         | Name_Check
+                        | Name_Invariant
                         | Name_Loop_Invariant
+                        | Name_Postcondition
+                        | Name_Precondition
+                        | Name_Type_Invariant
                      =>
                         --  We consider that the assertion policy is
                         --  "disabled", except if any level of assertion
