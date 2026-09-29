@@ -4054,6 +4054,11 @@ package body Instrument.Ada_Unit is
       --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise,
       --  register decision of contrat of name Name of declaration node D
 
+      procedure Process_Contracts
+        (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class);
+      --  Process_Contract wrapper to instrument decisions for all known
+      --  contracts aspects.
+
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
@@ -4400,6 +4405,17 @@ package body Instrument.Ada_Unit is
             Process_Standalone_Expression (UIC, Decision, 'A');
          end if;
       end Process_Contract;
+
+      -----------------------
+      -- Process_Contracts --
+      -----------------------
+
+      procedure Process_Contracts
+        (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class) is
+      begin
+         Process_Contract (UIC, D, "Pre");
+         Process_Contract (UIC, D, "Post");
+      end Process_Contracts;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -5369,20 +5385,6 @@ package body Instrument.Ada_Unit is
       --------------------------------
 
       procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl) is
-
-         procedure Process_Contracts (D : Basic_Decl'Class);
-         --  Register decisions of pre/postconditions for processing
-
-         -----------------------
-         -- Process_Contracts --
-         -----------------------
-
-         procedure Process_Contracts (D : Basic_Decl'Class) is
-         begin
-            Process_Contract (UIC, D, "Pre");
-            Process_Contract (UIC, D, "Post");
-         end Process_Contracts;
-
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
 
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
@@ -5407,13 +5409,13 @@ package body Instrument.Ada_Unit is
             Traverse_Degenerate_Subprogram (N, N_Spec);
 
          elsif N.Kind in Ada_Subp_Decl then
-            Process_Contracts (N.As_Subp_Decl);
+            Process_Contracts (UIC, N.As_Subp_Decl);
 
          elsif N.Kind in Ada_Formal_Subp_Decl then
-            Process_Contracts (N.As_Formal_Subp_Decl);
+            Process_Contracts (UIC, N.As_Formal_Subp_Decl);
 
          elsif N.Kind in Ada_Expr_Function then
-            Process_Contracts (N.As_Expr_Function);
+            Process_Contracts (UIC, N.As_Expr_Function);
             Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
 
@@ -6270,8 +6272,7 @@ package body Instrument.Ada_Unit is
                   --  Access to subprogram types can have pre/post conditions:
                   --  instrument them if needed.
 
-                  Process_Contract (UIC, TD, "Pre");
-                  Process_Contract (UIC, TD, "Post");
+                  Process_Contracts (UIC, TD);
                end;
 
             when Ada_Named_Stmt                                    =>
