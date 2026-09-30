@@ -92,6 +92,8 @@ def check_indices(metrics: list[str], statsdir: str, refdir: str = "") -> None:
                 idx,
                 f"unexpected index content for {filename} "
                 f"with baseline {ref}",
+                output_refiners=[],
+                ignore_white_chars=False,
             )
         else:
             idx_contents = contents_of(idx)
