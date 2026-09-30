@@ -34,4 +34,5 @@ end Test_Various_Tests;
 -- /bar/             l+ ## 0
 -- # run_assert.adb
 -- /decl/            l- ## s-
--- /assert/          l- ## s-
+-- /assert/          l- ## a-
+-- /after_assert/    l- ## s-

@@ -10,6 +10,6 @@ end Test_Postcond;
 
 --# postcond.adb
 -- /post/   l- ## a-
--- /assert/ l+ ## 0
+-- /assert/ l. ## 0
 -- /ko/     l- ## s-
 -- /stmt/   l+ ## 0

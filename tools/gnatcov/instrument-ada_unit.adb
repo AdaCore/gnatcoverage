@@ -722,14 +722,17 @@ package body Instrument.Ada_Unit is
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String;
 
+   type Decision_Kind is (Decision, Contract);
+
    function Require_MCDC_State_Inserter
      (UIC      : in out Ada_Unit_Inst_Context'Class;
       E        : Expr'Class;
-      Inserter : aliased in out Default_MCDC_State_Inserter'Class)
-      return Boolean;
+      Inserter : aliased in out Default_MCDC_State_Inserter'Class;
+      DK       : Decision_Kind) return Boolean;
    --  If UIC already has a state inserter, do nothing. Otherwise, try to
-   --  create one, wrapping E in a declare expression. This only emits a
+   --  create one, wrapping E in a declare expression. This emits a warning
    --  warning if the current Ada version does not support declare expressions.
+   --  The precise warning message depends on DK.
    --
    --  Return whether UIC has a state inserter upon return.
 
@@ -2115,8 +2118,8 @@ package body Instrument.Ada_Unit is
    function Require_MCDC_State_Inserter
      (UIC      : in out Ada_Unit_Inst_Context'Class;
       E        : Expr'Class;
-      Inserter : aliased in out Default_MCDC_State_Inserter'Class)
-      return Boolean
+      Inserter : aliased in out Default_MCDC_State_Inserter'Class;
+      DK       : Decision_Kind) return Boolean
    is
       ERH : Node_Rewriting_Handle;
       --  Node rewriting handle for E
@@ -2127,6 +2130,11 @@ package body Instrument.Ada_Unit is
       Paren_Expr : Node_Rewriting_Handle;
       --  Paren expression to wrap the decl expression (needed for correct
       --  syntax).
+
+      DK_Part : constant String :=
+        (case DK is
+           when Decision => "MC/DC",
+           when Contract => "ATCC");
    begin
       if UIC.MCDC_State_Inserter /= null then
          return True;
@@ -2136,9 +2144,10 @@ package body Instrument.Ada_Unit is
          Report
            (UIC,
             E,
-            "cannot find local declarative part for MC/DC; consider switching"
-            & " to Ada 2022: declare expressions allow to lift this"
-            & " limitation",
+            "cannot find local declarative part for "
+            & DK_Part
+            & "; consider switching to Ada 2022: declare expressions allow to"
+            & " lift this limitation",
             Kind => Diagnostics.Limitation);
          return False;
       end if;
@@ -5902,36 +5911,26 @@ package body Instrument.Ada_Unit is
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
 
+                  Has_Standalone_Expr : constant Boolean :=
+                    Nam
+                    in Name_Type_Invariant
+                     | Name_Invariant
+                     | Name_Precondition
+                     | Name_Postcondition;
+
+                  --  Whether they are expressed as pragmas or aspects,
+                  --  contracts are executed when the related entity (type,
+                  --  subprogram) is used, not when its declaration is
+                  --  elaborated, so there is no statement-level witness to
+                  --  insert for them.
+
                begin
                   case Nam is
                      when Name_Type_Invariant
+                        | Name_Invariant
                         | Name_Precondition
                         | Name_Postcondition
-                     =>
-                        Instrument_Statement (UIC, N, 'p');
-
-                        if Assertion_Coverage_Enabled then
-                           declare
-                              Pragma_Name : constant String :=
-                                (case Nam is
-                                   when Name_Type_Invariant =>
-                                     "Type_Invariant",
-                                   when Name_Precondition   => "Precondition",
-                                   when Name_Postcondition  => "Postcondition",
-                                   when others              => "");
-                           begin
-                              Report
-                                (N,
-                                 "pragma "
-                                 & Pragma_Name
-                                 & " ignored during instrumentation."
-                                 & " Consider expressing it as an aspect"
-                                 & " instead.",
-                                 Diagnostics.Limitation);
-                           end;
-                        end if;
-
-                     when Name_Assert
+                        | Name_Assert
                         | Name_Assert_And_Cut
                         | Name_Assume
                         | Name_Check
@@ -5947,23 +5946,29 @@ package body Instrument.Ada_Unit is
                         --  later on.
 
                         if Assertion_Coverage_Enabled then
-                           Instrument_Statement (UIC, N, 'P');
                            declare
                               Index : constant Positive :=
                                 (case Nam is
-                                   when Name_Check => 2,
-                                   when others     => 1);
+                                   when Name_Check
+                                      | Name_Type_Invariant
+                                      | Name_Invariant => 2,
+                                   when others         => 1);
                            begin
                               if not Is_Null (Prag_Args.Child (Index)) then
-                                 Process_Expression
-                                   (UIC,
-                                    Prag_Arg_Expr (Prag_Args, Index),
-                                    'P',
-                                    Preelab);
+                                 if Has_Standalone_Expr then
+                                    Process_Standalone_Expression
+                                      (UIC,
+                                       Prag_Arg_Expr (Prag_Args, Index),
+                                       'P');
+                                 else
+                                    Process_Expression
+                                      (UIC,
+                                       Prag_Arg_Expr (Prag_Args, Index),
+                                       'P',
+                                       Preelab);
+                                 end if;
                               end if;
                            end;
-                        else
-                           Instrument_Statement (UIC, N, 'p');
                         end if;
 
                      when Name_Debug
@@ -7547,6 +7552,7 @@ package body Instrument.Ada_Unit is
                      Is_Contract :=
                        Pragma_Name (PN.As_Pragma_Node)
                        /= Precomputed_Symbols (Debug);
+                     Nam := Pragma_Name (PN.As_Pragma_Node);
                   end;
 
                when 'X'                         =>
@@ -7613,7 +7619,12 @@ package body Instrument.Ada_Unit is
                   --  inserter. If there is none, try to create one based on a
                   --  decl expr.
 
-                  if Require_MCDC_State_Inserter (UIC, E, New_SI) then
+                  if Require_MCDC_State_Inserter
+                       (UIC,
+                        E,
+                        New_SI,
+                        (if Is_Contract then Contract else Decision))
+                  then
                      Conditions_State :=
                        To_Unbounded_String
                          (UIC.MCDC_State_Inserter.Insert_MCDC_State
