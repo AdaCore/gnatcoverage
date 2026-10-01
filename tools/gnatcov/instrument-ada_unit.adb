@@ -4281,8 +4281,11 @@ package body Instrument.Ada_Unit is
 
                   Null_Token : constant Token_Reference :=
                     NNT (NNT (N.As_Null_Subp_Decl.F_Subp_Spec.Token_End));
+                  SR         : constant Lk_Slocs.Source_Location_Range :=
+                    Sloc_Range (Data (Null_Token));
                begin
-                  From := Start_Sloc (Sloc_Range (Data (Null_Token)));
+                  From := Start_Sloc (SR);
+                  To := End_Sloc (SR);
                end;
 
             when others                                       =>
