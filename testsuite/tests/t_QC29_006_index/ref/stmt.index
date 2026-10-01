@@ -22,11 +22,13 @@ foo:
     foo.ads:
         -   -%, !   -%, +   -%     out of 0 obligations
 
+lib:
         -   0%, !   0%, + 100%     out of 1 obligations
 
     lib.ads:
         -   0%, !   0%, + 100%     out of 1 obligations
 
+main:
         -  12%, !   0%, +  87%     out of 8 obligations
 
     a.adb:
