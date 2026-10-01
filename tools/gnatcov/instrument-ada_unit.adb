@@ -5385,6 +5385,7 @@ package body Instrument.Ada_Unit is
 
       begin
          Process_Formal_Default_Exprs (UIC, N_Spec);
+         Process_Contracts (UIC, N);
 
          Enter_Scope
            (UIC  => UIC,
@@ -5395,17 +5396,7 @@ package body Instrument.Ada_Unit is
          --  Nothing else to do except for the case of degenerate subprograms
          --  (null procedures and expression functions).
 
-         if N.Kind in Ada_Null_Subp_Decl then
-            Traverse_Degenerate_Subprogram (N, N_Spec);
-
-         elsif N.Kind in Ada_Subp_Decl then
-            Process_Contracts (UIC, N.As_Subp_Decl);
-
-         elsif N.Kind in Ada_Formal_Subp_Decl then
-            Process_Contracts (UIC, N.As_Formal_Subp_Decl);
-
-         elsif N.Kind in Ada_Expr_Function then
-            Process_Contracts (UIC, N.As_Expr_Function);
+         if N.Kind in Ada_Null_Subp_Decl | Ada_Expr_Function then
             Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
 
