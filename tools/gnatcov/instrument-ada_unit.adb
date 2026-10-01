@@ -6767,9 +6767,8 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Subprogram_Or_Task_Body
      (UIC : in out Ada_Unit_Inst_Context; N : Body_Node'Class)
    is
-      Decls   : Declarative_Part;
-      HSS     : Handled_Stmts;
-      Aspects : Aspect_Spec := No_Aspect_Spec;
+      Decls : Declarative_Part;
+      HSS   : Handled_Stmts;
 
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
@@ -6783,7 +6782,6 @@ package body Instrument.Ada_Unit is
             begin
                Decls := SBN.F_Decls;
                HSS := SBN.F_Stmts;
-               Aspects := SBN.F_Aspects;
             end;
 
          when Ada_Task_Body  =>
@@ -6818,16 +6816,7 @@ package body Instrument.Ada_Unit is
       end;
 
       Process_Formal_Default_Exprs (UIC, N.P_Subp_Spec_Or_Null.As_Subp_Spec);
-
-      --  If assertion coverage is enabled, process the decisions in the
-      --  contracts. This is needed in the case of a subprogram body with
-      --  aspect with no prior declaration.
-
-      if Aspects /= No_Aspect_Spec and then Assertion_Coverage_Enabled then
-         for Assoc of Aspects.F_Aspect_Assocs loop
-            Process_Expression (UIC, As_Ada_Node (Assoc.F_Expr), 'A');
-         end loop;
-      end if;
+      Process_Contracts (UIC, N);
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
@@ -7550,7 +7539,6 @@ package body Instrument.Ada_Unit is
             case T is
                when 'I' | 'E' | 'W' | 'a' | 'A' =>
 
-                  --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
                   --  of the parent of the expression.
 
                   Loc := Sloc (Parent (E));
