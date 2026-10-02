@@ -3985,6 +3985,18 @@ package body Instrument.Ada_Unit is
      (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
    --  Process default expressions for formals in N_Spec
 
+   procedure Process_Contract
+     (UIC  : in out Ada_Unit_Inst_Context;
+      D    : Basic_Decl'Class;
+      Name : All_Symbols);
+   --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise, register
+   --  decision of contrat of name Name of declaration node D
+
+   procedure Process_Contracts
+     (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class);
+   --  Process_Contract wrapper to instrument decisions for all known contracts
+   --  aspects.
+
    function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean;
    --  Return True if Node is the leaf of a call expression, that is there are
    --  no nodes in the children of Node identifying the same call.
@@ -4053,18 +4065,6 @@ package body Instrument.Ada_Unit is
       --  (case of a degenerated subprogram, which gets rewritten into a
       --  generic). In that case, Insertion_N indicates where to insert the
       --  witness.
-
-      procedure Process_Contract
-        (UIC  : in out Ada_Unit_Inst_Context;
-         D    : Basic_Decl'Class;
-         Name : All_Symbols);
-      --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise,
-      --  register decision of contrat of name Name of declaration node D
-
-      procedure Process_Contracts
-        (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class);
-      --  Process_Contract wrapper to instrument decisions for all known
-      --  contracts aspects.
 
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
@@ -4367,63 +4367,6 @@ package body Instrument.Ada_Unit is
             end;
          end if;
       end Instrument_Statement;
-
-      ----------------------
-      -- Process_Contract --
-      ----------------------
-
-      procedure Process_Contract
-        (UIC  : in out Ada_Unit_Inst_Context;
-         D    : Basic_Decl'Class;
-         Name : All_Symbols)
-      is
-         Decision : Expr;
-      begin
-         --  If assertion coverage is not enabled, or if the contract is not
-         --  present, there is nothing to do.
-
-         if not Assertion_Coverage_Enabled then
-            return;
-         end if;
-
-         Decision :=
-           P_Get_Aspect_Spec_Expr
-             (D, To_Unbounded_Text (Get (Precomputed_Symbols (Name)).all));
-         if Decision.Is_Null then
-            return;
-         end if;
-
-         --  Contracts can associate one decision per assertion level:
-         --
-         --     (Level_1 => Decision_1, Level_2 => Decision_2)
-         --
-         --  or they can provide a single expression that acts as a decision
-         --  for the default assertion level.
-         --
-         --  For MCDC, we may need to create locals when instrumenting a
-         --  decision: these locals cannot go to the scope that contains D, so
-         --  call Process_Standalone_Expression.
-
-         if Decision.Kind = Ada_Aggregate then
-            for Assoc of Decision.As_Aggregate.F_Assocs loop
-               Process_Standalone_Expression
-                 (UIC, Assoc.As_Aggregate_Assoc.F_R_Expr, 'A');
-            end loop;
-         else
-            Process_Standalone_Expression (UIC, Decision, 'A');
-         end if;
-      end Process_Contract;
-
-      -----------------------
-      -- Process_Contracts --
-      -----------------------
-
-      procedure Process_Contracts
-        (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class) is
-      begin
-         Process_Contract (UIC, D, Pre);
-         Process_Contract (UIC, D, Post);
-      end Process_Contracts;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -8109,6 +8052,63 @@ package body Instrument.Ada_Unit is
       Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
       UIC.Disable_Instrumentation := Saved_Disable_Instrumentation;
    end Process_Formal_Default_Exprs;
+
+   ----------------------
+   -- Process_Contract --
+   ----------------------
+
+   procedure Process_Contract
+     (UIC  : in out Ada_Unit_Inst_Context;
+      D    : Basic_Decl'Class;
+      Name : All_Symbols)
+   is
+      Decision : Expr;
+   begin
+      --  If assertion coverage is not enabled, or if the contract is not
+      --  present, there is nothing to do.
+
+      if not Assertion_Coverage_Enabled then
+         return;
+      end if;
+
+      Decision :=
+        P_Get_Aspect_Spec_Expr
+          (D, To_Unbounded_Text (Get (Precomputed_Symbols (Name)).all));
+      if Decision.Is_Null then
+         return;
+      end if;
+
+      --  Contracts can associate one decision per assertion level:
+      --
+      --     (Level_1 => Decision_1, Level_2 => Decision_2)
+      --
+      --  or they can provide a single expression that acts as a decision for
+      --  the default assertion level.
+      --
+      --  For MCDC, we may need to create locals when instrumenting a decision:
+      --  these locals cannot go to the scope that contains D, so call
+      --  Process_Standalone_Expression.
+
+      if Decision.Kind = Ada_Aggregate then
+         for Assoc of Decision.As_Aggregate.F_Assocs loop
+            Process_Standalone_Expression
+              (UIC, Assoc.As_Aggregate_Assoc.F_R_Expr, 'A');
+         end loop;
+      else
+         Process_Standalone_Expression (UIC, Decision, 'A');
+      end if;
+   end Process_Contract;
+
+   -----------------------
+   -- Process_Contracts --
+   -----------------------
+
+   procedure Process_Contracts
+     (UIC : in out Ada_Unit_Inst_Context; D : Basic_Decl'Class) is
+   begin
+      Process_Contract (UIC, D, Pre);
+      Process_Contract (UIC, D, Post);
+   end Process_Contracts;
 
    ------------------
    -- Is_Call_Leaf --
