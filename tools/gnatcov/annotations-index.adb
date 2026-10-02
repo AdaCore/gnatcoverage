@@ -462,6 +462,7 @@ package body Annotations.Index is
                  Is_Prj => True,
                  Lines  => Lines));
          Put_Line (Cov_Index_File, +Contents);
+         Close (Cov_Index_File);
       end Write_Index;
 
    begin
