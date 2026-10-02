@@ -385,12 +385,11 @@ Exemption regions
 -----------------
 
 Exempted regions are reported as blocks in both the annotated source and the
-synthetic text reports, for both source and object coverage metrics.  In
-annotated source reports, a ``#`` or ``*`` character annotates all the exempted
-lines, depending on whether 0 or at least 1 violation was exempted over the
-whole section, respectively.  For our ``Eassert`` example above, a typical
-:cmd-option:`=xcov` output for :cmd-option:`stmt+decision` coverage for would
-be::
+synthetic text reports.  In annotated source reports, a ``#`` or ``*``
+character annotates all the exempted lines, depending on whether 0 or at least
+1 violation was exempted over the whole section, respectively.  For our
+``Eassert`` example above, a typical :cmd-option:`=xcov` output for
+:cmd-option:`stmt+decision` coverage for would be::
 
    6 .: procedure Eassert (T : Boolean) is
    7 .: begin
@@ -544,24 +543,3 @@ In the annotated sources, exemption regions with *only* undetermined coverage
 items are annotated with ``@`` signs instead of ``*``. If there are both
 undetermined coverage obligations as well as violations in the exemption
 region, the corresponding lines is still annotated with ``#``.
-
-.. _ocov_exemptions:
-
-Object coverage exemptions
-==========================
-
-Exemption regions specified via annotations in source files actually apply
-to both source and object level criteria analyzed over the annotated regions.
-
-In the previous example, we would have used similar exemption annotations to
-deal with expected object instruction and branch coverage failures in Eassert,
-as the conditional branch used to implement the ``if`` statement is expected
-to remain partially covered, as well as the sequence of machine instructions
-triggering the Ada exception raise.
-
-As for Source Coverage Obligations for source level criteria, information about
-the declared exemption regions is located in the :term:`Library Information
-files <Library Information file>` produced by the compiler for every
-compilation unit. The mechanisms described in chapter :ref:`sunits` can then
-also be used to designate units for which exemptions regions should be
-accounted for.

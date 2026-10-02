@@ -327,7 +327,7 @@ combinations of the executions, just by passing the corresponding traces.
 For example, combining the two executions exercising the ``*`` and ``+``
 computations for statement coverage can be achieved with::
 
-   gnatcov coverage --scos=main.c.gli --scos=process.c.gli \
+   gnatcov coverage --sid=main.c.sid --sid=process.c.sid \
       --annotate=xcov --level=stmt mult.srctrace plus.srctrace
 
 And this yields reports in ``main.c.xcov`` and ``process.c.xcov`` like::
