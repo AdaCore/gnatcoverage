@@ -27,7 +27,8 @@ package Instrument.Actions.Instrument_Source.Ada is
       Check_Checksums : Boolean);
 
    overriding
-   function Dependencies (Self : in out Object) return Containers.Filename_Set;
+   function Dependencies
+     (Self : in out Object) return GPR2.Containers.Filename_Set;
    --  Retrieve the dependencies of the unit instrumented in the context of
    --  the given source instrumentation action.
 

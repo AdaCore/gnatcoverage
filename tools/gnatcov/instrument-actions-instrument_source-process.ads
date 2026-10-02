@@ -73,12 +73,12 @@ package Instrument.Actions.Instrument_Source.Process is
 
    overriding
    function Extended (Self : Object) return Object
-   is (raise Internal_Error with "This action is not extending");
+   is (raise GPR2.Internal_Error with "This action is not extending");
    --  Do not handle project extension for now: always reinstrument even if
    --  the source was instrumented in an extended project.
 
    overriding
-   function Working_Directory (Self : Object) return Path_Name.Object;
+   function Working_Directory (Self : Object) return GPR2.Path_Name.Object;
 
    overriding
    function UID (Self : Object) return GPR2.Build.Actions.Action_Id'Class
@@ -86,6 +86,6 @@ package Instrument.Actions.Instrument_Source.Process is
 
 private
    overriding
-   function Working_Directory (Self : Object) return Path_Name.Object
+   function Working_Directory (Self : Object) return GPR2.Path_Name.Object
    is (Self.View.Object_Directory);
 end Instrument.Actions.Instrument_Source.Process;
