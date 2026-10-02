@@ -4,12 +4,6 @@ Glossary of terms & concepts
 
 .. glossary::
 
-   Binary Trace
-     File containing low level information about the blocks of machine
-     code executed by a program, from which |gcp| can infer source level
-     coverage assessments. Such traces are produced by an instrumented
-     execution environment for programs built from their original sources.
-
    Complex Boolean Expression
       Boolean expression with at least two operands, where all the binary
       operators are defined to enforce short-circuit semantics.
@@ -119,4 +113,3 @@ Glossary of terms & concepts
       Part of a command line that designates a text file which contains a
       list of items, one per line in the file. The expected nature of each
       item depends on the context.
-
