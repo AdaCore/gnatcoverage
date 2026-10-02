@@ -66,7 +66,7 @@ package Instrument.Actions.Instrument_Source.Thread is
 
    overriding
    function Extended (Self : Object) return Object
-   is (raise Internal_Error with "This action is not extending");
+   is (raise GPR2.Internal_Error with "This action is not extending");
    --  Do not handle project extension for now: always reinstrument even if
    --  the source was instrumented in an extended project.
 

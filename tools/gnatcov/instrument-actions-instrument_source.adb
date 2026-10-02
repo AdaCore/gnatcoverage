@@ -165,7 +165,8 @@ package body Instrument.Actions.Instrument_Source is
 
       for Arg of Switches.Args.String_List_Args (Opt_Ext_Annotations) loop
          if not Signature.Add_Output
-                  (GPR2.Build.Artifacts.Files.Create (Filename_Type (+Arg)),
+                  (GPR2.Build.Artifacts.Files.Create
+                     (GPR2.Filename_Type (+Arg)),
                    Check_Checksums)
          then
             Signature.Clear;
@@ -177,8 +178,8 @@ package body Instrument.Actions.Instrument_Source is
 
       if not Signature.Add_Input
                (GPR2.Build.Artifacts.Key_Value.Create
-                  (Key   => Value_Type'("gnatcov_version"),
-                   Value => Value_Type'(Version.Xcov_Version)),
+                  (Key   => GPR2.Value_Type'("gnatcov_version"),
+                   Value => GPR2.Value_Type'(Version.Xcov_Version)),
                 Check_Checksums)
       then
          Signature.Clear;
@@ -385,12 +386,13 @@ package body Instrument.Actions.Instrument_Source is
    -- Dependencies --
    ------------------
 
-   function Dependencies (Self : in out Object) return Containers.Filename_Set
+   function Dependencies
+     (Self : in out Object) return GPR2.Containers.Filename_Set
    is
-      BN     : constant Simple_Name :=
+      BN     : constant GPR2.Simple_Name :=
         Self.LU_Info.Main_Part_Src.Path_Name.Base_Filename;
-      O_Suff : constant Simple_Name :=
-        Simple_Name
+      O_Suff : constant GPR2.Simple_Name :=
+        GPR2.Simple_Name
           (Self.LU_Info.Instr_Project.Attribute
              (PRA.Compiler.Object_File_Suffix,
               PAI.Create (Self.LU_Info.Main_Part_Src.Language))
@@ -399,7 +401,7 @@ package body Instrument.Actions.Instrument_Source is
       --  Object file path
    begin
       if not Self.Dep_File.Is_Defined then
-         return Containers.Empty_Filename_Set;
+         return GPR2.Containers.Empty_Filename_Set;
       end if;
 
       --  Defensive code to not read the dependency file if it does not exist:
@@ -411,7 +413,7 @@ package body Instrument.Actions.Instrument_Source is
       if not Self.Dep_File.Exists then
          Instrument.Sources_Trace.Trace
            ("No dependency file " & Self.Dep_File.String_Value);
-         return Containers.Empty_Filename_Set;
+         return GPR2.Containers.Empty_Filename_Set;
       end if;
 
       if not Self.Deps_Cache.Is_Empty then
@@ -429,7 +431,7 @@ package body Instrument.Actions.Instrument_Source is
             & "file "
             & Self.Dep_File.String_Value);
 
-         return Containers.Empty_Filename_Set;
+         return GPR2.Containers.Empty_Filename_Set;
       end if;
 
       return Self.Deps_Cache;

@@ -39,11 +39,11 @@ package body Instrument.Actions.Instrument_Source.Ada is
       Exit_Signature_Exception : exception;
 
       procedure Process_Part
-        (Kind     : Unit_Kind;
+        (Kind     : GPR2.Unit_Kind;
          View     : GPR2.Project.View.Object;
-         Path     : Path_Name.Object;
-         Index    : Unit_Index;
-         Sep_Name : Optional_Name_Type);
+         Path     : GPR2.Path_Name.Object;
+         Index    : GPR2.Unit_Index;
+         Sep_Name : GPR2.Optional_Name_Type);
       --  Add the given Path as an input of the signature. Raises
       --  Exit_Signature_Exception if the call to Self.Signature.Add_Input
       --  failed.
@@ -53,11 +53,11 @@ package body Instrument.Actions.Instrument_Source.Ada is
       ------------------
 
       procedure Process_Part
-        (Kind     : Unit_Kind;
+        (Kind     : GPR2.Unit_Kind;
          View     : GPR2.Project.View.Object;
-         Path     : Path_Name.Object;
-         Index    : Unit_Index;
-         Sep_Name : Optional_Name_Type)
+         Path     : GPR2.Path_Name.Object;
+         Index    : GPR2.Unit_Index;
+         Sep_Name : GPR2.Optional_Name_Type)
       is
          pragma Unreferenced (Kind, View, Index, Sep_Name);
       begin
@@ -84,7 +84,7 @@ package body Instrument.Actions.Instrument_Source.Ada is
 
       if not Signature.Add_Input
                (GPR2.Build.Artifacts.Files.Create
-                  (Filename_Type (+Self.IC.Ada_Preprocessor_Data_File)),
+                  (GPR2.Filename_Type (+Self.IC.Ada_Preprocessor_Data_File)),
                 Check_Checksums)
       then
          return;
@@ -94,7 +94,7 @@ package body Instrument.Actions.Instrument_Source.Ada is
 
       if not Signature.Add_Input
                (GPR2.Build.Artifacts.Files.Create
-                  (Filename_Type (+Self.IC.Config_Pragmas_Mapping)),
+                  (GPR2.Filename_Type (+Self.IC.Config_Pragmas_Mapping)),
                 Check_Checksums)
       then
          return;
@@ -107,9 +107,10 @@ package body Instrument.Actions.Instrument_Source.Ada is
    -- Dependencies --
    ------------------
 
-   function Dependencies (Self : in out Object) return Containers.Filename_Set
+   function Dependencies
+     (Self : in out Object) return GPR2.Containers.Filename_Set
    is
-      Result : Containers.Filename_Set;
+      Result : GPR2.Containers.Filename_Set;
 
       Namespace_Root : constant GPR2.Project.View.Set.Object :=
         Self.LU_Info.Instr_Project.Namespace_Roots;
@@ -123,7 +124,8 @@ package body Instrument.Actions.Instrument_Source.Ada is
             Dep_Unit : constant GPR2.Build.Compilation_Unit.Object :=
               Namespace_Root.First_Element.Unit (Dep);
          begin
-            if Dep_Unit.Is_Defined and then Dep_Unit.Has_Part (S_Spec) then
+            if Dep_Unit.Is_Defined and then Dep_Unit.Has_Part (GPR2.S_Spec)
+            then
 
                --  Use Include rather than Insert in case of a multi unit
                --  source dependency.
