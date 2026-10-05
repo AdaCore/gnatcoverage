@@ -17,7 +17,7 @@ coverage analysis activity, in particular:
 #. Select units of interest and retrieve Source Coverage Obligations
    for source coverage analysis,
 
-#. Retrieve exemption regions for source and object coverage analysis,
+#. Retrieve exemption regions,
 
 #. Specify default switches for the various |gcv| commands,
 
@@ -54,8 +54,8 @@ operation.  Here is a first basic example::
     package Coverage is
        level := "--level=stmt"; -- to be reused in different contexts
 
-       for Switches ("run") use (level);
-       -- This will apply to "gnatcov run"
+       for Switches ("instrument") use (level);
+       -- This will apply to "gnatcov instrument"
 
        for Switches ("coverage") use (level, "--annotate=report");
        -- This will apply to "gnatcov coverage"
@@ -63,8 +63,8 @@ operation.  Here is a first basic example::
 
 For switches applicable to all the commands you are planning to use, the
 special ``"*"`` index is available to denote `any` command. If you are going
-to use only ``run`` and ``coverage``, for instance, the example above might be
-re-written as::
+to use only ``instrument`` and ``coverage``, for instance, the example above
+might be re-written as::
 
     package Coverage is
        for Switches ("*") use ("--level=stmt");
@@ -94,16 +94,15 @@ Specifying the Target and language Runtime
 Similarly to other tools, |gcv| uses any existing ``Target`` or ``Runtime``
 attribute in the root project file to detect what target architecture and
 associated language runtime profile to consider. This can be done instead of
-providing the :cmd-option:`--target` and :cmd-option:`--RTS` options both for
-correct processing of project files and to run the appropriate execution
-environment in |gcvrun|.  Here is a simple example::
+providing the :cmd-option:`--target` and :cmd-option:`--RTS` options for
+correct processing of project files.  Here is a simple example::
 
     project My_Program is
        for Languages use ("Ada");
        for Main use ("my_program.adb");
 
        for Target use "powerpc-elf";
-       for Runtime use "zfp-mpc8641";
+       for Runtime use "light-mpc8641";
     end My_Program;
 
 When a :cmd-option:`--target` or a :cmd-option:`--RTS` option is provided on

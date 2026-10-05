@@ -109,13 +109,6 @@ The available options are as follows:
    Information file>` in the indicated subdirectory of each project's object
    directory.
 
-:cmd-option:`--scos`, |rarg|:
-   Provide the set of
-   :term:`Library Information files <Library Information file>` from which
-   Source Coverage Obligations (SCOs) should be loaded to process **binary**
-   traces. This low-level switch effectively overrides the project based units
-   of interest selection.  It only has effect if used with binary traces.
-
 :cmd-option:`--sid`, |rarg|:
    Provide the set of :term:`Source Instrumentation Data files <Source
    Instrumentation Data file>` from which Source Coverage Obligations (SCOs)
@@ -365,7 +358,7 @@ items:
 * Command line and Version of |gcp| that produced the report. The set of units
   that the report is about is conveyed by the command line switches summarized
   there (:cmd-option:`--projects`, :cmd-option:`--units`,
-  :cmd-option:`--scos`).
+  :cmd-option:`--sid`).
 
 * Coverage level requested to be analyzed
 

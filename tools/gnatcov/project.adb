@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2012-2024, AdaCore                     --
+--                     Copyright (C) 2012-2026, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -2174,7 +2174,7 @@ package body Project is
       Message : GPR2.Message.Object;
       Binary  : Boolean := False) is
    begin
-      if Message.Level in GPR2.Message.Warning | GPR2.Message.Error then
+      if Message.Level in GPR2.Message.Warning | GPR2.Message.Any_Error then
          Register_Warning;
       end if;
       Self.Inner.Internal_Report (Message, Binary);

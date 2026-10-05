@@ -52,15 +52,6 @@ If all the switches that need to be passed to |gcp| are correctly defined in
 will build and run all the harness projects and then generate a coverage report
 for all the units under test.
 
-By default, coverage data for a native project is obtained using
-:ref:`source traces <src_traces>` and coverage for projects targeting
-a cross environment is assessed using :ref:`binary traces
-<bin_traces>`.
-
-For cases where the default behavior isn't appropriate for the project under
-test, the rules for producing a coverage report from both kind of traces are
-always generated.
-
 Special considerations for cross environment targets
 ====================================================
 
@@ -70,27 +61,15 @@ execution traces. The generated makefile tries to implement an execution and
 trace collection strategy that is the most likely to work for most projects,
 based on GNATemulator for execution.
 
-For binary traces, this is done through the ``gnatcov run`` command (see
-:ref:`gnatcov_run-commandline`), which takes care of setting up the trace
-collection mechanism in GNATemulator. For this configuration to work properly,
-the ``Board`` attribute in the package ``Emulator`` needs to be specified in
-the root project file, or alternatively the ``GNATEMU_BOARD`` variable must be
-set in the ``coverage_settings.mk`` secondary makefile.
-
-For source traces, the instrumented program will be run using GNATemulator
-directly, and assumes that the standard package Ada.GNAT_IO allows data to be
-output on a serial port. The instrumentation process overrides the two switches
+The instrumented program will be run using GNATemulator directly, and assumes
+that the standard package Ada.GNAT_IO allows data to be output on a serial
+port. The instrumentation process overrides the two switches
 :cmd-option:`--dump-trigger` and :cmd-option:`--dump-channel` to the values
 ``main-end`` and ``base64-stdout`` respectively as they are the most adapted to
-the GNATtest harness project and to the GNATemulator execution environment.
-The program is run under GNATemulator, and the output of the first serial port
-is captured as it contains the trace in a base-64 encoding. This text trace is
+the GNATtest harness project and to the GNATemulator execution environment. The
+program is run under GNATemulator, and the output of the first serial port is
+captured as it contains the trace in a base-64 encoding. This text trace is
 then decoded and converted into a regular source trace.
-
-There is currently no out-of-the-box support for running the GNATtest harness
-projects on target and collect execution traces from a hardware probe; the
-current makefile can still be used to compile the executables and process the
-traces once they are available, but the execution rules will need rewriting.
 
 Usage example
 =============
@@ -156,22 +135,19 @@ After invoking GNATtest as follows:
 
 The following two files can be found in the harness directory:
 
-* The ``Makefile`` with (amongst other things) three rules that execute the
+* The ``Makefile`` with (amongst other things) two rules that execute the
   full coverage workflow for each test driver project, and then generates a
   coverage report combining the results:
 
   .. code-block:: Makefile
 
-    bin-coverage: ...
-
     inst-coverage: ...
 
     coverage: inst-coverage
 
-  The first rule (``bin-coverage``) runs the binary traces workflow for |gcp|,
-  whereas the second rule (``inst-coverage``) runs the source-trace (or
-  instrumentation based) workflow. The last rule (``coverage``) is defined to
-  use the workflow the most likely to work given the current target.
+  The rule (``inst-coverage``) runs the source-trace (or instrumentation based)
+  workflow. The rule (``coverage``) is an alias to (``inst-coverage``), both
+  can be used interchangeably.
 
 * The ``coverage_settings.mk`` file, which, when generated, copied all the
   values of the relevant root project attributes into corresponding variables:
@@ -185,8 +161,6 @@ The following two files can be found in the harness directory:
 
     # Switches for the various gnatcov commands
     SWITCHES_INSTRUMENT=--dump-trigger=main-end --level=stmt
-
-    SWITCHES_RUN=--level=stmt
 
     SWITCHES_COVERAGE=--annotate=report --level=stmt
 

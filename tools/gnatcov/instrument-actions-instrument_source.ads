@@ -21,7 +21,7 @@
 
 with Ada.Containers.Hashed_Sets;
 
-with GPR2; use GPR2;
+with GPR2;
 with GPR2.Build.Actions;
 with GPR2.Build.Artifacts.Files;
 with GPR2.Build.Command_Line;
@@ -34,33 +34,35 @@ with Instrument.Common; use Instrument.Common;
 
 package Instrument.Actions.Instrument_Source is
 
-   function "+" (Source : Optional_Name_Type) return Unbounded_String
+   use type GPR2.Filename_Type;
+
+   function "+" (Source : GPR2.Optional_Name_Type) return Unbounded_String
    is (+String (Source));
 
    --  See the documentation in GPR2.Build.Actions for overriding subprograms
 
    type Instrument_Id (Name_Len : Natural) is new GPR2.Build.Actions.Action_Id
    with record
-      Lang     : Language_Id;
+      Lang     : GPR2.Language_Id;
       Ctxt     : GPR2.Project.View.Object;
-      Src_Name : Simple_Name (1 .. Name_Len);
+      Src_Name : GPR2.Simple_Name (1 .. Name_Len);
    end record;
 
    overriding
-   function View (Self : Instrument_Id) return Project.View.Object
+   function View (Self : Instrument_Id) return GPR2.Project.View.Object
    is (Self.Ctxt);
 
    overriding
-   function Action_Class (Self : Instrument_Id) return Value_Type
+   function Action_Class (Self : Instrument_Id) return GPR2.Value_Type
    is ("Instrument");
 
    overriding
-   function Language (Self : Instrument_Id) return Language_Id
+   function Language (Self : Instrument_Id) return GPR2.Language_Id
    is (Self.Lang);
 
    overriding
-   function Action_Parameter (Self : Instrument_Id) return Value_Type
-   is (Value_Type (Self.Src_Name));
+   function Action_Parameter (Self : Instrument_Id) return GPR2.Value_Type
+   is (GPR2.Value_Type (Self.Src_Name));
 
    function Hash
      (Art : GPR2.Build.Artifacts.Files.Object) return Ada.Containers.Hash_Type
@@ -145,7 +147,8 @@ package Instrument.Actions.Instrument_Source is
 
    function UID (Self : Object) return GPR2.Build.Actions.Action_Id'Class;
 
-   function Dependencies (Self : in out Object) return Containers.Filename_Set;
+   function Dependencies
+     (Self : in out Object) return GPR2.Containers.Filename_Set;
    --  Return the file dependencies for the instrument source action
 
    procedure Write_Instrumented_Files_List (Self : in out Object);

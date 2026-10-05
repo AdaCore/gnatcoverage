@@ -90,9 +90,8 @@ Reporting about disabled coverage regions
 =========================================
 
 Exempted regions are reported as blocks in both the annotated source and the
-synthetic text reports, for both source and object coverage metrics.  In
-annotated source reports, a ``D`` annotates all the lines of a disabled coverage
-region.
+synthetic text reports. In annotated source reports, a ``D`` annotates all the
+lines of a disabled coverage region.
 
 For our ``Eassert`` above, a typical :cmd-option:`=xcov` output for
 :cmd-option:`stmt+decision` coverage for would be::
