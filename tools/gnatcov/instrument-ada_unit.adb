@@ -3988,6 +3988,8 @@ package body Instrument.Ada_Unit is
       procedure Traverse_Generic_Package_Declaration
         (N : Generic_Package_Decl; Preelab : Boolean);
 
+      procedure Traverse_Generic_Subp_Declaration (N : Generic_Subp_Decl);
+
       procedure Traverse_Component_List (CL : Component_List);
       --  Traverse a list of components (if a type declaration)
 
@@ -5228,6 +5230,19 @@ package body Instrument.Ada_Unit is
          Exit_Scope (UIC);
       end Traverse_Generic_Package_Declaration;
 
+      ---------------------------------------
+      -- Traverse_Generic_Subp_Declaration --
+      ---------------------------------------
+
+      procedure Traverse_Generic_Subp_Declaration (N : Generic_Subp_Decl) is
+         Decl : constant Generic_Subp_Internal := N.F_Subp_Decl;
+      begin
+         Enter_Scope (UIC => UIC, N => N, Decl => Decl);
+         Traverse_Formal_Part (N.F_Formal_Part);
+         Process_Expression (UIC, Decl.F_Subp_Spec.F_Subp_Params, 'X');
+         Exit_Scope (UIC);
+      end Traverse_Generic_Subp_Declaration;
+
       -----------------------------
       -- Traverse_Component_List --
       -----------------------------
@@ -5436,7 +5451,7 @@ package body Instrument.Ada_Unit is
                         | Ada_Protected_Body
                         | Ada_Subp_Body
                         | Ada_Subp_Decl
-                        | Ada_Task_Body =>
+                        | Ada_Task_Body         =>
 
                         Traverse_Declarations_Or_Statements
                           (UIC,
@@ -5444,10 +5459,23 @@ package body Instrument.Ada_Unit is
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
 
+                     when Ada_Generic_Subp_Decl =>
+
+                        --  For generic subprogram declarations, instrument the
+                        --  formal part after the top-level pragmas.
+
+                        Traverse_Declarations_Or_Statements
+                          (UIC,
+                           L       => CUN.F_Pragmas,
+                           Preelab => Preelab,
+                           P       => No_Ada_Node);
+                        Traverse_Generic_Subp_Declaration
+                          (CU_Decl.As_Generic_Subp_Decl);
+
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
 
-                     when others        =>
+                     when others                =>
                         null;
                   end case;
 
@@ -5518,13 +5546,7 @@ package body Instrument.Ada_Unit is
             --  Generic subprogram declaration
 
             when Ada_Generic_Subp_Decl                             =>
-               declare
-                  GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
-               begin
-                  Traverse_Formal_Part (GSD.F_Formal_Part);
-                  Process_Expression
-                    (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
-               end;
+               Traverse_Generic_Subp_Declaration (N.As_Generic_Subp_Decl);
 
             --  Task or subprogram body
 
