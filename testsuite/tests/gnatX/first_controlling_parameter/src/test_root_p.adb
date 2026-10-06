@@ -7,11 +7,6 @@ begin
 end Test_Root_P;
 
 --# example.ads
---%tags: !CARGS_gnat2022
---  /f1/ l? ## s?
---  /f2/ l? ## s?
---
---%tags: CARGS_gnat2022
 --  /f1/ l- ## s-
 --  /f2/ l- ## s-
 --

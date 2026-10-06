@@ -6431,7 +6431,7 @@ package body Instrument.Ada_Unit is
                            --  Instrumentation relies on Ada_95 features, which
                            --  is not valid Ada_83, so we remove the pragma.
 
-                           when Name_Ada_83   =>
+                           when Name_Ada_83             =>
                               declare
                                  H : constant Node_Rewriting_Handle :=
                                    Handle (N);
@@ -6453,7 +6453,7 @@ package body Instrument.Ada_Unit is
                               | Name_Ada_2005
                               | Name_Ada_12
                               | Name_Ada_2012
-                              | Name_Ada_2022 =>
+                              | Name_Ada_2022           =>
                               UIC.Language_Version_Pragma :=
                                 To_Unbounded_Wide_Wide_String
                                   (To_Lower (Pragma_Name));
@@ -6474,12 +6474,24 @@ package body Instrument.Ada_Unit is
                                  end if;
                               end;
 
-                           when Name_Annotate =>
+                           when Name_Annotate           =>
                               Process_Annotation (UIC, N, P_Node.F_Args);
+
+                           when Name_Extensions_Allowed =>
+                              if P_Node.F_Args.Children_Count = 1
+                                and then
+                                  To_Lower (P_Node.F_Args.Child (1).Text)
+                                  in "on" | "all_extensions"
+                              then
+                                 --  Enabling Ada extensions implicitly set the
+                                 --  language version to 2022.
+
+                                 UIC.Language_Version := Ada_2022;
+                              end if;
 
                            --  Other pragmas are not relevant
 
-                           when others        =>
+                           when others                  =>
                               null;
                         end case;
                      end;
