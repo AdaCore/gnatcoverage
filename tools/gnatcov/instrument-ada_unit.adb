@@ -1338,7 +1338,7 @@ package body Instrument.Ada_Unit is
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
       N    : Ada_Node'Class;
-      Decl : Basic_Decl);
+      Decl : Basic_Decl'Class);
    --  Enter a scope. This must be completed with a call to the function
    --  Exit_Scope, defined below. Assume that the scope first SCO is the next
    --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that Decl
@@ -2215,7 +2215,9 @@ package body Instrument.Ada_Unit is
          end;
 
          Result.Append_List :=
-           (if Insert_Info.RH_Private_List /= No_Node_Rewriting_Handle
+           (if Insert_Info.Method = None
+            then No_Node_Rewriting_Handle
+            elsif Insert_Info.RH_Private_List /= No_Node_Rewriting_Handle
             then Insert_Info.RH_Private_List
             else Insert_Info.RH_List);
 
@@ -4601,6 +4603,23 @@ package body Instrument.Ada_Unit is
             return;
          end if;
 
+         --  We also cannot instrument null procedures if we do not have a
+         --  declaration list where we can insert the null procedure wrapper.
+         --
+         --  For now this is defensive code: all null procedures appear in a
+         --  context where there is a declaration list.
+
+         if not Is_Expr_Function
+           and then Common_Nodes.Append_List = No_Node_Rewriting_Handle
+         then
+            Report
+              (UIC,
+               N,
+               "cannot instrument null subprogram generic formals",
+               Diagnostics.Limitation);
+            return;
+         end if;
+
          --  Do not create coverage obligations for static expression functions
 
          if Is_Expr_Function
@@ -5198,11 +5217,15 @@ package body Instrument.Ada_Unit is
       ------------------------------------------
 
       procedure Traverse_Generic_Package_Declaration
-        (N : Generic_Package_Decl; Preelab : Boolean) is
+        (N : Generic_Package_Decl; Preelab : Boolean)
+      is
+         Decl : constant Base_Package_Decl :=
+           N.F_Package_Decl.As_Base_Package_Decl;
       begin
+         Enter_Scope (UIC => UIC, N => N, Decl => Decl);
          Traverse_Formal_Part (N.F_Formal_Part);
-         Traverse_Package_Declaration
-           (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+         Traverse_Package_Declaration (UIC, Decl, Preelab);
+         Exit_Scope (UIC);
       end Traverse_Generic_Package_Declaration;
 
       -----------------------------
@@ -6597,13 +6620,21 @@ package body Instrument.Ada_Unit is
       N       : Base_Package_Decl;
       Preelab : Boolean)
    is
+      Is_Generic : constant Boolean :=
+        N.Parent.Kind = Ada_Generic_Package_Decl;
+      --  Whether N is a generic package declaration: in this case, we are
+      --  called from Traverse_Generic_Package_Declaration, and so we have
+      --  already entered a scope.
+
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter :=
         (Local_Decls => Handle (N.F_Public_Part.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-      Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
+      if not Is_Generic then
+         Enter_Scope (UIC => UIC, N => N, Decl => N);
+      end if;
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Start_Statement_Block (UIC);
@@ -6623,7 +6654,9 @@ package body Instrument.Ada_Unit is
       end if;
       End_Statement_Block (UIC);
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
-      Exit_Scope (UIC);
+      if not Is_Generic then
+         Exit_Scope (UIC);
+      end if;
       UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
 
@@ -8696,7 +8729,7 @@ package body Instrument.Ada_Unit is
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
       N    : Ada_Node'Class;
-      Decl : Basic_Decl)
+      Decl : Basic_Decl'Class)
    is
       function Local_Sloc
         (Sloc : Lk_Slocs.Source_Location) return Slocs.Local_Source_Location
