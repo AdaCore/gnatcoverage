@@ -985,7 +985,7 @@ package body Instrument.Ada_Unit is
 
       Append_List : Node_Rewriting_Handle;
       --  Declaration list for the current context. Note that this is always
-      --  "private" one if this is a package that has a private part.
+      --  the "private" one if this is a package that has a private part.
 
       --  The generic instantiation, must be wrapped in a package so that it
       --  does not create additional primitive operations for argument types.
