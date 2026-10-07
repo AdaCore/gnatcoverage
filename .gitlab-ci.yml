@@ -134,21 +134,21 @@ build_docs:
         coverage_format: cobertura
         path: coverage/cobertura.xml
 
-test_bin_traces:
+test_native:
+  extends: .test_and_collect
+  variables:
+    TEST_QUALIFIER: instr
+
+test_cross:
   extends: .test_and_collect
   variables:
     TARGET_ARGS: --target=leon3-elf,,qemu
     TEST_QUALIFIER: RTS=embedded-leon3,-O0,instr
 
-test_src_traces:
+test_5.04a1:
   extends: .test_and_collect
   variables:
-    TEST_QUALIFIER: src-traces,instr
-
-test_5.04a1_src_traces:
-  extends: .test_and_collect
-  variables:
-    TEST_QUALIFIER: 5.04a1,src-traces,gpr-mode,instr
+    TEST_QUALIFIER: 5.04a1,gpr-mode,instr
   script:
     - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
     - cat /tmp/ci_env.sh
@@ -168,7 +168,7 @@ test_5.04a1_src_traces:
 test_large:
   extends: .test_and_collect
   variables:
-    TEST_QUALIFIER: large-tests,src-traces,instr
+    TEST_QUALIFIER: large-tests,instr
 
 ##########
 # Checks #
@@ -245,7 +245,7 @@ test_block_instr:
   extends: .test_and_collect
   when: manual
   variables:
-    TEST_QUALIFIER: src-traces,instr,block
+    TEST_QUALIFIER: instr,block
 
 # Optional job for light runtime testing on source traces. Dump trigger
 # strategies differ on that runtime, and not all tests are compatible with
@@ -259,7 +259,7 @@ test_src_light:
   when: manual
   variables:
     TARGET_ARGS: --target=arm-elf,,qemu-stm32
-    TEST_QUALIFIER: src-traces,instr,RTS=light-stm32f4
+    TEST_QUALIFIER: instr,RTS=light-stm32f4
 
 test_qualkit:
   interruptible: true
