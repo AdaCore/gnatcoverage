@@ -621,11 +621,10 @@ def add_shared_options_to(
         "--trace-mode",
         dest="trace_mode",
         metavar="TRACE_MODE",
-        choices=("bin", "src"),
-        default="bin",
-        help="Kind of execution traces to use for SCOV driven tests."
-        ' "bin" for binary traces out of valgrind or qemu,'
-        ' "src" for source traces out of source level instrumentation.',
+        choices=("src",),
+        default="src",
+        help="Obsolete option (there is only one trace mode that is"
+        " supported). To be removed during a big testsuite refactoring.",
     )
 
     # --trace-size-limit
