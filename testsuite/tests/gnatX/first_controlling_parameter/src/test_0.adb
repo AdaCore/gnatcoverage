@@ -6,11 +6,6 @@ begin
 end Test_0;
 
 --# example.ads
---%tags: !CARGS_gnat2022
---  /f1/ l? ## s?
---  /f2/ l? ## s?
---
---%tags: CARGS_gnat2022
 --  /f1/ l- ## s-
 --  /f2/ l- ## s-
 --
