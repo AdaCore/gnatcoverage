@@ -985,7 +985,7 @@ package body Instrument.Ada_Unit is
 
       Append_List : Node_Rewriting_Handle;
       --  Declaration list for the current context. Note that this is always
-      --  "private" one if this is a package that has a private part.
+      --  the "private" one if this is a package that has a private part.
 
       --  The generic instantiation, must be wrapped in a package so that it
       --  does not create additional primitive operations for argument types.
@@ -1338,7 +1338,7 @@ package body Instrument.Ada_Unit is
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
       N    : Ada_Node'Class;
-      Decl : Basic_Decl);
+      Decl : Basic_Decl'Class);
    --  Enter a scope. This must be completed with a call to the function
    --  Exit_Scope, defined below. Assume that the scope first SCO is the next
    --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that Decl
@@ -2215,7 +2215,9 @@ package body Instrument.Ada_Unit is
          end;
 
          Result.Append_List :=
-           (if Insert_Info.RH_Private_List /= No_Node_Rewriting_Handle
+           (if Insert_Info.Method = None
+            then No_Node_Rewriting_Handle
+            elsif Insert_Info.RH_Private_List /= No_Node_Rewriting_Handle
             then Insert_Info.RH_Private_List
             else Insert_Info.RH_List);
 
@@ -3986,6 +3988,8 @@ package body Instrument.Ada_Unit is
       procedure Traverse_Generic_Package_Declaration
         (N : Generic_Package_Decl; Preelab : Boolean);
 
+      procedure Traverse_Generic_Subp_Declaration (N : Generic_Subp_Decl);
+
       procedure Traverse_Component_List (CL : Component_List);
       --  Traverse a list of components (if a type declaration)
 
@@ -4601,6 +4605,23 @@ package body Instrument.Ada_Unit is
             return;
          end if;
 
+         --  We also cannot instrument null procedures if we do not have a
+         --  declaration list where we can insert the null procedure wrapper.
+         --
+         --  For now this is defensive code: all null procedures appear in a
+         --  context where there is a declaration list.
+
+         if not Is_Expr_Function
+           and then Common_Nodes.Append_List = No_Node_Rewriting_Handle
+         then
+            Report
+              (UIC,
+               N,
+               "cannot instrument null subprogram generic formals",
+               Diagnostics.Limitation);
+            return;
+         end if;
+
          --  Do not create coverage obligations for static expression functions
 
          if Is_Expr_Function
@@ -5198,12 +5219,29 @@ package body Instrument.Ada_Unit is
       ------------------------------------------
 
       procedure Traverse_Generic_Package_Declaration
-        (N : Generic_Package_Decl; Preelab : Boolean) is
+        (N : Generic_Package_Decl; Preelab : Boolean)
+      is
+         Decl : constant Base_Package_Decl :=
+           N.F_Package_Decl.As_Base_Package_Decl;
       begin
+         Enter_Scope (UIC => UIC, N => N, Decl => Decl);
          Traverse_Formal_Part (N.F_Formal_Part);
-         Traverse_Package_Declaration
-           (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+         Traverse_Package_Declaration (UIC, Decl, Preelab);
+         Exit_Scope (UIC);
       end Traverse_Generic_Package_Declaration;
+
+      ---------------------------------------
+      -- Traverse_Generic_Subp_Declaration --
+      ---------------------------------------
+
+      procedure Traverse_Generic_Subp_Declaration (N : Generic_Subp_Decl) is
+         Decl : constant Generic_Subp_Internal := N.F_Subp_Decl;
+      begin
+         Enter_Scope (UIC => UIC, N => N, Decl => Decl);
+         Traverse_Formal_Part (N.F_Formal_Part);
+         Process_Expression (UIC, Decl.F_Subp_Spec.F_Subp_Params, 'X');
+         Exit_Scope (UIC);
+      end Traverse_Generic_Subp_Declaration;
 
       -----------------------------
       -- Traverse_Component_List --
@@ -5413,7 +5451,7 @@ package body Instrument.Ada_Unit is
                         | Ada_Protected_Body
                         | Ada_Subp_Body
                         | Ada_Subp_Decl
-                        | Ada_Task_Body =>
+                        | Ada_Task_Body         =>
 
                         Traverse_Declarations_Or_Statements
                           (UIC,
@@ -5421,10 +5459,23 @@ package body Instrument.Ada_Unit is
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
 
+                     when Ada_Generic_Subp_Decl =>
+
+                        --  For generic subprogram declarations, instrument the
+                        --  formal part after the top-level pragmas.
+
+                        Traverse_Declarations_Or_Statements
+                          (UIC,
+                           L       => CUN.F_Pragmas,
+                           Preelab => Preelab,
+                           P       => No_Ada_Node);
+                        Traverse_Generic_Subp_Declaration
+                          (CU_Decl.As_Generic_Subp_Decl);
+
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
 
-                     when others        =>
+                     when others                =>
                         null;
                   end case;
 
@@ -5495,13 +5546,7 @@ package body Instrument.Ada_Unit is
             --  Generic subprogram declaration
 
             when Ada_Generic_Subp_Decl                             =>
-               declare
-                  GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
-               begin
-                  Traverse_Formal_Part (GSD.F_Formal_Part);
-                  Process_Expression
-                    (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
-               end;
+               Traverse_Generic_Subp_Declaration (N.As_Generic_Subp_Decl);
 
             --  Task or subprogram body
 
@@ -6431,7 +6476,7 @@ package body Instrument.Ada_Unit is
                            --  Instrumentation relies on Ada_95 features, which
                            --  is not valid Ada_83, so we remove the pragma.
 
-                           when Name_Ada_83   =>
+                           when Name_Ada_83             =>
                               declare
                                  H : constant Node_Rewriting_Handle :=
                                    Handle (N);
@@ -6453,7 +6498,7 @@ package body Instrument.Ada_Unit is
                               | Name_Ada_2005
                               | Name_Ada_12
                               | Name_Ada_2012
-                              | Name_Ada_2022 =>
+                              | Name_Ada_2022           =>
                               UIC.Language_Version_Pragma :=
                                 To_Unbounded_Wide_Wide_String
                                   (To_Lower (Pragma_Name));
@@ -6474,12 +6519,24 @@ package body Instrument.Ada_Unit is
                                  end if;
                               end;
 
-                           when Name_Annotate =>
+                           when Name_Annotate           =>
                               Process_Annotation (UIC, N, P_Node.F_Args);
+
+                           when Name_Extensions_Allowed =>
+                              if P_Node.F_Args.Children_Count = 1
+                                and then
+                                  To_Lower (P_Node.F_Args.Child (1).Text)
+                                  in "on" | "all_extensions"
+                              then
+                                 --  Enabling Ada extensions implicitly set the
+                                 --  language version to 2022.
+
+                                 UIC.Language_Version := Ada_2022;
+                              end if;
 
                            --  Other pragmas are not relevant
 
-                           when others        =>
+                           when others                  =>
                               null;
                         end case;
                      end;
@@ -6585,13 +6642,21 @@ package body Instrument.Ada_Unit is
       N       : Base_Package_Decl;
       Preelab : Boolean)
    is
+      Is_Generic : constant Boolean :=
+        N.Parent.Kind = Ada_Generic_Package_Decl;
+      --  Whether N is a generic package declaration: in this case, we are
+      --  called from Traverse_Generic_Package_Declaration, and so we have
+      --  already entered a scope.
+
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter :=
         (Local_Decls => Handle (N.F_Public_Part.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-      Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
+      if not Is_Generic then
+         Enter_Scope (UIC => UIC, N => N, Decl => N);
+      end if;
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Start_Statement_Block (UIC);
@@ -6611,7 +6676,9 @@ package body Instrument.Ada_Unit is
       end if;
       End_Statement_Block (UIC);
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
-      Exit_Scope (UIC);
+      if not Is_Generic then
+         Exit_Scope (UIC);
+      end if;
       UIC.Ghost_Code := False;
    end Traverse_Package_Declaration;
 
@@ -8684,7 +8751,7 @@ package body Instrument.Ada_Unit is
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
       N    : Ada_Node'Class;
-      Decl : Basic_Decl)
+      Decl : Basic_Decl'Class)
    is
       function Local_Sloc
         (Sloc : Lk_Slocs.Source_Location) return Slocs.Local_Source_Location
