@@ -1457,9 +1457,9 @@ written as ``--level=...+<assertion coverage level>`` where ``...`` is one of
 ``stmt``, ``stmt+decision``, ``stmt+mcdc`` and ``stmt+uc_mcdc``.
 
 Using assertion coverage levels allows to compute the coverage of the pragma
-statements ``Assert``, ``Assert_And_Cut``, ``Assume``, ``Check``,
-``Loop_Invariant``, and the aspects ``Type_Invariant``, ``Precondition`` and
-``Postcondition``.
+statements ``Assert``, ``Assert_And_Cut``, ``Assume``, ``Check`` and
+``Loop_Invariant``, as well as of the ``Type_Invariant``, ``Precondition``
+and ``Postcondition`` contracts, expressed either as aspects or as pragmas.
 
 The limitations of this coverage level are detailed in the
 :ref:`instr-limitations` section.
@@ -1967,6 +1967,12 @@ Each property is expressed a Boolean expression expected to hold True,
 triggering an exception otherwise. When the current assertion policy activates
 a given assertion construct, the associated Boolean expression is treated by
 |gcv| as a decision for MCDC purposes.
+
+Source instrumentation has no visibility over the assertion policy in effect,
+so with source traces |gcv| assumes instead that assertion constructs are
+disabled, unless one of the assertion coverage levels described in
+:ref:`scov-atc` is requested. Such constructs then carry no coverage
+obligation at all for other coverage levels.
 
 As assertions are by construction designed never to evaluate False, reaching
 proper coverage for them is non-trivial, if not entirely meaningless, for

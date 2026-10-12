@@ -743,6 +743,14 @@ MC/DC coverage for each decision will be reported as ``Undetermined_Coverage``
 state. Should the default limit not be satisfactory, it can be tuned with the
 option :cmd-option:`--path-count-limit`.
 
+The MC/DC instrumentation of a decision also requires declaring a state
+variable next to it. For decisions that appear where no declarative part is
+available, such as contracts on types and on declarations, this is only
+possible with the declare expressions introduced in Ada 2022. On earlier
+versions of the language, |gcv| emits a warning and reports the MC/DC coverage
+of such decisions as ``Undetermined_Coverage``. Their decision coverage is
+unaffected.
+
 Function and call coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -768,13 +776,19 @@ Assertion Coverage limitations (ATC and ATCC)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Assertion coverage is only supported for the Ada language. However there are
-language constructs for which gnatcov is unable to perform coverage analysis
-for assertions:
+language constructs for which gnatcov is unable to perform complete coverage
+analysis for assertions:
 
-* Preconditions and postconditions expressed as pragmas;
-
-* Contracts for types and functions expressed as aspects for versions of the
-  language anterior to Ada 2022.
+* ATCC for type and subprogram contracts, whether expressed as aspects or as
+  pragmas for Ada 2012 and prior versions.
+*
+* Contracts for types and functions, whether expressed as aspects or as
+  pragmas, when using Ada 2012 and prior versions, are analyzed for ATC only.
+  For these constructs, ATCC coverage requires instrumenting in Ada 2022 mode:
+  |gcv| emits a warning when instrumenting contracts for ATCC in pre-2022 mode
+  and reports them as ``Undetermined_Coverage`` (the ATC results remain valid).
+  Note that a line holding such a contract is annotated ``?`` in the report,
+  even when its ATC obligation is covered.
 
 Guarded expression coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
