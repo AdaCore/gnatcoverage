@@ -6594,6 +6594,18 @@ package body Instrument.Ada_Unit is
             end if;
          end;
       end loop;
+
+      --  Flare may have a finally part
+
+      if N.F_Finally_Part /= No_Finally_Part then
+         Start_Statement_Block (UIC);
+         Traverse_Declarations_Or_Statements
+           (UIC,
+            L        =>
+              N.F_Finally_Part.As_Finally_Part.F_Stmts.As_Ada_Node_List,
+            Is_Block => False);
+         End_Statement_Block (UIC);
+      end if;
    end Traverse_Handled_Statement_Sequence;
 
    ---------------------------
