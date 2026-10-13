@@ -1,9 +1,9 @@
-pragma Ada_2012;
-
 with Ada.Text_IO; use Ada.Text_IO;
 
+with Func_Helpers;
+
 procedure Main is
-   function Identity (Self : Boolean) return Boolean is (Self);
+   use Func_Helpers;
    F : constant Boolean := Identity (False);
    T : constant Boolean := Identity (True);
 begin
