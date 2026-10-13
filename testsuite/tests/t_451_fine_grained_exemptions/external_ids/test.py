@@ -114,7 +114,12 @@ for label, common_args, extra_args1, extra_args2 in [
     # Now compute code coverage using these annotations and check the report
     xcov(xcov_args + annot_args + ["--output-dir", output_dir])
     check_xcov_reports(
-        output_dir, {"main.adb.xcov": {"+": {6, 7, 8, 11}, "!": {10}}}
+        output_dir,
+        {
+            "main.adb.xcov": {"+": {7, 8, 11}, "!": {10}},
+            "func_helpers.adb.xcov": {"+": {4}},
+            "func_helpers.ads.xcov": {},
+        },
     )
 
 thistest.result()
