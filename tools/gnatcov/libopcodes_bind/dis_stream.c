@@ -59,23 +59,6 @@ stream_printf (disassembler_stream *ds, const char *format, ...)
   return res;
 }
 
-/* As stream_printf but the content can be styled based on style if
-   desired.  */
-int
-stream_styled_printf (disassembler_stream *ds,
-                      enum disassembler_style style ATTRIBUTE_UNUSED,
-                      const char *format, ...)
-{
-  va_list ap;
-  int res;
-
-  va_start (ap, format);
-  res = common_printf (ds, format, ap);
-  va_end (ap);
-
-  return res;
-}
-
 /* Empties the content of the DS stream.  */
 void
 clear_stream (disassembler_stream *const ds)
