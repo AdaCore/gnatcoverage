@@ -2078,6 +2078,40 @@ package body Instrument.Ada_Unit is
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String
    is
+      procedure Insert_After_Leading_Pragmas
+        (List : Node_Rewriting_Handle; New_Child : Node_Rewriting_Handle);
+      --  Insert New_Child in the List declaration list, right after its
+      --  leading sequence of pragmas.
+      --
+      --  Contract pragmas (Precondition, Postcondition, ...) must appear
+      --  before any other declaration of the declarative part they belong
+      --  to, so MC/DC state declarations cannot simply go first.
+
+      ----------------------------------
+      -- Insert_After_Leading_Pragmas --
+      ----------------------------------
+
+      procedure Insert_After_Leading_Pragmas
+        (List : Node_Rewriting_Handle; New_Child : Node_Rewriting_Handle)
+      is
+         Cur : Node_Rewriting_Handle := First_Child (List);
+      begin
+         while Cur /= No_Node_Rewriting_Handle
+           and then Kind (Cur) = Ada_Pragma_Node
+           and then
+             Pragma_Name (Node (Cur).As_Pragma_Node)
+             in Name_Precondition | Name_Postcondition
+         loop
+            Cur := Next_Child (Cur);
+         end loop;
+
+         if Cur = No_Node_Rewriting_Handle then
+            Insert_Last (List, New_Child);
+         else
+            Insert_Before (Cur, New_Child);
+         end if;
+      end Insert_After_Leading_Pragmas;
+
       E             : Instrumentation_Entities renames UIC.Entities;
       Var_Decl_Img  : constant String :=
         Name
@@ -2106,8 +2140,8 @@ package body Instrument.Ada_Unit is
            Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
            Rule      => Object_Decl_Rule);
    begin
-      Insert_First (Inserter.Local_Decls, Rep_Clause);
-      Insert_First (Inserter.Local_Decls, Decl);
+      Insert_After_Leading_Pragmas (Inserter.Local_Decls, Decl);
+      Insert_After (Decl, Rep_Clause);
       return Name;
    end Insert_MCDC_State;
 

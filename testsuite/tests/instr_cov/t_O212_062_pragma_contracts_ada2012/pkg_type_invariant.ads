@@ -14,7 +14,7 @@ private
       record
          B : Boolean := True;
       end record;
-   pragma Type_Invariant (Bool_Record, Check => B);
+   pragma Type_Invariant (Bool_Record, Check => Bool_Record.B);
 
    function Make_Bool_Record (B : Boolean) return Bool_Record is
       ((B => B));

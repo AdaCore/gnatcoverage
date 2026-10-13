@@ -1084,6 +1084,7 @@ package body Coverage.Source is
                   end if;
 
                elsif Enclosing_Statement (SCO) = No_SCO_Id
+                 or else Ignore_SCO (Enclosing_Statement (SCO))
                  or else
                    (Basic_Block_Has_Code (Enclosing_Statement (SCO))
                     and then Stmt_SCO_Instrumented (Enclosing_Statement (SCO)))
