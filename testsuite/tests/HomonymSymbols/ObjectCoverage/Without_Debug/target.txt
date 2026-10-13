@@ -1,1 +1,0 @@
-Test the requirement: if a symbol has no compilation unit, never consolidate it.
