@@ -1,1 +1,3 @@
-block DEAD Test with exceptions breaking the control flow
+block             DEAD Test with exceptions breaking the control flow
+RTS_ZFP           DEAD Test requires exception propagation
+RTS_LIGHT_TASKING DEAD Test requires exception propagation
