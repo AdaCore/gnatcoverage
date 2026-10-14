@@ -794,6 +794,14 @@ package Instrument.Common is
       Clang_Needs_M32 : Boolean := False;
       --  Wether we need to pass -m32 to libclang's parsing commands. This is
       --  only the case when the compiler driver is a native 32 bit compiler.
+      --  Ignored when Clang_Target is not empty, as the target triple already
+      --  conveys the data model.
+
+      Clang_Target : Unbounded_String;
+      --  Target triple to pass to libclang's parsing commands, or the empty
+      --  string to let libclang parse for the host. Without it, the size of
+      --  types such as long or size_t may differ between the compiler and
+      --  libclang, and libclang then rejects valid code.
 
       Dep_File_Options : String_Vectors.Vector;
       --  Options to generate a dependency file, for incremental

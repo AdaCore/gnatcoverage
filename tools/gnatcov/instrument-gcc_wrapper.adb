@@ -846,6 +846,7 @@ begin
 
    Prj.Prj_Name := To_Qualified_Name ("main");
    Prj.Artificial := True;
+   Prj.Orig_Compiler_Driver := Context.Orig_Compiler_Driver;
    Prj.Output_Dir := GNATCOLL.VFS.Create (+Instr_Dir.Directory_Name);
    Prj.Naming_Scheme :=
      (Spec_Suffix     =>

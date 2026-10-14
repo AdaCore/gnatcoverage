@@ -86,6 +86,13 @@ package body Instrument.C is
    --  according to the compiler switches. Output_Dir is used to store a
    --  temporary file.
 
+   function Get_Clang_Target
+     (Prj : Prj_Desc; Lang : C_Family_Language) return Unbounded_String;
+   --  Return the target triple of the compiler for Lang in Prj, for libclang
+   --  to parse code with the same data model as the compiler. Return the
+   --  empty string if the compiler does not report its target, or if libclang
+   --  does not support it.
+
    procedure Preprocess_Source
      (Filename     : GNATCOLL.VFS.Virtual_File;
       Instrumenter : C_Family_Instrumenter_Type'Class;
@@ -3442,6 +3449,146 @@ package body Instrument.C is
       Delete_File (Filename);
    end Get_Builtin_Macros;
 
+   ----------------------
+   -- Get_Clang_Target --
+   ----------------------
+
+   --  Get_Clang_Target is called for each source to instrument, but its
+   --  result only depends on the compiler. Cache the last result, so that the
+   --  compiler and libclang are queried once per compiler, and an unsupported
+   --  target is reported only once.
+
+   Cached_Compiler     : Unbounded_String;
+   Cached_Clang_Target : Unbounded_String;
+
+   function Get_Clang_Target
+     (Prj : Prj_Desc; Lang : C_Family_Language) return Unbounded_String
+   is
+      function Clang_Supports (Triple : String) return Boolean;
+      --  Return whether libclang can parse code for Triple
+
+      --------------------
+      -- Clang_Supports --
+      --------------------
+
+      function Clang_Supports (Triple : String) return Boolean is
+         Filename : constant String := "gnatcov_target_check.c";
+         Args     : String_Vectors.Vector;
+         Unsaved  : aliased Unsaved_File_T :=
+           (Filename => New_String (Filename),
+            Contents => New_String (""),
+            Length   => 0);
+         CIdx     : constant Index_T :=
+           Create_Index
+             (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
+         TU       : Translation_Unit_T;
+         Result   : Boolean;
+      begin
+         Args.Append (+("--target=" & Triple));
+         declare
+            C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
+         begin
+            TU :=
+              Parse_Translation_Unit
+                (C_Idx                 => CIdx,
+                 Source_Filename       => Filename,
+                 Command_Line_Args     => C_Args'Address,
+                 Num_Command_Line_Args => C_Args'Length,
+                 Unsaved_Files         => Unsaved'Access,
+                 Num_Unsaved_Files     => 1,
+                 Options               => 0);
+            Free (C_Args);
+         end;
+         Free (Unsaved.Filename);
+         Free (Unsaved.Contents);
+
+         --  libclang yields no translation unit at all when it cannot create
+         --  the target.
+
+         Result := TU /= null;
+         if Result then
+            Dispose_Translation_Unit (TU);
+         end if;
+         Dispose_Index (CIdx);
+         return Result;
+      end Clang_Supports;
+
+      Compiler : constant String :=
+        (if Prj.Orig_Compiler_Driver = ""
+         then +Prj.Compiler_Driver (Lang)
+         else +Prj.Orig_Compiler_Driver);
+
+      PID : constant Unsigned_64 :=
+        Unsigned_64 (Pid_To_Integer (Current_Process_Id));
+
+      Filename : constant String :=
+        (+Prj.Output_Dir.Full_Name)
+        / (Ada.Directories.Simple_Name (Compiler)
+           & "_dumpmachine_"
+           & Hex_Image (PID));
+      Args     : String_Vectors.Vector;
+      File     : Ada.Text_IO.File_Type;
+      Triple   : Unbounded_String;
+
+      --  Start of processing for Get_Clang_Target
+
+   begin
+      if Cached_Compiler = Compiler then
+         return Cached_Clang_Target;
+      end if;
+
+      Args.Append (+"-dumpmachine");
+      if Run_Command
+           (Command             => Compiler,
+            Arguments           => Args,
+            Origin_Command_Name => "gnatcov instrument",
+            Output_File         => Filename,
+            Err_To_Out          => False,
+            In_To_Null          => True,
+            Ignore_Error        => True)
+      then
+         Open (File, In_File, Filename);
+         if not End_Of_File (File) then
+            Triple :=
+              +Ada.Strings.Fixed.Trim (Get_Line (File), Ada.Strings.Both);
+         end if;
+         Close (File);
+      else
+         Sources_Trace.Trace
+           (Compiler & " -dumpmachine failed: parsing for the host");
+      end if;
+      if Ada.Directories.Exists (Filename) then
+         Delete_File (Filename);
+      end if;
+
+      --  GCC accepts LEON processor names (e.g. leon3-elf) as aliases for the
+      --  SPARC architecture, but Clang does not know them.
+
+      declare
+         T    : constant String := +Triple;
+         Dash : constant Natural := Ada.Strings.Fixed.Index (T, "-");
+      begin
+         if Dash > 0 and then Has_Prefix (T (T'First .. Dash - 1), "leon") then
+            Triple := +("sparc" & T (Dash .. T'Last));
+         end if;
+      end;
+
+      if Triple /= "" and then not Clang_Supports (+Triple) then
+         Warn
+           ("libclang does not support the target "
+            & (+Triple)
+            & " of "
+            & Compiler
+            & ": parsing sources for the host instead, which may yield"
+            & " incomplete coverage obligations");
+         Triple := Null_Unbounded_String;
+      end if;
+
+      Cached_Compiler := +Compiler;
+      Cached_Clang_Target := Triple;
+      return Triple;
+   end Get_Clang_Target;
+
    -----------------------
    -- Preprocess_Source --
    -----------------------
@@ -5323,6 +5470,11 @@ package body Instrument.C is
       for D of Self.RTS_Source_Dirs loop
          Dummy_Options.PP_Search_Path.Append (+(+D.Full_Name));
       end loop;
+      Dummy_Options.Clang_Target :=
+        Get_Clang_Target
+          (Prj,
+           C_Family_Language
+             (C_Family_Instrumenter_Type'Class (Self).Language));
 
       Rew.Start_Rewriting
         (Filename     => Filename,
@@ -6020,6 +6172,9 @@ package body Instrument.C is
             Self.Clang_Needs_M32 := True;
          end if;
       end;
+
+      Self.Clang_Target :=
+        Get_Clang_Target (Prj, C_Family_Language (Instrumenter.Language));
 
       --  If the command line does not specify a version for the C standard,
       --  infer it from the __STDC_VERSION__ builtin macro and add it to the

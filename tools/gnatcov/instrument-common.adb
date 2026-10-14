@@ -668,9 +668,12 @@ package body Instrument.Common is
 
       Args.Append (Options.Compiler_Switches);
 
-      --  Add -m32 if needed
+      --  Make libclang parse for the compiler's target, falling back to -m32
+      --  for native 32 bit compilers if the target is unknown.
 
-      if Options.Clang_Needs_M32 then
+      if Options.Clang_Target /= "" then
+         Args.Append ("--target=" & Options.Clang_Target);
+      elsif Options.Clang_Needs_M32 then
          Args.Append (+"-m32");
       end if;
    end Add_Options;
