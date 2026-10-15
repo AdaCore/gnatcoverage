@@ -275,10 +275,12 @@ package Instrument is
       Compiler_Driver : Lang_Array (C_Family_Language);
       --  Compiler used to compile the sources
 
-      Orig_Compiler_Driver : Unbounded_String;
-      --  In integrated instrumentation mode, Compiler_Driver designates the
-      --  compiler proper (e.g. cc1), which cannot report its target triple.
-      --  This is then the compiler driver to ask instead. Empty otherwise.
+      Clang_Target_Switches : C_Lang_Array_Vec;
+      --  Switches that make libclang parse sources with the data model of
+      --  the compiler. They are computed once per project, or once per
+      --  compiler in integrated instrumentation mode, so that parallel
+      --  instrumentation jobs do not each query the compiler and report an
+      --  unsupported target.
 
       Compiler_Options : C_Lang_Array_Vec;
       --  For languages resorting to the compiler to preprocess sources, list

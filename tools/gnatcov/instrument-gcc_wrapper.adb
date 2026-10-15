@@ -846,7 +846,10 @@ begin
 
    Prj.Prj_Name := To_Qualified_Name ("main");
    Prj.Artificial := True;
-   Prj.Orig_Compiler_Driver := Context.Orig_Compiler_Driver;
+   for Lang in C_Family_Language loop
+      Prj.Clang_Target_Switches (Lang) :=
+        Instr_Config.Clang_Target_Switches.Element (Compiler_Exec_Basename);
+   end loop;
    Prj.Output_Dir := GNATCOLL.VFS.Create (+Instr_Dir.Directory_Name);
    Prj.Naming_Scheme :=
      (Spec_Suffix     =>

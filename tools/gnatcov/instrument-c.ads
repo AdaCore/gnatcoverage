@@ -565,6 +565,17 @@ package Instrument.C is
    --  Comments that are not valid Xcov annotations are skipped, with a
    --  warning.
 
+   function Clang_Target_Switches
+     (Lang             : C_Family_Language;
+      Compiler_Driver  : String;
+      Compiler_Options : String_Vectors.Vector;
+      Output_Dir       : String) return String_Vectors.Vector;
+   --  Return the switches that make libclang parse code with the data model
+   --  of Compiler_Driver when it compiles Lang sources with Compiler_Options.
+   --  Output_Dir is used to store a temporary file. Return an empty vector,
+   --  and warn once per process, if the target cannot be determined or if
+   --  libclang does not support it.
+
 private
 
    function Find_Instrumented_Entities

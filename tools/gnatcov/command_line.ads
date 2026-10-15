@@ -151,6 +151,7 @@ package Command_Line is
       Opt_Lang,
       Opt_Parallelism_Level,
       Opt_Compiler_Driver,
+      Opt_Clang_Target_Switches,
       Opt_Spec_Suffix,
       Opt_Body_Suffix,
       Opt_Dot_Replacement,
@@ -1462,6 +1463,17 @@ package Command_Line is
              "Compiler driver used to compile the source (e.g. gcc). This is"
              & " used when instrumenting a C/C++ source, to retrieve builtin"
              & " macros that may modify the file preprocessing.",
+           Commands     => (Cmd_Instrument_Source => True, others => False),
+           At_Most_Once => False,
+           Internal     => True),
+
+      Opt_Clang_Target_Switches  =>
+        Create
+          (Long_Name    => "--clang-target-switches",
+           Pattern      => "SWITCH,...",
+           Help         =>
+             "Comma-separated switches that make libclang parse C/C++ sources"
+             & " with the data model of the compiler.",
            Commands     => (Cmd_Instrument_Source => True, others => False),
            At_Most_Once => False,
            Internal     => True),
