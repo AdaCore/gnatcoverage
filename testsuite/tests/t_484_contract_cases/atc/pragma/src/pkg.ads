@@ -1,3 +1,4 @@
+pragma Ada_2012;
 pragma Assertion_Policy (Check);
 
 package Pkg is
