@@ -1,3 +1,4 @@
+pragma Ada_2012;
 pragma Assertion_Level (Level_1);
 pragma Assertion_Policy (Level_1 => Check);
 
