@@ -288,14 +288,7 @@ project Gnatcov is
    end Compiler;
 
    package Linker is
-      for Required_Switches use
-        ("-l:libopcodes.a",
-         "-l:libbfd.a",
-         "-l:libiberty.a",
-         "-l:libsframe.a",
-         "-l:libz.a",
-         "-static-libstdc++",
-         "-static-libgcc");
+      for Required_Switches use ("-static-libstdc++", "-static-libgcc");
    end Linker;
 
    package Binder is

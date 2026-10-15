@@ -24,8 +24,14 @@
 #define PACKAGE 1
 #define PACKAGE_VERSION 1
 
-#include <bfd.h>
-#include <dis-asm.h>
+typedef unsigned long long bfd_vma;
+typedef unsigned char bfd_byte;
+enum bfd_endian
+{
+  bfd_endian_big,
+  bfd_endian_little,
+  bfd_endian_unknown
+};
 
 struct disassemble_handle;
 typedef struct disassemble_handle disassemble_handle;

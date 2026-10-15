@@ -1,1 +1,0 @@
-Test the requirement: consolidates two symbols if and only if they have the same compilation unit.

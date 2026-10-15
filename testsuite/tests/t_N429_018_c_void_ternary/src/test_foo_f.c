@@ -11,6 +11,6 @@ main (void)
 //  /if-expr/        l+ ## 0
 //  /if-then/        l- ## s-
 //  /if-else/        l+ ## 0
-//  /tern-void-stmt/ l! ## s-
+//  /tern-void-stmt/ l+ ## 0
 //  /tern-int-stmt/  l+ ## 0
 //  /tern-void-expr/ l+ ## 0

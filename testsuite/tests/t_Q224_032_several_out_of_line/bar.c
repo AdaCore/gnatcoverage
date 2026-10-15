@@ -1,5 +1,0 @@
-void
-bar (void)
-{
-  return;
-}
