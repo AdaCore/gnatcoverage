@@ -491,6 +491,21 @@ excluding ``foo.c`` from the analysis scope can be achieved with::
      for Excluded_Units use ("foo.c"); /* source file name here  */
   end Coverage;
 
+Header files are not translation units, so they cannot be designated
+as units of interest. The code of a header is instead assessed as part
+of each unit of interest that includes it, and reported under the
+header's own file name. This only applies to headers that belong to
+the projects of interest: code from other headers is not assessed. A
+header that no unit of interest includes yields no coverage results.
+
+Removing a header such as ``foo.h`` from the analysis scope, while
+keeping the units that include it, is achieved by excluding its source
+file, as described in :ref:`ignore_source_files`::
+
+  package Coverage is
+     for Excluded_Source_Files use ("foo.h");
+  end Coverage;
+
 .. _passing_scos:
 
 Providing coverage obligation files (:cmd-option:`--sid`)
