@@ -12,7 +12,7 @@
 #
 # all
 #   bin        <- default
-#   adapters [ADAPTERS_LIST=trace32|...]
+#   adapters [ADAPTERS_LIST=llvm_json|...]
 
 # ----------------
 # -- To install --
@@ -22,7 +22,7 @@
 #   install-bin
 #   install-examples
 #
-# install-adapters [ADAPTERS_LIST=trace32|...]
+# install-adapters [ADAPTERS_LIST=llvm_json|...]
 #
 # All working with the PREFIX variable, that users may specify:
 
@@ -91,11 +91,11 @@ PART=""
 # users get the core only by default in case they don't need the
 # adapters for their host, e.g. when building for gnatemu targets.
 
-# For example, a user who needs to build gnatcov on linux to perform ppc-elf
-# coverage only doesn't need the trace32 adapter for the corresponding probe.
-# He might moreover be on a system where the adapter build would fail (e.g.
-# missing probe-specific files), so we really shouldn't try to build these
-# adapters by default.
+# For example, a user who needs to build gnatcov to perform Ada coverage  only
+# doesn't need the LLVM JSON adapter for the corresponding probe.  He might
+# moreover be on a system where the adapter build would fail (e.g. missing
+# LLVM-specific files), so we really shouldn't try to build these adapters by
+# default.
 
 # So ...
 #
@@ -115,7 +115,7 @@ include architecture.mk
 
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = trace32 llvm_json
+DEFAULT_ADAPTERS = llvm_json
 else
 DEFAULT_ADAPTERS =
 endif
@@ -125,7 +125,7 @@ ifeq ($(HOST_OS), linux)
 ifeq ($(BITS_ARCH), 32)
 DEFAULT_ADAPTERS =
 else
-DEFAULT_ADAPTERS = trace32 llvm_json
+DEFAULT_ADAPTERS = llvm_json
 endif
 endif
 
@@ -139,7 +139,6 @@ BUILD_MODE=dev
 # ================================================================
 
 # The trace adapters use the same prefix as GNATcov
-trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 llvm_json_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 
 .PHONY: default all adapters bin $(PGMPATH)

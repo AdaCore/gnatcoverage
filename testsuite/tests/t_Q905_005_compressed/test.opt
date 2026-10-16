@@ -1,2 +1,0 @@
-!linux,!arm-elf,!leon3-elf,!p55-elf,!ppc-elf DEAD
-!bin-traces DEAD Check a feature to decode executables

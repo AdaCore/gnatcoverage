@@ -15,4 +15,4 @@ main (void)
 }
 
 //# test_foo.c
-//  /tern/ sd=>l! ## s=>s-, d=>s-,dF-
+//  /tern/ s=>l+, d=>l! ## s=>0, d=>dF-

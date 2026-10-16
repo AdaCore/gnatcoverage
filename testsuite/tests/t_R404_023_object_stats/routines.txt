@@ -1,3 +1,0 @@
-pkg__not_executed_branch
-pkg__partially_covered_branch
-pkg__fully_covered_branch

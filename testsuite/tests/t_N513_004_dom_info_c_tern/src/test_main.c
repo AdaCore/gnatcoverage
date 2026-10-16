@@ -12,4 +12,4 @@ main (int argc, char *argv[])
 }
 
 //# test_main.c
-//  /tern/ l! ## dF-, s-
+//  /tern/ l! ## dF-

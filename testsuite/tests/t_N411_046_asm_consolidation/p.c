@@ -1,5 +1,0 @@
-void
-p (void)
-{
-  return;
-}

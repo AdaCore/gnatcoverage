@@ -45,9 +45,12 @@ p2 = gprfor(
 # Check that the Origin_Project provides a default for coverage analysis and
 # that this default is overiden by the --projects switch.
 for args, xcovs in [
-    ([], {"p1.adb.xcov"}),
+    ([], {"p1.adb.xcov", "p1.ads.xcov"}),
     (["--projects=p2"], {"p2.adb.xcov"}),
-    (["--projects=p1", "--projects=p2"], {"p1.adb.xcov", "p2.adb.xcov"}),
+    (
+        ["--projects=p1", "--projects=p2"],
+        {"p1.adb.xcov", "p1.ads.xcov", "p2.adb.xcov"},
+    ),
 ]:
     clean_xcov()
 
