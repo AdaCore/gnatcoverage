@@ -1112,10 +1112,12 @@ class SCOV_helper(ABC):
             if self.testcase.category
             else "generic"
         )
-        covoptions = " ".join(self.covoptions)
+        options = list(self.covoptions)
+        if self.testcase.instrument_ghost:
+            options.append("--instrument-ghost")
         thistest.log_frame(
             f"{cwd}/ {mains}, {self.xfile}",
-            f"{category} coverage with {covoptions}",
+            f"{category} coverage with {' '.join(options)}",
             char="*",
         )
 

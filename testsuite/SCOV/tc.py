@@ -290,11 +290,15 @@ class TestCase:
         """
         levels = covlevel.split("+")
 
-        if len(levels) == 1:
-            return "s_"
+        # Start with:
+        #
+        # * "s" for stmt,
+        # * "d" for stmt+decision,
+        # * "m" for stmt+mcdc,
+        # * "u" for # stmt+uc_mcdc.
+        wdbase = "s" if len(levels) == 1 else levels[1][0]
 
-        wdbase = levels[1][0]
-
+        # Add suffixes depending on requested coverage level "refinements"
         if self.assert_lvl:
             wdbase += self.assert_lvl
 
