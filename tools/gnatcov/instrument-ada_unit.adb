@@ -459,6 +459,18 @@ package body Instrument.Ada_Unit is
    --  not ghost. This is what we need here, as we need to instrument the
    --  declaration if if at least one defined name is not ghost.
 
+   function Skip_Because_Ghost
+     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
+   is (not Instrument_Ghost
+       and then
+         (UIC.Ghost_Code
+          or else (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
+          or else
+            (N.Kind in Ada_Basic_Decl
+             and then Safe_Is_Ghost (N.As_Basic_Decl))));
+   --  Return whether the intrumentation of the given statement or declaration
+   --  should be skipped because it is ghost.
+
    function Safe_Previous_Part_For_Decl
      (N : Basic_Decl'Class) return Basic_Decl;
    --  Wrapper around P_Previous_Part_For_Decl to protect ourselves against
@@ -5231,20 +5243,22 @@ package body Instrument.Ada_Unit is
       procedure Traverse_Formal_Part (FP : Generic_Formal_Part) is
       begin
          for Decl of FP.F_Decls loop
+            if not Skip_Because_Ghost (UIC, Decl) then
 
-            --  Process each formal declaration individually. Formal
-            --  subprograms can have contracts: process them as such.  Process
-            --  other declarations as black box expressions, in case we can
-            --  find complex decisions in them.
+               --  Process each formal declaration individually. Formal
+               --  subprograms can have contracts: process them as such.
+               --  Process other declarations as black box expressions, in case
+               --  we can find complex decisions in them.
 
-            case Decl.Kind is
-               when Ada_Generic_Formal_Subp_Decl =>
-                  Traverse_Subp_Decl_Or_Stub
-                    (Decl.As_Generic_Formal_Subp_Decl.F_Decl);
+               case Decl.Kind is
+                  when Ada_Generic_Formal_Subp_Decl =>
+                     Traverse_Subp_Decl_Or_Stub
+                       (Decl.As_Generic_Formal_Subp_Decl.F_Decl);
 
-               when others                       =>
-                  Process_Standalone_Expression (UIC, Decl, 'X');
-            end case;
+                  when others                       =>
+                     Process_Standalone_Expression (UIC, Decl, 'X');
+               end case;
+            end if;
          end loop;
       end Traverse_Formal_Part;
 
@@ -6427,15 +6441,7 @@ package body Instrument.Ada_Unit is
             --  Only traverse the nodes if they are not ghost entities if the
             --  user did not explicitly ask for their instrumentation.
 
-            if Instrument_Ghost
-              or else
-                not (UIC.Ghost_Code
-                     or else
-                       (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
-                     or else
-                       (N.Kind in Ada_Basic_Decl
-                        and then Safe_Is_Ghost (N.As_Basic_Decl)))
-            then
+            if not Skip_Because_Ghost (UIC, N) then
                Traverse_One (N);
             end if;
          end;
