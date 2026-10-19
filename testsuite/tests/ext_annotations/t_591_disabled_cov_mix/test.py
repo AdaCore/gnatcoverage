@@ -28,6 +28,15 @@ is_even_header_filename = os.path.abspath("is_even.h")
 main_filename = os.path.abspath("main.adb")
 
 
+def fold_case(text: str) -> str:
+    """
+    On Windows, gnatcov designates C/C++ sources with their canonical (lower
+    case) name, which may differ from the casing of the absolute names above:
+    compare messages regardless of casing there.
+    """
+    return text.lower() if thistest.env.build.os.name == "windows" else text
+
+
 # Instrument the test project and produce traces with various combinations of
 # disabled coverage regions. Save both SID files and trace files aside for
 # later re-use.
@@ -97,13 +106,17 @@ for label, src_trace in [
     )
     thistest.fail_if_not_equal(
         '"gnatcov coverage" output',
-        f"warning: traces for {is_even_filename} (from {src_trace}) are"
-        " inconsistent with the corresponding Source Instrumentation Data\n"
-        f"warning: traces for {is_even_header_filename} (from {src_trace}) are"
-        " inconsistent with the corresponding Source Instrumentation Data\n"
-        f"warning: traces for {main_filename} (from {src_trace}) are"
-        " inconsistent with the corresponding Source Instrumentation Data",
-        "\n".join(sorted(lines_of(log))),
+        fold_case(
+            f"warning: traces for {is_even_filename} (from {src_trace}) are"
+            " inconsistent with the corresponding Source Instrumentation"
+            " Data\n"
+            f"warning: traces for {is_even_header_filename} (from {src_trace})"
+            " are inconsistent with the corresponding Source Instrumentation"
+            " Data\n"
+            f"warning: traces for {main_filename} (from {src_trace}) are"
+            " inconsistent with the corresponding Source Instrumentation Data"
+        ),
+        "\n".join(sorted(fold_case(line) for line in lines_of(log))),
     )
 
 thistest.result()

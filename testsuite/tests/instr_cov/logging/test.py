@@ -9,7 +9,11 @@ import os.path
 import re
 
 from e3.fs import mkdir, sync_tree
-from e3.testsuite.driver.diff import OutputRefiner, Substitute
+from e3.testsuite.driver.diff import (
+    OutputRefiner,
+    PatternSubstitute,
+    Substitute,
+)
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -173,6 +177,14 @@ class SortByFiles(OutputRefiner[str]):
         return "".join(f"{line}\n" for line in result)
 
 
+# On Windows, gnatcov logs C/C++ source names in their canonical (lower case)
+# form, so the CWD may not appear with its actual casing: match it regardless
+# of casing there.
+cwd_pattern = re.escape(os.getcwd())
+if thistest.env.build.os.name == "windows":
+    cwd_pattern = f"(?i){cwd_pattern}"
+
+
 # Run "gnatcov instrument" and check its output against our logging baselines
 # for all example projects.
 for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
@@ -203,7 +215,7 @@ for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
         # canonicalize directory separators.
         output_refiners=[
             Filter(),
-            Substitute(os.getcwd(), "[TMP]"),
+            PatternSubstitute(cwd_pattern, "[TMP]"),
             HashRefiner(),
             SortByFiles(),
             Substitute("\\", "/"),
