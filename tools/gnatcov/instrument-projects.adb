@@ -114,6 +114,11 @@ is
    --  source file.
 
    procedure Prepare_Output_Dirs (IC : Inst_Context);
+
+   procedure Compute_Clang_Target_Switches (IC : Inst_Context);
+   --  Fill the libclang target switches in the description of each project
+   --  to instrument. Instrumentation jobs then reuse them instead of each
+   --  querying the compiler.
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
 
@@ -237,6 +242,34 @@ is
          end;
       end loop;
    end Prepare_Output_Dirs;
+
+   -----------------------------------
+   -- Compute_Clang_Target_Switches --
+   -----------------------------------
+
+   procedure Compute_Clang_Target_Switches (IC : Inst_Context) is
+      use Project_Info_Maps;
+   begin
+      for Cur in IC.Project_Info_Map.Iterate loop
+         declare
+            Prj_Info : Project_Info renames Element (Cur).all;
+            Desc     : Prj_Desc renames Prj_Info.Desc;
+         begin
+            if not Prj_Info.Externally_Built then
+               for Lang in C_Family_Language loop
+                  if Desc.Compiler_Driver (Lang) /= "" then
+                     Desc.Clang_Target_Switches (Lang) :=
+                       Clang_Target_Switches
+                         (Lang,
+                          +Desc.Compiler_Driver (Lang),
+                          Desc.Compiler_Options (Lang),
+                          +Desc.Output_Dir.Full_Name);
+                  end if;
+               end loop;
+            end if;
+         end;
+      end loop;
+   end Compute_Clang_Target_Switches;
 
    --  Create the instrumenter context
 
@@ -859,6 +892,7 @@ begin
    --  output directories.
 
    Prepare_Output_Dirs (IC);
+   Compute_Clang_Target_Switches (IC);
 
    --  Clean the instrumentation directories if the process terminated with
    --  an exception. Note that we can't do this with a handler, as the

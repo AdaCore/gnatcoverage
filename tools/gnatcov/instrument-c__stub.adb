@@ -22,4 +22,21 @@
 --  that question.
 
 package body Instrument.C is
+
+   ---------------------------
+   -- Clang_Target_Switches --
+   ---------------------------
+
+   function Clang_Target_Switches
+     (Lang             : C_Family_Language;
+      Compiler_Driver  : String;
+      Compiler_Options : String_Vectors.Vector;
+      Output_Dir       : String) return String_Vectors.Vector
+   is
+      pragma
+        Unreferenced (Lang, Compiler_Driver, Compiler_Options, Output_Dir);
+   begin
+      return String_Vectors.Empty_Vector;
+   end Clang_Target_Switches;
+
 end Instrument.C;

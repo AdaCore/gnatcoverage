@@ -36,6 +36,12 @@ package Instrument.Setup_Config is
       --  Mapping from compiler driver simple names to associated nm
       --  executable
 
+      Clang_Target_Switches : String_Vectors_Maps.Map;
+      --  Mapping from compiler driver simple names to the switches that make
+      --  libclang parse code with their data model. They are computed once
+      --  here, rather than in each compiler wrapper invocation, so that an
+      --  unsupported target is reported only once.
+
       Tag : Unbounded_String;
       --  Tag for this instrumentation run
 

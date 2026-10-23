@@ -350,6 +350,22 @@ package body Instrument is
       if Language in C_Family_Language then
          Fill_If_Present
            (Opt_Compiler_Driver, Result.Compiler_Driver (Language));
+         declare
+            Switches : Unbounded_String;
+            First    : Positive := 1;
+         begin
+            Fill_If_Present (Opt_Clang_Target_Switches, Switches);
+            for I in 1 .. Length (Switches) + 1 loop
+               if I > Length (Switches) or else Element (Switches, I) = ','
+               then
+                  if I > First then
+                     Result.Clang_Target_Switches (Language).Append
+                       (Unbounded_Slice (Switches, First, I - 1));
+                  end if;
+                  First := I + 1;
+               end if;
+            end loop;
+         end;
       end if;
       Fill_If_Present (Opt_Output_Directory, Output_Dir);
       Fill_If_Present (Opt_Lib_Directory, Lib_Dir);
@@ -468,6 +484,25 @@ package body Instrument is
          if Desc.Compiler_Driver (Lang) /= "" then
             Result.Append (Create ("--compiler-driver"));
             Result.Append (Create (+Desc.Compiler_Driver (Lang)));
+         end if;
+
+         --  Pass the value in the same argument as the option: as it starts
+         --  with dashes, it would be taken for another option otherwise.
+
+         if not Desc.Clang_Target_Switches (Lang).Is_Empty then
+            declare
+               Arg   : Unbounded_String := +"--clang-target-switches=";
+               First : Boolean := True;
+            begin
+               for Switch of Desc.Clang_Target_Switches (Lang) loop
+                  if not First then
+                     Append (Arg, ",");
+                  end if;
+                  First := False;
+                  Append (Arg, Switch);
+               end loop;
+               Result.Append (Create (+Arg));
+            end;
          end if;
       end if;
 

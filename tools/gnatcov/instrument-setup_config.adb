@@ -28,6 +28,7 @@ with GNAT.Strings;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Coverage;
+with Instrument.C;
 with Files_Table;   use Files_Table;
 with JSON;          use JSON;
 with Logging;
@@ -121,6 +122,10 @@ package body Instrument.Setup_Config is
 
       Nms : constant JSON_Value := Create_Object;
       --  For each compiler driver, location of the nm executable
+
+      Clang_Targets : constant JSON_Value := Create_Object;
+      --  For each compiler driver, switches that make libclang parse code
+      --  with its data model
 
       Exec_Suffix : constant String := Executable_Suffix;
    begin
@@ -250,6 +255,22 @@ package body Instrument.Setup_Config is
                            Output_Dir      => Output_Dir));
                   end;
 
+                  declare
+                     Target_Switches : JSON_Array;
+                  begin
+                     for Switch of
+                       Instrument.C.Clang_Target_Switches
+                         (Lang             => C_Language,
+                          Compiler_Driver  => Actual_Compiler_Driver,
+                          Compiler_Options => String_Vectors.Empty_Vector,
+                          Output_Dir       => Output_Dir)
+                     loop
+                        Append (Target_Switches, Create (+Switch));
+                     end loop;
+                     Clang_Targets.Set_Field
+                       (+Compiler_Driver, Target_Switches);
+                  end;
+
                   Copy_File
                     (From =>
                        Support_Files.Libexec_Dir
@@ -268,6 +289,7 @@ package body Instrument.Setup_Config is
       Config.Set_Field ("compilers", Compilers);
       Config.Set_Field ("linkers", Linkers);
       Config.Set_Field ("nms", Nms);
+      Config.Set_Field ("clang-target-switches", Clang_Targets);
 
       --  Then, register the files of interest
 
@@ -525,6 +547,27 @@ package body Instrument.Setup_Config is
            (Result.Compiler_Drivers, Config_JSON.Get ("compilers"));
          Fill_String_Map (Result.Linkers, Config_JSON.Get ("linkers"));
          Fill_String_Map (Result.Nms, Config_JSON.Get ("nms"));
+      end;
+
+      declare
+         procedure Insert_Switches (Key : UTF8_String; Value : JSON_Value);
+         --  Add the switches in Value for the Key compiler driver
+
+         ---------------------
+         -- Insert_Switches --
+         ---------------------
+
+         procedure Insert_Switches (Key : UTF8_String; Value : JSON_Value) is
+            Switches : String_Vectors.Vector;
+         begin
+            for Switch of JSON_Array'(Value.Get) loop
+               Switches.Append (+String'(Switch.Get));
+            end loop;
+            Result.Clang_Target_Switches.Insert (+Key, Switches);
+         end Insert_Switches;
+      begin
+         Map_JSON_Object
+           (Config_JSON.Get ("clang-target-switches"), Insert_Switches'Access);
       end;
 
       Result.Tag := Config_JSON.Get ("tag");

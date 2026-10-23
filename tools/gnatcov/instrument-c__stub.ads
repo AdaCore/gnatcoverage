@@ -79,4 +79,10 @@ package Instrument.C is
           (Annot : ALI_Annotation; Span : Slocs.Local_Source_Location_Range))
    is null;
 
+   function Clang_Target_Switches
+     (Lang             : C_Family_Language;
+      Compiler_Driver  : String;
+      Compiler_Options : String_Vectors.Vector;
+      Output_Dir       : String) return String_Vectors.Vector;
+
 end Instrument.C;
