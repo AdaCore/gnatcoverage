@@ -136,7 +136,8 @@ package body Slocs is
          --  line, for macros defined with the -D switch), let the user know.
 
          return
-           (if Clang_Predefined_File (File_Name)
+           (if Sloc.Source_File /= No_Source_File
+              and then Clang_Predefined_File (File_Name)
             then File_Name
             else "<no loc>");
       end if;
