@@ -4243,8 +4243,9 @@ package body Instrument.C is
       if System.Address (Self.CIdx) = System.Null_Address then
          return;
       end if;
-
-      Dispose_Translation_Unit (Self.TU);
+      if Self.TU /= null then
+         Dispose_Translation_Unit (Self.TU);
+      end if;
       Dispose_Index (Self.CIdx);
       if System.Address (Self.Rewriter) /= Null_Address then
          CX_Rewriter_Dispose (Self.Rewriter);
