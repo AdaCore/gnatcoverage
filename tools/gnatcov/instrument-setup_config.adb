@@ -518,6 +518,25 @@ package body Instrument.Setup_Config is
                end;
             end if;
 
+            case Channel is
+               when Binary_File =>
+                  Dump_Config.Filename_Simple :=
+                    (if Dump_Config_JSON.Has_Field ("dump-filename-simple")
+                     then Dump_Config_JSON.Get ("dump-filename-simple")
+                     else False);
+                  Dump_Config.Filename_Env_Var :=
+                    (if Dump_Config_JSON.Has_Field ("dump-filename-env-var")
+                     then Dump_Config_JSON.Get ("dump-filename-env-var")
+                     else US.Null_Unbounded_String);
+                  Dump_Config.Filename_Prefix :=
+                    (if Dump_Config_JSON.Has_Field ("dump-filename-prefix")
+                     then Dump_Config_JSON.Get ("dump-filename-prefix")
+                     else US.Null_Unbounded_String);
+
+               when others      =>
+                  null;
+            end case;
+
             Result.Dump_Config := Dump_Config;
          end;
       end;
