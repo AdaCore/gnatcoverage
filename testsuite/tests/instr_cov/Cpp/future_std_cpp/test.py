@@ -15,28 +15,32 @@ def gen_prj() -> GPRswitches:
     return GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.cpp"]))
 
 
+# Bump this when the default c++ version changes, and update the main source to
+# use a new feature not available in the new default c++ version.
+
+
+STANDARD_VERSION = "c++23"
+
 tmp = Wdir("tmp_valid-instrumentation")
 
-# Check that passing std=c++20 to both the instrumenter, and the builder,
+# Check that passing std=c++23 to both the instrumenter, and the builder,
 # compiles and produces the right coverage report.
 
 build_run_and_coverage(
     gprsw=gen_prj(),
     covlevel="stmt",
     mains=["main"],
-    extra_instr_args=["--c++-opts=-std=c++20"],
-    extra_gprbuild_cargs=["-std=c++20"],
+    extra_instr_args=[f"--c++-opts=-std={STANDARD_VERSION}"],
+    extra_gprbuild_cargs=[f"-std={STANDARD_VERSION}"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
 )
 
-check_xcov_reports(
-    "xcov", {"main.cpp.xcov": {"+": {6, 7, 8, 9, 11, 13, 16}, "-": {12, 14}}}
-)
+check_xcov_reports("xcov", {"main.cpp.xcov": {"+": {6, 7, 9}}})
 
 tmp.to_homedir()
 
-# Now check that when we do not pass std=c++20 to the instrumenter, we
+# Now check that when we do not pass std=c++23 to the instrumenter, we
 # produce invalid code, that will fail to compile.
 #
 # TODO: gnatcov instrument should emit warnings. We get diagnostics when
@@ -51,7 +55,7 @@ gprsw = gen_prj()
 xcov_instrument(gprsw=gprsw, covlevel="stmt")
 p = gprbuild(
     gprsw.root_project,
-    extracargs=["-std=c++20"],
+    extracargs=[f"-std={STANDARD_VERSION}"],
     trace_mode="src",
     register_failure=False,
 )

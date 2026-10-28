@@ -52,24 +52,27 @@ def run_variant(
 
 
 run_variant(
-    variant_name="gprbuild-c++20",
+    variant_name="gprbuild-c++23",
     extra_instr_cppargs=[],
-    extra_gprbuild_cargs=["-cargs:C++", "-std=c++20", "-save-temps"],
+    extra_gprbuild_cargs=["-cargs:C++", "-std=c++23", "-save-temps"],
     pred=lambda: "This is C++ code" in contents_of("obj/main.s"),
 )
+
+# gnatcov now no longer attempts to parse C++ as C code
 run_variant(
     variant_name="instr-c89",
     extra_instr_cppargs=["-std=c89"],
     extra_gprbuild_cargs=[],
-    tolerate_instrument_messages="Failed to parse",
-    pred=lambda: "Failed to parse" in contents_of("instrument.log"),
+    tolerate_instrument_messages="Cannot parse a built-in macro definition",
+    pred=lambda: "Cannot parse a built-in macro definition"
+    in contents_of("instrument.log"),
     skip_build=True,
 )
 run_variant(
-    variant_name="instr-gprbuild-c++20",
-    extra_instr_cppargs=["-std=c++20"],
-    extra_gprbuild_cargs=["-cargs:C++", "-std=c++20", "-save-temps"],
-    pred=lambda: "This is C++20 code" in contents_of("obj/main.s"),
+    variant_name="instr-gprbuild-c++23",
+    extra_instr_cppargs=["-std=c++23"],
+    extra_gprbuild_cargs=["-cargs:C++", "-std=c++23", "-save-temps"],
+    pred=lambda: "This is C++23 code" in contents_of("obj/main.s"),
 )
 
 thistest.result()

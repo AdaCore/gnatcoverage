@@ -36,6 +36,7 @@ with Files_Table;        use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common;  use Instrument.Common;
 with Logging;
+with System;
 
 package Instrument.C is
 
@@ -682,9 +683,9 @@ private
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
-      CIdx     : Index_T;
-      TU       : Translation_Unit_T;
-      Rewriter : Rewriter_T;
+      CIdx     : Index_T := Index_T (System.Null_Address);
+      TU       : Translation_Unit_T := null;
+      Rewriter : Rewriter_T := Rewriter_T (System.Null_Address);
       --  Structures that should be freed after rewriting
 
       Extern_Insertion_Location : Source_Location_T;

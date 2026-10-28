@@ -25,6 +25,7 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
+with Clang.CX_Error_Code; use Clang.CX_Error_Code;
 with Clang.CX_String;     use Clang.CX_String;
 with Clang.Extensions;    use Clang.Extensions;
 
@@ -72,6 +73,10 @@ package body Instrument.C is
    function Last_File return Valid_Source_File_Index
    is (SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index);
    --  Return the source file for the last low-level SCO that was created
+
+   procedure Check_Clang_Error_Code (Code : Error_Code_T; Filename : String);
+   --  Check whether Code is not Error_Success, and exit with an error if it
+   --  isn't.
 
    ------------------------------
    --  Preprocessing utilities --
@@ -623,6 +628,47 @@ package body Instrument.C is
          Free (Item);
       end loop;
    end Free;
+
+   ----------------------------
+   -- Check_Clang_Error_Code --
+   ----------------------------
+
+   procedure Check_Clang_Error_Code (Code : Error_Code_T; Filename : String) is
+   begin
+      case Code is
+         when Error_Success           =>
+            return;
+
+         when Error_Failure           =>
+            Outputs.Error ("Failed to parse " & Filename);
+            Outputs.Fatal_Error
+              ("Please make sure that the original project can"
+               & " be compiled, and that the right set of"
+               & " options is passed to gnatcov instrument.");
+
+         when Error_Crashed           =>
+            Outputs.Error ("Clang crashed while parsing " & Filename);
+            Outputs.Fatal_Error
+              ("Please make sure the original project can be compiled. If so "
+               & "this might be a gnatcov bug.");
+
+         when Error_Invalid_Arguments =>
+            Outputs.Error
+              ("Invalid arguments passed to Clang when analyzing " & Filename);
+            Outputs.Fatal_Error
+              ("Check that the options passed to --c-opts or --c++-opts are "
+               & "valid.");
+
+         when Error_AST_Read_Error    =>
+
+            --  This should never happen in practice (we never serialize an AST
+            --  to a file).
+
+            Outputs.Error
+              ("Unexpected Clang usage mode while processing " & Filename);
+            Outputs.Fatal_Error ("This is an internal gnatcov bug.");
+      end case;
+   end Check_Clang_Error_Code;
 
    ------------------------
    -- Filter_Annotations --
@@ -4138,25 +4184,19 @@ package body Instrument.C is
         (Args, Common_Parse_TU_Args (Instrumenter.Language));
 
       declare
-         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
-      begin
-         Self.TU :=
-           Parse_Translation_Unit
+         C_Args       : chars_ptr_array := To_Chars_Ptr_Array (Args);
+         Parse_Status : constant Error_Code_T :=
+           Parse_Translation_Unit_2
              (C_Idx                 => Self.CIdx,
               Source_Filename       => +PP_Filename.Full_Name,
               Command_Line_Args     => C_Args'Address,
               Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
-              Options               => 0);
-         if Self.TU = null then
-            Outputs.Error ("Failed to parse " & (+Filename.Full_Name));
-            Outputs.Error
-              ("Please make sure that the original project can"
-               & " be compiled, and that the right set of"
-               & " options is passed to gnatcov instrument");
-            raise Xcov_Exit_Exc;
-         end if;
+              Options               => 0,
+              Out_TU                => Self.TU'Address);
+      begin
+         Check_Clang_Error_Code (Parse_Status, +Filename.Full_Name);
          if Clang_Trace.Is_Active then
             Run_Diagnostics (Self.TU);
          end if;
@@ -4203,8 +4243,9 @@ package body Instrument.C is
       if System.Address (Self.CIdx) = System.Null_Address then
          return;
       end if;
-
-      Dispose_Translation_Unit (Self.TU);
+      if Self.TU /= null then
+         Dispose_Translation_Unit (Self.TU);
+      end if;
       Dispose_Index (Self.CIdx);
       if System.Address (Self.Rewriter) /= Null_Address then
          CX_Rewriter_Dispose (Self.Rewriter);
@@ -4262,18 +4303,20 @@ package body Instrument.C is
       --  preprocessing information later.
 
       declare
-         C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
-      begin
-         UIC_Copy.TU :=
-           Parse_Translation_Unit
+         C_Args       : chars_ptr_array := To_Chars_Ptr_Array (Args);
+         Parse_Status : constant Error_Code_T :=
+           Parse_Translation_Unit_2
              (C_Idx                 => UIC_Copy.CIdx,
               Source_Filename       => Orig_Filename,
               Command_Line_Args     => C_Args'Address,
               Num_Command_Line_Args => C_Args'Length,
               Unsaved_Files         => null,
               Num_Unsaved_Files     => 0,
-              Options               => Translation_Unit_Keep_Going);
+              Options               => Translation_Unit_Keep_Going,
+              Out_TU                => UIC_Copy.TU'Address);
+      begin
          Free (C_Args);
+         Check_Clang_Error_Code (Parse_Status, Orig_Filename);
       end;
       Traverse_Declarations
         (UIC => UIC_Copy,
@@ -6266,80 +6309,115 @@ package body Instrument.C is
       Self.Clang_Target_Switches :=
         Prj.Clang_Target_Switches (C_Family_Language (Instrumenter.Language));
 
-      --  If the command line does not specify a version for the C standard,
-      --  infer it from the __STDC_VERSION__ builtin macro and add it to the
-      --  compiler switches. This is necessary to get the preprocessor
-      --  (possibly GCC) synchronized with Clang: the preprocessor's default
-      --  may not be equivalent to Clang's own default.
+      --  If the command line does not specify a version for the C or C++
+      --  standard, infer it from the __STDC_VERSION__/__cplusplus builtin
+      --  macro and add it to the compiler switches. This is necessary to get
+      --  the preprocessor (possibly GCC) synchronized with Clang: the
+      --  preprocessor's default may not be equivalent to Clang's own default.
 
-      if Instrumenter in C_Instrumenter_Type'Class then
-         declare
-            use Macro_Sets;
-            Found   : Boolean := False;
-            Cur     : Cursor;
-            New_Arg : Unbounded_String;
+      declare
+         use Macro_Sets;
+         Found   : Boolean := False;
+         Cur     : Cursor;
+         New_Arg : Unbounded_String;
 
-            Std_Version_Macro_Name : constant String := "__STDC_VERSION__";
+         Std_Version_Macro_Name : constant String :=
+           (if Instrumenter.Language = C_Language
+            then "__STDC_VERSION__"
+            else "__cplusplus");
 
-            Gnu_C : constant Boolean :=
-              Has_Element (Find (Self.Builtin_Macros, "__GNUC__"));
-            --  Whether the compiler supports GNU extensions
+         Gnu_C : constant Boolean :=
+           Has_Element (Find (Self.Builtin_Macros, "__GNUC__"));
+         --  Whether the compiler supports GNU extensions
 
-            Strict_Ansi : constant Boolean :=
-              Has_Element (Find (Self.Builtin_Macros, "__STRICT_ANSI__"));
-            --  Whether strict ANSI is required
+         Strict_Ansi : constant Boolean :=
+           Has_Element (Find (Self.Builtin_Macros, "__STRICT_ANSI__"));
+         --  Whether strict ANSI is required
 
-         begin
-            for Arg of Self.Compiler_Switches loop
-               if Has_Prefix (+Arg, "-std") then
-                  Found := True;
-                  exit;
-               end if;
-            end loop;
+      begin
+         for Arg of Self.Compiler_Switches loop
+            if Has_Prefix (+Arg, "-std") then
+               Found := True;
+               exit;
+            end if;
+         end loop;
 
-            if not Found then
-               Sources_Trace.Trace
-                 ("No -std compiler switch: looking for macro "
-                  & Std_Version_Macro_Name);
-               Cur := Find (Self.Builtin_Macros, Std_Version_Macro_Name);
-               if Has_Element (Cur) then
-                  declare
-                     C_Or_Gnu : constant String :=
-                       (if not Strict_Ansi and then Gnu_C then "gnu" else "c");
-                     Value    : constant String :=
-                       Ada.Strings.Fixed.Trim
-                         (+Self.Builtin_Macros.Element (Cur).Value,
-                          Side => Ada.Strings.Both);
-                  begin
-                     Sources_Trace.Trace
-                       ("Found " & Std_Version_Macro_Name & " = " & Value);
-                     if Value = "199901L" then
-                        New_Arg := +"-std=" & C_Or_Gnu & "99";
-                     elsif Value = "201112L" then
-                        New_Arg := +"-std=" & C_Or_Gnu & "11";
-                     elsif Value = "201710L" then
-                        New_Arg := +"-std=" & C_Or_Gnu & "17";
-                     elsif Value = "202311L" then
-                        New_Arg := +"-std=" & C_Or_Gnu & "23";
-                     else
-                        Sources_Trace.Trace
-                          ("It designates an unknown C standard version");
-                     end if;
-                  end;
-               else
+         if not Found then
+            Sources_Trace.Trace
+              ("No -std compiler switch: looking for macro "
+               & Std_Version_Macro_Name);
+            Cur := Find (Self.Builtin_Macros, Std_Version_Macro_Name);
+            if Has_Element (Cur) then
+               declare
+                  Lang_Ext : constant String :=
+                    (if Instrumenter.Language = CPP_Language
+                     then "++"
+                     else "");
+
+                  C_Or_Gnu : constant String :=
+                    (if not Strict_Ansi and then Gnu_C then "gnu" else "c")
+                    & Lang_Ext;
+                  Value    : constant String :=
+                    Ada.Strings.Fixed.Trim
+                      (+Self.Builtin_Macros.Element (Cur).Value,
+                       Side => Ada.Strings.Both);
+               begin
                   Sources_Trace.Trace
-                    (Std_Version_Macro_Name
-                     & " is not defined: crossing fingers...");
-               end if;
-            end if;
+                    ("Found " & Std_Version_Macro_Name & " = " & Value);
+                  case Instrumenter.Language is
+                     when C_Language   =>
+                        if Value = "199901L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "99";
+                        elsif Value = "201112L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "11";
+                        elsif Value = "201710L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "17";
+                        elsif Value = "202311L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "23";
+                        else
+                           Sources_Trace.Trace
+                             ("It designates an unknown C standard "
+                              & "version");
+                        end if;
 
-            if New_Arg /= "" then
-               Self.Compiler_Switches.Append (New_Arg);
+                     when CPP_Language =>
+                        if Value = "199711L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "98";
+                        elsif Value = "201103L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "11";
+                        elsif Value = "201402L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "14";
+                        elsif Value = "201703L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "17";
+                        elsif Value = "202002L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "20";
+                        elsif Value = "202302L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "23";
+                        elsif Value = "202603L" then
+                           New_Arg := +"-std=" & C_Or_Gnu & "26";
+                        else
+                           Sources_Trace.Trace
+                             ("It designates an unknown C++ standard "
+                              & "version");
+                        end if;
+
+                     when others       =>
+                        raise Program_Error with "Unreachable";
+                  end case;
+               end;
+            else
                Sources_Trace.Trace
-                 ("Adding " & (+New_Arg) & " to compiler switches");
+                 (Std_Version_Macro_Name
+                  & " is not defined: crossing fingers...");
             end if;
-         end;
-      end if;
+         end if;
+
+         if New_Arg /= "" then
+            Self.Compiler_Switches.Append (New_Arg);
+            Sources_Trace.Trace
+              ("Adding " & (+New_Arg) & " to compiler switches");
+         end if;
+      end;
    end Import_Options;
 
    ---------------------------
