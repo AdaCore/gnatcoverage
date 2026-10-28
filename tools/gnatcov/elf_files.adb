@@ -16,9 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces;              use Interfaces;
-with Interfaces.C;
-with System.Storage_Elements; use System.Storage_Elements;
+with Interfaces; use Interfaces;
 
 with GNATCOLL.Mmap; use GNATCOLL.Mmap;
 
@@ -231,7 +229,7 @@ package body Elf_Files is
      (File : Elf_File; Index : Section_Index) return Loaded_Section
    is
       Shdr   : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
-      Result : Loaded_Section :=
+      Result : constant Loaded_Section :=
         +Read
            (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin

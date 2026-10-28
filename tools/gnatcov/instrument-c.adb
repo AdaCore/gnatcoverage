@@ -86,12 +86,13 @@ package body Instrument.C is
    --  according to the compiler switches. Output_Dir is used to store a
    --  temporary file.
 
-   function Get_Clang_Target
-     (Prj : Prj_Desc; Lang : C_Family_Language) return Unbounded_String;
-   --  Return the target triple of the compiler for Lang in Prj, for libclang
-   --  to parse code with the same data model as the compiler. Return the
-   --  empty string if the compiler does not report its target, or if libclang
-   --  does not support it.
+   function Target_Switches_From_Macros
+     (Compiler : String; Builtin_Macros : Macro_Set)
+      return String_Vectors.Vector;
+   --  Return the switches that make libclang parse code with the data model
+   --  of Compiler, whose builtin macros are Builtin_Macros. Return an empty
+   --  vector if the target cannot be determined or if libclang does not
+   --  support it.
 
    procedure Preprocess_Source
      (Filename     : GNATCOLL.VFS.Virtual_File;
@@ -3449,44 +3450,121 @@ package body Instrument.C is
       Delete_File (Filename);
    end Get_Builtin_Macros;
 
-   ----------------------
-   -- Get_Clang_Target --
-   ----------------------
+   ---------------------------------
+   -- Target_Switches_From_Macros --
+   ---------------------------------
 
-   --  Get_Clang_Target is called for each source to instrument, but its
-   --  result only depends on the compiler. Cache the last result, so that the
-   --  compiler and libclang are queried once per compiler, and an unsupported
-   --  target is reported only once.
+   --  Target_Switches_From_Macros may be called for several projects, and the
+   --  libclang support check is its costly part. Its result only depends on
+   --  the computed switches, so remember the last one. This also reports an
+   --  unsupported target only once.
 
-   Cached_Compiler     : Unbounded_String;
-   Cached_Clang_Target : Unbounded_String;
+   Cached_Switches           : String_Vectors.Vector;
+   Cached_Switches_Supported : Boolean := False;
+   Warned_No_Target          : Boolean := False;
 
-   function Get_Clang_Target
-     (Prj : Prj_Desc; Lang : C_Family_Language) return Unbounded_String
+   function Target_Switches_From_Macros
+     (Compiler : String; Builtin_Macros : Macro_Set)
+      return String_Vectors.Vector
    is
-      function Clang_Supports (Triple : String) return Boolean;
-      --  Return whether libclang can parse code for Triple
+      use Macro_Sets;
+
+      function Defined (Name : String) return Boolean
+      is (Has_Element (Find (Builtin_Macros, Name)));
+
+      function Value (Name : String) return String
+      is (if Defined (Name)
+          then
+            Ada.Strings.Fixed.Trim
+              (+Builtin_Macros.Element (Find (Builtin_Macros, Name)).Value,
+               Ada.Strings.Both)
+          else "");
+
+      function Arch return String;
+      --  Return the Clang name of the architecture that the builtin macros
+      --  describe, or the empty string if it is unknown.
+
+      function OS return String;
+      --  Return the vendor, OS and environment parts of the Clang triple that
+      --  the builtin macros describe, with a leading dash.
+
+      function Clang_Supports
+        (Switches : String_Vectors.Vector) return Boolean;
+      --  Return whether libclang can parse code with the given switches
+
+      ----------
+      -- Arch --
+      ----------
+
+      function Arch return String is
+         Big_Endian : constant Boolean :=
+           Value ("__BYTE_ORDER__") = "__ORDER_BIG_ENDIAN__";
+      begin
+         if Defined ("__aarch64__") then
+            return (if Big_Endian then "aarch64_be" else "aarch64");
+         elsif Defined ("__arm__") then
+            return (if Big_Endian then "armeb" else "arm");
+         elsif Defined ("__riscv") then
+            return
+              (if Value ("__riscv_xlen") = "64" then "riscv64" else "riscv32");
+         elsif Defined ("__sparc__") then
+            return (if Defined ("__arch64__") then "sparcv9" else "sparc");
+
+         --  Some GCCs (e.g. powerpc-elf) only define the __PPC__ spellings
+
+         elsif Defined ("__powerpc64__") or else Defined ("__PPC64__") then
+            return (if Big_Endian then "powerpc64" else "powerpc64le");
+         elsif Defined ("__powerpc__") or else Defined ("__PPC__") then
+            return (if Big_Endian then "powerpc" else "powerpcle");
+         elsif Defined ("__x86_64__") then
+            return "x86_64";
+         elsif Defined ("__i386__") then
+            return "i686";
+         else
+            return "";
+         end if;
+      end Arch;
+
+      --------
+      -- OS --
+      --------
+
+      function OS return String is
+      begin
+         if Defined ("_WIN32") then
+            return "-w64-windows-gnu";
+         elsif Defined ("__linux__") then
+            return "-unknown-linux-gnu";
+         elsif Defined ("__QNXNTO__") then
+            return "-unknown-nto-qnx";
+         elsif Defined ("__VXWORKS__") then
+            return "-wrs-vxworks";
+         elsif Defined ("__APPLE__") then
+            return "-apple-darwin";
+         else
+            return "-unknown-elf";
+         end if;
+      end OS;
 
       --------------------
       -- Clang_Supports --
       --------------------
 
-      function Clang_Supports (Triple : String) return Boolean is
-         Filename : constant String := "gnatcov_target_check.c";
-         Args     : String_Vectors.Vector;
-         Unsaved  : aliased Unsaved_File_T :=
+      function Clang_Supports (Switches : String_Vectors.Vector) return Boolean
+      is
+         Filename  : constant String := "gnatcov_target_check.c";
+         Unsaved   : aliased Unsaved_File_T :=
            (Filename => New_String (Filename),
             Contents => New_String (""),
             Length   => 0);
-         CIdx     : constant Index_T :=
+         CIdx      : constant Index_T :=
            Create_Index
              (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
-         TU       : Translation_Unit_T;
-         Result   : Boolean;
+         TU        : Translation_Unit_T;
+         Supported : Boolean;
       begin
-         Args.Append (+("--target=" & Triple));
          declare
-            C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
+            C_Args : chars_ptr_array := To_Chars_Ptr_Array (Switches);
          begin
             TU :=
               Parse_Translation_Unit
@@ -3505,89 +3583,99 @@ package body Instrument.C is
          --  libclang yields no translation unit at all when it cannot create
          --  the target.
 
-         Result := TU /= null;
-         if Result then
+         Supported := TU /= null;
+         if Supported then
             Dispose_Translation_Unit (TU);
          end if;
          Dispose_Index (CIdx);
-         return Result;
+         return Supported;
       end Clang_Supports;
 
-      Compiler : constant String :=
-        (if Prj.Orig_Compiler_Driver = ""
-         then +Prj.Compiler_Driver (Lang)
-         else +Prj.Orig_Compiler_Driver);
+      A        : constant String := Arch;
+      Switches : String_Vectors.Vector;
 
-      PID : constant Unsigned_64 :=
-        Unsigned_64 (Pid_To_Integer (Current_Process_Id));
-
-      Filename : constant String :=
-        (+Prj.Output_Dir.Full_Name)
-        / (Ada.Directories.Simple_Name (Compiler)
-           & "_dumpmachine_"
-           & Hex_Image (PID));
-      Args     : String_Vectors.Vector;
-      File     : Ada.Text_IO.File_Type;
-      Triple   : Unbounded_String;
-
-      --  Start of processing for Get_Clang_Target
+      --  Start of processing for Target_Switches_From_Macros
 
    begin
-      if Cached_Compiler = Compiler then
-         return Cached_Clang_Target;
-      end if;
+      if A = "" then
+         null;
 
-      Args.Append (+"-dumpmachine");
-      if Run_Command
-           (Command             => Compiler,
-            Arguments           => Args,
-            Origin_Command_Name => "gnatcov instrument",
-            Output_File         => Filename,
-            Err_To_Out          => False,
-            In_To_Null          => True,
-            Ignore_Error        => True)
-      then
-         Open (File, In_File, Filename);
-         if not End_Of_File (File) then
-            Triple :=
-              +Ada.Strings.Fixed.Trim (Get_Line (File), Ada.Strings.Both);
+      --  Clang's PPC32 targets use long for size_t, ptrdiff_t and intptr_t
+      --  on all OSes but Linux and the BSDs, whereas GCC uses int. Libclang
+      --  then rejects GCC-preprocessed code that relies on these types (e.g.
+      --  std::initializer_list). Parse for Linux instead, keeping GCC's long
+      --  double, which is larger on Linux.
+
+      elsif A = "powerpc" then
+         Switches.Append (+"--target=powerpc-unknown-linux-gnu");
+         if Value ("__SIZEOF_LONG_DOUBLE__") = "8" then
+            Switches.Append (+"-mlong-double-64");
          end if;
-         Close (File);
+
       else
-         Sources_Trace.Trace
-           (Compiler & " -dumpmachine failed: parsing for the host");
-      end if;
-      if Ada.Directories.Exists (Filename) then
-         Delete_File (Filename);
+         Switches.Append (+("--target=" & A & OS));
       end if;
 
-      --  GCC accepts LEON processor names (e.g. leon3-elf) as aliases for the
-      --  SPARC architecture, but Clang does not know them.
+      if not Switches.Is_Empty
+        and then String_Vectors."/=" (Switches, Cached_Switches)
+      then
+         Cached_Switches := Switches;
+         Cached_Switches_Supported := Clang_Supports (Switches);
+      end if;
 
-      declare
-         T    : constant String := +Triple;
-         Dash : constant Natural := Ada.Strings.Fixed.Index (T, "-");
-      begin
-         if Dash > 0 and then Has_Prefix (T (T'First .. Dash - 1), "leon") then
-            Triple := +("sparc" & T (Dash .. T'Last));
+      if Switches.Is_Empty or else not Cached_Switches_Supported then
+         if not Warned_No_Target then
+            Warned_No_Target := True;
+            Warn
+              ("libclang does not support the target of "
+               & Compiler
+               & ": parsing sources for the host instead, which may yield"
+               & " incomplete coverage obligations");
          end if;
-      end;
-
-      if Triple /= "" and then not Clang_Supports (+Triple) then
-         Warn
-           ("libclang does not support the target "
-            & (+Triple)
-            & " of "
-            & Compiler
-            & ": parsing sources for the host instead, which may yield"
-            & " incomplete coverage obligations");
-         Triple := Null_Unbounded_String;
+         return String_Vectors.Empty_Vector;
       end if;
 
-      Cached_Compiler := +Compiler;
-      Cached_Clang_Target := Triple;
-      return Triple;
-   end Get_Clang_Target;
+      Sources_Trace.Trace ("libclang target switches for " & Compiler & ":");
+      for Switch of Switches loop
+         Sources_Trace.Trace ("  " & (+Switch));
+      end loop;
+      return Switches;
+   end Target_Switches_From_Macros;
+
+   ---------------------------
+   -- Clang_Target_Switches --
+   ---------------------------
+
+   function Clang_Target_Switches
+     (Lang             : C_Family_Language;
+      Compiler_Driver  : String;
+      Compiler_Options : String_Vectors.Vector;
+      Output_Dir       : String) return String_Vectors.Vector
+   is
+      Options : Analysis_Options;
+      Macros  : Macro_Set;
+      Exec    : GNAT.OS_Lib.String_Access :=
+        GNAT.OS_Lib.Locate_Exec_On_Path (Compiler_Driver);
+   begin
+      --  A project may declare a language without having a compiler for it
+      --  installed: this is an error only when instrumenting a source in
+      --  that language, which Check_Compiler_Driver reports.
+
+      if Exec = null then
+         return String_Vectors.Empty_Vector;
+      end if;
+      GNAT.OS_Lib.Free (Exec);
+
+      Import_From_Args (Options, Compiler_Options);
+      Get_Builtin_Macros
+        (Image (Lang),
+         Compiler_Driver,
+         Output_Dir,
+         Options.Compiler_Switches,
+         Project_Instrumentation,
+         Macros);
+      return Target_Switches_From_Macros (Compiler_Driver, Macros);
+   end Clang_Target_Switches;
 
    -----------------------
    -- Preprocess_Source --
@@ -5470,10 +5558,12 @@ package body Instrument.C is
       for D of Self.RTS_Source_Dirs loop
          Dummy_Options.PP_Search_Path.Append (+(+D.Full_Name));
       end loop;
-      Dummy_Options.Clang_Target :=
-        Get_Clang_Target
-          (Prj,
-           C_Family_Language
+
+      --  Parse for the compiler's target, as when instrumenting for coverage
+
+      Dummy_Options.Clang_Target_Switches :=
+        Prj.Clang_Target_Switches
+          (C_Family_Language
              (C_Family_Instrumenter_Type'Class (Self).Language));
 
       Rew.Start_Rewriting
@@ -6173,8 +6263,8 @@ package body Instrument.C is
          end if;
       end;
 
-      Self.Clang_Target :=
-        Get_Clang_Target (Prj, C_Family_Language (Instrumenter.Language));
+      Self.Clang_Target_Switches :=
+        Prj.Clang_Target_Switches (C_Family_Language (Instrumenter.Language));
 
       --  If the command line does not specify a version for the C standard,
       --  infer it from the __STDC_VERSION__ builtin macro and add it to the
