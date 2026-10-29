@@ -918,7 +918,7 @@ begin
 
          if Needs_Auto_Filename_Prefix then
             Instr_Config.Dump_Config.Filename_Prefix :=
-              +Ada.Directories.Base_Name (Fullname);
+              +(Ada.Directories.Base_Name (Fullname) & Executable_Suffix);
          end if;
 
          --  Pass the compiler switches through the project description.

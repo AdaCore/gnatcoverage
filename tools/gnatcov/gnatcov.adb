@@ -23,11 +23,12 @@ with Ada.Strings.Fixed;         use Ada.Strings.Fixed;
 with GNAT.OS_Lib;
 with GNAT.Strings;              use GNAT.Strings;
 
-with Command_Line; use Command_Line;
-with Outputs;      use Outputs;
+with Command_Line;   use Command_Line;
+with Files_Handling; use Files_Handling;
+with Outputs;        use Outputs;
 with Support_Files;
-with Switches;     use Switches;
-with Switches_GPR; use Switches_GPR;
+with Switches;       use Switches;
+with Switches_GPR;   use Switches_GPR;
 
 procedure GNATcov is
    Use_Gnatcov64 : Boolean := False;
@@ -99,9 +100,7 @@ begin
 
    declare
       Exec_Basename : constant String :=
-        "gnatcov"
-        & (if Use_Gnatcov64 then "64" else "32")
-        & GNAT.OS_Lib.Get_Executable_Suffix.all;
+        "gnatcov" & (if Use_Gnatcov64 then "64" else "32") & Executable_Suffix;
       Exec_Filename : constant String :=
         Ada.Directories.Compose (Support_Files.Libexec_Dir, Exec_Basename);
 
