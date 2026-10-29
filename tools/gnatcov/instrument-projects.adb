@@ -20,6 +20,7 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Unchecked_Deallocation;
@@ -686,9 +687,17 @@ is
    --  Start of processing for Instrument.Projects
 
 begin
-   --  Set the instrumentation tag
+   --  If none was provided, create a default instrumentation tag. For this
+   --  specific case, pass it to the various instrumentation jobs through an
+   --  environment variable rather than through Dump_Config for the benefit of
+   --  incremental instrumentation: the default instrumentation tag is computed
+   --  from the current date, so it will always change, but that change alone
+   --  is not a valid reason to re-trigger instrumentation.
 
-   IC.Tag := +Instrumentation_Tag;
+   if Dump_Config.Channel = Binary_File and then Dump_Config.Filename_Tag = ""
+   then
+      Ada.Environment_Variables.Set ("GNATCOV_INSTR_TAG", Instrumentation_Tag);
+   end if;
 
    --  First, go through the mains.
    --
@@ -935,15 +944,13 @@ begin
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
        (Default_Charset            => IC.Ada_Default_Charset,
-        Tag                        => IC.Tag,
         Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
    C_Instrumenter :=
-     Create_C_Instrumenter (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
+     Create_C_Instrumenter (Project_Instrumentation, RTS_Source_Dirs);
    CPP_Instrumenter :=
-     Create_CPP_Instrumenter
-       (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
+     Create_CPP_Instrumenter (Project_Instrumentation, RTS_Source_Dirs);
 
    --  Write the files of interest to a temporary file in the instrumentation
    --  directory.

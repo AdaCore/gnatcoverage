@@ -42,9 +42,6 @@ package Instrument.Setup_Config is
       --  here, rather than in each compiler wrapper invocation, so that an
       --  unsupported target is reported only once.
 
-      Tag : Unbounded_String;
-      --  Tag for this instrumentation run
-
       GNATcov_RTS_Include_Dir : Unbounded_String;
       GNATcov_RTS_Object_Dir  : Unbounded_String;
       --  Location of the include / object directories of the installed

@@ -91,6 +91,11 @@ package Instrument.Actions.Instrument_Source is
       Dump_Config : Any_Dump_Config;
       --  Dump config to pass to main instrumentation if this is also a main
 
+      Explicit_Tag : Boolean;
+      --  Whether Dump_Config.Filename_Tag was explicitly set by the user. If
+      --  not, we automatically generate one, but to avoid spurious
+      --  re-instrumentation, we must not include it in signatures.
+
       LU_Info : Library_Unit_Info;
       --  Instrumentation information for the compilation unit
 

@@ -568,10 +568,7 @@ package Instrument.Common is
         Element_Type => Ada_Qualified_Name,
         "="          => Ada_Identifier_Vectors."=");
 
-   type Language_Instrumenter is abstract tagged record
-      Tag : Unbounded_String;
-      --  Tag specific to an instrumentation run
-   end record;
+   type Language_Instrumenter is abstract tagged null record;
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
@@ -967,10 +964,6 @@ package Instrument.Common is
       --  instrumented, i.e. spec / body / separates). It is also passed to
       --  instrument-main invocations to know the full list of instrumented
       --  sources.
-
-      Tag : Unbounded_String;
-      --  Tag relative to the current instrumentation run
-
    end record;
 
    type Inst_Context_Acc is access all Inst_Context;

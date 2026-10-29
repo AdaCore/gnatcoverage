@@ -5327,7 +5327,7 @@ package body Instrument.C is
                      then "prefix"
                      else """" & (+Dump_Config.Filename_Prefix) & """");
                   Tag     : constant String :=
-                    """" & (+Instrumenter.Tag) & """";
+                    """" & (+Dump_Config.Filename_Tag) & """";
                   Simple  : constant String :=
                     (if Dump_Config.Filename_Simple then "1" else "0");
                begin

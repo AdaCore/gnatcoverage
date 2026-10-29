@@ -90,6 +90,14 @@ testcases = [
     # Check that with --dump-filename-prefix, the given prefix replaces the
     # program basename.
     Testcase("prefix", ["--dump-filename-prefix=bar"], {}, "bar-*.srctrace"),
+    # Check that with --dump-filename-tag, the given tag replaces the
+    # autocomputed tag.
+    Testcase(
+        "tag",
+        ["--dump-filename-tag=bar"],
+        {},
+        f"{trace_prefix}-bar-*.srctrace",
+    ),
     # Check that with --dump-filename-simple, the produced trace has a
     # deterministic name.
     Testcase(
