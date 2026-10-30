@@ -47,10 +47,10 @@ package body @_UNIT_NAME_@ is
 @@IF@@ @_MANUAL_@
               (Prefix  => Prefix,
 @@ELSE@@
-              (Prefix  => "@_FILENAME_PREFIX_@",
+              (Prefix  => @_FILENAME_PREFIX_@,
 @@END_IF@@
                Env_Var => @_FILENAME_ENV_VAR_@,
-               Tag     => "@_FILENAME_TAG_@",
+               Tag     => @_FILENAME_TAG_@,
                Simple  => @_CAPITALIZE:FILENAME_SIMPLE_@);
 @@END_IF@@
     begin
