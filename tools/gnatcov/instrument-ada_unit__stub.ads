@@ -36,11 +36,10 @@ package Instrument.Ada_Unit is
 
    function Create_Ada_Instrumenter
      (Default_Charset            : Unbounded_String;
-      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
-   is (Ada_Instrumenter_Type'(others => <>));
+   is (Ada_Instrumenter_Type'(null record));
 
    procedure Insert_With_Dump_Helper
      (Self   : in out Ada_Instrumenter_Type;

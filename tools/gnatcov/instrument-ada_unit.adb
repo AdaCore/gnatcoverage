@@ -11535,11 +11535,11 @@ package body Instrument.Ada_Unit is
                     then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
                     else """" & (+Dump_Config.Filename_Env_Var) & """"))
               & Assoc ("FILENAME_SIMPLE", Dump_Config.Filename_Simple)
-              & Assoc ("FILENAME_PREFIX", Dump_Config.Filename_Prefix);
+              & Assoc ("FILENAME_PREFIX", Dump_Config.Filename_Prefix)
+              & Assoc ("FILENAME_TAG", Dump_Config.Filename_Tag);
          end if;
          T :=
            T
-           & Assoc ("TAG", Instrumenter.Tag)
            & Assoc ("OUTPUT_PROCEDURE", To_Ada (Output_Proc))
            & Assoc
                ("BUFFER_LIST_UNIT", To_Ada (Buffers_List_Unit (Prj.Prj_Name)))
@@ -11876,7 +11876,6 @@ package body Instrument.Ada_Unit is
 
    function Create_Ada_Instrumenter
      (Default_Charset            : Unbounded_String;
-      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
@@ -11884,7 +11883,6 @@ package body Instrument.Ada_Unit is
       Instrumenter : Ada_Instrumenter_Type;
    begin
       Instrumenter.Default_Charset := Default_Charset;
-      Instrumenter.Tag := Tag;
 
       --  First create the context for Libadalang
 

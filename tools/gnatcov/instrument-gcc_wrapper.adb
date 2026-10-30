@@ -735,9 +735,7 @@ is
    is
       Instrumenter : constant Language_Instrumenter'Class :=
         Create_C_Instrumenter
-          (Instr_Config.Tag,
-           Integrated_Instrumentation,
-           RTS_Source_Dirs (Instr_Config));
+          (Integrated_Instrumentation, RTS_Source_Dirs (Instr_Config));
       --  Emit the buffers list unit as a C compilation unit as it is
       --  compilable by a C / C++ compiler, which are the languages
       --  supported by the integrated instrumentation scheme.
@@ -879,14 +877,10 @@ begin
            (case Comp_Command.Language is
               when C_Language   =>
                 Create_C_Instrumenter
-                  (Instr_Config.Tag,
-                   Integrated_Instrumentation,
-                   RTS_Source_Dirs (Instr_Config)),
+                  (Integrated_Instrumentation, RTS_Source_Dirs (Instr_Config)),
               when CPP_Language =>
                 Create_CPP_Instrumenter
-                  (Instr_Config.Tag,
-                   Integrated_Instrumentation,
-                   RTS_Source_Dirs (Instr_Config)),
+                  (Integrated_Instrumentation, RTS_Source_Dirs (Instr_Config)),
               when others       =>
                 raise Program_Error
                   with "Unsupported language for integrated instrumentation");
@@ -924,7 +918,7 @@ begin
 
          if Needs_Auto_Filename_Prefix then
             Instr_Config.Dump_Config.Filename_Prefix :=
-              +Ada.Directories.Base_Name (Fullname);
+              +(Ada.Directories.Base_Name (Fullname) & Executable_Suffix);
          end if;
 
          --  Pass the compiler switches through the project description.

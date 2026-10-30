@@ -383,6 +383,12 @@ package Switches is
             --
             --  Controlled by --dump-filename-prefix.
 
+            Filename_Tag : Unbounded_String;
+            --  Component of source trace filenames. If empty, generate one
+            --  from the current time (see Instrument.Instrument_Tag).
+            --
+            --  Controlled by --dump-filename-tag.
+
          when others =>
             null;
       end case;
