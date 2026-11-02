@@ -103,6 +103,10 @@ package body Instrument.Ada_Unit is
    is (Instrument.Common.Format_Fingerprint (Fingerprint, "(", ")"));
    --  Helper to format a String literal for a fingerprint
 
+   function Format_Ada_String
+     (Value : Unbounded_String) return Unbounded_String;
+   --  Return an Ada string literal that denotes the given string Value
+
    function "+" (Part : Analysis_Unit_Kind) return GPR2.Valid_Unit_Kind
    is (case Part is
          when LALCO.Unit_Body          => GPR2.S_Body,
@@ -130,6 +134,41 @@ package body Instrument.Ada_Unit is
    --  the given project (``Prj``).
    --
    --  This takes into account naming convention settings in ``Prj``.
+
+   -----------------------
+   -- Format_Ada_String --
+   -----------------------
+
+   function Format_Ada_String
+     (Value : Unbounded_String) return Unbounded_String is
+   begin
+      return Result : Unbounded_String do
+         US.Append (Result, '"');
+         for I in 1 .. US.Length (Value) loop
+            declare
+               C : constant Character := US.Element (Value, I);
+            begin
+               --  Escape '"', forward other printable characters unchanged and
+               --  use Character'Val for the rest (i.e. non-printable
+               --  characters).
+
+               case C is
+                  when '"'                    =>
+                     US.Append (Result, """""");
+
+                  when ' ' | '!' | '#' .. '~' =>
+                     US.Append (Result, C);
+
+                  when others                 =>
+                     US.Append (Result, """ & Character'Val (");
+                     US.Append (Result, Natural'Image (Character'Pos (C)));
+                     US.Append (Result, ") & """);
+               end case;
+            end;
+         end loop;
+         US.Append (Result, '"');
+      end return;
+   end Format_Ada_String;
 
    -----------------
    -- To_Filename --
@@ -11532,11 +11571,15 @@ package body Instrument.Ada_Unit is
               & Assoc
                   ("FILENAME_ENV_VAR",
                    (if Dump_Config.Filename_Env_Var = ""
-                    then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
-                    else """" & (+Dump_Config.Filename_Env_Var) & """"))
+                    then +(Output_Unit_Str & ".Default_Trace_Filename_Env_Var")
+                    else Format_Ada_String (Dump_Config.Filename_Env_Var)))
               & Assoc ("FILENAME_SIMPLE", Dump_Config.Filename_Simple)
-              & Assoc ("FILENAME_PREFIX", Dump_Config.Filename_Prefix)
-              & Assoc ("FILENAME_TAG", Dump_Config.Filename_Tag);
+              & Assoc
+                  ("FILENAME_PREFIX",
+                   Format_Ada_String (Dump_Config.Filename_Prefix))
+              & Assoc
+                  ("FILENAME_TAG",
+                   Format_Ada_String (Dump_Config.Filename_Tag));
          end if;
          T :=
            T

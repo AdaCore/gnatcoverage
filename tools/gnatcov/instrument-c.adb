@@ -5321,13 +5321,13 @@ package body Instrument.C is
                   Env_Var : constant String :=
                     (if Dump_Config.Filename_Env_Var = ""
                      then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
-                     else """" & (+Dump_Config.Filename_Env_Var) & """");
+                     else C_String_Literal (+Dump_Config.Filename_Env_Var));
                   Prefix  : constant String :=
                     (if Trigger = Manual
                      then "prefix"
-                     else """" & (+Dump_Config.Filename_Prefix) & """");
+                     else C_String_Literal (+Dump_Config.Filename_Prefix));
                   Tag     : constant String :=
-                    """" & (+Dump_Config.Filename_Tag) & """";
+                    C_String_Literal (+Dump_Config.Filename_Tag);
                   Simple  : constant String :=
                     (if Dump_Config.Filename_Simple then "1" else "0");
                begin
@@ -6499,13 +6499,24 @@ package body Instrument.C is
    begin
       Append (Result, '"');
       for C of Str loop
-         if C = '\' then
-            Append (Result, "\\");
-         elsif C = '"' then
-            Append (Result, "\""");
-         else
-            Append (Result, C);
-         end if;
+         case C is
+            when ' ' | '!' | '#' .. '>' | '@' .. '[' | ']' .. '~' =>
+               Append (Result, C);
+
+            --  Escape backslashes and double quotes to emit valid code, and
+            --  escape '?' to avoid emitting trigraphs.
+
+            when '\' | '"' | '?'                                  =>
+               Append (Result, "\" & C);
+
+            --  Explicitly cover ranges for non-printable characters so that we
+            --  are sure the clauses above cover the printable characters.
+
+            when Character'Val (0) .. Character'Val (31)
+               | Character'Val (127) .. Character'Val (255)       =>
+               Append
+                 (Result, "\x" & Hex_Image (Unsigned_8 (Character'Pos (C))));
+         end case;
       end loop;
       Append (Result, '"');
       return +Result;
