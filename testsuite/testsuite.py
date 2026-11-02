@@ -750,6 +750,9 @@ class TestPyRunner:
             self.latch_status()
 
     def analyze(self) -> None:
+        mopt = self.env.main_options
+        assert mopt is not None
+
         if self.test_py_failed:
             self.push_failure(
                 "test.py exitted with status code {}".format(
@@ -763,6 +766,9 @@ class TestPyRunner:
 
     def run_test(self, previous_values: object, slot: int) -> None:
         """Run the testcase, analyze its result and push the result."""
+        mopt = self.env.main_options
+        assert mopt is not None
+
         try:
             self.test_control = self.test_control_creator.create(self.driver)
         except ValueError as exc:
@@ -772,6 +778,11 @@ class TestPyRunner:
         # If test control tells us to skip the test, stop right here
         if self.test_control.skip:
             self.push_skip(self.test_control.message)
+            return
+
+        # In dry run mode, do not actually run the testcase
+        if mopt.dry_run:
+            self.push_success()
             return
 
         try:
@@ -1549,7 +1560,8 @@ class TestSuite(e3.testsuite.Testsuite):
         )
 
         # Setup the alternate run hooks, if any
-        self._setup_altrun_hooks()
+        if not args.dry_run:
+            self._setup_altrun_hooks()
 
         # Setup the STR box and dump the suite data file, for qualification
         # runs. Note that we must be in a revision controlled tree in this
@@ -1577,30 +1589,29 @@ class TestSuite(e3.testsuite.Testsuite):
 
         self._resolve_paths()
 
-        # Run the builder configuration for the testsuite as a whole. Doing
-        # it here once both factorizes the work for all testcases and prevents
-        # cache effects if PATH changes between testsuite runs.
-
         toolchain_discriminants = self._toolchain_discriminants()
         toolchain_discriminant = (
             toolchain_discriminants[0] if toolchain_discriminants else None
         )
 
-        BUILDER.RUN_CONFIG_SEQUENCE(
-            toplev_options=args,
-            toolchain_discriminant=toolchain_discriminant,
-        )
+        if not args.dry_run:
+            # Run the builder configuration for the testsuite as a whole. Doing
+            # it here once both factorizes the work for all testcases and
+            # prevents cache effects if PATH changes between testsuite runs.
+            BUILDER.RUN_CONFIG_SEQUENCE(
+                toplev_options=args,
+                toolchain_discriminant=toolchain_discriminant,
+            )
 
-        # Build support library as needed
-
-        self._build_libsupport()
+            # Build support library as needed
+            self._build_libsupport()
 
         # Build the C BSP when running under a cross target supporting
         # integrated instrumentation tests.
-
         self.env.pass_bsp_args = False
         if self.env.is_cross and args.RTS and self.cpu_name in control.BSP_MAP:
-            self._build_c_bsp_support()
+            if not args.dry_run:
+                self._build_c_bsp_support()
             self.env.pass_bsp_args = True
             self.env.c_bsp_project = self.c_bsp_project
             self.env.c_bsp_rts_project = self.c_bsp_rts_project
@@ -1612,7 +1623,8 @@ class TestSuite(e3.testsuite.Testsuite):
         # TODO: re-implement this feature
         self.n_consecutive_failures = 0
 
-        self.maybe_exec(binfile=args.pre_testsuite, edir="...")
+        if not args.dry_run:
+            self.maybe_exec(binfile=args.pre_testsuite, edir="...")
 
         # Make testsuite options and the discriminants file available from
         # testcases.
@@ -1620,7 +1632,8 @@ class TestSuite(e3.testsuite.Testsuite):
         self.env.discr_file = self._discriminants_log()
 
     def tear_down(self) -> None:
-        self.maybe_exec(binfile=self.ts_args.post_testsuite, edir="...")
+        if not self.ts_args.dry_run:
+            self.maybe_exec(binfile=self.ts_args.post_testsuite, edir="...")
 
     # -----------------------------------
     # -- Early comments about this run --
@@ -1832,6 +1845,13 @@ class TestSuite(e3.testsuite.Testsuite):
             metavar="OTHER_TOOL_INFO",
             default="",
             help="Name of a python script outputing other tool##version info",
+        )
+
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Do not run tests: just pretend they passed. This is useful"
+            " to quickly test *.opt files changes.",
         )
 
         # --pre|post family
