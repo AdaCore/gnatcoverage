@@ -955,13 +955,15 @@ def cmdrun(
     out: PIPE_VALUE | str | Path = PIPE,
     err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     env: dict[str, str] | None = None,
+    ignore_environ: bool = True,
     register_failure: bool = True,
     expect_non_zero_code: bool = False,
 ) -> Run:
     """
     Execute the command+args list in CMD, redirecting its input, output and
     error streams to INP, OUT and ERR when not None, respectively. If ENV is
-    not None, pass it as the subprocess environment.
+    not None, pass it as the subprocess environment (see e3.os.process.Run for
+    the semantics of IGNORE_ENVIRON).
 
     FOR_PGM tells if this execution actually runs a user/test program.
 
@@ -989,6 +991,7 @@ def cmdrun(
         input=inp,
         env=env,
         timeout=thistest.options.timeout,
+        ignore_environ=ignore_environ,
     )
 
     # Check for FatalError conditions. Minimize the situations where we look
@@ -1213,6 +1216,7 @@ def run_cov_program(
     out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     exec_args: Iterable[str] | None = None,
+    ignore_environ: bool = True,
     register_failure: bool = True,
     expect_non_zero_code: bool = False,
 ) -> Run:
@@ -1254,6 +1258,7 @@ def run_cov_program(
                 env=env,
                 register_failure=register_failure,
                 for_pgm=True,
+                ignore_environ=ignore_environ,
             )
             return p
 
@@ -1313,6 +1318,7 @@ def run_cov_program(
         register_failure=register_failure,
         expect_non_zero_code=expect_non_zero_code,
         for_pgm=True,
+        ignore_environ=ignore_environ,
     )
 
     # If the program was run under pycross, hoist source traces that the

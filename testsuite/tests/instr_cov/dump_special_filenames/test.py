@@ -70,7 +70,7 @@ for label, env_fn, trace_pattern_fn in [
     traces = []
     xcov_dir = f"xcov_{label}"
     for m in mains:
-        run_cov_program(exepath_to(m), env=env_fn(m))
+        run_cov_program(exepath_to(m), env=env_fn(m), ignore_environ=False)
         trace_pattern = trace_pattern_fn(m)
         m_traces = glob.glob(trace_pattern)
         thistest.log(f"Adding traces matching {trace_pattern!r}: {m_traces!r}")
