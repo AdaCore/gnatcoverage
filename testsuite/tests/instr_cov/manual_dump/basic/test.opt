@@ -1,1 +1,1 @@
-!RTS_FULL  DEAD Uses the full instrumentation runtime.
+HAS_FILESYSTEM REQUIRED

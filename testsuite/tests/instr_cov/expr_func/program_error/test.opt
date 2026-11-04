@@ -1,2 +1,2 @@
-!native DEAD Testcase requires standard Ada containers
-RTS_ZFP DEAD Testcase requires standard Ada containers
+HAS_ADA_UNBOUNDED_STRINGS REQUIRED
+HAS_ADA_CONTAINERS        REQUIRED

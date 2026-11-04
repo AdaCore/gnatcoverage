@@ -1666,7 +1666,7 @@ class TestSuite(e3.testsuite.Testsuite):
     def _discriminants(self) -> list[str]:
         """Full set of discriminants that apply to this test"""
 
-        return (
+        result = set(
             self._base_discriminants()
             + self._board_discriminants()
             + self._qualif_level_discriminants()
@@ -1676,6 +1676,88 @@ class TestSuite(e3.testsuite.Testsuite):
             + self._gnatcov_discriminants()
             + self._rust_toolchain_discriminants()
         )
+
+        lower_discs = {d.lower() for d in result}
+
+        def has_any(*discs: str) -> bool:
+            return any(d.lower() in lower_discs for d in discs)
+
+        def has_all(*discs: str) -> bool:
+            return all(d.lower() in lower_discs for d in discs)
+
+        # Compute capabilites discriminants from other requirements, so that
+        # tests have high-level discriminants.
+        #
+        # Once Libkappa is ready to be used in production, we should use it to
+        # produce equivalent discriminants.
+
+        # All runtimes except "light" ones (previously: "zfp") have support for
+        # tasking constructs and a libc.
+        if not has_any("RTS_ZFP"):
+            result.add("HAS_TASKING")
+            result.add("HAS_LIBC")
+
+        # The 7.1.2 ZFP RTS doesn't support dynamic allocations nor the
+        # secondry stack.
+        if not has_all("RTS_ZFP", "7.1.2"):
+            result.add("HAS_DYNAMIC_ALLOC")
+            result.add("HAS_SECONDARY_STACK")
+
+        # All runtimes except "light" ones (previously: "zfp") and
+        # light-tasking ones have support for:
+        #
+        # * the Ada.Tags.Displace unit;
+        # * Ada finalization;
+        # * Ada streams;
+        # * Ada string interpolation;
+        # * Ada unbounded strings;
+        # * Libc's errno;
+        # * Exception propagation.
+        if not has_any("RTS_ZFP", "RTS_LIGHT_TASKING"):
+            result.add("HAS_ADA_TAGS_DISPLACE")
+            result.add("HAS_ADA_FINALIZATION")
+            result.add("HAS_ADA_STREAMS")
+            result.add("HAS_ADA_STRING_INTERPOLATION")
+            result.add("HAS_ADA_UNBOUNDED_STRINGS")
+            result.add("HAS_ERRNO")
+            result.add("HAS_EXC_PROPAGATION")
+
+        # Only full runtime have full support for tasking constructs (no
+        # Ravenscar/Jorvik restrictions).
+        if has_any("RTS_FULL"):
+            result.add("HAS_FULL_TASKING")
+
+        # Only the full Ada runtimes have support for standard library's
+        # containers.
+        if has_any("RTS_FULL"):
+            result.add("HAS_ADA_CONTAINERS")
+
+        if not has_any("5.04a1"):
+            # Toolchains like 7.1.2 have a very light support for Ada 2012: not
+            # all Ada 2012 tests can run with them.
+            result.add("HAS_ADA_2012_LIGHT")
+
+        if not has_any("5.04a1", "7.1.2"):
+            # Pragma Check_Float_Overflow now working with old toolchains,
+            # causing assertion failure.
+            result.add("HAS_PRAGMA_CHECK_FLOAT_OVERFLOW")
+            # Pragam Pure_Barriers is just missing on these toolchaing
+            result.add("HAS_PRAGMA_PURE_BARRIERS")
+
+            # 7.1.2 supports some Ada 2012, but is quite buggy: consider it is
+            # not working correctly.
+            result.add("HAS_ADA_2012")
+            result.add("HAS_ADA_2022")
+            result.add("HAS_FLARE")
+
+        if has_any("native") and not has_any("RTS_ZFP"):
+            result.add("HAS_FILESYSTEM")
+            if has_any("C++"):
+                result.add("HAS_C++_IOSTREAM")
+                result.add("HAS_C++_STDEXCEPT")
+                result.add("HAS_C++_VECTOR")
+
+        return sorted(result)
 
     def _base_discriminants(self) -> list[str]:
         # List of toolchain discriminants for which we don't want to run

@@ -1,2 +1,2 @@
-!native  DEAD Test relies on host standard header files
+--!native  DEAD Test relies on host standard header files
 !windows DEAD This test variant has platform-specific expectations

@@ -1,3 +1,2 @@
-bin-traces DEAD check SCO annotations emitted by the instrumenter
-RTS_ZFP DEAD Uses printf, not available in light runtimes
-!linux DEAD Check built-in macros, defined differently for each OS
+HAS_LIBC REQUIRED
+linux    REQUIRED Check built-in macros, defined differently for each OS

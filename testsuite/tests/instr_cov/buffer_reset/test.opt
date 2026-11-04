@@ -1,2 +1,1 @@
-bin-traces DEAD Test specific to src trace feature
-!native DEAD Test requires bin-file dump channel
+HAS_FILESYSTEM REQUIRED Test requires bin-file dump channel

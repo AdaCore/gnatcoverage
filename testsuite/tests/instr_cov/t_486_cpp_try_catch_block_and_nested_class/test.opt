@@ -1,2 +1,2 @@
-bareboard DEAD Exception propagation support required
-!C++ DEAD C++ test
+C++              REQUIRED
+HAS_C++_IOSTREAM REQUIRED

@@ -1,1 +1,1 @@
-!RTS_FULL DEAD embedded runtimes do not support task hierarchy
+HAS_FULL_TASKING REQUIRED
