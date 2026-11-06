@@ -1,1 +1,1 @@
-!RTS_FULL DEAD Test uses Ada.Containers, not available in that profile
+HAS_ADA_CONTAINERS REQUIRED

@@ -1,2 +1,1 @@
-5.04a1 DEAD test for an Ada2012 feature, not in 5.04
-7.1.2 DEAD test for Ada2012 Quantified Expressions, weak in 7.1.2
+HAS_ADA_2012 REQUIRED

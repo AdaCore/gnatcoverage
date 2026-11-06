@@ -1,2 +1,1 @@
-7.1.2 DEAD Ada 2022 not supported on old toolchains
-5.04a1 DEAD Ada 2022 not supported on old toolchains
+HAS_ADA_2022 REQUIRED

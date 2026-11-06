@@ -1,4 +1,1 @@
---  This testcase relies on protected bodies, which are not available with
---  light or embedded runtimes.
-RTS_FULL
-ALL DEAD
+HAS_FULL_TASKING REQUIRED
