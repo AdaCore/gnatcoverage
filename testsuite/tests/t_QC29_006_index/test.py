@@ -90,8 +90,10 @@ def check_indices(metrics: list[str], statsdir: str, refdir: str = "") -> None:
             thistest.fail_if_diff(
                 ref_path,
                 idx,
-                f"unexpected index content for {filename} "
-                f"with baseline {ref}",
+                failure_message=(
+                    f"unexpected index content for {filename} with baseline"
+                    f" {ref}"
+                ),
                 output_refiners=[],
                 ignore_white_chars=False,
             )

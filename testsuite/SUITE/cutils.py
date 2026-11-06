@@ -95,7 +95,7 @@ def to_list(blob: Iterable[str] | str | None) -> list[str]:
     )
 
 
-def indent(blob: list[str] | str, indent: str = "  ") -> str:
+def indent(blob: list[str] | str, *, indent: str = "  ") -> str:
     """
     Prefix each line in BLOB's with INDENT. BLOB can be either a single string
     or a list of strings. The result is a single string anyway.
@@ -104,16 +104,22 @@ def indent(blob: list[str] | str, indent: str = "  ") -> str:
     return "\n".join("{}{}".format(indent, line) for line in lines)
 
 
-def indent_after_first_line(blob: list[str] | str, prefix: str = "  ") -> str:
+def indent_after_first_line(
+    blob: list[str] | str,
+    *,
+    prefix: str = "  ",
+) -> str:
     """Like "indent", but do not change the first line."""
     lines = list(blob) if isinstance(blob, list) else blob.splitlines()
     if len(lines) < 2:
         return "\n".join(lines)
     else:
-        return "\n".join(lines[0:1] + indent(lines[1:], prefix).splitlines())
+        return "\n".join(
+            lines[0:1] + indent(lines[1:], indent=prefix).splitlines()
+        )
 
 
-def text_to_file(text: str, filename: str = "tmp.list") -> str:
+def text_to_file(text: str, *, filename: str = "tmp.list") -> str:
     """
     Write TEXT to file FILENAME. Overwrite current contents. Return FILENAME.
     """
@@ -122,15 +128,15 @@ def text_to_file(text: str, filename: str = "tmp.list") -> str:
     return filename
 
 
-def list_to_file(lines: Iterable[str], filename: str = "tmp.list") -> str:
+def list_to_file(lines: Iterable[str], *, filename: str = "tmp.list") -> str:
     """
     Write list LINES to file FILENAME, one item per line. Typical use is to
     generate response files. Return FILENAME.
     """
-    return text_to_file("\n".join(lines) + "\n", filename)
+    return text_to_file("\n".join(lines) + "\n", filename=filename)
 
 
-def list_to_tmp(lines: Iterable[str], dirname: str | None = None) -> str:
+def list_to_tmp(lines: Iterable[str], *, dirname: str | None = None) -> str:
     """
     Write list LINES to a temporary file in DIRNAME (or the current directory),
     one item per line. Return the temporary file name, chosen not to conflict
@@ -143,7 +149,7 @@ def list_to_tmp(lines: Iterable[str], dirname: str | None = None) -> str:
     dirname = os.getcwd() if dirname is None else os.path.abspath(dirname)
     return text_to_file(
         "\n".join(lines) + "\n",
-        tempfile.mktemp(dir=dirname, suffix=".list"),
+        filename=tempfile.mktemp(dir=dirname, suffix=".list"),
     )
 
 
@@ -154,7 +160,7 @@ def match(
     return re.search(pattern, contents_of(filename), flags) is not None
 
 
-def re_filter(strings: list[str], pattern: str = "") -> list[str]:
+def re_filter(strings: list[str], *, pattern: str = "") -> list[str]:
     """Compute the list of entries in STRINGS that match the PATTERN regexp."""
     return [t for t in strings if re.search(pattern, t)]
 
@@ -170,7 +176,7 @@ def empty(f: str) -> bool:
     return os.stat(f).st_size == 0
 
 
-def version(tool: str, nlines: int = 1) -> str:
+def version(tool: str, *, nlines: int = 1) -> str:
     """
     Return version information as reported by the execution of TOOL --version,
     expected on the first NLINES of output. If TOOL is not available from PATH,
@@ -218,7 +224,7 @@ def ndirs_in(path: str) -> int:
     return nsplits
 
 
-def output_of(cmd: str, dirname: str | None = None) -> str:
+def output_of(cmd: str, *, dirname: str | None = None) -> str:
     """
     Execute CMD and return it's output, switching to DIRNAME before if not
     None, and switching back to the original cwd as needed.
@@ -269,6 +275,7 @@ class FatalError(Exception):
     def __init__(
         self,
         comment: str,
+        *,
         outfile: str | None = None,
         outstr: str | None = None,
     ):

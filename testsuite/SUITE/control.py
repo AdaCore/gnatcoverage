@@ -20,7 +20,7 @@ from SUITE.cutils import contents_of, no_ext, version
 env = Env()
 
 
-def xcov_pgm(auto_arch: bool, for_target: bool = True) -> str:
+def xcov_pgm(auto_arch: bool, *, for_target: bool = True) -> str:
     """Return the name of the "gnatcov" program to run.
 
     :param auto_arch: If True, autodetect which "gnatcov" run depending on
@@ -544,6 +544,7 @@ def cargs_attr_for(lang: str | None) -> str:
 
 def add_shared_options_to(
     parser: argparse.ArgumentParser,
+    *,
     toplevel: bool,
 ) -> None:
     """

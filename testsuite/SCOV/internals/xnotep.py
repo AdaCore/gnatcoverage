@@ -278,6 +278,7 @@ class XnoteP:
     def __init__(
         self,
         text: str,
+        *,
         stext: str | None = None,
         stag: Stag | str | None = None,
     ):

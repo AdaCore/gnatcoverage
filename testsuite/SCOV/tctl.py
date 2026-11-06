@@ -37,6 +37,7 @@ class CovControl:
 
     def __init__(
         self,
+        *,
         deps: Iterable[str] = (),
         units_in: Iterable[str] | None = None,
         ulist_in: Iterable[str] | None = None,

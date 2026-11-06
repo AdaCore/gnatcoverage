@@ -595,6 +595,7 @@ class Enote(Cnote):
         kind: NK,
         segment: Section,
         source: str,
+        *,
         stag: Stag | None = None,
         justification: str | None = None,
     ):

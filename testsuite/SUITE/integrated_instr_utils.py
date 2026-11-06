@@ -18,8 +18,7 @@ from SUITE.tutils import cmdrun, run_cov_program, thistest, xcov
 
 
 def find_files_with_exts(
-    exts: Iterable[str],
-    root_dir: str | None = None,
+    exts: Iterable[str], root_dir: str | None = None
 ) -> list[str]:
     """
     Recursively find source files with the given extensions, starting at
@@ -62,6 +61,7 @@ class Workflow:
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         pass
@@ -149,6 +149,7 @@ class MakefileCommon(CompileBits):
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         return cmdrun(
@@ -230,6 +231,7 @@ class CompileSource(CompileBits):
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         return cmdrun(
@@ -253,6 +255,7 @@ class LinkMain(LinkBits):
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         return cmdrun(
@@ -277,6 +280,7 @@ class RunCompiler(Workflow):
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         return cmdrun(
@@ -293,6 +297,7 @@ class CMake(CompileBits, LinkBits):
     def build(
         self,
         env: dict[str, str],
+        *,
         register_failure: bool = True,
     ) -> Run:
         cmake_conf = cmdrun(
@@ -318,6 +323,7 @@ class CMake(CompileBits, LinkBits):
 
 
 def setup_integration(
+    *,
     files_of_interest: Iterable[str] | None = None,
     covlevel: str = "stmt",
     output_dir: str | None = None,
@@ -376,6 +382,7 @@ def setup_integration(
 
 def build_run_and_coverage(
     wfs: Sequence[Workflow],
+    *,
     covlevel: str = "stmt",
     files_of_interest: Iterable[str] | None = None,
     extra_setup_args: Iterable[str] | None = None,

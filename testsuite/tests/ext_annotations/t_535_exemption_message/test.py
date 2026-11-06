@@ -64,7 +64,7 @@ annotations = [
     Exempt_Region("../main_c.c", "8:3", "9:14", "C justification text"),
     Exempt_Region("../static_lib.h", "4:3", "5:17", "C Header text"),
 ]
-annotations_file = generate_annotations(annotations, prj)
+annotations_file = generate_annotations(annotations, project=prj)
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=prj),
     mains=["main", "main_c"],
