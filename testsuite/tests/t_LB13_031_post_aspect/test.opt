@@ -1,3 +1,2 @@
-7.0.3 DEAD testing coverage of expressions in aspects, implemented post 7.0.3
-src-traces XFAIL S606-037: src-traces and contracts
-5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
+HAS_ADA_2012_LIGHT REQUIRED
+src-traces         XFAIL S606-037: src-traces and contracts
