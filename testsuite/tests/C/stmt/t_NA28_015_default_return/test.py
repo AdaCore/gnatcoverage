@@ -81,7 +81,7 @@ def trycov(cases: list[str], xnocov: list[str]) -> None:
 
 
 run_trace_with_args("plus", ["2", "3", "+"])
-run_trace_with_args("mult", ["4", "5", "*"])
+run_trace_with_args("mult", ["4", "5", "x"])
 run_trace_with_args("unsupp", ["4", "5", "#"])
 
 trycov(cases=["mult", "plus"], xnocov=["unsupp"])
