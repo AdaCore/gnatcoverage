@@ -4,5 +4,5 @@ from SUITE.tutils import xcov
 
 
 Wdir("tmp_")
-xcov(["dump-lines", "../hello.o"], "dwarf.out")
+xcov(["dump-lines", "../hello.o"], out="dwarf.out")
 thistest.result()

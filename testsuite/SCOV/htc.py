@@ -39,11 +39,16 @@ class HarnessTestCase(TestCase):
     def __init__(
         self,
         expected_diags: list[HarnessDiagnostic],
+        *,
         extradrivers: str = "",
         extracargs: str = "",
         category: _Category | None = CAT.auto,
     ):
-        TestCase.__init__(self, extradrivers, extracargs, category)
+        super().__init__(
+            extradrivers=extradrivers,
+            extracargs=extracargs,
+            category=category,
+        )
 
         # By default, these test cases expect failures from subprocesses
         self.expect_failures = True
@@ -60,9 +65,12 @@ class HarnessTestCase(TestCase):
         thistest.n_failed -= 1
 
     def run(
-        self, covcontrol: CovControl | None = None, subdirhint: str = ""
+        self,
+        covcontrol: CovControl | None = None,
+        *,
+        subdirhint: str = "",
     ) -> None:
-        super().run(covcontrol, subdirhint)
+        super().run(covcontrol, subdirhint=subdirhint)
 
         thistest.flush()
 

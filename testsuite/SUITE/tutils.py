@@ -143,6 +143,7 @@ List of processes run through run_and_log. Useful for debugging.
 
 def run_and_log(
     cmds: CmdLine,
+    *,
     cwd: str | Path | None = None,
     output: PIPE_VALUE | str | Path = PIPE,
     error: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
@@ -217,6 +218,7 @@ def effective_trace_mode(override_trace_mode: str | None) -> str:
 
 def gprbuild_gargs_with(
     thisgargs: Iterable[str],
+    *,
     trace_mode: str | None = None,
     runtime_project: str | None = None,
 ) -> list[str]:
@@ -257,6 +259,7 @@ def gprbuild_gargs_with(
 
 def gprbuild_cargs_with(
     thiscargs: Iterable[str],
+    *,
     scovcargs: bool = True,
     suitecargs: bool = True,
 ) -> list[str]:
@@ -341,7 +344,11 @@ def gprbuild_largs_with(thislargs: Iterable[str]) -> list[str]:
     return all_largs
 
 
-def gpr_common_args(project: str, auto_config_args: bool = True) -> list[str]:
+def gpr_common_args(
+    project: str,
+    *,
+    auto_config_args: bool = True,
+) -> list[str]:
     """
     Return common GPR tools options for the current testsuite run.
 
@@ -379,6 +386,7 @@ def gpr_common_args(project: str, auto_config_args: bool = True) -> list[str]:
 
 def gprbuild(
     project: str,
+    *,
     scovcargs: bool = True,
     suitecargs: bool = True,
     extracargs: Iterable[str] | None = None,
@@ -428,7 +436,7 @@ def gprbuild(
         suitecargs=suitecargs,
         thiscargs=extracargs or [],
     )
-    common_args = gpr_common_args(project, auto_config_args)
+    common_args = gpr_common_args(project, auto_config_args=auto_config_args)
 
     # Now cleanup, do build and check status
 
@@ -493,7 +501,7 @@ def gprinstall(project: str, gargs: Iterable[str] | None = None) -> None:
 
     p = run_and_log(args, output=ofile, timeout=thistest.options.timeout)
     thistest.stop_if(
-        p.status != 0, FatalError("gprinstall exit in error", ofile)
+        p.status != 0, FatalError("gprinstall exit in error", outfile=ofile)
     )
 
 
@@ -514,6 +522,7 @@ def gpr_emulator_package() -> str:
 
 def gprfor(
     mains: Iterable[str] | str | None,
+    *,
     prjid: str = "gen",
     srcdirs: list[str] | str = "src",
     objdir: str | None = None,
@@ -679,6 +688,7 @@ def tracename_for(pgmname: str) -> str:
 
 def srctrace_pattern_for(
     pgmname: str,
+    *,
     manual: bool = False,
     manual_prj_name: str | None = None,
 ) -> str:
@@ -705,6 +715,7 @@ def srctrace_pattern_for(
 
 def srctracename_or_none_for(
     pgmname: str,
+    *,
     register_failure: bool = True,
     manual: bool = False,
     manual_prj_name: str | None = None,
@@ -720,7 +731,9 @@ def srctracename_or_none_for(
     stops the testcase. If "register_failure" is False, we just return None in
     that case.
     """
-    pattern = srctrace_pattern_for(pgmname, manual, manual_prj_name)
+    pattern = srctrace_pattern_for(
+        pgmname, manual=manual, manual_prj_name=manual_prj_name
+    )
     trace_files = glob.glob(pattern)
 
     if len(trace_files) == 1:
@@ -744,6 +757,7 @@ def srctracename_or_none_for(
 
 def srctracename_for(
     pgmname: str,
+    *,
     manual: bool = False,
     manual_prj_name: str | None = None,
 ) -> str:
@@ -854,9 +868,9 @@ def locate_gpr_file(gprswitches: GPRswitches) -> str:
 def xcov_suite_args(
     covcmd: str,
     covargs: Iterable[str],
-    auto_config_args: bool = True,
-    auto_target_args: bool = True,
-    force_project_args: bool = False,
+    auto_config_args: bool,
+    auto_target_args: bool,
+    force_project_args: bool,
 ) -> list[str]:
     """
     Arguments we should pass to gnatcov to obey what we received on the command
@@ -951,6 +965,7 @@ def xcov_suite_args(
 def cmdrun(
     cmd: Iterable[str],
     for_pgm: bool,
+    *,
     inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = PIPE,
     out: PIPE_VALUE | str | Path = PIPE,
     err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
@@ -1028,6 +1043,7 @@ def cmdrun(
 
 def xcov(
     args: Sequence[str],
+    *,
     out: PIPE_VALUE | str | Path = PIPE,
     err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,
     inp: DEVNULL_VALUE | PIPE_VALUE | str | bytes | Path | IO | None = None,
@@ -1154,6 +1170,7 @@ def xcov(
 
 def xrun(
     args: Iterable[str],
+    *,
     out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     register_failure: bool = True,
@@ -1213,6 +1230,7 @@ def xrun(
 
 def run_cov_program(
     executable: str,
+    *,
     out: PIPE_VALUE | str | Path = PIPE,
     env: dict[str, str] | None = None,
     exec_args: Iterable[str] | None = None,
@@ -1247,7 +1265,7 @@ def run_cov_program(
                     "go",
                     "halt",
                 ],
-                "test.sod",
+                filename="test.sod",
             )
             args.append("@test.sod")
             cp(os.path.join(ROOT_DIR, "facade.cfg"), "facade.cfg")
@@ -1357,6 +1375,7 @@ class Ext_Annotation:
         self,
         start_sloc: str,
         source_file: str,
+        *,
         end_sloc: str | None = None,
     ):
         self.start_sloc = start_sloc
@@ -1459,6 +1478,7 @@ class Dump_Buffers(Reset_Buffers):
 
 def xcov_annotate(
     annotation: Ext_Annotation,
+    *,
     gprsw: GPRswitches | None = None,
     annot_out_file: str | None = None,
     annot_in_files: list[str] | None = None,
@@ -1514,6 +1534,7 @@ def xcov_annotate(
 
 def generate_annotations(
     annotations: Iterable[Ext_Annotation],
+    *,
     project: str | None = None,
     subdir: str = "",
     tolerate_messages: str | None = None,

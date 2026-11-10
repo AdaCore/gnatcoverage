@@ -96,7 +96,7 @@ p_run = run_cov_program("./harness", out="actual.out")
 thistest.fail_if_diff(
     "../baseline.out",
     "actual.out",
-    "List of units differs from baseline",
+    failure_message="List of units differs from baseline",
     output_refiners=[
         # harness dumps a trace at the end of its execution: targets that have
         # no filesystem support will use the base64-stdout channel, and so we

@@ -94,7 +94,7 @@ class _ReportOutput:
         """
         self.print_diff = True
 
-    def log(self, text: str, end_of_line: bool = True) -> None:
+    def log(self, text: str, *, end_of_line: bool = True) -> None:
         """
         Write the given text in the output file.  This also adds the text to
         the output buffer.
@@ -210,9 +210,9 @@ class Test:
 
     # Test status management
 
-    def log(self, text: str, new_line: bool = True) -> None:
+    def log(self, text: str, *, new_line: bool = True) -> None:
         """Calls self.report.log."""
-        self.report.log(text, new_line)
+        self.report.log(text, end_of_line=new_line)
 
     def log_frame(
         self,
@@ -246,11 +246,11 @@ class Test:
 
     def comment(self, text: str) -> None:
         """Output a TEXT comment."""
-        self.log("  - %s." % indent_after_first_line(text, "    "))
+        self.log("  - %s." % indent_after_first_line(text, prefix="    "))
 
     def failed(self, comment: str = "assertion failed") -> None:
         """Register a check failure."""
-        self.log("  * %s" % indent_after_first_line(comment, "    "))
+        self.log("  * %s" % indent_after_first_line(comment, prefix="    "))
         self.report.enable_diffs()
         self.n_failed += 1
 
@@ -278,6 +278,7 @@ class Test:
         what: str,
         regexp: str | re.Pattern[str],
         actual: str,
+        *,
         match_is_fail: bool = False,
     ) -> None:
         if isinstance(regexp, str):
@@ -362,6 +363,7 @@ class Test:
         self,
         baseline_file: str,
         actual: str,
+        *,
         failure_message: str = "unexpected output",
         output_refiners: Sequence[OutputRefiner] | None = None,
         ignore_white_chars: bool = True,
@@ -426,6 +428,7 @@ class Test:
         self,
         baseline_file: str,
         actual_file: str,
+        *,
         failure_message: str = "unexpected output",
         output_refiners: Sequence[OutputRefiner] | None = None,
         ignore_white_chars: bool = True,
@@ -438,9 +441,9 @@ class Test:
             self.fail_if_diff_internal(
                 baseline_file,
                 f.read(),
-                failure_message,
-                output_refiners,
-                ignore_white_chars,
+                failure_message=failure_message,
+                output_refiners=output_refiners,
+                ignore_white_chars=ignore_white_chars,
             )
 
     def result(self) -> None:

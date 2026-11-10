@@ -47,8 +47,8 @@ def gengpr(attributes: list[str], prjname: str) -> str:
 gprname = gengpr(attributes=[], prjname="build")
 xcov_args = build_and_run(
     GPRswitches(gprname),
-    "stmt",
-    ["test_abs"],
+    covlevel="stmt",
+    mains=["test_abs"],
     extra_coverage_args=["--annotate=xcov"],
 )
 

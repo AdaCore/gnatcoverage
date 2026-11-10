@@ -68,7 +68,12 @@ class TestCase:
             "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp", ".rs"]
         )
 
-    def __expand_shared_controllers(self, drivers: bool, cspecs: bool) -> None:
+    def __expand_shared_controllers(
+        self,
+        *,
+        drivers: bool,
+        cspecs: bool,
+    ) -> None:
         """Search and expand possible shared drivers and/or consolidation
         specs uptree for our local functional units."""
 
@@ -140,6 +145,7 @@ class TestCase:
 
     def __init__(
         self,
+        *,
         extradrivers: str = "",
         extracargs: list[str] | str = "",
         category: _Category | None = CAT.auto,
@@ -381,7 +387,10 @@ class TestCase:
             drvo.run()
 
     def run(
-        self, covcontrol: CovControl | None = None, subdirhint: str = ""
+        self,
+        covcontrol: CovControl | None = None,
+        *,
+        subdirhint: str = "",
     ) -> None:
         """
         Execute this testcase, using coverage configuration parameters from

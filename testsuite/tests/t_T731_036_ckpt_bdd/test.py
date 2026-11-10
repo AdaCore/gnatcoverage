@@ -47,8 +47,8 @@ package body Helper is
    end C;
 end Helper;
 """
-text_to_file(helper_ads_text, "helper.ads")
-text_to_file(helper_adb_text, "helper.adb")
+text_to_file(helper_ads_text, filename="helper.ads")
+text_to_file(helper_adb_text, filename="helper.adb")
 
 # Emit DC_Unit itself, with 1000 decisions (3 BDD nodes each)
 dc_unit_ads_text = """
@@ -71,8 +71,8 @@ for _ in range(1000):
         ]
     )
 dc_unit_adb_text.extend(["   end Run;", "end DC_Unit;"])
-text_to_file(dc_unit_ads_text, "dc_unit.ads")
-list_to_file(dc_unit_adb_text, "dc_unit.adb")
+text_to_file(dc_unit_ads_text, filename="dc_unit.ads")
+list_to_file(dc_unit_adb_text, filename="dc_unit.adb")
 
 # Start the preparation of source excerpts for the Main unit
 main_adb_context_clauses = ["with DC_Unit;"]
@@ -93,8 +93,8 @@ package body Simple_Unit_{n} is
 end Simple_Unit_{n};
 """
 for n in range(1, 11):
-    text_to_file(simple_unit_ads.format(n=n), "simple_unit_{}.ads".format(n))
-    text_to_file(simple_unit_adb.format(n=n), "simple_unit_{}.adb".format(n))
+    text_to_file(simple_unit_ads.format(n=n), filename=f"simple_unit_{n}.ads")
+    text_to_file(simple_unit_adb.format(n=n), filename=f"simple_unit_{n}.adb")
     main_adb_context_clauses.append("with Simple_Unit_{};".format(n))
     main_adb_statements.append("Simple_Unit_{}.Run;".format(n))
 
@@ -105,7 +105,7 @@ main_adb_sources = (
     + main_adb_statements
     + ["end Main;"]
 )
-list_to_file(main_adb_sources, "main.adb")
+list_to_file(main_adb_sources, filename="main.adb")
 
 # Generate the project file, run the instrumenter, run the program and produce
 # a checkpoint.
@@ -126,7 +126,7 @@ for n in range(5):
     prev_checkpoint = "c{}.ckpt".format(n)
     next_checkpoint = "c{}.ckpt".format(n + 1)
     ckpt_list = "ckpt_list_{}.txt".format(n)
-    list_to_file([prev_checkpoint] * 50, ckpt_list)
+    list_to_file([prev_checkpoint] * 50, filename=ckpt_list)
     xcov(
         [
             "coverage",

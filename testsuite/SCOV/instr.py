@@ -62,6 +62,7 @@ def default_dump_channel() -> str:
 
 def xcov_instrument(
     gprsw: GPRswitches,
+    *,
     covlevel: str | None,
     quiet: bool = True,
     extra_args: list[str] | None = None,
@@ -191,6 +192,7 @@ def xcov_instrument(
 def xcov_convert_base64(
     base64_file: str,
     output_trace_file: str,
+    *,
     split_extracted: bool = False,
     out: PIPE_VALUE | str | Path = "xcov-convert.out",
     err: STDOUT_VALUE | PIPE_VALUE | str | Path = STDOUT,

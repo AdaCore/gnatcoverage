@@ -38,7 +38,13 @@ class MatchKind(enum.Enum):
 class Piece:
     """Single pattern of text expected somewhere in a report."""
 
-    def __init__(self, pattern: str, pre: Piece | None, nexpected: int = 1):
+    def __init__(
+        self,
+        pattern: str,
+        *,
+        pre: Piece | None = None,
+        nexpected: int = 1,
+    ):
         # Regexp pattern to match over report lines
         self.pattern = pattern
 

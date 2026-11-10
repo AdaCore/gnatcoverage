@@ -74,12 +74,12 @@ check_xcov_reports(
 lines = lines_of("src/main.adb")
 for line_no, indent, args in reversed(annotations):
     lines.insert(line_no - 1, f"{'   ' * indent}pragma Annotate ({args});")
-list_to_file(lines, "src/main.adb")
+list_to_file(lines, filename="src/main.adb")
 
 lines = lines_of("src/foo.c")
 for line_no, indent, label in reversed(comments):
     lines.insert(line_no - 1, f"{'  ' * indent}// {label}")
-list_to_file(lines, "src/foo.c")
+list_to_file(lines, filename="src/foo.c")
 
 # Reinstrument/compile
 build_and_run(

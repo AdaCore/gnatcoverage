@@ -205,6 +205,6 @@ class TestCaseRunner:
         # Add checkpoints
         args += [item for ckpt in checkpoints for item in ["-C", ckpt]]
 
-        xcov(args, f"{slug_name}.log")
+        xcov(args, out=f"{slug_name}.log")
 
         check_xcov_reports(output_dir, expected_report)

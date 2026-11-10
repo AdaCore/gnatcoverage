@@ -37,7 +37,7 @@ args = [
     "-C",
     f"{sf_sf}",
 ]
-xcov(args, "output.log")
+xcov(args, out="output.log")
 
 with open(report_file, "r") as file:
     content = file.read()

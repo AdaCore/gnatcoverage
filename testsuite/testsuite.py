@@ -296,6 +296,7 @@ def maybe_exec(
     log: Log[str],
     binfile: str,
     args: Sequence[str | None] | None = None,
+    *,
     edir: str | None = None,
 ) -> Run:
     """
@@ -677,6 +678,7 @@ class TestPyRunner:
         self,
         binfile: str | None,
         args: list[str | None] | None = None,
+        *,
         edir: str | None = None,
     ) -> None:
         """
@@ -686,7 +688,7 @@ class TestPyRunner:
         if not binfile:
             return
 
-        if maybe_exec(self.result.log, binfile, args, edir).status != 0:
+        if maybe_exec(self.result.log, binfile, args, edir=edir).status != 0:
             raise TestAbortWithError("Altrun hook failed ({})".format(binfile))
 
     def run(self) -> None:
@@ -2021,6 +2023,7 @@ class TestSuite(e3.testsuite.Testsuite):
         self,
         binfile: str | None,
         args: list[str | None] | None = None,
+        *,
         edir: str | None = None,
     ) -> None:
         """
@@ -2031,14 +2034,14 @@ class TestSuite(e3.testsuite.Testsuite):
             return
 
         log = Log("")
-        p = maybe_exec(log, binfile, args, edir)
+        p = maybe_exec(log, binfile, args, edir=edir)
         self._push_altrun(log.log.splitlines())
         exit_if(
             p.status != 0,
             "Altrun hook failed ({}):\n{}".format(binfile, p.out),
         )
 
-    def _bin_for(self, base: str, indir: str | None = None) -> str | None:
+    def _bin_for(self, base: str, *, indir: str | None = None) -> str | None:
         """For a provided BASE filename (directory path allowed), return
         the name of the file can be used as an executable program on the
         current host. This includes python scripts as well as binary

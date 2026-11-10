@@ -23,7 +23,7 @@ xcov_args = build_and_run(
 # Now, try to produce a report in a directory that does not exist (even its
 # parent does not exist!).
 assert not os.path.exists("report")
-xcov(xcov_args, "coverage.log")
+xcov(xcov_args, out="coverage.log")
 
 # Check that gnatcov reports that it creates these directories
 thistest.fail_if(
