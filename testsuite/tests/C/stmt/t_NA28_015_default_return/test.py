@@ -17,6 +17,7 @@ Wdir("tmp_")
 
 
 def run_trace_with_args(prefix: str, exec_args: list[str]) -> None:
+    thistest.log(f"== run_trace_with_args: {prefix} ==")
     build_and_run(
         gprsw=GPRswitches(
             root_project=gprfor(srcdirs=[".."], mains=["calc.c"])
@@ -40,6 +41,7 @@ def trycov(cases: list[str], xnocov: list[str]) -> None:
     that we have '-' notes on lines designated by exprs in XNOCOV, and only
     there.
     """
+    thistest.log(f"== trycov: {', '.join(cases)} ==")
 
     def tracename_wrapper(pgmname: str) -> str:
         if thistest.options.trace_mode == "src":
@@ -79,7 +81,7 @@ def trycov(cases: list[str], xnocov: list[str]) -> None:
 
 
 run_trace_with_args("plus", ["2", "3", "+"])
-run_trace_with_args("mult", ["4", "5", "*"])
+run_trace_with_args("mult", ["4", "5", "x"])
 run_trace_with_args("unsupp", ["4", "5", "#"])
 
 trycov(cases=["mult", "plus"], xnocov=["unsupp"])

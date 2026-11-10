@@ -13,7 +13,7 @@ process (const char *argv[])
 
   switch (opcode)
     {
-    case '*':
+    case 'x':
       result = x * y; // # mult
       break;          // # mult
     case '+':
