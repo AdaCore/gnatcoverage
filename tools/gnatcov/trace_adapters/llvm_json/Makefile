@@ -2,7 +2,8 @@ PREFIX=install
 PARALLEL_BUILD=0
 include ../../host.mk
 
-LLVM_CXXFLAGS := $(shell llvm-config --cxxflags)
+# Filter out "-stdlib=..." because it's a Clang-only flag
+LLVM_CXXFLAGS := $(filter-out -stdlib=%,$(shell llvm-config --cxxflags))
 LLVM_LDFLAGS := $(shell llvm-config --ldflags)
 LLVM_LIBS := $(shell llvm-config --libs --system-libs)
 
