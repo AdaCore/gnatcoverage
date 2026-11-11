@@ -38,8 +38,8 @@ refiners = thistest.report_output_refiners() + [Substitute("\\", "/")]
 thistest.fail_if_diff(
     "../expected.txt",
     log,
-    "Unexpected messages for 'gnatcov instrument' output",
-    refiners,
+    failure_message="Unexpected messages for 'gnatcov instrument' output",
+    output_refiners=refiners,
 )
 
 thistest.result()

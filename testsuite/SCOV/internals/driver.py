@@ -672,7 +672,7 @@ class SCOV_helper(ABC):
         """Absolute path to Working Directory for single MAIN."""
         return self.adir_for(self.rwdir_for(main))
 
-    def abdir_for(self, main: str, attribute: bool = False) -> str:
+    def abdir_for(self, main: str, *, attribute: bool = False) -> str:
         """Absolute path to Binary Directory for single MAIN."""
         return self.adir_for(self.rbdir_for(main, attribute))
 
@@ -705,7 +705,11 @@ class SCOV_helper(ABC):
         return self.adir_for(self.rbdir(attribute))
 
     def gen_one_xcov_report(
-        self, trace: str, report_format: str, options: Iterable[str] | str = ""
+        self,
+        trace: str,
+        report_format: str,
+        *,
+        options: Iterable[str] | str = "",
     ) -> None:
         """
         Helper for gen_xcov_reports, to produce one specific report for a
@@ -804,7 +808,7 @@ class SCOV_helper(ABC):
                     )
                     for pgm in self.programs()
                 ],
-                "inputs.list",
+                filename="inputs.list",
             ),
         )
         ckpt_inputs = "--checkpoint=@%s" % (
@@ -813,7 +817,7 @@ class SCOV_helper(ABC):
                     ckptname_for(os.path.join(self.awdir_for(pgm), pgm))
                     for pgm in self.programs()
                 ],
-                "ckpts.list",
+                filename="ckpts.list",
             ),
         )
 
@@ -1387,7 +1391,7 @@ class SCOV_helper_gpr(SCOV_helper):
                 "%s=@%s"
                 % (
                     self.mode_scofiles_switch(),
-                    list_to_file(self._scofiles_list(), "scos.list"),
+                    list_to_file(self._scofiles_list(), filename="scos.list"),
                 )
             ]
 

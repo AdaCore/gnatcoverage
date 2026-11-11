@@ -105,6 +105,7 @@ def __gpr_uattr(
 
 
 def gprcov_for(
+    *,
     units_in: Iterable[str] | None = None,
     ulist_in: Iterable[str] | None = None,
     units_out: Iterable[str] | None = None,
@@ -170,6 +171,7 @@ class GPRswitches:
     def __init__(
         self,
         root_project: str,
+        *,
         projects: Iterable[str] | None = None,
         units: Iterable[str] | None = None,
         excluded_units: Iterable[str] | None = None,

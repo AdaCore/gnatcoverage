@@ -44,7 +44,7 @@ with open(baseline_filename, "w") as f:
 thistest.fail_if_diff(
     baseline_filename,
     log_filename,
-    '"gnatcov coverage" output',
+    failure_message='"gnatcov coverage" output',
 )
 
 thistest.result()

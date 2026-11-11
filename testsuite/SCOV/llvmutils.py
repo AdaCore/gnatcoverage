@@ -11,6 +11,7 @@ from SUITE.tutils import xcov
 def check_llvm_reports(
     json_file: str,
     expected_report: dict[str, dict[str, set[int]]],
+    *,
     cov_level: str = "stmt",
     path_prefix: str = "..",
 ) -> None:

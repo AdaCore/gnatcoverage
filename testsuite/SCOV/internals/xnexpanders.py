@@ -376,7 +376,7 @@ class LineCX:
     """
 
     def __init__(
-        self, lre: str, lnp: XnoteP, rnps: list[XnoteP], override: bool
+        self, lre: str, lnp: XnoteP, rnps: list[XnoteP], *, override: bool
     ):
         self.lre = lre
         self.lnp = lnp

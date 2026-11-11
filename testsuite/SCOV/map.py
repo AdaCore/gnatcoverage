@@ -26,6 +26,7 @@ class MapChecker:
     def __init__(
         self,
         sources: list[str] | str,
+        *,
         options: str = "",
         execs: list[str] | None = None,
         alis: list[str] | None = None,
@@ -65,7 +66,7 @@ class MapChecker:
         if self.ensure_dcscos:
             for ali in self.alis:
                 thistest.fail_if(
-                    not match("^C[^S ]", ali, re.MULTILINE),
+                    not match("^C[^S ]", ali, flags=re.MULTILINE),
                     "couldn't find non-statement SCO in %s" % ali,
                 )
 

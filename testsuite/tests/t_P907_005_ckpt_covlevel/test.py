@@ -66,7 +66,7 @@ args = [
 clean_output_directory()
 p = xcov(
     args + ["--level=stmt+decision"],
-    "cons-stmt-decision.log",
+    out="cons-stmt-decision.log",
     register_failure=False,
 )
 thistest.fail_if(
@@ -81,7 +81,7 @@ thistest.fail_if(
 )
 
 clean_output_directory()
-xcov(args + ["--level=stmt"], "cons-stmt.log")
+xcov(args + ["--level=stmt"], out="cons-stmt.log")
 
 expected = {
     "math.adb.xcov": {"+": {7, 12, 13, 14, 17, 18, 19}},

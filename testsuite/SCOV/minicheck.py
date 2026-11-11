@@ -59,6 +59,7 @@ COV_RE = re.compile(r"^ *(\d+) (.):.*$")
 
 def build_and_run(
     gprsw: GPRswitches,
+    *,
     covlevel: str | None,
     mains: list[str],
     extra_coverage_args: list[str],
@@ -294,7 +295,7 @@ def build_and_run(
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
         xcov_instrument(
             gprsw,
-            covlevel,
+            covlevel=covlevel,
             quiet=False,
             extra_args=extra_instr_args,
             gpr_obj_dir=actual_obj_dir,
@@ -374,7 +375,11 @@ def build_and_run(
         # non-deterministic by default, so we want to avoid getting
         # multiple traces in the current directory.
         for m in mains:
-            rm(srctrace_pattern_for(m, is_manual, manual_prj_name))
+            rm(
+                srctrace_pattern_for(
+                    m, manual=is_manual, manual_prj_name=manual_prj_name
+                )
+            )
             # Callback to run for each instrumented main
             maybe_relocate_binaries(
                 actual_obj_dir, actual_exe_dir, [exename_for(m)]
@@ -408,7 +413,9 @@ def build_and_run(
 
             if known_channel in [None, "bin-file"]:
                 patterns.add(
-                    srctrace_pattern_for(m, is_manual, manual_prj_name)
+                    srctrace_pattern_for(
+                        m, manual=is_manual, manual_prj_name=manual_prj_name
+                    )
                 )
 
             elif (
@@ -417,7 +424,7 @@ def build_and_run(
             ):
                 # Pick a trace name that is compatible with srctracename_for
                 src_pattern = srctrace_pattern_for(
-                    m, is_manual, manual_prj_name
+                    m, manual=is_manual, manual_prj_name=manual_prj_name
                 )
                 patterns.add(src_pattern)
                 trace_file = src_pattern.replace("*", "-" + m)
@@ -453,6 +460,7 @@ def build_and_run(
 
 def build_run_and_coverage(
     gprsw: GPRswitches,
+    *,
     covlevel: str | None,
     mains: list[str],
     extra_coverage_args: list[str],
@@ -548,7 +556,7 @@ def checked_xcov(args: list[str], out_file: str) -> None:
     """
     Run "xcov" and make the testcase fail if the output file is not empty.
     """
-    xcov(args, out_file)
+    xcov(args, out=out_file)
     out = contents_of(out_file)
     thistest.fail_if(
         bool(out),
@@ -581,6 +589,7 @@ def fmt_cov(cov_data: CovData) -> str:
 def check_xcov_content(
     filename: str,
     expected_cov: CovData,
+    *,
     trace_mode: str | None = None,
 ) -> None:
     """
@@ -671,6 +680,7 @@ def check_xcov_content(
 def check_xcov_reports(
     reports_dir: str,
     expected_cov: CovReport,
+    *,
     discard_empty: bool | None = None,
 ) -> None:
     """
