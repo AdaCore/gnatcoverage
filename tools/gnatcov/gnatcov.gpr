@@ -200,14 +200,10 @@ project Gnatcov is
       when "lib32" | "lib64" =>
          for Main use ();
       when "driver" =>
-         for Main use  ("gnatcov_bits_specific.adb");
+         for Main use  ("gnatcov.adb");
       when "compiler" =>
          for Main use ("compiler_wrappers-gcc.adb");
    end case;
-
-   package Builder is
-      for Executable ("gnatcov_bits_specific.adb") use "gnatcov";
-   end Builder;
 
    -----------------------
    -- Toolchain options --

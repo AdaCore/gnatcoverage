@@ -100,7 +100,7 @@ with Traces_Source;
 with Types;                 use Types;
 with Version;
 
-procedure GNATcov_Bits_Specific is
+procedure GNATcov is
    use all type Unbounded_String;
 
    Make_JS : GPR2.Build.Jobserver.Object;
@@ -2936,4 +2936,4 @@ exception
 
    when Xcov_Exit_Exc =>
       null;
-end GNATcov_Bits_Specific;
+end GNATcov;
