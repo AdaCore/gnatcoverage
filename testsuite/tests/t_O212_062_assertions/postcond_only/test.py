@@ -2,7 +2,9 @@ from SCOV.tc import TestCase
 from SCOV.tctl import CAT, CovControl
 from SUITE.context import thistest
 
-covcontrol = CovControl(covoptions="--postcond-only", instroptions="")
+covcontrol = CovControl(
+    covoptions="--postcond-only", instroptions="", auto_units=True
+)
 
 # ATC
 TestCase(category=CAT.stmt, assert_lvl="atc").run(covcontrol)
