@@ -183,7 +183,7 @@ package Outputs is
 
    PP_Temp_Dir : Temporary_Directory;
    --  Temporary directory that holds preprocessed files, when computing
-   --  coverage reports. Initialized in gnatcov_bits_specific.
+   --  coverage reports. Initialized in gnatcov.adb.
 
    function Get_PP_Filename (SFI : Source_File_Index) return String
    is (PP_Temp_Dir.Directory_Name / (Get_Unique_Filename (SFI, "pp")));

@@ -811,7 +811,7 @@ begin
    Create_Temporary_Directory
      (Instr_Dir, "gnatcov_instr", Auto_Delete => not Switches.Save_Temps);
 
-   --  Set things that must be set as we don't go through gnatcov_bits_specific
+   --  Set things that must be set as we don't go through gnatcov.adb
 
    Traces_Files.Update_Current_Trace_Kind (Traces_Files.Source_Trace_File);
 

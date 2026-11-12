@@ -67,9 +67,7 @@ def check(
 # LibGPR2.
 #
 # To trigger them, just try to load a project with both --target and --config
-# arguments.  Note that we expect the warning twice: once for the wrapper
-# gnatcov program, and one for the gnatcov64 program (both need to load the
-# project).
+# arguments.
 check(
     "project-warning",
     lambda: gprfor(
@@ -78,9 +76,7 @@ check(
         srcdirs=["../regular"],
     ),
     "suite.cgpr:.*: error: --target: 'foo' is different from the target value"
-    " in the configuration project '.*'"
-    "\nsuite.cgpr:.*: error: --target: 'foo' is different from the target"
-    " value in the configuration project '.*'",
+    " in the configuration project '.*'",
     extra_args=["--target=foo"],
 )
 

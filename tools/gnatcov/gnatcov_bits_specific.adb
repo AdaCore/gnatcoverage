@@ -16,12 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers;  use Ada.Containers;
-with Ada.Directories; use Ada.Directories;
+with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Containers;   use Ada.Containers;
+with Ada.Directories;  use Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
-with Ada.Text_IO;     use Ada.Text_IO;
+with Ada.Text_IO;      use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -83,6 +84,7 @@ with Setup_RTS;             use Setup_RTS;
 with Shared_Lib_Deps;       use Shared_Lib_Deps;
 with SS_Annotations;        use SS_Annotations;
 with Strings;               use Strings;
+with Support_Files;
 with Switches;              use Switches;
 with Switches_GPR;          use Switches_GPR;
 with Temp_Dirs;             use Temp_Dirs;
@@ -99,10 +101,6 @@ with Types;                 use Types;
 with Version;
 
 procedure GNATcov_Bits_Specific is
-
-   --  This is the main of the bits-specific gnatcov program. Only the gnatcov
-   --  driver (see gnatcov.adb) is supposed to run this main.
-
    use all type Unbounded_String;
 
    Make_JS : GPR2.Build.Jobserver.Object;
@@ -1881,6 +1879,19 @@ begin
    --  reading a pipe of our own, waiting forever for a token nobody can write.
 
    Make_JS.Initialize_Protocol;
+
+   --  Check that gnatcov detected its own installation directory correctly
+
+   if Support_Files.Gnatcov_Prefix = Support_Files.Not_Found then
+      Warning_Or_Error
+        ("Could not locate the invoked gnatcov command: "
+         & (if Command_Name /= "" then Command_Name else "<empty string>")
+         & ". If gnatcov is installed on a case sensitive filesystem or"
+         & " directory, ensure the casing as the executable filename is"
+         & " used when invoking the program.");
+      Set_Exit_Status (Failure);
+      raise Xcov_Exit_Exc;
+   end if;
 
    --  Load arguments from command-line and from the project file (if any),
    --  then update our local state according to them. Create an artificial
