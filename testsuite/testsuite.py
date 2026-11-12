@@ -1789,6 +1789,9 @@ class TestSuite(e3.testsuite.Testsuite):
         if self.ts_args.community:
             result.append("community")
 
+        if self.ts_args.gprmode:
+            result.append("gprmode")
+
         return result
 
     def _board_discriminants(self) -> list[str]:
