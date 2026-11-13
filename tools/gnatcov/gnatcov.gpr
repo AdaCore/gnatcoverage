@@ -22,24 +22,18 @@ project Gnatcov is
    -- Mandatory externals --
    -------------------------
 
-   type Part_Type is
-     ("lib32", "lib64", "driver", "gnatcov32", "gnatcov64", "compiler");
+   type Part_Type is ("lib32", "lib64", "driver", "compiler");
    Part : Part_Type := external ("PART");
    --  Which program this project should build:
    --
    --  * "lib32/lib64": gnatcov.gpr is used as a subproject, the main is a
    --    trace adapter for 32-bit binary traces (lib32) or 64-bit ones (lib64).
    --
-   --  * "driver": the user-facing "gnatcov" program, whose job is to run
-   --    gnatcov32 or gnatcov64.
-   --
-   --  * "gnatcov32": the homonym program, for everything that needs to deal
-   --    with binary traces of 32-bit programs.
+   --  * "driver": the user-facing "gnatcov" program, to instrument projects or
+   --    compute code coverage reports.
    --
    --  * "compiler": a compiler wrapper executable, used to implement the
    --    integrated instrumentation approach.
-   --
-   --  * "gnatcov64": the homonym program, for everything else.
 
    ------------------------
    -- Optional externals --
@@ -59,8 +53,8 @@ project Gnatcov is
    --  Only gnatcov64 ever runs it, to avoid bloat in other configurations.
 
    case Part is
-      when "gnatcov64" => null;
-      when others      => C_Instrumenter := "False";
+      when "driver" => null;
+      when others    => C_Instrumenter := "False";
    end case;
 
    type Build_Mode_Type is ("dev", "prod", "prof");
@@ -88,8 +82,8 @@ project Gnatcov is
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := "32";
    case Part is
-      when "lib64" | "gnatcov64" => Bits := "64";
-      when "driver" | "lib32" | "gnatcov32" | "compiler"  => Bits := "32";
+      when "lib64" | "driver"   => Bits := "64";
+      when "lib32" | "compiler" => Bits := "32";
    end case;
 
    -------------------------------------------
@@ -97,9 +91,6 @@ project Gnatcov is
    -------------------------------------------
 
    package Naming is
-      for Specification ("Arch") use "arch__" & Bits & ".ads";
-      for Specification ("Qemu_Traces_Entries")
-         use"qemu_traces_entries__" & Bits & ".ads";
 
       -----------
       -- Stubs --
@@ -116,8 +107,9 @@ project Gnatcov is
       --  Libclang.
 
       case Part is
-         when "gnatcov64" =>
+         when "driver" =>
             null;
+
          when others =>
             for Specification ("Instrument.Ada_Preprocessing")
                use "instrument-ada_preprocessing__stub.ads";
@@ -130,18 +122,15 @@ project Gnatcov is
                use "instrument-ada_unit__stub.adb";
 
             for Body ("Setup_RTS") use "setup_rts__stub.adb";
-
-            for Body ("Extract_Annotations")
-               use "extract_annotations__stub.adb";
       end case;
 
       case Part is
+         when "driver" =>
+            null;
+
          when "lib32" | "lib64" | "compiler" =>
             for Body ("project_find_source_file")
                use "project_find_source_file__stub.adb";
-
-         when others =>
-            null;
       end case;
 
       case C_Instrumenter is
@@ -172,22 +161,17 @@ project Gnatcov is
 
    package Coverage is
 
-      --  Ignore units that have an alternative implementation in both parts
-      --  and that consists only in type definitions. GNATcoverage does not
-      --  yet support consolidation when there are units with a different
-      --  implementation.
+      Gnatcoverage_Excluded_Units := ();
 
-      Gnatcoverage_Excluded_Units := ("arch", "dis*", "qemu_traces_entries");
-
-      --  Also ignore the instrumentation part in the 32 bits part, consisting
-      --  only in stubs.
+      --  Ignore stubs found in non-driver parts
 
       case Part is
-         when "lib32" | "lib64" | "driver" | "gnatcov32" | "compiler" =>
+         when "driver" =>
+            null;
+
+         when "lib32" | "lib64" | "compiler" =>
             Gnatcoverage_Excluded_Units := Gnatcoverage_Excluded_Units
               & ("instrument*");
-         when "gnatcov64" =>
-            null;
       end case;
       for Excluded_Units use Gnatcoverage_Excluded_Units;
 
@@ -217,16 +201,9 @@ project Gnatcov is
          for Main use ();
       when "driver" =>
          for Main use  ("gnatcov.adb");
-      when "gnatcov32" | "gnatcov64" =>
-         for Main use ("gnatcov_bits_specific.adb");
       when "compiler" =>
          for Main use ("compiler_wrappers-gcc.adb");
    end case;
-
-   package Builder is
-      for Executable ("gnatcov_bits_specific.adb") use Part;
-      for Executable ("gnatcov.adb") use "gnatcov";
-   end Builder;
 
    -----------------------
    -- Toolchain options --
@@ -306,7 +283,6 @@ project Gnatcov is
    package Analyzer is
       for Switches ("analyze") use
         ("-j0",
-         "--incrementality-method=minimal",
          "--no-subprojects",
          "--no-inspector",
          "--no-gnat");
@@ -348,18 +324,18 @@ project Gnatcov is
 
    Object_Dir := "";
    case Part is
-      when "driver" | "lib32" | "gnatcov32" | "compiler" => Object_Dir := "obj32";
-      when "gnatcov64"                                   => Object_Dir := "obj64";
+      when "lib32" | "compiler" => Object_Dir := "obj32";
+      when "driver"             => Object_Dir := "obj64";
 
-      --  gnatcov64 uses the real instrumenter.adb while lib64 uses the stub
-      --  one, so they cannot use the same object directory.
+      --  driver uses the real instrumenter.adb while lib64 uses the stub one,
+      --  so they cannot use the same object directory.
 
       when "lib64"               => Object_Dir := "objlib64";
    end case;
    for Object_Dir use Object_Dir & "/" & Build_Mode;
 
    case Part is
-      when "gnatcov64" =>
+      when "driver" =>
          for Languages use ("Ada", "C", "C++", "Templates");
       when others =>
          for Languages use ("Ada", "C");
