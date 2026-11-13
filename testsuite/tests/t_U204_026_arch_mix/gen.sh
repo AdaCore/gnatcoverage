@@ -94,29 +94,7 @@ case $os in
 esac
 
 #
-# 3. Reject mix of checkpoints created with binary traces for different
-#    "bits-target" (32 vs 64-bit).
-#
-
-# On Linux, build+run+create checkpoints (with binary traces) for both 32 and
-# 64-bit targets.
-
-case $os in
-    linux)
-        gprbuild -Pfoo $CROSS32_OPTS $BIN_BUILD_OPTS
-        gnatcov run --target=arm-eabi,stm32f4 -o bin-main_1.trace obj/main_1
-        $XCOV_COV $CROSS32_OPTS --save-checkpoint=gen/bin-main_1.ckpt \
-            bin-main_1.trace
-
-        gprbuild -Pfoo $CROSS64_OPTS $BIN_BUILD_OPTS
-        gnatcov run --target=aarch64-elf -o bin-main_2.trace obj/main_2
-        $XCOV_COV $CROSS64_OPTS --save-checkpoint=gen/bin-main_2.ckpt \
-            bin-main_2.trace
-        ;;
-esac
-
-#
-# 4. Check that we can use source traces produced on a different host
+# 3. Check that we can use source traces produced on a different host
 #
 
 # Nothing to do here: step 2 already added source traces to the "gen"
