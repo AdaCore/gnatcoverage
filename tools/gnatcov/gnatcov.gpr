@@ -306,7 +306,6 @@ project Gnatcov is
    package Analyzer is
       for Switches ("analyze") use
         ("-j0",
-         "--incrementality-method=minimal",
          "--no-subprojects",
          "--no-inspector",
          "--no-gnat");
