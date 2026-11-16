@@ -18,6 +18,8 @@
 
 with Langkit_Support.File_Readers; use Langkit_Support.File_Readers;
 
+with Instrument.Common; use Instrument.Common;
+
 --  Helpers to implement support for the Ada sources.
 --
 --  Just like for the Ada unit provider (Instrument.Ada_Unit_Provider), we need
@@ -31,6 +33,10 @@ package Instrument.Ada_Preprocessing is
    procedure Create_Preprocessor_Data_File (Filename : String);
    --  Write in Filename a JSON representation of the preprocessor data
    --  extracted from the root project
+
+   procedure Create_Preprocessor_Data_File
+     (Filename : String; Hashes : out Preprocessor_Config_Hashes);
+   --  Also return configuration digests for per-source dependency tracking
 
    function Create_Preprocessor
      (Filename : String) return File_Reader_Reference;

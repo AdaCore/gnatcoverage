@@ -19,6 +19,7 @@
 with Ada.Containers; use Ada.Containers;
 
 with GPR2.Build.Artifacts.Files;
+with GPR2.Build.Artifacts.Key_Value;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Project.View.Set;
 
@@ -26,6 +27,8 @@ with Files_Table; use Files_Table;
 with Text_Files;
 
 package body Instrument.Actions.Instrument_Source.Ada is
+
+   package Pragma_Maps renames String_Maps;
 
    -----------------------
    -- Compute_Signature --
@@ -38,6 +41,20 @@ package body Instrument.Actions.Instrument_Source.Ada is
    is
       Exit_Signature_Exception : exception;
 
+      function Add_Preprocessor_Config
+        (Path : GPR2.Path_Name.Object) return Boolean;
+      --  Add the hash of the preprocessing configuration for source Path to
+      --  Signature. Use the default configuration if Path has no specific
+      --  configuration. Return False if Signature.Add_Input fails.
+
+      function Add_Pragmas
+        (Key : String; Filename : Unbounded_String) return Boolean;
+      --  Add the configuration pragma file Filename to Signature, recording
+      --  both its contents and the association of Key with Filename. Key
+      --  identifies global pragmas or local pragmas for a particular source.
+      --  This detects swapping global and local pragma files even if both
+      --  remain inputs. Return False if either Signature.Add_Input call fails.
+
       procedure Process_Part
         (Kind     : GPR2.Unit_Kind;
          View     : GPR2.Project.View.Object;
@@ -47,6 +64,49 @@ package body Instrument.Actions.Instrument_Source.Ada is
       --  Add the given Path as an input of the signature. Raises
       --  Exit_Signature_Exception if the call to Self.Signature.Add_Input
       --  failed.
+
+      -----------------------------
+      -- Add_Preprocessor_Config --
+      -----------------------------
+
+      function Add_Preprocessor_Config
+        (Path : GPR2.Path_Name.Object) return Boolean
+      is
+         Config : constant String_Maps.Cursor :=
+           Self.IC.Ada_Preprocessor_Config_Hashes.File_Configs.Find
+             (+String (Path.Simple_Name));
+         Hash   : constant Unbounded_String :=
+           (if String_Maps.Has_Element (Config)
+            then String_Maps.Element (Config)
+            else Self.IC.Ada_Preprocessor_Config_Hashes.Default_Config);
+      begin
+         return
+           Signature.Add_Input
+             (GPR2.Build.Artifacts.Key_Value.Create
+                (GPR2.Value_Type
+                   ("ada_preprocessor_data:" & Path.String_Value),
+                 GPR2.Value_Type (+Hash)),
+              Check_Checksums);
+      end Add_Preprocessor_Config;
+
+      -----------------
+      -- Add_Pragmas --
+      -----------------
+
+      function Add_Pragmas
+        (Key : String; Filename : Unbounded_String) return Boolean is
+      begin
+         return
+           Signature.Add_Input
+             (GPR2.Build.Artifacts.Key_Value.Create
+                (GPR2.Value_Type (Key), GPR2.Value_Type (+Filename)),
+              Check_Checksums)
+           and then
+             Signature.Add_Input
+               (GPR2.Build.Artifacts.Files.Create
+                  (GPR2.Filename_Type (+Filename)),
+                Check_Checksums);
+      end Add_Pragmas;
 
       ------------------
       -- Process_Part --
@@ -60,9 +120,21 @@ package body Instrument.Actions.Instrument_Source.Ada is
          Sep_Name : GPR2.Optional_Name_Type)
       is
          pragma Unreferenced (Kind, View, Index, Sep_Name);
+         Local_Pragmas : constant Pragma_Maps.Cursor :=
+           Self.IC.Ada_Config_Pragmas.Local_Pragmas.Find (+Path.String_Value);
       begin
          if not Signature.Add_Input
                   (GPR2.Build.Artifacts.Files.Create (Path), Check_Checksums)
+           or else not Add_Preprocessor_Config (Path)
+         then
+            raise Exit_Signature_Exception;
+         end if;
+
+         if Pragma_Maps.Has_Element (Local_Pragmas)
+           and then
+             not Add_Pragmas
+                   ("local_config_pragmas:" & Path.String_Value,
+                    Pragma_Maps.Element (Local_Pragmas))
          then
             raise Exit_Signature_Exception;
          end if;
@@ -80,25 +152,24 @@ package body Instrument.Actions.Instrument_Source.Ada is
             return;
       end;
 
-      --  Add the preprocessor data file as input
-
-      if not Signature.Add_Input
-               (GPR2.Build.Artifacts.Files.Create
-                  (GPR2.Filename_Type (+Self.IC.Ada_Preprocessor_Data_File)),
-                Check_Checksums)
+      if Self.IC.Ada_Config_Pragmas.Global_Pragmas /= Null_Unbounded_String
+        and then
+          not Add_Pragmas
+                ("global_config_pragmas",
+                 Self.IC.Ada_Config_Pragmas.Global_Pragmas)
       then
          return;
       end if;
 
-      --  Also add the configuration pragma file
+      --  Make changes in preprocessing configuration trigger the
+      --  re-instrumentation of the affected source files. Include dependencies
+      --  because preprocessing can change their declarations.
 
-      if not Signature.Add_Input
-               (GPR2.Build.Artifacts.Files.Create
-                  (GPR2.Filename_Type (+Self.IC.Config_Pragmas_Mapping)),
-                Check_Checksums)
-      then
-         return;
-      end if;
+      for Dep of Self.Dependencies loop
+         if not Add_Preprocessor_Config (GPR2.Path_Name.Create_File (Dep)) then
+            return;
+         end if;
+      end loop;
 
       Self.Common_Compute_Signature (Signature, Check_Checksums);
    end Compute_Signature;

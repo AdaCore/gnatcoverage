@@ -1349,7 +1349,8 @@ package body Instrument.Common is
          Result.Append
            (Create (Arg => +IC.Config_Pragmas_Mapping, Mode => Ignore));
          Result.Append (Create ("--ada-preprocessor-data", Mode => Ignore));
-         Result.Append (Create (+IC.Ada_Preprocessor_Data_File));
+         Result.Append
+           (Create (+IC.Ada_Preprocessor_Data_File, Mode => Ignore));
       end if;
 
       --  Pass the list of sources of interest, to e.g. skip the

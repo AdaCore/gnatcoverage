@@ -20,6 +20,8 @@ with Ada.Exceptions; use Ada.Exceptions;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
+with GPR2.Utils.Hash;
+
 with Langkit_Support.Errors;
 with Libadalang.Preprocessing; use Libadalang.Preprocessing;
 
@@ -34,6 +36,14 @@ package body Instrument.Ada_Preprocessing is
    -----------------------------------
 
    procedure Create_Preprocessor_Data_File (Filename : String) is
+      Hashes : Preprocessor_Config_Hashes;
+   begin
+      Create_Preprocessor_Data_File (Filename, Hashes);
+   end Create_Preprocessor_Data_File;
+
+   procedure Create_Preprocessor_Data_File
+     (Filename : String; Hashes : out Preprocessor_Config_Hashes)
+   is
 
       function Serialize (Value : Value_Type) return JSON_Value;
       --  Serialize Value to JSON
@@ -70,14 +80,16 @@ package body Instrument.Ada_Preprocessing is
 
       function Serialize (Map : Definition_Maps.Map) return JSON_Value is
          Result : constant JSON_Value := Create_Object;
+         Names  : String_Sets.Set;
       begin
          for Cur in Map.Iterate loop
-            declare
-               Name  : constant Unbounded_String := Definition_Maps.Key (Cur);
-               Value : Value_Type renames Map.Constant_Reference (Cur);
-            begin
-               Result.Set_Field (+Name, Serialize (Value));
-            end;
+            Names.Include (Definition_Maps.Key (Cur));
+         end loop;
+
+         --  Hash equivalent definitions identically regardless of map order
+
+         for Name of Names loop
+            Result.Set_Field (+Name, Serialize (Map.Element (Name)));
          end loop;
          return Result;
       end Serialize;
@@ -145,7 +157,14 @@ package body Instrument.Ada_Preprocessing is
 
       --  Serialize this data to JSON
 
-      Result.Set_Field ("default_config", Serialize (Default_Config));
+      declare
+         Config : constant JSON_Value := Serialize (Default_Config);
+      begin
+         Result.Set_Field ("default_config", Config);
+         Hashes.Default_Config :=
+           +GPR2.Utils.Hash.Hash_Content (Config.Write (Compact => True));
+      end;
+      Hashes.File_Configs.Clear;
       declare
          Map : constant JSON_Value := Create_Object;
       begin
@@ -153,10 +172,14 @@ package body Instrument.Ada_Preprocessing is
             declare
                Filename : constant Unbounded_String :=
                  File_Config_Maps.Key (Cur);
+               Config   : constant JSON_Value :=
+                 Serialize (File_Configs.Constant_Reference (Cur));
             begin
-               Map.Set_Field
-                 (+Filename,
-                  Serialize (File_Configs.Constant_Reference (Cur)));
+               Map.Set_Field (+Filename, Config);
+               Hashes.File_Configs.Insert
+                 (Filename,
+                  +GPR2.Utils.Hash.Hash_Content
+                     (Config.Write (Compact => True)));
             end;
          end loop;
          Result.Set_Field ("file_configs", Map);
