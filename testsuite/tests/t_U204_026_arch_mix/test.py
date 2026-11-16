@@ -12,7 +12,7 @@ from e3.fs import cp, mkdir
 from SCOV.instr import xcov_convert_base64
 from SCOV.minicheck import check_xcov_reports
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of
+from SUITE.cutils import Wdir
 from SUITE.tutils import exename_for, gprbuild, gprfor, run_cov_program, xcov
 
 
@@ -126,50 +126,8 @@ xcov(
 )
 check_reports("2-xcov")
 
-
 #
-# 3. Reject mix of checkpoints created with binary traces for different
-#    "bits-target" (32 vs 64-bit).
-#
-
-thistest.log("== 3. bin-checkpoints mix ==")
-mkdir("3-xcov")
-p = xcov(
-    cov_args
-    + ["--output-dir=3-xcov"]
-    + [
-        f"--checkpoint={os.path.join('..', 'gen', ckpt)}"
-        for ckpt in ["bin-main_1.ckpt", "bin-main_2.ckpt"]
-    ],
-    out="3-coverage-out.txt",
-    register_failure=False,
-)
-thistest.fail_if(
-    p.status == 0,
-    "'gnatcov coverage' exited with status code 0 while an error was expected",
-)
-
-# Since the checkpoint for main_1 was created for 32-bits while the checkpoint
-# for main_2 was created for 64-bits, the error message depends on the target
-# platform for which we run the testsuite.
-if env.target.cpu.bits == 32:
-    ckpt = "bin-main_2.ckpt"
-    ckpt_bits = "64-bit"
-    req_bits = "32-bit"
-else:
-    assert env.target.cpu.bits == 64
-    ckpt = "bin-main_1.ckpt"
-    ckpt_bits = "32-bit"
-    req_bits = "64-bit"
-thistest.fail_if_no_match(
-    "'gnatcov coverage' output",
-    f"gnatcov: .*{ckpt} was created with {ckpt_bits} traces whereas the"
-    f" selected target requires {req_bits} traces",
-    contents_of("3-coverage-out.txt"),
-)
-
-#
-# 4. Check that we can use source traces produced on a different host
+# 3. Check that we can use source traces produced on a different host
 #
 
 thistest.log("== 4. src-traces mix ==")

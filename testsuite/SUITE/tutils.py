@@ -849,7 +849,7 @@ def locate_gpr_file(gprswitches: GPRswitches) -> str:
     filename = gprswitches.root_project
     args = ["gprls", "-P", filename, "-v"] + gprswitches.build_switches
     if thistest.options.target:
-        args.append(f"--target={thistest.options.target}")
+        args.append(f"--target={env.target.triplet}")
     if thistest.options.RTS:
         args.append(f"--RTS={thistest.options.RTS}")
     gprls_output = Run(args).out

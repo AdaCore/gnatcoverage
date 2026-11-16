@@ -45,12 +45,15 @@ package Support_Files is
       then Base_Name (Command_Name)
       else Value (Command_Name_Envvar));
 
-   Gnatcov_Exec : constant GNAT.OS_Lib.String_Access :=
+   Raw_Gnatcov_Exec : constant GNAT.OS_Lib.String_Access :=
      GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name);
 
+   function Gnatcov_Exec return String
+   is (if Raw_Gnatcov_Exec = null then Not_Found else Raw_Gnatcov_Exec.all);
+
    Gnatcov_Dir : constant String :=
-     (if Gnatcov_Exec /= null
-      then Containing_Directory (Gnatcov_Exec.all)
+     (if Raw_Gnatcov_Exec /= null
+      then Containing_Directory (Gnatcov_Exec)
       else Not_Found);
    --  Use a magic value when we can't locate gnatcov on path
 
@@ -74,11 +77,6 @@ package Support_Files is
    Share_Dir : constant String := Gnatcov_Prefix & "/share/gnatcoverage";
    --  GNATcoverage-specific directory in the installation prefix's "share"
    --  directory.
-
-   Gnatcov64 : constant String :=
-     Ada.Directories.Compose
-       (Libexec_Dir, "gnatcov64" & GNAT.OS_Lib.Get_Executable_Suffix.all);
-   --  Path to the gnatcov64 executable
 
    function In_Lib_Dir (File : String) return String
    is (Lib_Dir & "/" & File);

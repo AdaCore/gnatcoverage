@@ -48,9 +48,7 @@ GPRINSTALL=gprinstall
 
 # Binary program name
 PGMNAME=gnatcov
-PGMPATH=obj32/$(BUILD_MODE)/$(PGMNAME)
-PGM32PATH=obj32/$(BUILD_MODE)/gnatcov32
-PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
+PGMPATH=obj64/$(BUILD_MODE)/$(PGMNAME)
 COMPILERPATH=obj32/$(BUILD_MODE)/compiler_wrappers-gcc
 
 # Directory name in the install tree
@@ -146,12 +144,6 @@ llvm_json_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 default: bin
 all: bin adapters
 
-# Here we build gnatcov32, gnatcov64 and the "gnatcov" driver that spawns
-# one or the other of the first two depending on the operation to perform
-# and the kind of binary item at hand, if any. Source instrumentation is
-# unconditionally directed to gnatcov64, so this is the only program where
-# "instrument" support is needed.
-
 BIN_COMMON_BUILD_ARGS=\
  -Pgnatcov.gpr -p -j$(PROCESSORS) \
  -XBUILD_MODE=$(BUILD_MODE) \
@@ -171,16 +163,7 @@ INSTR_BIN_BUILD_ARGS=\
 
 bin:
 ifdef INSTRUMENTED
-	# We need to instrument and build at the same time: the driver and
-	# gnatcov32 builds share the same object directory, meaning that
-	# gnatcov will remove files resulting from the instrumentation of
-	# gnatcov32 when instrumenting the driver. This will be a problem: in
-	# the former case, gnatcov_bits_specific.adb is instrumented as a main
-	# but not in the latter case (gnatcov.adb is). This means that if we
-	# use the version that was not instrumented as a main to compile
-	# gnatcov32, running gnatcov32 will not dump execution traces.
-
-	set -e; for part in gnatcov64 gnatcov32 driver compiler; do \
+	set -e; for part in driver compiler; do \
 	  if [ -z "$(PART)" ] || [ "$(PART)" = $$part ]; then \
 	    gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=$$part; \
 	    $(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=$$part; \
@@ -188,7 +171,7 @@ ifdef INSTRUMENTED
 	done
 else
 	# Start with the 64-bit gnatcov, which has the largest closure
-	set -e; for part in gnatcov64 gnatcov32 driver compiler; do \
+	set -e; for part in driver compiler; do \
 	  if [ -z "$(PART)" ] || [ "$(PART)" = $$part ]; then \
 	    $(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=$$part; \
 	  fi; \
@@ -250,8 +233,6 @@ install-bin:
 
 	$(MKDIR) $(PREFIX)/libexec/gnatcoverage
 	$(CP) \
-	   $(PGM32PATH)$(exeext) \
-	   $(PGM64PATH)$(exeext) \
 	   $(COMPILERPATH)$(exeext) \
 	   $(PREFIX)/libexec/gnatcoverage
 
@@ -328,7 +309,7 @@ install-adapters: $(INSTALL_ADAPTER_TARGETS)
 distrib-linux-extra:
 	[ -f COPYING3 ] || $(CP) ../../COPYING3 .
 	$(CP) README.md INSTALL COPYING3 LICENSE.dhtml $(PREFIX)
-	sed -e "s/^version=.*/version=\"$$($(PGM64PATH) --version)\"/" \
+	sed -e "s/^version=.*/version=\"$$($(PGMPATH) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
@@ -379,7 +360,7 @@ gnat_util.gpr:
 # GNATsas
 
 # This is equivalent to the default run performed during CI
-GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=gnatcov64
+GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=driver
 GNATSAS_OBJ_DIR=obj64/$(BUILD_MODE)
 GNATSAS_RESULTS=$(GNATSAS_OBJ_DIR)/results
 gnatsas:

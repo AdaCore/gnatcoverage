@@ -245,7 +245,7 @@ package body Instrument.Actions.Instrument_Source is
    is
       Cmd_Line : GPR2.Build.Command_Line.Object;
    begin
-      Cmd_Line.Set_Driver (Support_Files.Gnatcov64);
+      Cmd_Line.Set_Driver (Support_Files.Gnatcov_Exec);
       Cmd_Line.Add_Argument ("instrument-source");
 
       for Arg of Common_Switches (Cmd_Instrument_Source) loop
