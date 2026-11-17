@@ -937,12 +937,14 @@ package body Instrument.Input_Traces is
       ----------
 
       procedure Trim
-        (S : String; First : in out Positive; Last : in out Natural) is
+        (S : String; First : in out Positive; Last : in out Natural)
+      is
+         Slice : String renames S (First .. Last);
       begin
-         while First in S'Range and then S (First) in Whitespace loop
+         while First in Slice'Range and then Slice (First) in Whitespace loop
             First := First + 1;
          end loop;
-         while Last in S'Range and then S (Last) in Whitespace loop
+         while Last in Slice'Range and then Slice (Last) in Whitespace loop
             Last := Last - 1;
          end loop;
       end Trim;
