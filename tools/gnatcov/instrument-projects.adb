@@ -932,10 +932,10 @@ begin
    Instrument.Ada_Unit_Provider.Create_Mapping_File (+IC.Mapping_File);
 
    Instrument.Ada_Unit.Save_Config_Pragmas_Mapping
-     (+IC.Config_Pragmas_Mapping);
+     (+IC.Config_Pragmas_Mapping, IC.Ada_Config_Pragmas);
 
    Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
-     (+IC.Ada_Preprocessor_Data_File);
+     (+IC.Ada_Preprocessor_Data_File, IC.Ada_Preprocessor_Config_Hashes);
 
    --  Initialize the instrumenters: we will use them when parallelization is
    --  disabled, but also to generate the unit holding the list of buffers,

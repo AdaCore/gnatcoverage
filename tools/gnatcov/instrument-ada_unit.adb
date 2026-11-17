@@ -11950,18 +11950,21 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    procedure Save_Config_Pragmas_Mapping (Filename : String) is
+      Files : Config_Pragmas_Files;
+   begin
+      Save_Config_Pragmas_Mapping (Filename, Files);
+   end Save_Config_Pragmas_Mapping;
 
-      --  First, compute the configuration pragmas mapping for all sources in
-      --  the loaded project.
-
+   procedure Save_Config_Pragmas_Mapping
+     (Filename : String; Files : out Config_Pragmas_Files)
+   is
       Mapping : constant Config_Pragmas_Mapping :=
         Import_From_Project (Project.Project);
-
-      --  Then, turn this mapping into a JSON description
-
-      Desc  : constant JSON_Value := Create_Object;
-      Local : constant JSON_Value := Create_Object;
+      Desc    : constant JSON_Value := Create_Object;
+      Local   : constant JSON_Value := Create_Object;
    begin
+      Files.Global_Pragmas := Mapping.Global_Pragmas;
+      Files.Local_Pragmas.Clear;
       Desc.Set_Field ("local_pragmas", Local);
       Desc.Set_Field ("global_pragmas", +Mapping.Global_Pragmas);
 
@@ -11973,6 +11976,7 @@ package body Instrument.Ada_Unit is
               Libadalang.Config_Pragmas.Unit_Maps.Element (Cur);
          begin
             Local.Set_Field (+Source_File, Pragmas_File);
+            Files.Local_Pragmas.Include (Source_File, Pragmas_File);
          end;
       end loop;
 

@@ -923,6 +923,22 @@ package Instrument.Common is
    --  Project_Info records. Project_Info records are owned by this map, and
    --  thus must be deallocated when maps are deallocated.
 
+   type Config_Pragmas_Files is record
+      Global_Pragmas : Unbounded_String;
+      Local_Pragmas  : String_Maps.Map;
+   end record;
+   --  Alternative to the Config_Pragmas_Mapping type from
+   --  Libadalang.Config_Pragmas. This type has no dependency on Libadalang,
+   --  making it suitable for gnatcov units affected by stubbing.
+
+   type Preprocessor_Config_Hashes is record
+      Default_Config : Unbounded_String;
+      File_Configs   : String_Maps.Map;
+      --  Keys are base filenames, matching the preprocessor's lookup
+
+   end record;
+   --  Hashes of the default and file-specific preprocessing configurations
+
    type Inst_Context is limited record
       Ada_Default_Charset : Unbounded_String;
       --  Default charset to analyze Ada source code
@@ -937,6 +953,9 @@ package Instrument.Common is
       --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
       --  more information.
 
+      Ada_Config_Pragmas : Config_Pragmas_Files;
+      --  Effective pragma files used for dependency tracking
+
       Sources_Of_Interest_Response_File : Unbounded_String;
       --  File containing the list of units of interest, identified by their
       --  fullname. This is passed on to gnatcov instrument-source invokations
@@ -946,6 +965,8 @@ package Instrument.Common is
       Ada_Preprocessor_Data_File : Unbounded_String;
       --  JSON file that contains the preprocessor data necessary to analyze
       --  Ada sources (see Instrument.Ada_Unit.Create_Preprocessor_Data_File).
+
+      Ada_Preprocessor_Config_Hashes : Preprocessor_Config_Hashes;
 
       Excluded_Source_Files_Present : Boolean;
       Excluded_Source_Files         : GNAT.Regexp.Regexp;

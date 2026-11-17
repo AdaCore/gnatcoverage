@@ -187,8 +187,11 @@ package Instrument.Ada_Unit is
    --  character past it.
 
    procedure Save_Config_Pragmas_Mapping (Filename : String);
-   --  Create a configuration pragmas mapping for the loaded project and write
-   --  a JSON description file of it to Filename.
+   --  Write the loaded project's configuration pragma mapping to Filename
+
+   procedure Save_Config_Pragmas_Mapping
+     (Filename : String; Files : out Config_Pragmas_Files);
+   --  Also return the pragma-file paths for dependency tracking
 
    procedure Load_Config_Pragmas_Mapping
      (Mapping : out Config_Pragmas_Mapping; Filename : String);

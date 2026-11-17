@@ -34,6 +34,10 @@ package Instrument.Ada_Unit is
 
    procedure Save_Config_Pragmas_Mapping (Filename : String) is null;
 
+   procedure Save_Config_Pragmas_Mapping
+     (Filename : String; Files : out Config_Pragmas_Files)
+   is null;
+
    function Create_Ada_Instrumenter
      (Default_Charset            : Unbounded_String;
       Config_Pragmas_Mapping     : String;

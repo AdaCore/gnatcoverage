@@ -341,12 +341,7 @@ package body Switches_GPR is
          end case;
       end if;
 
-      --  Set default output directory, target and runtime from the project
-
-      if not Args.String_Args (Opt_Output_Directory).Present then
-         Args.String_Args (Opt_Output_Directory) :=
-           (Present => True, Value => +Project.Output_Dir);
-      end if;
+      --  Set default target and runtime from the project
 
       if not Args.String_Args (Opt_Target).Present
         and then Project.Target /= ""

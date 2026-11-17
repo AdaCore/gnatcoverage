@@ -1285,6 +1285,8 @@ procedure GNATcov is
       if Args.String_Args (Opt_Output_Directory).Present then
          Outputs.Set_Output_Dir
            (+Args.String_Args (Opt_Output_Directory).Value);
+      elsif Project.Is_Project_Loaded then
+         Outputs.Set_Output_Dir (Project.Output_Dir);
       end if;
 
       declare
