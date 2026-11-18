@@ -1485,7 +1485,7 @@ package body Instrument.Input_Traces is
       procedure Add_Origin (K : SCO_Id; E : in out Origin_Id_Sets.Set) is
          pragma Unreferenced (K);
       begin
-         E.Insert (Origin_File_Maps.Element (File_Cur));
+         E.Include (Origin_File_Maps.Element (File_Cur));
       end Add_Origin;
 
    begin
@@ -1506,11 +1506,7 @@ package body Instrument.Input_Traces is
               (SCO, Origin_Id_Sets.Empty_Set, C, Inserted);
          end if;
 
-         if not Origin_Id_Sets.Has_Element
-                  (Element (C).Find (Origin_File_Maps.Element (File_Cur)))
-         then
-            Coverage_Origins.Update_Element (C, Add_Origin'Access);
-         end if;
+         Coverage_Origins.Update_Element (C, Add_Origin'Access);
       end;
    end Log_Coverage_Origin;
 

@@ -1,6 +1,6 @@
 """
 Check the contents of XML reports to verify that coverage origins are correctly
-reported.
+reported. Check that collecting origins scales to large trace batches.
 """
 
 import dataclasses
@@ -226,6 +226,31 @@ def instr_and_run_zero_one() -> list[str]:
     return xcov_args[:-3]
 
 
+def check_scaling(xcov_args: list[str]) -> None:
+    """Catch quadratic work as the number of coverage origins grows.
+
+    Copies of one trace under distinct filenames grow the covered obligations'
+    origin sets without changing coverage. The batch is sized so the former
+    code, which copied the growing sets for every input, hits the test timeout.
+
+    xcov_args provides common coverage options, including --origins, without
+    trace inputs or an annotation format.
+    """
+
+    args = xcov_args + ["-axml"]
+    os.mkdir("scaling_traces")
+    traces = [f"scaling_traces/{index:05}.srctrace" for index in range(20000)]
+    for trace in traces:
+        cp("traces/zero.srctrace", trace)
+    with open("scaling_traces.txt", "w") as f:
+        f.write("\n".join(traces) + "\n")
+    xcov(args + ["--trace=@scaling_traces.txt"])
+    origins = etree.parse("obj/process.adb.xml").findtext(".//origins", "")
+    thistest.fail_if_not_equal(
+        "Scaling origin count", len(traces), len(origins.split())
+    )
+
+
 def test_with_checkpoint() -> None:
     thistest.log("== test_with_checkpoint ==")
     xcov_args = instr_and_run_zero_one()
@@ -283,6 +308,7 @@ def test_only_traces() -> None:
     # Input order may change IDs, but each must still resolve to the same file.
     xcov(xcov_args + ["-axml"] + list(reversed(expected_files)))
     check_xml("only_traces.expected", expected_files, main_origins)
+    check_scaling(xcov_args)
 
 
 # Run the tests
