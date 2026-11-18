@@ -1480,7 +1480,7 @@ package body SC_Obligations is
       if CU = No_CU_Id then
          return False;
       end if;
-      return CU_Vector.Element (CU).Macro_Info_Map.Contains (SCO);
+      return CU_Vector.Constant_Reference (CU).Macro_Info_Map.Contains (SCO);
    end Has_Macro_Info;
 
    ----------------------
@@ -1493,7 +1493,7 @@ package body SC_Obligations is
       if CU = No_CU_Id then
          return False;
       end if;
-      return CU_Vector.Element (CU).Include_Info_Map.Contains (SCO);
+      return CU_Vector.Constant_Reference (CU).Include_Info_Map.Contains (SCO);
    end Has_Include_Info;
 
    --------------------
