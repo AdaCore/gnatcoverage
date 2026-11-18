@@ -1353,14 +1353,14 @@ package body SC_Obligations is
       use Scope_Entities_Trees;
       Cur : Cursor;
    begin
-      Traverse_SCO (ST, SCO);
-
       --  If no subprogram of interest was requested, consider that they are
       --  all of interest.
 
       if Subps_Of_Interest.Is_Empty then
          return True;
       end if;
+
+      Traverse_SCO (ST, SCO);
 
       --  Otherwise, find at least one scope that covers SCO and that is a
       --  subprogram of interest.
