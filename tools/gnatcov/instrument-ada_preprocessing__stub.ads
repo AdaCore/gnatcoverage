@@ -19,6 +19,8 @@
 --  Stub of Instrument.Ada_Preprocessing: see the note about Stubs in
 --  gnatcov.gpr.
 
+with Instrument.Common; use Instrument.Common;
+
 package Instrument.Ada_Preprocessing is
 
    pragma Elaborate_Body;
@@ -26,6 +28,10 @@ package Instrument.Ada_Preprocessing is
    type File_Reader_Reference is null record;
 
    procedure Create_Preprocessor_Data_File (Filename : String) is null;
+
+   procedure Create_Preprocessor_Data_File
+     (Filename : String; Hashes : out Preprocessor_Config_Hashes)
+   is null;
 
    function Create_Preprocessor
      (Filename : String) return File_Reader_Reference;

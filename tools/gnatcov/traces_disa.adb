@@ -152,7 +152,13 @@ package body Traces_Disa is
      (Insns    : Binary_Content;
       I_Ranges : Insn_Set_Ranges;
       State    : Insn_State;
-      Cb       : Disassemble_Cb;
+      Cb       :
+        access procedure
+          (Addr     : Pc_Type;
+           State    : Insn_State;
+           Insn     : Binary_Content;
+           Insn_Set : Insn_Set_Type;
+           Sym      : Symbolizer'Class);
       Sym      : Symbolizer'Class)
    is
       Pc       : Pc_Type;
