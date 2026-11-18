@@ -1370,40 +1370,46 @@ package body Coverage.Source is
       while E1 /= No_Element loop
          E2 := Next (E1);
          while E2 /= No_Element loop
-            Influent_Condition :=
-              Is_MC_DC_Pair
-                (Element (E1),
-                 Element (E2),
-                 Unique_Cause => MCDC_Level = UC_MCDC);
-            --  Record and report the first eval pair that shows independent
-            --  influence of Influent_Condition.
+            declare
+               Eval_1 : Evaluation renames
+                 SCI.Evaluations.Constant_Reference (E1);
+               Eval_2 : Evaluation renames
+                 SCI.Evaluations.Constant_Reference (E2);
+            begin
+               Influent_Condition :=
+                 Is_MC_DC_Pair
+                   (Eval_1, Eval_2, Unique_Cause => MCDC_Level = UC_MCDC);
 
-            if (Switches.Show_MCDC_Vectors
-                or else Switches.Show_Condition_Vectors)
-              and then Influent_Condition /= No_Condition_Index
-            then
-               Eval_Cond_Set_Map.Element (Element (E1)).Include
-                 (Influent_Condition);
-               Eval_Cond_Set_Map.Element (Element (E2)).Include
-                 (Influent_Condition);
-            end if;
+               --  Record and report the first eval pair that shows independent
+               --  influence of Influent_Condition.
 
-            if Influent_Condition /= No_Condition_Index
-              and then not Indep (Influent_Condition)
-            then
+               if (Switches.Show_MCDC_Vectors
+                   or else Switches.Show_Condition_Vectors)
+                 and then Influent_Condition /= No_Condition_Index
+               then
+                  Eval_Cond_Set_Map.Element (Eval_1).Include
+                    (Influent_Condition);
+                  Eval_Cond_Set_Map.Element (Eval_2).Include
+                    (Influent_Condition);
+               end if;
 
-               Indep (Influent_Condition) := True;
-               Report
-                 ("C"
-                  & Img (Integer (Influent_Condition))
-                  & " independent influence shown by eval pair: "
-                  & Image (Element (E1))
-                  & " / "
-                  & Image (Element (E2)),
-                  Sloc => First_Sloc (SCO),
-                  SCO  => Condition (SCO, Influent_Condition),
-                  Kind => Notice);
-            end if;
+               if Influent_Condition /= No_Condition_Index
+                 and then not Indep (Influent_Condition)
+               then
+
+                  Indep (Influent_Condition) := True;
+                  Report
+                    ("C"
+                     & Img (Integer (Influent_Condition))
+                     & " independent influence shown by eval pair: "
+                     & Image (Eval_1)
+                     & " / "
+                     & Image (Eval_2),
+                     Sloc => First_Sloc (SCO),
+                     SCO  => Condition (SCO, Influent_Condition),
+                     Kind => Notice);
+               end if;
+            end;
             Next (E2);
          end loop;
          Next (E1);
