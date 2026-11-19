@@ -1397,21 +1397,9 @@ package body Instrument.Input_Traces is
 
          --  Update coverage buffers in this entry
 
-         for B in Stmt_Buffer'Range loop
-            if Stmt_Buffer (B) then
-               Elt.Stmt_Buffer (B) := True;
-            end if;
-         end loop;
-         for B in Decision_Buffer'Range loop
-            if Decision_Buffer (B) then
-               Elt.Decision_Buffer (B) := True;
-            end if;
-         end loop;
-         for B in MCDC_Buffer'Range loop
-            if MCDC_Buffer (B) then
-               Elt.MCDC_Buffer (B) := True;
-            end if;
-         end loop;
+         Elt.Stmt_Buffer := Elt.Stmt_Buffer or Stmt_Buffer;
+         Elt.Decision_Buffer := Elt.Decision_Buffer or Decision_Buffer;
+         Elt.MCDC_Buffer := Elt.MCDC_Buffer or MCDC_Buffer;
 
       else
 
