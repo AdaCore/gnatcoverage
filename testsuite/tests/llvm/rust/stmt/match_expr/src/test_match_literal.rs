@@ -7,5 +7,5 @@ fn main() {
 //# foo.rs
 // /some-\D/            l- ## s-
 // /body-some-range/    l- ## s-
-// /body-some-i/        l- ## 0
+// /body-some-i/        l- ## s-,s-
 // /body-none/          l- ## s-

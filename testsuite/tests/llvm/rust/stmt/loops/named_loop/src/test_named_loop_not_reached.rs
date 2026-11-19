@@ -8,5 +8,5 @@ fn main() {
 // /after-if-1/  l- ## s-
 // /if/          l- ## s-
 // /break/       l- ## s-
-// /body-1/      l= ## s-
-// /body/        l- ## 0
+// /body-1/      l- ## s-,s-
+// /cbody/       l- ## s-

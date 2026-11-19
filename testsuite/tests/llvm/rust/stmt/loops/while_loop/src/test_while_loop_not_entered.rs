@@ -6,5 +6,6 @@ fn main() {
 
 //# foo.rs
 // /return/ l- ## s-
-// /body-1/ l= ## s-
-// /body/   l- ## 0
+// /body/   l- ## s-
+// /body-1/ l- ## s-
+// /bcont/  l- ## 0

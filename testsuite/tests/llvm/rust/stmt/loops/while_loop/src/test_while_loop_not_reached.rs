@@ -7,5 +7,6 @@ fn main() {
 //# foo.rs
 // /after-if-1/  l- ## s-
 // /guard/       l- ## s-
-// /body-1/      l= ## s-
-// /body/        l- ## 0
+// /body/        l- ## s-
+// /body-1/      l- ## 0
+// /bcont/       l- ## 0

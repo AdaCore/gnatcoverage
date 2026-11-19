@@ -5,5 +5,4 @@ fn main() {
 }
 
 //# foo.rs
-// /in-else-1/  l= ## s-
-// /in-else/    l- ## 0
+// /in-else/    l- ## s-
