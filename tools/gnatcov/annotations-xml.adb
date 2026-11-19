@@ -214,8 +214,11 @@ package body Annotations.Xml is
    --  given statistics
 
    procedure Print_Coverage_Origins
-     (Pp : in out Xml_Pretty_Printer'Class; SCO : SCO_Id);
+     (Pp : Xml_Pretty_Printer'Class; SCO : SCO_Id);
    --  Print the coverage origins for SCO
+
+   procedure Print_Origin_Files (Pp : in out Xml_Pretty_Printer'Class);
+   --  Print the filename table shared by all source reports
 
    ---------------
    -- Installed --
@@ -463,6 +466,9 @@ package body Annotations.Xml is
         ("xi:include",
          A ("parse", "xml") & A ("href", Trace_File_Name),
          Dest_Index);
+      if Switches.Compute_Origins then
+         Print_Origin_Files (Pp);
+      end if;
       Pp.ET ("coverage_info", Dest_Index);
 
       declare
@@ -996,12 +1002,29 @@ package body Annotations.Xml is
       end loop;
    end Print_Coverage_Ob_Stats;
 
+   ------------------------
+   -- Print_Origin_Files --
+   ------------------------
+
+   procedure Print_Origin_Files (Pp : in out Xml_Pretty_Printer'Class) is
+      use Instrument.Input_Traces;
+   begin
+      Pp.ST ("origin_files", Dest_Index);
+      for Id in Origin_Files.First_Index .. Origin_Files.Last_Index loop
+         Pp.T
+           ("file",
+            A ("id", Img (Id)) & A ("filename", Origin_Files.Element (Id)),
+            Dest_Index);
+      end loop;
+      Pp.ET ("origin_files", Dest_Index);
+   end Print_Origin_Files;
+
    ----------------------------
    -- Print_Coverage_Origins --
    ----------------------------
 
    procedure Print_Coverage_Origins
-     (Pp : in out Xml_Pretty_Printer'Class; SCO : SCO_Id)
+     (Pp : Xml_Pretty_Printer'Class; SCO : SCO_Id)
    is
       use Instrument.Input_Traces;
       use Coverage_Origins_Maps;
@@ -1013,11 +1036,19 @@ package body Annotations.Xml is
           ((if Is_Call_Stmt (SCO) then Enclosing_Statement (SCO) else SCO));
    begin
       if Switches.Compute_Origins and then Has_Element (Origins) then
-         Pp.ST ("origins");
-         for Origin of Element (Origins) loop
-            Pp.P ("<filepath>" & To_Xml_String (+Origin) & "</filepath>");
-         end loop;
-         Pp.ET ("origins");
+         declare
+            Files : constant Constant_Reference_Type :=
+              Coverage_Origins.Constant_Reference (Origins);
+            Ids   : Unbounded_String;
+         begin
+            for Origin of Files.Element.all loop
+               if Length (Ids) > 0 then
+                  Append (Ids, ' ');
+               end if;
+               Append (Ids, Img (Origin));
+            end loop;
+            Pp.P ("<origins>" & (+Ids) & "</origins>");
+         end;
       end if;
    end Print_Coverage_Origins;
 

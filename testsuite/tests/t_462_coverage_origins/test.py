@@ -27,7 +27,96 @@ def delete_traces() -> None:
         os.remove(trace)
 
 
-def check_xml(expected: str) -> None:
+def check_xml(
+    expected: str, expected_files: list[str], main_origins: dict[str, str]
+) -> None:
+    """
+    Check that the XML report contains the expected coverage origin
+    information.
+
+    :param expected: The baseline file to compare against. It contains a
+        summary of the coverage origin information as follows::
+
+            <src_mapping> for: Dummy : Integer := 0;
+              * SCO statement for: Dummy : Integer := 0;
+                origin: c.ckpt
+                origin: traces/two.srctrace
+
+    :param expected_files: The list of origins (traces, or checkpoints) that
+        we expect in the XML report.
+
+    :param main_origins: A mapping indicating the coverage origin for each
+        main source.
+    """
+    thistest.log(f"Checking XML report against {expected}")
+    report = etree.parse("obj/index.xml")
+    report.xinclude()
+    schema = etree.XMLSchema(etree.parse("obj/gnatcov-xml-report.xsd"))
+    schema.assertValid(report)
+
+    # Retrieve the origins mapping - the mapping from the ID to the actual
+    # filename, and make sure each entry has a unique filename, and a unique
+    # ID.
+    files = report.findall("./coverage_report/coverage_info/origin_files/file")
+    ids = [int(entry.attrib["id"]) for entry in files]
+    filenames = [entry.attrib["filename"] for entry in files]
+    thistest.fail_if_not_equal(
+        "Origin filenames", expected_files, sorted(filenames)
+    )
+    thistest.fail_if_not_equal(
+        "Unique origin filenames", len(filenames), len(set(filenames))
+    )
+    thistest.fail_if_not_equal(
+        "Consecutive origin IDs", list(range(1, len(files) + 1)), ids
+    )
+    origin_files = dict(zip(ids, filenames))
+    thistest.log(f"Origin filename table: {origin_files}")
+
+    sources = report.findall("./coverage_report/sources/source")
+    thistest.fail_if_not_equal(
+        "Reported source files",
+        ["main_0.adb", "main_1.adb", "main_2.adb", "process.adb"],
+        sorted(os.path.basename(source.attrib["file"]) for source in sources),
+    )
+
+    # Loop over the sources, and check coverage origin information consistency:
+    #   * Check that the coverage origin information does not have duplicate
+    #     entries
+    #   * Check that we have the right coverage origin for each main source
+    for source in sources:
+        name = os.path.basename(source.attrib["file"])
+        thistest.log(f"Checking origin references in {name}")
+        source_origins: set[str] = set()
+
+        # The origins field is a set of IDs referencing origins - traces or
+        # checkpoints.
+        for origins in source.findall(".//origins"):
+            references = [int(value) for value in origins.text.split()]
+            sco = origins.getparent()
+            context = f"{name}, {sco.tag} #{sco.attrib['id']}"
+
+            # Check uniqueness: the same origin shall not appear twice
+            thistest.log(f"  {context}: origin IDs {references}")
+            thistest.fail_if_not_equal(
+                f"Unique origin references for {context}",
+                sorted(set(references)),
+                sorted(references),
+            )
+            resolved = [origin_files[ref] for ref in references]
+            thistest.log(f"    Resolved filenames: {resolved}")
+            source_origins.update(resolved)
+
+        # If this is a main, check that we have the expected origin reference,
+        # according to main_origins.
+        thistest.log(f"  Collected origins: {sorted(source_origins)}")
+        if name in main_origins:
+            thistest.log(f"  Expected origin: {main_origins[name]}")
+            thistest.fail_if_not_equal(
+                f"Shared origin table references for {name}",
+                {main_origins[name]},
+                source_origins,
+            )
+
     # Create a copy of the XML report, so that all reports produced during the
     # test execution are available once the testcase has completed.
     label = expected.split(".")[0]
@@ -89,9 +178,10 @@ def check_xml(expected: str) -> None:
 
                 for grandchild in child:
                     if grandchild.tag == "origins":
-                        for filepath in grandchild:
-                            assert filepath.tag == "filepath"
-                            sco.origins.append(filepath.text)
+                        sco.origins.extend(
+                            origin_files[int(ref)]
+                            for ref in grandchild.text.split()
+                        )
                 traverse(sm, child)
 
         traverse(sm, root_child)
@@ -105,7 +195,7 @@ def check_xml(expected: str) -> None:
                 print(f"<src_mapping> for: {sm.src.strip()}", file=f)
                 for sco in sm.scos:
                     print(f"  * SCO {sco.kind} for: {sco.src.strip()}", file=f)
-                    for origin in sco.origins:
+                    for origin in sorted(sco.origins):
                         print(f"    origin: {origin}", file=f)
 
     thistest.fail_if_diff(
@@ -114,13 +204,19 @@ def check_xml(expected: str) -> None:
 
 
 def instr_and_run_zero_one() -> list[str]:
-    # Instrument and run the two main executables.  Rename the resulting trace
-    # files "zero.srctrace" and "one.srctrace" and place them in "traces/".
+    """Build and run the three mains, placing their traces in traces/.
+
+    Return coverage options with --origins enabled, but without trace inputs
+    or an annotation format. Each caller selects these for its own report.
+    """
     xcov_args = build_and_run(
-        gprsw=GPRswitches(root_project=gpr, units=["process"]),
+        gprsw=GPRswitches(
+            root_project=gpr,
+            units=["process", "main_0", "main_1", "main_2"],
+        ),
         covlevel="stmt+mcdc+atcc+fun_call+gexpr",
         mains=["main_0", "main_1", "main_2"],
-        extra_coverage_args=["-axml", "--origins"],
+        extra_coverage_args=["--origins"],
         extra_instr_args=["--dump-filename-simple", "--instrument-block"],
     )
     traces = sorted(xcov_args[-3:])
@@ -139,6 +235,7 @@ def test_with_checkpoint() -> None:
     xcov(
         xcov_args
         + [
+            "-axml",
             "traces/zero.srctrace",
             "traces/one.srctrace",
             "--save-checkpoint=c.ckpt",
@@ -147,11 +244,19 @@ def test_with_checkpoint() -> None:
 
     # Commpute the coverage using "two.srctrace" and checkpoint "c.ckpt"
     thistest.log("* consolidate with c.ckpt")
-    xcov(xcov_args + ["traces/two.srctrace", "--checkpoint=c.ckpt"])
+    xcov(xcov_args + ["-axml", "traces/two.srctrace", "--checkpoint=c.ckpt"])
 
     # Check the XML report against the expected result. We only expected to
     # find "two.srctrace" or "c.ckpt" as origins.
-    check_xml("with_checkpoint.expected")
+    check_xml(
+        "with_checkpoint.expected",
+        ["c.ckpt", "traces/two.srctrace"],
+        {
+            "main_0.adb": "c.ckpt",
+            "main_1.adb": "c.ckpt",
+            "main_2.adb": "traces/two.srctrace",
+        },
+    )
 
 
 def test_only_traces() -> None:
@@ -159,11 +264,25 @@ def test_only_traces() -> None:
     xcov_args = instr_and_run_zero_one()
 
     # Commpute the coverage using the three trace files
-    xcov(xcov_args + ["traces/"])
+    xcov(xcov_args + ["-axml", "traces/"])
 
     # Check the XML report against the expected result. We expect source traces
     # origins only, never "c.ckpt".
-    check_xml("only_traces.expected")
+    expected_files = [
+        "traces/one.srctrace",
+        "traces/two.srctrace",
+        "traces/zero.srctrace",
+    ]
+    main_origins = {
+        "main_0.adb": "traces/zero.srctrace",
+        "main_1.adb": "traces/one.srctrace",
+        "main_2.adb": "traces/two.srctrace",
+    }
+    check_xml("only_traces.expected", expected_files, main_origins)
+
+    # Input order may change IDs, but each must still resolve to the same file.
+    xcov(xcov_args + ["-axml"] + list(reversed(expected_files)))
+    check_xml("only_traces.expected", expected_files, main_origins)
 
 
 # Run the tests

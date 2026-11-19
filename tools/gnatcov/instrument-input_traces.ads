@@ -97,21 +97,23 @@ package Instrument.Input_Traces is
    -- Coverage origins --
    ----------------------
 
-   package Tracefile_Sets is new
-     Ada.Containers.Ordered_Sets (Unbounded_String);
-   --  Set type holding the names of tracefiles responsible for the coverage
-   --  of SCOs.
+   subtype Origin_Id is Positive;
+   --  Index of a trace or checkpoint filename in Origin_Files
 
-   function "=" (Left, Right : Tracefile_Sets.Set) return Boolean
+   Origin_Files : String_Vectors.Vector;
+   --  Shared filenames for all coverage origins in this run
+
+   package Origin_Id_Sets is new Ada.Containers.Ordered_Sets (Origin_Id);
+
+   function "=" (Left, Right : Origin_Id_Sets.Set) return Boolean
    is (Left."=" (Right));
 
    package Coverage_Origins_Maps is new
-     Ada.Containers.Ordered_Maps (SCO_Id, Tracefile_Sets.Set);
-   --  Map linking a SCO to the names of trace files that contribute to their
-   --  coverage.
+     Ada.Containers.Ordered_Maps (SCO_Id, Origin_Id_Sets.Set);
+   --  Map linking each SCO to its contributing trace or checkpoint IDs
 
    procedure Log_Coverage_Origin (Tracefile : String; SCO : SCO_Id);
-   --  Add the Tracefile as and origin of coverage for SCO
+   --  Add Tracefile as an origin of coverage for SCO
 
    Coverage_Origins : Coverage_Origins_Maps.Map :=
      Coverage_Origins_Maps.Empty_Map;
