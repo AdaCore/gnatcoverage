@@ -1409,7 +1409,9 @@ package body SC_Obligations is
      (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps is
    begin
       return
-        CU_Vector.Reference (CU).SIDs_Info.Element (SCO_Fingerprint).Bit_Maps;
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Constant_Reference
+          (SCO_Fingerprint)
+          .Bit_Maps;
    end Bit_Maps;
 
    --------------------------
@@ -1421,7 +1423,8 @@ package body SC_Obligations is
    is
    begin
       return
-        CU_Vector.Constant_Reference (CU).SIDs_Info.Element (SCO_Fingerprint)
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Constant_Reference
+          (SCO_Fingerprint)
           .Bit_Maps_Fingerprint;
    end Bit_Maps_Fingerprint;
 
@@ -1434,7 +1437,8 @@ package body SC_Obligations is
    is
    begin
       return
-        CU_Vector.Constant_Reference (CU).SIDs_Info.Element (SCO_Fingerprint)
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Constant_Reference
+          (SCO_Fingerprint)
           .Annotations_Fingerprint;
    end Annotations_Fingerprint;
 
@@ -1447,7 +1451,9 @@ package body SC_Obligations is
       return SCO_Id_Vector_Vector is
    begin
       return
-        CU_Vector.Reference (CU).SIDs_Info.Element (SCO_Fingerprint).Blocks;
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Constant_Reference
+          (SCO_Fingerprint)
+          .Blocks;
    end Blocks;
 
    --------------------
