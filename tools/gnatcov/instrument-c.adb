@@ -6514,8 +6514,15 @@ package body Instrument.C is
 
             when Character'Val (0) .. Character'Val (31)
                | Character'Val (127) .. Character'Val (255)       =>
+
+               --  Append an extra double double-quote after the escape
+               --  sequence so that what follows is not unintentionally
+               --  interpreted as part of the escape sequence (e.g. "\x0ab",
+               --  which is interpreted as the single byte string  "\xab").
+
                Append
-                 (Result, "\x" & Hex_Image (Unsigned_8 (Character'Pos (C))));
+                 (Result,
+                  "\x" & Hex_Image (Unsigned_8 (Character'Pos (C))) & """""");
          end case;
       end loop;
       Append (Result, '"');

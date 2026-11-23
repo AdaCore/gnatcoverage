@@ -17,7 +17,10 @@ from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")
 
-special_chars = "\"\n\\??'"
+# The long sequence of 'a' after \x7f is there to check that we do not emit
+# '\x7faaaaaaa' in the generated C code, as this is interpreted as a single
+# escape sequence.
+special_chars = "\"\n\\??'\x7faaaaaaa"
 
 prefix = f"pfx_{special_chars}_val"
 env_var = f"ENV_{special_chars}_VAR"
