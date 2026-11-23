@@ -4345,8 +4345,9 @@ package body Instrument.Ada_Unit is
            and then
              (not Is_Pragma
               or else
-                Pragma_Might_Generate_Code
-                  (Case_Insensitive_Get_Pragma_Id (Pragma_Aspect_Name)))
+                Characteristics_For
+                  (Case_Insensitive_Get_Pragma_Id (Pragma_Aspect_Name))
+                  .Might_Generate_Code)
 
            --  ... this is a disabled pragma that we assume will not
            --  generate code.

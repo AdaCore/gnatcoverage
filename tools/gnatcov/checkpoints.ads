@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 23;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 24;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -70,14 +70,12 @@ package Checkpoints is
    --        and inclusion information maps, and make PP_Info a plain record
    --        with cross-file source location ranges.
    --  23 -- Add a new Pragma_Decision_Name field to SCO_Descriptor
+   --  24 -- Replace Pragma_Id/Aspect_Id components with
+   --        Pragma_Characteristics, inline the "instrumented?" booleans in
+   --        SCO_Descriptor (de)serialization.
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
-   --  TODO for the next checkpoint version:
-   --
-   --  * Inline the "instrumented?" booleans in SCO_Descriptor
-   --    (de)serialization. They are currently stored as separate "maps" in
-   --    SIDs/checkpoints.
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:
@@ -371,6 +369,10 @@ package Checkpoints is
    function Read_Local_Source_Location_Range
      (Self : in out Checkpoint_Load_State) return Local_Source_Location_Range;
    function Read_PC (Self : in out Checkpoint_Load_State) return Pc_Type;
+   function Read_Pragma_Category
+     (Self : in out Checkpoint_Load_State) return Pragma_Category;
+   function Read_Pragma_Characteristics
+     (Self : in out Checkpoint_Load_State) return Pragma_Characteristics;
    function Read_SCO (Self : in out Checkpoint_Load_State) return SCO_Id;
    function Read_SFI
      (Self : in out Checkpoint_Load_State) return Source_File_Index;
@@ -518,6 +520,10 @@ package Checkpoints is
    procedure Write
      (Self  : in out Checkpoint_Save_State;
       Value : SC_Obligations.Fingerprint_Type);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Pragma_Category);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Pragma_Characteristics);
    procedure Write
      (Self : in out Checkpoint_Save_State; Value : Supported_Language_Kind);
    procedure Write (Self : in out Checkpoint_Save_State; Value : Line_State);
