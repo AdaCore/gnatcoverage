@@ -102,3 +102,6 @@ esac
 
 # Clean up permissions (i.e. remove execution bits on Windows)
 find gen -type f | xargs chmod 644
+
+# Also clean up artifacts
+rm -f main_*-out.txt
