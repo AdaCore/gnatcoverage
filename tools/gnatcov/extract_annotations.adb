@@ -996,7 +996,6 @@ procedure Extract_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
              (Default_Charset            =>
                 Parser.Value_Or_Null
                   (Args.String_Args (Opt_Ada_Default_Charset)),
-              Tag                        => Null_Unbounded_String,
               Config_Pragmas_Mapping     => Config_Pragmas,
               Mapping_Filename           => Mapping,
               Preprocessor_Data_Filename => Prep_Data);

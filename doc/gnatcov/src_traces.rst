@@ -551,6 +551,9 @@ This default behavior can be influenced in several manners. First:
 * The :cmd-option:`--dump-filename-prefix` switch to |gcvins| requests
   replacing the ``<ename>`` component by the switch argument;
 
+* The :cmd-option:`--dump-filename-tag` switch to |gcvins| requests
+  replacing the ``<istamp>`` component by the switch argument;
+
 * The :cmd-option:`--dump-filename-simple` switch requests the removal of the
   variable components (stamps and pid), so only the ``<ename>`` component
   remains or the replacement provided by :cmd-option:`--dump-filename-prefix`

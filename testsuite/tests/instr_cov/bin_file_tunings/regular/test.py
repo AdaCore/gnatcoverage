@@ -1,6 +1,6 @@
 """
-Check that the --dump-filename-env-var, --dump-filename-prefix and
---dump-filename-simple options work as expected.
+Check that the --dump-filename-env-var, --dump-filename-prefix,
+--dump-filename-tag and --dump-filename-simple options work as expected.
 """
 
 import os

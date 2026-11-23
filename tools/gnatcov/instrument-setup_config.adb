@@ -356,6 +356,10 @@ package body Instrument.Setup_Config is
                   Dump_Config_JSON.Set_Field
                     ("dump-filename-prefix", Dump_Config.Filename_Prefix);
                end if;
+               if Dump_Config.Filename_Tag /= "" then
+                  Dump_Config_JSON.Set_Field
+                    ("dump-filename-tag", Dump_Config.Filename_Tag);
+               end if;
 
             when Base64_Standard_Output =>
                Dump_Config_JSON.Set_Field ("dump-channel", "base64-stdout");
@@ -364,7 +368,6 @@ package body Instrument.Setup_Config is
       end;
 
       Config.Set_Field ("coverage_level", Coverage_Level);
-      Config.Set_Field ("tag", Instrumentation_Tag);
       Config.Set_Field ("save_temps", Switches.Save_Temps);
 
       Config.Set_Field ("quiet", Switches.Quiet);
@@ -511,6 +514,14 @@ package body Instrument.Setup_Config is
                      then Dump_Config_JSON.Get ("dump-filename-prefix")
                      else US.Null_Unbounded_String);
 
+                  --  Like in the project-based instrumentation process,
+                  --  generate a default tag if none was provided.
+
+                  Dump_Config.Filename_Tag :=
+                    (if Dump_Config_JSON.Has_Field ("dump-filename-tag")
+                     then Dump_Config_JSON.Get ("dump-filename-tag")
+                     else +Instrument.Instrumentation_Tag);
+
                when others      =>
                   null;
             end case;
@@ -546,7 +557,6 @@ package body Instrument.Setup_Config is
          Fill_String_Map (Result.Nms, Config_JSON.Get ("nms"));
       end;
 
-      Result.Tag := Config_JSON.Get ("tag");
       Result.GNATcov_RTS_Include_Dir :=
         Config_JSON.Get ("gnatcov_rts_include_dir");
       Result.GNATcov_RTS_Object_Dir :=
