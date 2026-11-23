@@ -11,7 +11,7 @@ fi
 
 rm -f *.sid *.srctrace
 
-gnatcov instrument -P p.gpr -cstmt+mcdc
+gnatcov instrument -P p.gpr -cstmt+mcdc -f
 cp obj/*.sid .
 gprbuild -P p.gpr --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr
 GNATCOV_TRACE_FILE=reference.srctrace ./obj/main
