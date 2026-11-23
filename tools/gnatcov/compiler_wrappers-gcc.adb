@@ -21,6 +21,7 @@ with Ada.Directories;  use Ada.Directories;
 
 with GNAT.OS_Lib;
 
+with Files_Handling;          use Files_Handling;
 with Instrument.Setup_Config; use Instrument.Setup_Config;
 with Outputs;                 use Outputs;
 with Paths;                   use Paths;
@@ -39,8 +40,7 @@ procedure Compiler_Wrappers.Gcc is
 
    --  Delegate the actual work to the "gnatcov gcc-wrapper" command
 
-   Gnatcov_Exec : constant String :=
-     "gnatcov" & GNAT.OS_Lib.Get_Executable_Suffix.all;
+   Gnatcov_Exec : constant String := "gnatcov" & Executable_Suffix;
    Args         : String_Vectors.Vector;
 
    --  Load the configuration to enable verbose output if required
