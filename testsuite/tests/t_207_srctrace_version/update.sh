@@ -11,3 +11,4 @@ cd /tmp/t_207_srctrace_version
 ./gen.sh
 cd $cwd
 rsync -ar /tmp/t_207_srctrace_version/ .
+rm -rf /tmp/t_207_srctrace_version

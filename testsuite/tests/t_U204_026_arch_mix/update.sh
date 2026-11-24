@@ -21,6 +21,7 @@ cd /tmp/t_U204_026_arch_mix
 ./gen.sh linux
 cd $cwd
 rsync -ar /tmp/t_U204_026_arch_mix/ .
+rm -rf /tmp/t_U204_026_arch_mix
 
 # Then update the Windows artifacts using an IOD machine. Do not create the IOD
 # instance if one already exists
