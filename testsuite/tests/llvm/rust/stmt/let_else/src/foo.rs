@@ -11,7 +11,7 @@ pub fn let_else(input: Option<u32>) {
     // covered), whereas the let statement won't.
 
     let Some(x) = input else {   // # let
-        println!("No input");    // # in-else-1
+        println!("No input");    // # in-else
         return;                  // # in-else
     };
 

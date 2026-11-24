@@ -7,8 +7,8 @@ pub fn foo(mut input: u32) {
     'named: loop {
         if input == 0 {     // # if
             break 'named;   // # break
-        }                   // # body-1
-        black_box(input);   // # body
-        input -= 1;         // # body
+        }                   // # cbody
+        black_box(input);   // # body-1
+        input -= 1;         // # cbody
     }
 }

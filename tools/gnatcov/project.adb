@@ -1439,15 +1439,20 @@ package body Project is
       Patterns_Not_Covered : String_Sets.Set;
       --  Patterns that do not match any of the present unit
 
+      Unit_Names     : String_Vectors.Vector;
+      Selected_Units : String_Sets.Set;
+
       Cur : Unit_Maps.Cursor;
 
       procedure Add_Pattern (Attr, Item : String);
       --  Add Item to Unit_Patterns. Also save from which project attribute
       --  (Attr) the pattern comes from in Attr_For_Pattern.
 
+      procedure Collect_Unit_Name
+        (Source : GPR2.Build.Source.Object; Unit_Name : String);
+
       procedure Process_Source_File
         (Source : GPR2.Build.Source.Object; Unit_Name : String);
-      --  Add Unit_Name to Units_Present
 
       -----------------
       -- Add_Pattern --
@@ -1459,24 +1464,26 @@ package body Project is
          Attr_For_Pattern.Include (+Item, +Attr);
       end Add_Pattern;
 
+      -----------------------
+      -- Collect_Unit_Name --
+      -----------------------
+
+      procedure Collect_Unit_Name
+        (Source : GPR2.Build.Source.Object; Unit_Name : String)
+      is
+         pragma Unreferenced (Source);
+      begin
+         Unit_Names.Append (+Unit_Name);
+      end Collect_Unit_Name;
+
       -------------------------
       -- Process_Source_File --
       -------------------------
 
       procedure Process_Source_File
-        (Source : GPR2.Build.Source.Object; Unit_Name : String)
-      is
-         Actual_Unit_Name : String_Vectors.Vector :=
-           String_Vectors.To_Vector (+Get_Unit_Name (Source), 1);
+        (Source : GPR2.Build.Source.Object; Unit_Name : String) is
       begin
-         Match_Pattern_List
-           (Patterns_List        => Unit_Patterns,
-            Strings_List         => Actual_Unit_Name,
-            Patterns_Not_Covered => Patterns_Not_Covered);
-
-         --  Add it only if it matches one of the patterns
-
-         if not Actual_Unit_Name.Is_Empty then
+         if Selected_Units.Contains (+To_Lower (Unit_Name)) then
             declare
                Lang : constant Some_Language := To_Language (Source.Language);
             begin
@@ -1503,6 +1510,16 @@ package body Project is
       --  Now, fill Units with unit names matching Unit_Patterns. For languages
       --  not featuring the notion of unit (e.g. C), the unit name is the
       --  source file name.
+
+      Iterate_Source_Files (Prj, Collect_Unit_Name'Access, Recursive => False);
+
+      --  Match all names together so each pattern is compiled only once
+
+      Match_Pattern_List
+        (Patterns_List        => Unit_Patterns,
+         Strings_List         => Unit_Names,
+         Patterns_Not_Covered => Patterns_Not_Covered);
+      Selected_Units := To_String_Set (Unit_Names);
 
       Iterate_Source_Files
         (Prj, Process_Source_File'Access, Recursive => False);

@@ -5,7 +5,7 @@ pub fn foo(input: u32) {
         let _ = black_box(1);
         if input == 42 {
             break 'named_block; // # break
-        }                       // # bb2-1
+        }                       // # bb2
         let _ = black_box(2);   // # bb2
     }
     let _ = black_box(3);
