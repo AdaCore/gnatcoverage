@@ -1,8 +1,8 @@
 """
 Check that gnatcov behaves properly in the cases where gnatcov cannot
-instrument contracts expressed in pragmas: a warning is emitted, the statement
-is not instrumented but the rest is. This concerns pre and postconditions and
-type invariants.
+instrument contracts expressed in pragmas: it emits a warning stating that
+the expression cannot be instrumented for ATCC. This concerns preconditions,
+postconditions and type invariant pragmas.
 """
 
 from SCOV.minicheck import check_xcov_reports, build_and_run, xcov
@@ -27,9 +27,9 @@ xcov_args = build_and_run(
 
 thistest.fail_if_no_match(
     "'gnatcov instrument' output",
-    r".*gnatcov limitation: pragma Precondition ignored.*\n"
-    + r".*gnatcov limitation: pragma Postcondition ignored.*\n"
-    + r".*gnatcov limitation: pragma Type_Invariant ignored.*",
+    r".*gnatcov limitation: cannot find local declarative part for ATCC.*\n"
+    + r".*gnatcov limitation: cannot find local declarative part for ATCC.*\n"
+    + r".*gnatcov limitation: cannot find local declarative part for ATCC.*",
     contents_of("instrument.log").strip(),
 )
 
@@ -39,10 +39,10 @@ check_xcov_reports(
     "xcov",
     {
         "pkg_type_invariant.ads.xcov": {
-            "+": {6, 13, 14, 15, 16, 20},
-            "-": {22},
+            "+": {6, 13, 14, 15, 16, 20, 22},
+            "?": {17},
         },
-        "main.adb.xcov": {"+": {6, 8, 12}},
+        "main.adb.xcov": {"+": {7, 9, 13}, "?": {10, 11}},
     },
 )
 

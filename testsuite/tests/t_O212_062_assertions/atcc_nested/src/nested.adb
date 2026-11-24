@@ -5,7 +5,7 @@ package body Nested is
 
     function One return Integer is
     begin
-        pragma Assert                                            -- # success
+        pragma Assert                                            -- # prag
             (T and then (F or else (T and then (T or else F)))); -- # fail
         return 1;                                                -- # success
     end One;
@@ -15,7 +15,7 @@ package body Nested is
     --  decisions in assertions (FIXME: for now)
     function Two return Integer is
     begin
-        pragma Assert                                            -- # success
+        pragma Assert                                            -- # prag
             ((if T then T else F) and then (F or else            -- # success
                 (T and then (if (T and then F)                   -- # success
                 then T                                           -- # success

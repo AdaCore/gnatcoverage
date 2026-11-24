@@ -23,16 +23,16 @@ end Test_Failed_Pre;
 --# functions.adb
 -- /foo_hi_decl/     l- ## s-
 -- /foo_loop_1/      l- ## s-
--- /foo_inv_1/       l- ## s-
+-- /foo_inv_1/       l- ## a-
 -- /foo_loop_2/      l- ## s-
--- /foo_inv_2/       l- ## s-
+-- /foo_inv_2/       l- ## a-
 -- /foo_return/      l- ## s-
 -- /id_pre/          l- ## a-
 -- /id_post/         l- ## a-
 -- /id_ret/          l- ## s-
--- /nested_1/        l- ## s-
--- /nested_2/        l- ## s-
--- /nested_3/        l- ## s-
+-- /nested_1/        l- ## a-
+-- /nested_2/        l- ## a-
+-- /nested_3/        l- ## a-
 -- /same_ret/        l- ## s-
 --# failed_pre.adb
 -- /foo_call/        l+ ## 0

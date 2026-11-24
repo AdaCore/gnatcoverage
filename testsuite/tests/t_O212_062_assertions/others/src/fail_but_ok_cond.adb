@@ -1,4 +1,5 @@
 pragma Assertion_Policy (Check);
+pragma Ada_2012;
 
 with Ada.Assertions;
 with Functions; use Functions;
