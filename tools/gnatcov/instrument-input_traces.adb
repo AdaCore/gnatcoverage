@@ -41,6 +41,15 @@ package body Instrument.Input_Traces is
 
    package Mmap renames GNATCOLL.Mmap;
 
+   package Origin_File_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Unbounded_String,
+        Element_Type    => Origin_Id,
+        Hash            => Strings.Hash,
+        Equivalent_Keys => "=");
+
+   Origin_File_Ids : Origin_File_Maps.Map;
+
    Native_Endianity : constant Supported_Endianity :=
      Traces_Source.Native_Endianity;
 
@@ -1462,20 +1471,30 @@ package body Instrument.Input_Traces is
    -------------------------
 
    procedure Log_Coverage_Origin (Tracefile : String; SCO : SCO_Id) is
-      procedure Add_Origin (K : SCO_Id; E : in out Tracefile_Sets.Set);
-      --  Add Tracefile in the list of coverage origins for SCO K
+      Filename : constant Unbounded_String := +Tracefile;
+      File_Cur : Origin_File_Maps.Cursor;
+      Inserted : Boolean;
+
+      procedure Add_Origin (K : SCO_Id; E : in out Origin_Id_Sets.Set);
+      --  Multiple evaluation vectors can record the same trace again
 
       -----------------
       --  Add_Origin --
       -----------------
 
-      procedure Add_Origin (K : SCO_Id; E : in out Tracefile_Sets.Set) is
+      procedure Add_Origin (K : SCO_Id; E : in out Origin_Id_Sets.Set) is
          pragma Unreferenced (K);
       begin
-         E.Insert (+Tracefile);
+         E.Include (Origin_File_Maps.Element (File_Cur));
       end Add_Origin;
 
    begin
+      Origin_File_Ids.Insert
+        (Filename, Origin_Files.Last_Index + 1, File_Cur, Inserted);
+      if Inserted then
+         Origin_Files.Append (Filename);
+      end if;
+
       declare
          use Coverage_Origins_Maps;
 
@@ -1484,15 +1503,10 @@ package body Instrument.Input_Traces is
       begin
          if not Has_Element (C) then
             Coverage_Origins.Insert
-              (SCO, Tracefile_Sets.Empty_Set, C, Inserted);
+              (SCO, Origin_Id_Sets.Empty_Set, C, Inserted);
          end if;
 
-         --  If the case of a condition set to True in multiple evaluation
-         --  vectors, Tracefile would be inserted several times as a source of
-         --  coverage.
-         if not Tracefile_Sets.Has_Element (Element (C).Find (+Tracefile)) then
-            Coverage_Origins.Update_Element (C, Add_Origin'Access);
-         end if;
+         Coverage_Origins.Update_Element (C, Add_Origin'Access);
       end;
    end Log_Coverage_Origin;
 
