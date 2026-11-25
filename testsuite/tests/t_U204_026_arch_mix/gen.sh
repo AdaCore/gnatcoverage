@@ -29,7 +29,7 @@ then
 fi
 
 XCOV_INSTR="gnatcov instrument -Pfoo -cstmt+mcdc \
-    --dump-trigger=main-end --dump-channel=base64-stdout"
+    --dump-trigger=main-end --dump-channel=base64-stdout -f"
 XCOV_COV="gnatcov coverage -Pfoo -cstmt+mcdc"
 CROSS32_OPTS="--target=arm-eabi --RTS=light-stm32f4"
 CROSS64_OPTS="--target=aarch64-elf --RTS=light-zynqmp"
@@ -102,3 +102,6 @@ esac
 
 # Clean up permissions (i.e. remove execution bits on Windows)
 find gen -type f | xargs chmod 644
+
+# Also clean up artifacts
+rm -f main_*-out.txt

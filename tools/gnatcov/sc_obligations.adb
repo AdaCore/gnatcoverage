@@ -28,9 +28,8 @@ with GNAT.Regpat;  use GNAT.Regpat;
 with GNAT.Strings; use GNAT.Strings;
 with GNATCOLL.VFS;
 
-with Aspects; use Aspects;
 with Get_SCOs;
-with Namet;   use Namet;
+with Namet; use Namet;
 with SCOs;
 with Snames;
 
@@ -573,8 +572,9 @@ package body SC_Obligations is
                   --  Sloc range of the exception handler of which this is the
                   --  first statement.
 
-                  Pragma_Name : Pragma_Id := Pragma_Id'First;
-                  --  For a Pragma_Statement, corresponding pragma identifier
+                  Pragma_Chars : Pragma_Characteristics := (others => <>);
+                  --  For a Pragma_Statement, corresponding pragma
+                  --  characteristics.
 
                   Stmt_Instrumented : Boolean := True;
                   --  Whether this SCO was instrumented
@@ -618,11 +618,9 @@ package body SC_Obligations is
                   --  whose conditional branch instructions have origins (i.e.
                   --  condition value labels) set modulo an arbitrary negation.
 
-                  Aspect_Name : Aspect_Id := No_Aspect;
-                  --  For an aspect decision, name of the aspect
-
-                  Pragma_Decision_Name : Pragma_Id := Pragma_Id'First;
-                  --  For a pragma decision, corresponding pragma identifier
+                  Pragma_Decision_Category : Pragma_Category := Not_A_Decision;
+                  --  For a pragma/aspect decision, corresponding pragma
+                  --  category.
 
                   Path_Count : Natural := 0;
                   --  Count of distinct paths through the BDD from the root
@@ -678,8 +676,8 @@ package body SC_Obligations is
    --  Return the innermost enclosing SCO with the given Kind (if SCO has the
    --  given Kind, returns SCO itself).
 
-   function Decision_Pragma_Name (SCO : SCO_Id) return Pragma_Id;
-   --  Name of the pragma SCO belongs to, for a pragma decision
+   function Decision_Pragma_Category (SCO : SCO_Id) return Pragma_Category;
+   --  Category of the pragma SCO belongs to, for a pragma decision
 
    function Nested (Left, Right : SCO_Descriptor) return Boolean;
    --  Return whether R is nested in L, exclusive at boundaries
@@ -845,14 +843,6 @@ package body SC_Obligations is
    procedure Read
      (CLS : in out Checkpoint_Load_State; Element : out SCO_Descriptor);
    --  Read a SCO_Descriptor from CLS
-
-   procedure Read is new
-     Read_Set
-       (Element_Type => SCO_Id,
-        Set_Type     => SCO_Sets.Set,
-        Clear        => SCO_Sets.Clear,
-        Insert       => SCO_Sets.Insert,
-        Read_Element => Read);
 
    procedure Read is new
      Read_Vector
@@ -1099,16 +1089,6 @@ package body SC_Obligations is
    --  Write a SCO_Descriptor to CSS
 
    procedure Write is new
-     Write_Set
-       (Element_Type  => SCO_Id,
-        Set_Type      => SCO_Sets.Set,
-        Cursor_Type   => SCO_Sets.Cursor,
-        Length        => SCO_Sets.Length,
-        Iterate       => SCO_Sets.Iterate,
-        Query_Element => SCO_Sets.Query_Element,
-        Write_Element => Write_SCO);
-
-   procedure Write is new
      Write_Vector
        (Index_Type    => Valid_SCO_Id,
         Element_Type  => SCO_Descriptor,
@@ -1353,14 +1333,14 @@ package body SC_Obligations is
       use Scope_Entities_Trees;
       Cur : Cursor;
    begin
-      Traverse_SCO (ST, SCO);
-
       --  If no subprogram of interest was requested, consider that they are
       --  all of interest.
 
       if Subps_Of_Interest.Is_Empty then
          return True;
       end if;
+
+      Traverse_SCO (ST, SCO);
 
       --  Otherwise, find at least one scope that covers SCO and that is a
       --  subprogram of interest.
@@ -1693,11 +1673,8 @@ package body SC_Obligations is
             SCOD.Dominant_Value := CLS.Read_Tristate;
             SCOD.Dominant_Sloc := CLS.Read_Source_Location;
             SCOD.Handler_Range := CLS.Read_Source_Location_Range;
-            SCOD.Pragma_Name := Pragma_Id'Val (CLS.Read_U16);
-
-            --  See the TODO in the declaration of Checkpoint_Version
-
-            SCOD.Stmt_Instrumented := True;
+            SCOD.Pragma_Chars := CLS.Read_Pragma_Characteristics;
+            SCOD.Stmt_Instrumented := CLS.Read_Boolean;
 
          when Condition         =>
             SCOD.Value := CLS.Read_Tristate;
@@ -1712,14 +1689,10 @@ package body SC_Obligations is
             SCOD.Last_Cond_Index := CLS.Read_Condition;
             SC_Obligations.BDD.Read (CLS, SCOD.Decision_BDD);
             SCOD.Degraded_Origins := CLS.Read_Boolean;
-            SCOD.Aspect_Name := Aspect_Id'Val (CLS.Read_U8);
-            SCOD.Pragma_Decision_Name := Pragma_Id'Val (CLS.Read_U16);
+            SCOD.Pragma_Decision_Category := CLS.Read_Pragma_Category;
             SCOD.Path_Count := CLS.Read_Integer;
-
-            --  See the TODO in the declaration of Checkpoint_Version
-
-            SCOD.Decision_Instrumented := True;
-            SCOD.Decision_Instrumented_For_MCDC := True;
+            SCOD.Decision_Instrumented := CLS.Read_Boolean;
+            SCOD.Decision_Instrumented_For_MCDC := CLS.Read_Boolean;
 
          when Operator          =>
             declare
@@ -3213,7 +3186,8 @@ package body SC_Obligations is
             CSS.Write (Value.Dominant_Value);
             CSS.Write (Value.Dominant_Sloc);
             CSS.Write (Value.Handler_Range);
-            CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Name));
+            CSS.Write (Value.Pragma_Chars);
+            CSS.Write (Value.Stmt_Instrumented);
 
          when Condition         =>
             CSS.Write (Value.Value);
@@ -3228,9 +3202,10 @@ package body SC_Obligations is
             CSS.Write_Condition (Value.Last_Cond_Index);
             BDD.Write (CSS, Value.Decision_BDD);
             CSS.Write (Value.Degraded_Origins);
-            CSS.Write_U8 (Aspect_Id'Pos (Value.Aspect_Name));
-            CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Decision_Name));
+            CSS.Write (Value.Pragma_Decision_Category);
             CSS.Write_Integer (Value.Path_Count);
+            CSS.Write (Value.Decision_Instrumented);
+            CSS.Write (Value.Decision_Instrumented_For_MCDC);
 
          when Operator          =>
             CSS.Write_U8 (Operand_Position'Pos (Left));
@@ -3845,53 +3820,6 @@ package body SC_Obligations is
       SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
       Read (CLS, CP_Vectors.SCO_Vector);
 
-      --  Initialize all the *Instrument* SCO_Descriptor components from "maps"
-      --  in CLS. See the TODO in the declaration of Checkpoint_Version.
-
-      declare
-         SCOs : SCO_Sets.Set;
-      begin
-         --  First read uninstrumented SCOs for stmt/decision
-
-         Read (CLS, SCOs);
-         for SCO of SCOs loop
-            declare
-               SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (SCO);
-            begin
-               case SCOD.Kind is
-                  when Statement =>
-                     SCOD.Stmt_Instrumented := False;
-
-                  when Decision  =>
-                     SCOD.Decision_Instrumented := False;
-
-                  when others    =>
-                     Fatal_Error
-                       ("invalid non-instrumented SCO: " & SCOD.Kind'Image);
-               end case;
-            end;
-         end loop;
-
-         --  Then read uninstrumented SCOs for MC/DC
-
-         Read (CLS, SCOs);
-         for SCO of SCOs loop
-            declare
-               SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (SCO);
-            begin
-               case SCOD.Kind is
-                  when Decision =>
-                     SCOD.Decision_Instrumented_For_MCDC := False;
-
-                  when others   =>
-                     Fatal_Error
-                       ("invalid non-instrumented SCO for MC/DC: "
-                        & SCOD.Kind'Image);
-               end case;
-            end;
-         end loop;
-      end;
-
       --  Allocate mapping tables for SCOs and BDD nodes
 
       Allocate_CU_Id_Maps
@@ -4123,49 +4051,6 @@ package body SC_Obligations is
       Write (CSS.all, CU_Vector);
       BDD.Write (CSS.all, BDD_Vector);
       Write (CSS.all, SCO_Vector);
-
-      --  Write sets of uninstrumented SCOs. See the TODO in the declaration of
-      --  Checkpoint_Version.
-      --
-      --  First build sets of non instrumented SCOs from SCO_Vector, then write
-      --  these sets to the checkpoint.
-
-      declare
-         Non_Instr_SCOs, Non_Instr_MCDC_SCOs : SCO_Sets.Set;
-      begin
-         for SCO in 1 .. SCO_Vector.Last_Index loop
-            declare
-               SCOD              : SCO_Descriptor renames SCO_Vector (SCO);
-               Instr, Instr_MCDC : Boolean := True;
-            begin
-               case SCOD.Kind is
-                  when Statement =>
-                     Instr := SCOD.Stmt_Instrumented;
-
-                  when Decision  =>
-                     Instr := SCOD.Decision_Instrumented;
-                     Instr_MCDC := SCOD.Decision_Instrumented_For_MCDC;
-
-                  when others    =>
-                     null;
-               end case;
-
-               --  Beware that the booleans in SCO_Descriptor are true for
-               --  *instrumented* SCOs while set elements indicate
-               --  *non-instrumented* SCOs.
-
-               if not Instr then
-                  Non_Instr_SCOs.Insert (SCO);
-               end if;
-               if not Instr_MCDC then
-                  Non_Instr_MCDC_SCOs.Insert (SCO);
-               end if;
-            end;
-         end loop;
-
-         Write (CSS.all, Non_Instr_SCOs);
-         Write (CSS.all, Non_Instr_MCDC_SCOs);
-      end;
    end Checkpoint_Save;
 
    ---------------
@@ -4755,7 +4640,7 @@ package body SC_Obligations is
 
         or else
           (SCOD.S_Kind = Pragma_Statement
-           and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
+           and then not SCOD.Pragma_Chars.Might_Generate_Code)
 
         --  Disabled pragma?
 
@@ -5084,21 +4969,21 @@ package body SC_Obligations is
       Origin_To_CUs_Map.Reference (Cur).Insert (CU);
    end Register_CU;
 
-   --------------------------
-   -- Decision_Pragma_Name --
-   --------------------------
+   ------------------------------
+   -- Decision_Pragma_Category --
+   ------------------------------
 
-   function Decision_Pragma_Name (SCO : SCO_Id) return Pragma_Id is
+   function Decision_Pragma_Category (SCO : SCO_Id) return Pragma_Category is
       SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
       S_SCO : SCO_Id;
    begin
       pragma Assert (SCOD.Kind = Decision);
-      pragma Assert (SCOD.D_Kind = Pragma_Decision);
+      pragma Assert (SCOD.D_Kind in Pragma_Decision | Aspect);
 
       --  The instrumenter records the name on the decision itself
 
-      if SCOD.Pragma_Decision_Name /= Pragma_Unknown then
-         return SCOD.Pragma_Decision_Name;
+      if SCOD.Pragma_Decision_Category /= Not_A_Decision then
+         return SCOD.Pragma_Decision_Category;
       end if;
 
       --  Low level decision entries read from ALI files have no name field:
@@ -5106,7 +4991,7 @@ package body SC_Obligations is
 
       S_SCO := Enclosing_Statement (SCO);
       if S_SCO = No_SCO_Id then
-         return Pragma_Unknown;
+         return Not_A_Decision;
       end if;
 
       declare
@@ -5114,10 +4999,10 @@ package body SC_Obligations is
       begin
          return
            (if S_SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
-            then S_SCOD.Pragma_Name
-            else Pragma_Unknown);
+            then S_SCOD.Pragma_Chars.Category
+            else Not_A_Decision);
       end;
-   end Decision_Pragma_Name;
+   end Decision_Pragma_Category;
 
    ------------------
    -- Is_Assertion --
@@ -5132,7 +5017,7 @@ package body SC_Obligations is
             --  False for pragma Debug, True for all others (i.e. Assert,
             --  Pre/Postcondition, Check)
 
-            return Decision_Pragma_Name (SCO) /= Pragma_Debug;
+            return Decision_Pragma_Category (SCO) /= Pragma_Debug;
 
          when Aspect          =>
             --  Always True for aspects (Pre/Post/Predicate/Invariant)
@@ -5172,24 +5057,11 @@ package body SC_Obligations is
 
    function Is_Postcond (SCO : SCO_Id) return Boolean is
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
-
-      Is_Postcond_Aspect : constant Boolean :=
-        SCOD.Kind = Decision
-        and then SCOD.D_Kind in Aspect
-        and then
-          SCOD.Aspect_Name
-          in Aspect_Contract_Cases | Aspect_Post | Aspect_Postcondition;
-      Is_Postcond_Pragma : constant Boolean :=
-        SCOD.Kind = Decision
-        and then SCOD.D_Kind in Pragma_Decision
-        and then
-          Decision_Pragma_Name (SCO)
-          in Pragma_Contract_Cases
-           | Pragma_Post
-           | Pragma_Post_Class
-           | Pragma_Postcondition;
    begin
-      return Is_Postcond_Aspect or else Is_Postcond_Pragma;
+      return
+        SCOD.Kind = Decision
+        and then SCOD.D_Kind in Pragma_Decision | Aspect
+        and then Decision_Pragma_Category (SCO) in Postcondition;
    end Is_Postcond;
 
    -------------------
@@ -5215,21 +5087,9 @@ package body SC_Obligations is
       end if;
 
       --  Assertion decisions are expressions only where assertion coverage
-      --  can account for them. Binary traces have none, so there assertions
-      --  stay plain decisions, save for the few pragmas that were already
-      --  treated as expressions before assertion coverage existed.
+      --  can account for them.
 
-      return
-        (if Provider (SCO_Vector.Reference (SCO).Origin) = Instrumenter
-         then Is_Assertion (SCO)
-         else
-           Decision_Pragma_Name (SCO)
-           in Pragma_Assert
-            | Pragma_Check
-            | Pragma_Contract_Cases
-            | Pragma_Precondition
-            | Pragma_Postcondition
-            | Pragma_Loop_Invariant);
+      return Is_Assertion (SCO);
    end Is_Expression;
 
    ----------------------
@@ -5316,8 +5176,7 @@ package body SC_Obligations is
    begin
       return
         SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
-        and then
-          SCOD.Pragma_Name in Pragma_Precondition | Pragma_Postcondition;
+        and then SCOD.Pragma_Chars.Category in Precondition | Postcondition;
    end Is_Pragma_Pre_Post_Condition;
 
    -------------
@@ -6114,9 +5973,10 @@ package body SC_Obligations is
                        Dominant_Sloc  => State.Dom_Sloc,
                        Dominant_Value => State.Dom_Val,
                        Handler_Range  => State.Current_Handler_Range,
-                       Pragma_Name    =>
-                         Case_Insensitive_Get_Pragma_Id
-                           (SCOE.Pragma_Aspect_Name),
+                       Pragma_Chars   =>
+                         Characteristics_For
+                           (Case_Insensitive_Get_Pragma_Id
+                              (SCOE.Pragma_Aspect_Name)),
                        others         => <>));
             end if;
 
@@ -6136,9 +5996,9 @@ package body SC_Obligations is
             State.Current_Decision :=
               Add_SCO
                 (SCO_Descriptor'
-                   (Kind                 => Decision,
-                    Origin               => CU,
-                    Control_Location     =>
+                   (Kind                     => Decision,
+                    Origin                   => CU,
+                    Control_Location         =>
 
                       --  Control locations are only useful for dominance
                       --  markers, which are only used with binary traces. As
@@ -6151,13 +6011,14 @@ package body SC_Obligations is
                        then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
                        else No_Location),
 
-                    D_Kind               => To_Decision_Kind (SCOE.C1),
-                    Last_Cond_Index      => 0,
-                    Aspect_Name          =>
-                      Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                    Pragma_Decision_Name =>
-                      Case_Insensitive_Get_Pragma_Id (SCOE.Pragma_Aspect_Name),
-                    others               => <>));
+                    D_Kind                   => To_Decision_Kind (SCOE.C1),
+                    Last_Cond_Index          => 0,
+                    Pragma_Decision_Category =>
+                      Characteristics_For
+                        (Case_Insensitive_Get_Pragma_Id
+                           (SCOE.Pragma_Aspect_Name))
+                        .Category,
+                    others                   => <>));
             pragma Assert (not SCOE.Last);
 
             State.Current_BDD :=
@@ -8465,7 +8326,7 @@ package body SC_Obligations is
                SCO := Element (Cur);
                if S_Kind (SCO) = Pragma_Statement
                  and then
-                   SCO_Vector.Constant_Reference (SCO).Pragma_Name
+                   SCO_Vector.Constant_Reference (SCO).Pragma_Chars.Category
                    = Pragma_Annotate
                then
                   Next (Cur);
@@ -9092,6 +8953,97 @@ package body SC_Obligations is
             return Pragma_Unknown;
       end;
    end Case_Insensitive_Get_Pragma_Id;
+
+   -------------------------
+   -- Characteristics_For --
+   -------------------------
+
+   function Characteristics_For (P : Pragma_Id) return Pragma_Characteristics
+   is
+      Result : Pragma_Characteristics := (others => <>);
+   begin
+      --  First determine whether this pragma might generate code
+
+      case P is
+
+         --  Special case for pre/postconditions (Program_Exit is processed
+         --  like a postcondition): these do not generate code at their normal
+         --  point of occurrence in the instruction flow, and in the case of
+         --  instrumentation based coverage, they cannot be instrumented
+         --  because of their special placement rules. So, we mark them as
+         --  generating no code, and we treat them as "free-standing"
+         --  decisions (outside of statement context).
+
+         when Pragma_Contract_Cases
+            | Pragma_Postcondition
+            | Pragma_Precondition
+            | Pragma_Program_Exit
+            | Pragma_Post
+            | Pragma_Pre
+            | Pragma_Post_Class
+            | Pragma_Pre_Class
+            | Pragma_Refined_Post         =>
+            null;
+
+         --  Now pragmas which might generate code. This is an explicit list
+         --  instead of a mere "others" fallback to make sure we notice when
+         --  new pragmas get in the daily compiler from which we build, which
+         --  we expect to be reflected through Snames.
+         --
+         --  The Unknown case is there to handle situations at run time when
+         --  reading ali files produced by a version of the compiler more
+         --  recent than gnatcov. True is a conservative choice in this case,
+         --  as it will lead gnatcov to flag such pragma as real statements
+         --  even if they actually never generate code.
+
+         when Pragma_Assume
+            | Pragma_Assert
+            | Pragma_Assert_And_Cut
+            | Pragma_Check
+            | Pragma_Debug
+            | Pragma_Predicate
+            | Pragma_Loop_Invariant
+            | Pragma_Invariant
+            | Pragma_Type_Invariant
+            | Pragma_Type_Invariant_Class =>
+            Result.Might_Generate_Code := True;
+
+         when others                      =>
+            null;
+      end case;
+
+      --  Then determine the pragma category
+
+      Result.Category :=
+        (case P is
+           when Pragma_Annotate                                     =>
+             Pragma_Annotate,
+           when Pragma_Debug                                        =>
+             Pragma_Debug,
+           when Pragma_Pre | Pragma_Pre_Class | Pragma_Precondition =>
+             Precondition,
+           when Pragma_Contract_Cases
+              | Pragma_Post
+              | Pragma_Post_Class
+              | Pragma_Postcondition                                =>
+             Postcondition,
+           when Pragma_Assert
+              | Pragma_Assert_And_Cut
+              | Pragma_Assume
+              | Pragma_Check
+              | Pragma_Invariant
+              | Pragma_Loop_Invariant
+              | Pragma_Predicate
+              | Pragma_Program_Exit
+              | Pragma_Refined_Post
+              | Pragma_Type_Invariant
+              | Pragma_Type_Invariant_Class                         =>
+             Other_Decision_Kind,
+           when others                                              =>
+             Not_A_Decision);
+
+      return Result;
+   end Characteristics_For;
 
 begin
    Snames.Initialize;

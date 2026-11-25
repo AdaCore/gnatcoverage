@@ -840,6 +840,28 @@ package body Checkpoints is
       end case;
    end Read_PC;
 
+   --------------------------
+   -- Read_Pragma_Category --
+   --------------------------
+
+   function Read_Pragma_Category
+     (Self : in out Checkpoint_Load_State) return Pragma_Category
+   is (Pragma_Category'Val (Self.Read_U8));
+
+   ---------------------------------
+   -- Read_Pragma_Characteristics --
+   ---------------------------------
+
+   function Read_Pragma_Characteristics
+     (Self : in out Checkpoint_Load_State) return Pragma_Characteristics
+   is
+      Might_Generate_Code : constant Boolean := Self.Read_Boolean;
+      Category            : constant Pragma_Category :=
+        Self.Read_Pragma_Category;
+   begin
+      return (Might_Generate_Code, Category);
+   end Read_Pragma_Characteristics;
+
    --------------
    -- Read_SCO --
    --------------
@@ -1341,6 +1363,19 @@ package body Checkpoints is
          I := I + 1;
       end loop;
       Self.Write (Buffer);
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Pragma_Category) is
+   begin
+      Self.Write_U8 (Pragma_Category'Pos (Value));
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Pragma_Characteristics) is
+   begin
+      Self.Write (Value.Might_Generate_Code);
+      Self.Write (Value.Category);
    end Write;
 
    procedure Write
