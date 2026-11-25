@@ -6,8 +6,8 @@ project Gnatcov is
 
    --  This project file is used:
    --
-   --  * As the root project when building the "gnatcov" driver program or the
-   --    gnatcov32/gnatcov64 internal programs.
+   --  * As the root project when building the "gnatcov" driver or the
+   --    compiler wrapper.
    --
    --  * As a subproject when building the trace adapters implemented on top of
    --    some gnatcov units (for instance, trace32).
@@ -50,7 +50,7 @@ project Gnatcov is
    C_Instrumenter : Boolean := C_Support;
    --  Whether to embed the C/C++ instrumenter in the program being built.
    --
-   --  Only gnatcov64 ever runs it, to avoid bloat in other configurations.
+   --  Only the driver performs source instrumentation.
 
    case Part is
       when "driver" => null;
@@ -72,12 +72,6 @@ project Gnatcov is
    --  The size of addresses we expect the tool we build will handle. Used to
    --  select source variants implementing 32-bit or 64-bit types, constants
    --  and subprograms.
-   --
-   --  Note that we build the "gnatcov" driver in 32-bit mode as an
-   --  optimization: unlike "gnatcov64", none of "lib32", "gnatcov32",
-   --  "compiler" and "driver" need source instrumentation support,
-   --  so they all use the same sources, and can thus share the same
-   --  object directory.
 
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := "32";
@@ -99,12 +93,6 @@ project Gnatcov is
       --  In order to reduce the size of produced executables, whenever
       --  possible, use stubs for units that pull big dependencies into the
       --  link closure (GPR2, Libadalang, Libclang).
-      --
-      --  Removing such a dependency is possible when the associated feature is
-      --  not used in the selected part: for instance, the gnatcov driver does
-      --  not perform any source instrumentation itself (it delegates it to
-      --  gnatcov64), so it does not need to be linked with Libadalang nor
-      --  Libclang.
 
       case Part is
          when "driver" =>
@@ -178,14 +166,8 @@ project Gnatcov is
       Common_Switches := ("--level=stmt", "--no-subprojects");
       for Switches ("instrument") use Common_Switches
 
-         --  Include the part as a trace filename prefix to differentiate
-         --  traces produced by the execution of the driver / gnatcov32 /
-         --  gnatcov64
-
-         & ("--dump-filename-prefix=" & Part)
-
-         --  Also rename the filename environment variable to avoid conflicting
-         --  with instrumented tests in the testing environment.
+         --  Rename the filename environment variable to avoid conflicting with
+         --  instrumented tests in the testing environment.
 
          & ("--dump-filename-env-var=GNATCOV_TRACE_DIR");
 
