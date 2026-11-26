@@ -6970,6 +6970,8 @@ package body Instrument.Ada_Unit is
       --  Only operates on Case_Exprs, call Instrument_GExpr on every case
 
       procedure Process_Decisions (N : Ada_Node'Class; T : Decision_Character);
+      --  Process decisions in the tree rooted at N. T and Loc have the same
+      --  semantics as for Process_Expression.
 
       -----------------------------
       -- Process_Call_Expression --
@@ -7608,8 +7610,7 @@ package body Instrument.Ada_Unit is
             E      : Expr'Class;
             New_SI : aliased in out Default_MCDC_State_Inserter)
          is
-            Loc : Lk_Slocs.Source_Location := Lk_Slocs.No_Source_Location;
-            --  Node whose Sloc is used for the decision
+            Loc : constant Lk_Slocs.Source_Location := Sloc (E);
 
             Nam : Name_Id := Namet.No_Name;
             --  For the case of an aspect, aspect name
@@ -7618,105 +7619,65 @@ package body Instrument.Ada_Unit is
             --  Is the decision that of a contract
 
          begin
+            --  If an aspect/pragma is involved, recover its name
+
             case T is
-               when 'I' | 'E' | 'W' | 'A' =>
+               when 'A'    =>
 
-                  --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
-                  --  of the parent of the expression.
+                  --  See Process_Contract(_Expr): the parent node for this
+                  --  decision is either the aspect association (default
+                  --  assertion level), or an aggregate that provides one
+                  --  decision per assertion level.
+                  --
+                  --  For Contract_Cases aspects, we also expect:
+                  --
+                  --  * an extra inner layer of Alternatives_List (for guard
+                  --    expressions).
+                  --
+                  --  * an extra outer layer of Aggregate (for consequence
+                  --    expressions).
 
-                  Loc := Sloc (Parent (E));
-
-                  if T = 'A' then
-
-                     --  See Process_Contract(_Expr): the parent node for this
-                     --  decision is either the aspect association (default
-                     --  assertion level), or an aggregate that provides one
-                     --  decision per assertion level.
-                     --
-                     --  For Contract_Cases aspects, we also expect:
-                     --
-                     --  * an extra inner layer of Alternatives_List (for guard
-                     --    expressions).
-                     --
-                     --  * an extra outer layer of Aggregate (for consequence
-                     --    expressions).
-
-                     declare
-                        N : Ada_Node;
-                     begin
-                        N := E.Parent;
-                        if N.Kind = Ada_Alternatives_List then
-                           N := N.Parent;
-                        end if;
-                        if N.Kind /= Ada_Aspect_Assoc then
-                           pragma Assert (N.Kind = Ada_Aggregate_Assoc);
+                  declare
+                     N : Ada_Node;
+                  begin
+                     N := E.Parent;
+                     if N.Kind = Ada_Alternatives_List then
+                        N := N.Parent;
+                     end if;
+                     if N.Kind /= Ada_Aspect_Assoc then
+                        pragma Assert (N.Kind = Ada_Aggregate_Assoc);
+                        N := N.Parent;
+                        pragma Assert (N.Kind = Ada_Assoc_List);
+                        N := N.Parent;
+                        pragma Assert (N.Kind = Ada_Aggregate);
+                        N := N.Parent;
+                        if N.Kind = Ada_Aggregate_Assoc then
                            N := N.Parent;
                            pragma Assert (N.Kind = Ada_Assoc_List);
                            N := N.Parent;
                            pragma Assert (N.Kind = Ada_Aggregate);
                            N := N.Parent;
-                           if N.Kind = Ada_Aggregate_Assoc then
-                              N := N.Parent;
-                              pragma Assert (N.Kind = Ada_Assoc_List);
-                              N := N.Parent;
-                              pragma Assert (N.Kind = Ada_Aggregate);
-                              N := N.Parent;
-                           end if;
-                           pragma Assert (N.Kind = Ada_Aspect_Assoc);
                         end if;
-                        Nam := Aspect_Assoc_Name (N.As_Aspect_Assoc);
-                     end;
-                  end if;
-
-               when 'G'                   =>
-
-                  --  For an entry body guard, use the location of the entry
-                  --  body. For the guard on a select alternative, we do not
-                  --  have access to the token location for the WHEN, so we use
-                  --  the sloc of the condition itself.
-
-                  declare
-                     Par : constant Ada_Node := E.Parent;
-                  begin
-                     if Par.Kind = Ada_Entry_Body then
-                        Loc := Sloc (Par);
-                     else
-                        Loc := Sloc (E);
+                        pragma Assert (N.Kind = Ada_Aspect_Assoc);
                      end if;
+                     Nam := Aspect_Assoc_Name (N.As_Aspect_Assoc);
                   end;
 
-               when 'P'                   =>
-
-                  --  For PRAGMA, we must get the location from the pragma
-                  --  node. Argument E is the pragma argument.
-
+               when 'P'    =>
                   declare
                      PN : Ada_Node := E.As_Ada_Node;
                   begin
                      while PN.Kind /= Ada_Pragma_Node loop
                         PN := PN.Parent;
                      end loop;
-                     Loc := Sloc (PN);
                      Is_Contract :=
                        Pragma_Name (PN.As_Pragma_Node)
                        /= Precomputed_Symbols (Debug);
                      Nam := Pragma_Name (PN.As_Pragma_Node);
                   end;
 
-               when 'X'                   =>
-
-                  --  For an expression, we will use the sloc of the first
-                  --  condition. This is done afterwards, when processing the
-                  --  low level scos in sc_obligations.adb.
-                  --
-                  --  cf. the Update_Decision_Sloc procedure.
-
+               when others =>
                   null;
-
-               --  No other possibilities
-
-               when others                =>
-                  raise Program_Error;
             end case;
 
             Append_SCO
