@@ -5152,14 +5152,14 @@ package body SC_Obligations is
    function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean is
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
-      if Switches.Postcond_Only then
+      if SCOD.Kind = Condition then
+         return Is_Assertion_To_Cover (Enclosing_Decision (SCO));
+
+      elsif Switches.Postcond_Only then
          return Is_Postcond (SCO);
 
       elsif SCOD.Kind = Decision then
          return Is_Assertion (SCO);
-
-      elsif SCOD.Kind = Condition then
-         return Is_Assertion_To_Cover (Enclosing_Decision (SCO));
 
       else
          return False;
