@@ -158,6 +158,11 @@ The available options are as follows:
     file or checkpoint which contributes to the computation of the "covered"
     or "partially covered" state of the SCO for a given coverage level.
 
+    In XML reports, origin filenames are listed in the shared ``origin_files``
+    table under ``coverage_info`` in ``index.xml``. Each obligation's ``origins``
+    element contains whitespace-separated positive integer IDs referring to
+    this table, which includes both trace files and checkpoints.
+
 A lot of options are available to control the set of units for which coverage
 is to be assessed. They may be combined in multiple ways and attributed within
 the project files are available to refine the set of units to include or

@@ -308,8 +308,25 @@ package body Annotations.Dynamic_Html is
 
       procedure Append_Coverage_Info is
          use Coverage;
+         use Instrument.Input_Traces;
       begin
          Pp.JSON.Set_Field ("coverageLevel", Coverage_Option_Value);
+
+         --  Save the mapping from coverage origin identifier to origin
+         --  filename.
+
+         if Switches.Compute_Origins then
+            declare
+               Origin_Filenames : constant JSON_Value := Create_Object;
+            begin
+               for Id in Origin_Files.First_Index .. Origin_Files.Last_Index
+               loop
+                  Origin_Filenames.Set_Field
+                    (Img (Id), +Origin_Files.Element (Id));
+               end loop;
+               Pp.JSON.Set_Field ("originFiles", Origin_Filenames);
+            end;
+         end if;
       end Append_Coverage_Info;
 
       ------------------------
@@ -1245,9 +1262,14 @@ package body Annotations.Dynamic_Html is
       JSON_Origins : JSON_Array;
    begin
       if Switches.Compute_Origins and then Has_Element (Origins) then
-         for Origin of Element (Origins) loop
-            Append (JSON_Origins, Create (+Origin));
-         end loop;
+         declare
+            Ids : constant Constant_Reference_Type :=
+              Coverage_Origins.Constant_Reference (Origins);
+         begin
+            for Origin of Ids.Element.all loop
+               Append (JSON_Origins, Create (Origin));
+            end loop;
+         end;
       end if;
 
       Obj.Set_Field ("origins", JSON_Origins);

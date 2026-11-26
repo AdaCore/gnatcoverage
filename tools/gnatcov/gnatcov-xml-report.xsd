@@ -61,6 +61,8 @@
   <xs:complexType name="coverage_info_type">
     <xs:sequence>
       <xs:element name="traces" type="traces_type"/>
+      <xs:element name="origin_files" type="origin_files_type"
+                  minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -219,12 +221,21 @@
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="origins_type">
+  <xs:complexType name="origin_files_type">
     <xs:sequence>
-      <xs:element name="filepath" type="xs:string"
-                  minOccurs="1" maxOccurs="unbounded"/>
+      <xs:element name="file" type="origin_file_type"
+                  minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
+
+  <xs:complexType name="origin_file_type">
+    <xs:attribute name="id" type="xs:positiveInteger" use="required"/>
+    <xs:attribute name="filename" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="origins_type">
+    <xs:list itemType="xs:positiveInteger"/>
+  </xs:simpleType>
 
   <xs:complexType name="annotation_type">
     <xs:attribute name="text" type="xs:string"/>
@@ -302,6 +313,8 @@
   <xs:complexType name="contract_expression_type">
     <xs:sequence>
       <xs:element name="src" type="src_type"
+                  minOccurs="0" maxOccurs="1"/>
+      <xs:element name="origins" type="origins_type"
                   minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="coverage" type="coverage_type" use="required"/>

@@ -70,6 +70,11 @@ package Annotations.Xml is
    --       parse : set to "xml"
    --       href  : path to the file that contains a trace info file.
    --
+   --       With --origins, <origin_files> contains one <file id="NUM"
+   --       filename="TEXT"/> entry per distinct trace or checkpoint filename.
+   --       Each obligation's <origins> contains whitespace-separated IDs
+   --       from this report-wide table.
+   --
    --
    --    <sources>: List of annotated source files. This should contain a list
    --       of child elements <xi:include> with the following attributes:
