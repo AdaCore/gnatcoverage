@@ -422,24 +422,25 @@ package body Annotations.Sarif is
               or else M.Kind = Undetermined_Cov
             then
                Pp.Results.Append
-                 ((Is_Violation => M.Kind = Violation,
-                   Is_Exempted  => Pp.Exemption /= Slocs.No_Location,
-                   Rule_Id      =>
-                     (if M.Kind = Undetermined_Cov
-                      then Rules (Undet_Rule).Id
-                      else
-                        Rules
-                          (Source_Coverage_Level'Pos
-                             (Coverage_Level'Val (Rep_Section)))
-                          .Id),
-                   Message      =>
-                     Ada.Characters.Handling.To_Lower
-                       (SCO_Kind'Image (Kind (M.SCO)))
-                     & (+" ")
-                     & M.Msg,
-                   Location     =>
-                     +(Get_File (M.Sloc.Source_File).Full_Name.all),
-                   Region       => First_Sloc (M.SCO).L));
+                 (Result_Info'
+                    (Is_Violation => M.Kind = Violation,
+                     Is_Exempted  => Pp.Exemption /= Slocs.No_Location,
+                     Rule_Id      =>
+                       (if M.Kind = Undetermined_Cov
+                        then Rules (Undet_Rule).Id
+                        else
+                          Rules
+                            (Source_Coverage_Level'Pos
+                               (Coverage_Level'Val (Rep_Section)))
+                            .Id),
+                     Message      =>
+                       Ada.Characters.Handling.To_Lower
+                         (SCO_Kind'Image (Kind (M.SCO)))
+                       & (+" ")
+                       & M.Msg,
+                     Location     =>
+                       +(Get_File (M.Sloc.Source_File).Full_Name.all),
+                     Region       => First_Sloc (M.SCO).L));
             end if;
          end;
       end if;

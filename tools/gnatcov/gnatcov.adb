@@ -1067,7 +1067,7 @@ procedure GNATcov is
          if Has_Prefix (Element, (1 => ASCII.NUL)) then
             Current_Exec := +Element (Element'First + 1 .. Element'Last);
          else
-            Trace_Inputs.Append ((+Element, Current_Exec));
+            Trace_Inputs.Append (Requested_Trace'(+Element, Current_Exec));
          end if;
       end Handle_Trace_List_Element;
 
@@ -1300,7 +1300,8 @@ procedure GNATcov is
 
          procedure Process_Dir_Entry (Dir_Entry : Directory_Entry_Type) is
          begin
-            Trace_Inputs.Append ((+Full_Name (Dir_Entry), Current_Exec));
+            Trace_Inputs.Append
+              (Requested_Trace'(+Full_Name (Dir_Entry), Current_Exec));
          end Process_Dir_Entry;
 
          -----------------

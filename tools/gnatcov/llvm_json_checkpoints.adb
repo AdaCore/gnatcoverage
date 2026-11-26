@@ -455,10 +455,11 @@ package body LLVM_JSON_Checkpoints is
                begin
                   Cond_Vec.Append (True);
                   TVs.Append
-                    ((Decision       => No_SCO_Id,
-                      Values         => Cond_Vec,
-                      Outcome        => True,
-                      Next_Condition => No_Condition_Index));
+                    (MC_DC.Evaluation'
+                       (Decision       => No_SCO_Id,
+                        Values         => Cond_Vec,
+                        Outcome        => True,
+                        Next_Condition => No_Condition_Index));
                end;
             end if;
             if Branch_Region.F_Exec_Count > 0 then
@@ -467,10 +468,11 @@ package body LLVM_JSON_Checkpoints is
                begin
                   Cond_Vec.Append (False);
                   TVs.Append
-                    ((Decision       => No_SCO_Id,
-                      Values         => Cond_Vec,
-                      Outcome        => False,
-                      Next_Condition => No_Condition_Index));
+                    (MC_DC.Evaluation'
+                       (Decision       => No_SCO_Id,
+                        Values         => Cond_Vec,
+                        Outcome        => False,
+                        Next_Condition => No_Condition_Index));
                end;
             end if;
 
