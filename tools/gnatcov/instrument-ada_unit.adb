@@ -7607,6 +7607,7 @@ package body Instrument.Ada_Unit is
             case T is
                when 'I' | 'E' | 'W' | 'a' | 'A' =>
 
+                  --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
                   --  of the parent of the expression.
 
                   Loc := Sloc (Parent (E));
