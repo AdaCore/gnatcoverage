@@ -8,3 +8,8 @@ pragma Warnings
 pragma Warnings
   (Off,
    "use clause for type ""Interfaces.Unsigned_32"" has no effect");
+
+--  We don't use the [] syntax (big refactoring for neglectible value): do not
+--  let GNAT warn about () aggregates.
+pragma Warnings
+  (Off, "array aggregate using () is an obsolescent syntax, use [] instead");
