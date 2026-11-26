@@ -452,6 +452,8 @@ package body Instrument.Ada_Unit is
          when others              =>
            raise Constraint_Error
              with "unexpected Name_Id: " & Name_Id'Image (N));
+   function "+" (Id : All_Symbols) return Name_Id
+   is (Name_Find (Id'Image));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type
    is (Precomputed_Symbols (S));
@@ -8047,11 +8049,6 @@ package body Instrument.Ada_Unit is
    is
       T : constant Decision_Character := (if Is_Pragma then 'P' else 'A');
 
-      function Pragma_For (T : Decision_Character) return Name_Id
-      is (if T in 'A' | 'P' then Name_Find (Name'Image) else Namet.No_Name);
-      --  If T is a pragma or aspect, return the equivalent name for Name.
-      --  Return No_Name otherwise.
-
       procedure Process_Expr (E : Expr'Class);
       --  Helper to process the contract for a given assertion level
 
@@ -8090,10 +8087,20 @@ package body Instrument.Ada_Unit is
                --  decisions (not assertions). Do not use 'X' so that they are
                --  considered as decisions even when not instrumenting for
                --  MC/DC.
+               --
+               --  Note: we use "fake" pragma/aspect names (not Contract_Cases)
+               --  in this case because the point is to get coverage analysis
+               --  to process each expression "as if" it belongs to a
+               --  Pre/Postcondition. The actual names do not matter for
+               --  coverage purposes.
 
-               Guard_T       : constant Decision_Character :=
+               Guard_T    : constant Decision_Character :=
                  (if Multiple_Cases then 'I' else T);
-               Consequence_T : constant Decision_Character := T;
+               Guard_Name : constant Name_Id :=
+                 (if Multiple_Cases then Namet.No_Name else +Precondition);
+
+               Consequence_T    : constant Decision_Character := T;
+               Consequence_Name : constant Name_Id := +Postcondition;
             begin
                for Assoc of Assocs loop
                   declare
@@ -8102,10 +8109,7 @@ package body Instrument.Ada_Unit is
                      for D of A.F_Designators loop
                         if D.Kind in Ada_Expr then
                            Process_Standalone_Expression
-                             (UIC,
-                              D.As_Expr,
-                              Guard_T,
-                              Prag => Pragma_For (Guard_T));
+                             (UIC, D.As_Expr, Guard_T, Prag => Guard_Name);
                         end if;
                      end loop;
 
@@ -8113,12 +8117,12 @@ package body Instrument.Ada_Unit is
                        (UIC,
                         A.F_R_Expr,
                         Consequence_T,
-                        Prag => Pragma_For (Consequence_T));
+                        Prag => Consequence_Name);
                   end;
                end loop;
             end;
          else
-            Process_Standalone_Expression (UIC, E, T, Prag => Pragma_For (T));
+            Process_Standalone_Expression (UIC, E, T, Prag => +Name);
          end if;
       end Process_Expr;
 

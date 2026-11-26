@@ -11,8 +11,10 @@ begin
 end Test_Contract_Cases;
 
 --# contract_cases.ads
--- /conseq-1/ s=>l., ac=>l+ ## 0
--- /conseq-2/ s=>l., ac=>l- ## a-
+-- /conseq-1/  s=>l., ac=>l+ ## 0
+-- /conseq-2/  s=>l., ac=>l- ## a-
+-- /f2-conseq/ s=>l., ac=>l- ## a-
+-- /f2-guard/  l.            ## 0
 --
 --%cov: --level=stmt --postcond-only
 -- /guard-1/  l. ## 0
