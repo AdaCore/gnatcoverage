@@ -1049,34 +1049,13 @@ package body Setup_RTS is
       Setup_RTS_Dir       : String;
       Setup_RTS_Name      : String)
    is
-
-      function Canonicalize_Target (Name : String) return String;
       function Canonicalize_Runtime (Name : String) return String;
-      --  Since the expected target/RTS couple comes from "gnatcov setup"
-      --  (GPR2-based) while the actual one come from the Project package
-      --  (GNATCOLL.Projects), we have to deal with inconsistencies between the
-      --  two.
+      --  Setup metadata and the current project may use different names for
+      --  the same target or runtime.
       --
-      --  For the target, we can use GPR2's capability to normalize target
-      --  names (GPR2.KB.Normalized_Target).
-      --
-      --  For the runtime, GPR2 and GNATCOLL.Projects are not perfectly
-      --  concordant wrt the formatting of runtime names: GPR2 can return an
-      --  empty string for the default runtime, sometimes the name is a
-      --  directory name, sometimes that directory name has a trailing
-      --  directory separator, ...
-      --
-      --  In addition, unless --config is used, GNATCOLL.Projects is likely to
-      --  return an empty string for the default runtime, so we are not able to
-      --  check runtime consistency in this case. Hopefully inconsistency will
-      --  be unlikely when this happens: assuming the target is the same, it is
-      --  likely that the user never tries to use a non-default runtime.
-      --
-      --  TODO??? (eng/das/cov/gnatcoverage#72) Once the GPR2 transition is
-      --  over, we should not have to worry about discrepancies anymore.
-
-      function Canonicalize_Target (Name : String) return String
-      is (String (GPR2.KB.Create.Normalized_Target (GPR2.Name_Type (Name))));
+      --  Runtime names can be empty for the default runtime. Otherwise they
+      --  can be a short name or a directory, with or without a trailing
+      --  separator. Skip runtime checks when the current name is empty.
 
       --------------------------
       -- Canonicalize_Runtime --
@@ -1108,6 +1087,9 @@ package body Setup_RTS is
       end if;
 
       declare
+         function Check_Target return Boolean;
+         --  Return True if the targets agree and emit a warning otherwise
+
          function Error_Message (What, Expected, Actual : String) return String
          is ("Current "
              & What
@@ -1125,22 +1107,57 @@ package body Setup_RTS is
              & "  "
              & (if Expected = "" then "<none>" else Expected));
 
-         Expected_Target   : constant String :=
-           Canonicalize_Target (Setup_Target);
+         ------------------
+         -- Check_Target --
+         ------------------
+
+         function Check_Target return Boolean is
+            Current_Target : constant String := Project.Target;
+         begin
+            if Setup_Target = Current_Target then
+               return True;
+            end if;
+
+            declare
+               KB : GPR2.KB.Object := Project.Project.Get_KB;
+
+               function Canonicalize_Target (Name : String) return String
+               is (String (KB.Normalized_Target (GPR2.Name_Type (Name))));
+            begin
+               if not KB.Is_Defined then
+                  KB := GPR2.KB.Create;
+               end if;
+
+               declare
+                  Expected : constant String :=
+                    Canonicalize_Target (Setup_Target);
+                  Actual   : constant String :=
+                    Canonicalize_Target (Current_Target);
+               begin
+                  if Expected /= Actual then
+                     Warn (Error_Message ("target", Expected, Actual));
+                     return False;
+                  end if;
+               end;
+            end;
+
+            return True;
+         end Check_Target;
+
          Expected_RTS_Dir  : constant String :=
            Canonicalize_Runtime (Setup_RTS_Dir);
          Expected_RTS_Name : constant String :=
            Canonicalize_Runtime (Setup_RTS_Name);
 
-         Actual_Target : constant String :=
-           Canonicalize_Target (Project.Target);
-         Actual_RTS    : constant String :=
+         Actual_RTS : constant String :=
            Canonicalize_Runtime (Project.Runtime);
 
       begin
-         if Expected_Target /= Actual_Target then
-            Warn (Error_Message ("target", Expected_Target, Actual_Target));
-         elsif Actual_RTS /= ""
+         if not Check_Target then
+            return;
+         end if;
+
+         if Actual_RTS /= ""
            and then Expected_RTS_Dir /= Actual_RTS
            and then Expected_RTS_Name /= Actual_RTS
          then
