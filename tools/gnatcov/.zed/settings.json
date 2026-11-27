@@ -6,7 +6,7 @@
           "projectFile": "gnatcov.gpr",
           "scenarioVariables": {
               "BUILD_MODE": "dev",
-              "PART": "gnatcov64",
+              "PART": "driver",
               "C_SUPPORT": "True"
           }
         },
