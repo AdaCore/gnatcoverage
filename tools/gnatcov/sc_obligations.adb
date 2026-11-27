@@ -5176,13 +5176,18 @@ package body SC_Obligations is
       Is_Postcond_Aspect : constant Boolean :=
         SCOD.Kind = Decision
         and then SCOD.D_Kind in Aspect
-        and then SCOD.Aspect_Name in Aspect_Post | Aspect_Postcondition;
+        and then
+          SCOD.Aspect_Name
+          in Aspect_Contract_Cases | Aspect_Post | Aspect_Postcondition;
       Is_Postcond_Pragma : constant Boolean :=
         SCOD.Kind = Decision
         and then SCOD.D_Kind in Pragma_Decision
         and then
           Decision_Pragma_Name (SCO)
-          in Pragma_Post | Pragma_Post_Class | Pragma_Postcondition;
+          in Pragma_Contract_Cases
+           | Pragma_Post
+           | Pragma_Post_Class
+           | Pragma_Postcondition;
    begin
       return Is_Postcond_Aspect or else Is_Postcond_Pragma;
    end Is_Postcond;
@@ -5221,6 +5226,7 @@ package body SC_Obligations is
            Decision_Pragma_Name (SCO)
            in Pragma_Assert
             | Pragma_Check
+            | Pragma_Contract_Cases
             | Pragma_Precondition
             | Pragma_Postcondition
             | Pragma_Loop_Invariant);
