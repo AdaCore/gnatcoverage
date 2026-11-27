@@ -452,6 +452,8 @@ package body Instrument.Ada_Unit is
          when others              =>
            raise Constraint_Error
              with "unexpected Name_Id: " & Name_Id'Image (N));
+   function "+" (Id : All_Symbols) return Name_Id
+   is (Name_Find (Id'Image));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type
    is (Precomputed_Symbols (S));
@@ -3982,17 +3984,38 @@ package body Instrument.Ada_Unit is
    --  the regular alternative processing typically involves attribute queries
    --  which aren't valid for a pragma.
 
+   type Decision_Character is new Character
+   with
+     Static_Predicate =>
+       Decision_Character in 'A' | 'E' | 'I' | 'G' | 'P' | 'W' | 'X';
+   --  Character that describes the context of expression:
+   --
+   --  * 'A' for aspects;
+   --  * 'E' for EXIT WHEN expressions;
+   --  * 'I' for IF statement/expression conditions;
+   --  * 'G' for entry guard expressions;
+   --  * 'P' for pragma expressions;
+   --  * 'W' for WHEN controlling expressions;
+   --  * 'X' for other contexts.
+
    procedure Process_Expression
      (UIC     : in out Ada_Unit_Inst_Context;
       N       : Ada_Node'Class;
-      T       : Character;
-      Preelab : Boolean := False);
+      T       : Decision_Character;
+      Prag    : Name_Id := Namet.No_Name;
+      Preelab : Boolean := False)
+   with
+     Pre =>
+       (if T in 'A' | 'P'
+        then Prag /= Namet.No_Name
+        else Prag = Namet.No_Name);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
-   --  to output any decisions it contains. T is one of IEGPWX (for context of
-   --  expression: if/exit when/entry guard/pragma/while/expression). If T is
-   --  other than X, the node N is the if expression involved, and a decision
-   --  is always present (at the very least a simple decision is present at the
-   --  top level).
+   --  to output any decisions it contains.
+   --
+   --  If T is other than X, a decision is always present at the top level.
+   --
+   --  If T is A or P (i.e. if we are processing an expression for a pragma or
+   --  a decision), Prag must contain the aspect/pragma name.
    --
    --  If Preelab, consider that the expression is evaluated in a preelaborated
    --  context, i.e. that its decisions/expressions cannot be instrumented.
@@ -4000,7 +4023,10 @@ package body Instrument.Ada_Unit is
    --  This also processes any nested declare expressions.
 
    procedure Process_Standalone_Expression
-     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
+     (UIC  : in out Ada_Unit_Inst_Context;
+      N    : Ada_Node'Class;
+      T    : Decision_Character;
+      Prag : Name_Id := Namet.No_Name);
    --  Wrapper around Process_Expression that considers that the context does
    --  not provide a valid MCDC state inserter (for instance for contracts or
    --  formal/discriminant/component default expressions).
@@ -6080,7 +6106,8 @@ package body Instrument.Ada_Unit is
                                    (UIC,
                                     Prag_Arg_Expr (Prag_Args, Index),
                                     'P',
-                                    Preelab);
+                                    Nam,
+                                    Preelab => Preelab);
                               end if;
                            end if;
                         end;
@@ -6102,12 +6129,16 @@ package body Instrument.Ada_Unit is
                              (UIC,
                               Prag_Arg_Expr (Prag_Args, Arg),
                               'P',
-                              Preelab);
+                              Nam,
+                              Preelab => Preelab);
                            Arg := 2;
                         end if;
 
                         Process_Expression
-                          (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'X', Preelab);
+                          (UIC,
+                           Prag_Arg_Expr (Prag_Args, Arg),
+                           'X',
+                           Preelab => Preelab);
 
                      when Name_Annotate
                      =>
@@ -6163,7 +6194,7 @@ package body Instrument.Ada_Unit is
                      when others
                      =>
                         Instrument_Statement (N, 'P');
-                        Process_Expression (UIC, N, 'X', Preelab);
+                        Process_Expression (UIC, N, 'X', Preelab => Preelab);
                   end case;
                end;
 
@@ -6173,7 +6204,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Number_Decl | Ada_Object_Decl                 =>
                Instrument_Statement (N, 'o');
-               Process_Expression (UIC, N, 'X', Preelab);
+               Process_Expression (UIC, N, 'X', Preelab => Preelab);
 
             when Ada_Protected_Type_Decl | Ada_Task_Type_Decl      =>
                Instrument_Statement (N, 't');
@@ -6221,7 +6252,7 @@ package body Instrument.Ada_Unit is
                --  Process any embedded decisions
 
                if N.Kind /= Ada_Concrete_Type_Decl then
-                  Process_Expression (UIC, N, 'X', Preelab);
+                  Process_Expression (UIC, N, 'X', Preelab => Preelab);
                   return;
                end if;
 
@@ -6246,7 +6277,8 @@ package body Instrument.Ada_Unit is
                           .F_Record_Def
                           .F_Components);
                   else
-                     Process_Expression (UIC, TD.F_Type_Def, 'X', Preelab);
+                     Process_Expression
+                       (UIC, TD.F_Type_Def, 'X', Preelab => Preelab);
                   end if;
 
                   --  Access to subprogram types can have pre/post conditions:
@@ -6350,7 +6382,7 @@ package body Instrument.Ada_Unit is
 
                --  Process any embedded decisions
 
-               Process_Expression (UIC, N, 'X', Preelab);
+               Process_Expression (UIC, N, 'X', Preelab => Preelab);
          end case;
       end Traverse_One;
 
@@ -6908,7 +6940,8 @@ package body Instrument.Ada_Unit is
    procedure Process_Expression
      (UIC     : in out Ada_Unit_Inst_Context;
       N       : Ada_Node'Class;
-      T       : Character;
+      T       : Decision_Character;
+      Prag    : Name_Id := Namet.No_Name;
       Preelab : Boolean := False)
    is
       procedure Process_Call_Expression (N : Ada_Node'Class);
@@ -6955,7 +6988,12 @@ package body Instrument.Ada_Unit is
       --  Helper to Libadalang's Traverse.
       --  Only operates on Case_Exprs, call Instrument_GExpr on every case
 
-      procedure Process_Decisions (N : Ada_Node'Class; T : Character);
+      procedure Process_Decisions
+        (N    : Ada_Node'Class;
+         T    : Decision_Character;
+         Prag : Name_Id := Namet.No_Name);
+      --  Process decisions in the tree rooted at N. T and Prag have the same
+      --  semantics as for Process_Expression.
 
       -----------------------------
       -- Process_Call_Expression --
@@ -7355,7 +7393,11 @@ package body Instrument.Ada_Unit is
       -- Process_Decisions --
       -----------------------
 
-      procedure Process_Decisions (N : Ada_Node'Class; T : Character) is
+      procedure Process_Decisions
+        (N    : Ada_Node'Class;
+         T    : Decision_Character;
+         Prag : Name_Id := Namet.No_Name)
+      is
          Mark : Nat;
          --  This is used to mark the location of a decision sequence in the
          --  SCO table. We use it for backing out a simple decision in an
@@ -7436,12 +7478,11 @@ package body Instrument.Ada_Unit is
          --  False, and an entry is made in the condition hash table.
 
          procedure Output_Header
-           (T      : Character;
+           (T      : Decision_Character;
             E      : Expr'Class;
             New_SI : aliased in out Default_MCDC_State_Inserter);
-         --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT
-         --  WHEN/ PRAGMA, and 'X' for the expression case. Resets
-         --  Condition_Count to 0, and initializes Conditions_State.
+         --  Outputs a decision header node, for the given decision context T.
+         --  Resets Condition_Count to 0, and initializes Conditions_State.
          --
          --  If there is MCDC state inserter for the current context, this may
          --  try to create one: if that's the case, New_SI will be used to do
@@ -7590,129 +7631,25 @@ package body Instrument.Ada_Unit is
          -------------------
 
          procedure Output_Header
-           (T      : Character;
+           (T      : Decision_Character;
             E      : Expr'Class;
             New_SI : aliased in out Default_MCDC_State_Inserter)
          is
-            Loc : Lk_Slocs.Source_Location := Lk_Slocs.No_Source_Location;
-            --  Node whose Sloc is used for the decision
+            Loc : constant Lk_Slocs.Source_Location := Sloc (E);
 
-            Nam : Name_Id := Namet.No_Name;
-            --  For the case of an aspect, aspect name
-
-            Is_Contract : Boolean := T in 'a' | 'A' | 'P';
+            Is_Contract : constant Boolean :=
+              T in 'A' | 'P'
+              and then Case_Insensitive_Get_Pragma_Id (Prag) /= Pragma_Debug;
             --  Is the decision that of a contract
-
          begin
-            case T is
-               when 'I' | 'E' | 'W' | 'a' | 'A' =>
-
-                  --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
-                  --  of the parent of the expression.
-
-                  Loc := Sloc (Parent (E));
-
-                  if T in 'a' | 'A' then
-
-                     --  See Process_Contract(_Expr): the parent node for this
-                     --  decision is either the aspect association (default
-                     --  assertion level), or an aggregate that provides one
-                     --  decision per assertion level.
-                     --
-                     --  For Contract_Cases aspects, we also expect:
-                     --
-                     --  * an extra inner layer of Alternatives_List (for guard
-                     --    expressions).
-                     --
-                     --  * an extra outer layer of Aggregate (for consequence
-                     --    expressions).
-
-                     declare
-                        N : Ada_Node;
-                     begin
-                        N := E.Parent;
-                        if N.Kind = Ada_Alternatives_List then
-                           N := N.Parent;
-                        end if;
-                        if N.Kind /= Ada_Aspect_Assoc then
-                           pragma Assert (N.Kind = Ada_Aggregate_Assoc);
-                           N := N.Parent;
-                           pragma Assert (N.Kind = Ada_Assoc_List);
-                           N := N.Parent;
-                           pragma Assert (N.Kind = Ada_Aggregate);
-                           N := N.Parent;
-                           if N.Kind = Ada_Aggregate_Assoc then
-                              N := N.Parent;
-                              pragma Assert (N.Kind = Ada_Assoc_List);
-                              N := N.Parent;
-                              pragma Assert (N.Kind = Ada_Aggregate);
-                              N := N.Parent;
-                           end if;
-                           pragma Assert (N.Kind = Ada_Aspect_Assoc);
-                        end if;
-                        Nam := Aspect_Assoc_Name (N.As_Aspect_Assoc);
-                     end;
-                  end if;
-
-               when 'G'                         =>
-
-                  --  For an entry body guard, use the location of the entry
-                  --  body. For the guard on a select alternative, we do not
-                  --  have access to the token location for the WHEN, so we use
-                  --  the sloc of the condition itself.
-
-                  declare
-                     Par : constant Ada_Node := E.Parent;
-                  begin
-                     if Par.Kind = Ada_Entry_Body then
-                        Loc := Sloc (Par);
-                     else
-                        Loc := Sloc (E);
-                     end if;
-                  end;
-
-               when 'P'                         =>
-
-                  --  For PRAGMA, we must get the location from the pragma
-                  --  node. Argument E is the pragma argument.
-
-                  declare
-                     PN : Ada_Node := E.As_Ada_Node;
-                  begin
-                     while PN.Kind /= Ada_Pragma_Node loop
-                        PN := PN.Parent;
-                     end loop;
-                     Loc := Sloc (PN);
-                     Is_Contract :=
-                       Pragma_Name (PN.As_Pragma_Node)
-                       /= Precomputed_Symbols (Debug);
-                     Nam := Pragma_Name (PN.As_Pragma_Node);
-                  end;
-
-               when 'X'                         =>
-
-                  --  For an expression, we will use the sloc of the first
-                  --  condition. This is done afterwards, when processing the
-                  --  low level scos in sc_obligations.adb.
-                  --
-                  --  cf. the Update_Decision_Sloc procedure.
-
-                  null;
-
-               --  No other possibilities
-
-               when others                      =>
-                  raise Program_Error;
-            end case;
-
             Append_SCO
-              (C1                 => T,
+              (C1                 => Character (T),
                C2                 => ' ',
                From               => +Loc,
                To                 => Slocs.No_Local_Location,
                SFI                => UIC.SFI,
                Last               => False,
-               Pragma_Aspect_Name => Nam);
+               Pragma_Aspect_Name => Prag);
             if UIC.Disable_Instrumentation then
                UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
             end if;
@@ -7777,7 +7714,7 @@ package body Instrument.Ada_Unit is
             --  For an aspect specification, which will be rewritten into a
             --  pragma, enter a hash table entry now.
 
-            if T in 'a' | 'A' then
+            if T = 'A' then
                Hash_Entries.Append ((Loc, Current_Decision));
             end if;
 
@@ -7810,6 +7747,8 @@ package body Instrument.Ada_Unit is
          ------------------
 
          function Process_Node (N : Ada_Node'Class) return Visit_Status is
+            Top_Level : constant Boolean := N = Process_Decisions.N;
+
             --  Test for the two cases where N is the root node of some
             --  decision:
 
@@ -7820,7 +7759,7 @@ package body Instrument.Ada_Unit is
             --  as the operand of an IF, WHILE, EXIT WHEN, or special PRAGMA
             --  construct.
 
-               (N = Process_Decisions.N and then T /= 'X')
+               (Top_Level and then T /= 'X')
 
               --  Complex decision, whether at outer level or nested: a boolean
               --  expression involving a logical operator.
@@ -7832,8 +7771,12 @@ package body Instrument.Ada_Unit is
          begin
             if Decision_Root then
                declare
+                  T : constant Decision_Character :=
+                    (if Top_Level then Process_Decisions.T else 'X');
+                  --  If outer level, then type comes from call, otherwise it
+                  --  is more deeply nested and counts as X for expression.
+
                   EN : constant Expr := N.As_Expr;
-                  T  : Character;
 
                   --  If there is none, Output_Header may create a MCDC local
                   --  state variable inserter.
@@ -7843,15 +7786,6 @@ package body Instrument.Ada_Unit is
                     UIC.MCDC_State_Inserter;
                   Saved_IDE : constant Boolean := UIC.In_Decl_Expr;
                begin
-                  --  If outer level, then type comes from call, otherwise it
-                  --  is more deeply nested and counts as X for expression.
-
-                  if N = Process_Decisions.N then
-                     T := Process_Decisions.T;
-                  else
-                     T := 'X';
-                  end if;
-
                   --  Output header for sequence
 
                   X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
@@ -8028,7 +7962,7 @@ package body Instrument.Ada_Unit is
       if N.Is_Null then
          return;
       end if;
-      Process_Decisions (N, T);
+      Process_Decisions (N, T, Prag);
 
       --  Then, look for all call expressions to instrument them. However,
       --  avoid instrumenting calls that are in subprogram specifications.
@@ -8062,7 +7996,10 @@ package body Instrument.Ada_Unit is
    -----------------------------------
 
    procedure Process_Standalone_Expression
-     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
+     (UIC  : in out Ada_Unit_Inst_Context;
+      N    : Ada_Node'Class;
+      T    : Decision_Character;
+      Prag : Name_Id := Namet.No_Name)
    is
       Saved_SI : constant Any_MCDC_State_Inserter := UIC.MCDC_State_Inserter;
    begin
@@ -8077,7 +8014,7 @@ package body Instrument.Ada_Unit is
       --  current state inserter during the call.
 
       UIC.MCDC_State_Inserter := null;
-      Process_Expression (UIC, N, T);
+      Process_Expression (UIC, N, T, Prag);
       UIC.MCDC_State_Inserter := Saved_SI;
    end Process_Standalone_Expression;
 
@@ -8110,7 +8047,7 @@ package body Instrument.Ada_Unit is
       Name      : All_Symbols;
       Is_Pragma : Boolean)
    is
-      T : constant Character := (if Is_Pragma then 'P' else 'A');
+      T : constant Decision_Character := (if Is_Pragma then 'P' else 'A');
 
       procedure Process_Expr (E : Expr'Class);
       --  Helper to process the contract for a given assertion level
@@ -8150,10 +8087,20 @@ package body Instrument.Ada_Unit is
                --  decisions (not assertions). Do not use 'X' so that they are
                --  considered as decisions even when not instrumenting for
                --  MC/DC.
+               --
+               --  Note: we use "fake" pragma/aspect names (not Contract_Cases)
+               --  in this case because the point is to get coverage analysis
+               --  to process each expression "as if" it belongs to a
+               --  Pre/Postcondition. The actual names do not matter for
+               --  coverage purposes.
 
-               Guard_T       : constant Character :=
+               Guard_T    : constant Decision_Character :=
                  (if Multiple_Cases then 'I' else T);
-               Consequence_T : constant Character := T;
+               Guard_Name : constant Name_Id :=
+                 (if Multiple_Cases then Namet.No_Name else +Precondition);
+
+               Consequence_T    : constant Decision_Character := T;
+               Consequence_Name : constant Name_Id := +Postcondition;
             begin
                for Assoc of Assocs loop
                   declare
@@ -8162,17 +8109,20 @@ package body Instrument.Ada_Unit is
                      for D of A.F_Designators loop
                         if D.Kind in Ada_Expr then
                            Process_Standalone_Expression
-                             (UIC, D.As_Expr, Guard_T);
+                             (UIC, D.As_Expr, Guard_T, Prag => Guard_Name);
                         end if;
                      end loop;
 
                      Process_Standalone_Expression
-                       (UIC, A.F_R_Expr, Consequence_T);
+                       (UIC,
+                        A.F_R_Expr,
+                        Consequence_T,
+                        Prag => Consequence_Name);
                   end;
                end loop;
             end;
          else
-            Process_Standalone_Expression (UIC, E, T);
+            Process_Standalone_Expression (UIC, E, T, Prag => +Name);
          end if;
       end Process_Expr;
 
