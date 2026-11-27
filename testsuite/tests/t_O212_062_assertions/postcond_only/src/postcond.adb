@@ -6,7 +6,8 @@ with Ada.Assertions;
 procedure Postcond
 is
     function A (I : Integer) return Integer
-        with Post => A'Result /= 0;                       -- # post_asp
+        with Pre  => I /= 0,                              -- # pre_asp
+             Post => A'Result /= 0;                       -- # post_asp
 
     function A (I : Integer) return Integer is
     begin

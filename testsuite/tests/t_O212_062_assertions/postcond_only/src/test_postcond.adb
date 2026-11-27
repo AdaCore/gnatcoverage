@@ -11,6 +11,7 @@ begin
 end Test_Postcond;
 
 --# postcond.adb
+-- /pre_asp/   l. ## 0
 -- /post_asp/  l- ## a-
 -- /post_prag/ a=>l+, c=>l! ## a=>0, c=>ac!:"I = 0"
 -- /pre_prag/  l. ## 0

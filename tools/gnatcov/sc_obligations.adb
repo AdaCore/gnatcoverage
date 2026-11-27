@@ -5086,9 +5086,9 @@ package body SC_Obligations is
          return True;
       end if;
 
-      --  Check for pragma Assert/Check/Pre/Post
+      --  Check for pragma Assert/Check/Pre/Post and equivalent aspects
 
-      if D_Kind /= Pragma_Decision then
+      if D_Kind not in Pragma_Decision | Aspect then
          return False;
       end if;
 
