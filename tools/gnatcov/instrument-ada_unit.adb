@@ -7824,6 +7824,8 @@ package body Instrument.Ada_Unit is
          ------------------
 
          function Process_Node (N : Ada_Node'Class) return Visit_Status is
+            Top_Level : constant Boolean := N = Process_Decisions.N;
+
             --  Test for the two cases where N is the root node of some
             --  decision:
 
@@ -7834,7 +7836,7 @@ package body Instrument.Ada_Unit is
             --  as the operand of an IF, WHILE, EXIT WHEN, or special PRAGMA
             --  construct.
 
-               (N = Process_Decisions.N and then T /= 'X')
+               (Top_Level and then T /= 'X')
 
               --  Complex decision, whether at outer level or nested: a boolean
               --  expression involving a logical operator.
@@ -7846,8 +7848,12 @@ package body Instrument.Ada_Unit is
          begin
             if Decision_Root then
                declare
+                  T : constant Decision_Character :=
+                    (if Top_Level then Process_Decisions.T else 'X');
+                  --  If outer level, then type comes from call, otherwise it
+                  --  is more deeply nested and counts as X for expression.
+
                   EN : constant Expr := N.As_Expr;
-                  T  : Decision_Character;
 
                   --  If there is none, Output_Header may create a MCDC local
                   --  state variable inserter.
@@ -7857,15 +7863,6 @@ package body Instrument.Ada_Unit is
                     UIC.MCDC_State_Inserter;
                   Saved_IDE : constant Boolean := UIC.In_Decl_Expr;
                begin
-                  --  If outer level, then type comes from call, otherwise it
-                  --  is more deeply nested and counts as X for expression.
-
-                  if N = Process_Decisions.N then
-                     T := Process_Decisions.T;
-                  else
-                     T := 'X';
-                  end if;
-
                   --  Output header for sequence
 
                   X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
