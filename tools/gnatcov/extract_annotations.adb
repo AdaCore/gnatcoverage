@@ -1074,7 +1074,9 @@ procedure Extract_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
       is
          pragma Unreferenced (Comment);
       begin
-         Comments.Append ((First_Sloc => First.L, Last_Sloc => Last.L));
+         Comments.Append
+           (Local_Source_Location_Range'
+              (First_Sloc => First.L, Last_Sloc => Last.L));
       end Record_C_Comment;
 
    begin

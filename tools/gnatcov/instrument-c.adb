@@ -2789,15 +2789,16 @@ package body Instrument.C is
                      --  beginning of the first statement it contains.
 
                      UIC.Branches.Append
-                       ((File             => File,
-                         Match_Start      => Match_Start.L,
-                         Match_End        => First_Stmt_Sloc (Then_Part).L,
+                       (LL_Branch_Info'
+                          (File             => File,
+                           Match_Start      => Match_Start.L,
+                           Match_End        => First_Stmt_Sloc (Then_Part).L,
 
-                         Control_Decision => Decision,
-                         Control_Outcome  => True,
+                           Control_Decision => Decision,
+                           Control_Outcome  => True,
 
-                         Stmt_Start       => Start_Sloc (Then_Part).L,
-                         Stmt_End         => End_Sloc (Then_Part).L));
+                           Stmt_Start       => Start_Sloc (Then_Part).L,
+                           Stmt_End         => End_Sloc (Then_Part).L));
                   end;
 
                   Traverse_Statements (UIC, To_Vector (Then_Part), TB);
@@ -2819,15 +2820,16 @@ package body Instrument.C is
                      --  the first statement it contains.
 
                      UIC.Branches.Append
-                       ((File             => File,
-                         Match_Start      => Sloc (Get_Else_Loc (N)).L,
-                         Match_End        => First_Stmt_Sloc (Else_Part).L,
+                       (LL_Branch_Info'
+                          (File             => File,
+                           Match_Start      => Sloc (Get_Else_Loc (N)).L,
+                           Match_End        => First_Stmt_Sloc (Else_Part).L,
 
-                         Control_Decision => Decision,
-                         Control_Outcome  => False,
+                           Control_Decision => Decision,
+                           Control_Outcome  => False,
 
-                         Stmt_Start       => Start_Sloc (Else_Part).L,
-                         Stmt_End         => End_Sloc (Else_Part).L));
+                           Stmt_Start       => Start_Sloc (Else_Part).L,
+                           Stmt_End         => End_Sloc (Else_Part).L));
                   end if;
                end;
 

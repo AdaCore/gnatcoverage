@@ -155,6 +155,7 @@ BIN_COMMON_BUILD_ARGS=\
 INSTR_COMMON_ARGS=\
   -j$(PROCESSORS) \
   -P gnatcov.gpr \
+  --ada=2022 \
   --c++-opts=$(CXXFLAGS)
 INSTR_BIN_BUILD_ARGS=\
   $(BIN_COMMON_BUILD_ARGS) \
